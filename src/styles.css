@@ -52,6 +52,11 @@ button:disabled {
   place-items: center;
 }
 
+.result-screen {
+  overflow: hidden;
+  padding: 0.6rem;
+}
+
 .start-panel,
 .handoff-panel,
 .result-panel {
@@ -2016,11 +2021,11 @@ h2 {
 @keyframes result-pop {
   0% {
     opacity: 0;
-    transform: translateY(10px) scale(0.98);
+    transform: translateY(12px) scale(0.96);
   }
   70% {
     opacity: 1;
-    transform: translateY(-3px) scale(1.02);
+    transform: translateY(-4px) scale(1.025);
   }
   100% {
     opacity: 1;
@@ -2146,17 +2151,31 @@ h2 {
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  margin-bottom: 1rem;
+  margin-bottom: 0.45rem;
   border-radius: 8px;
   background: #26382f;
   color: #ffffff;
-  padding: 0.8rem;
+  padding: 0.58rem 0.75rem;
 }
 
 .result-panel {
-  width: min(100%, 760px);
-  max-height: min(92vh, 820px);
-  overflow: auto;
+  width: min(100%, 980px);
+  overflow: visible;
+}
+
+.result-board {
+  display: grid;
+  gap: 0.45rem;
+  padding: clamp(0.7rem, 1.8vh, 1rem);
+}
+
+.result-board .playing-card.compact {
+  width: clamp(30px, 3.1vw, 42px);
+}
+
+.result-board-title {
+  margin: 0;
+  font-size: clamp(1.25rem, 2.2vw, 1.7rem);
 }
 
 .result-pop {
@@ -2165,18 +2184,24 @@ h2 {
   animation: result-pop 0.35s ease-out forwards;
 }
 
+.result-pop-item {
+  opacity: 0;
+  transform: translateY(12px) scale(0.96);
+  animation: result-pop 0.36s ease-out forwards;
+}
+
 .score-formula {
-  margin-bottom: 1rem;
+  margin-bottom: 0.2rem;
 }
 
 .formula-box,
 .formula-row {
   display: grid;
-  gap: 0.28rem;
+  gap: 0.18rem;
   border: 1px solid #e4dfd0;
   border-radius: 8px;
   background: #f7f2e6;
-  padding: 0.65rem 0.75rem;
+  padding: 0.45rem 0.6rem;
 }
 
 .formula-box span,
@@ -2188,7 +2213,8 @@ h2 {
 .formula-box strong,
 .formula-row strong {
   color: #17211c;
-  line-height: 1.45;
+  font-size: 0.9rem;
+  line-height: 1.35;
 }
 
 .formula-breakdown {
@@ -2199,17 +2225,17 @@ h2 {
 
 .player-result-list {
   display: grid;
-  gap: 0.55rem;
-  margin-bottom: 1rem;
+  gap: 0.38rem;
+  margin-bottom: 0.15rem;
 }
 
 .player-result-row {
   display: grid;
-  gap: 0.45rem;
+  gap: 0.34rem;
   border: 1px solid #e4dfd0;
   border-radius: 8px;
   background: #fffaf0;
-  padding: 0.65rem;
+  padding: 0.48rem 0.58rem;
 }
 
 .player-result-row.winner {
@@ -2218,18 +2244,20 @@ h2 {
   box-shadow: inset 0 0 0 1px rgba(212, 155, 31, 0.18);
 }
 
+.player-result-row.loser {
+  border-color: rgba(167, 57, 57, 0.38);
+}
+
 .player-result-head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
+  justify-content: flex-start;
+  gap: 0.55rem;
+  line-height: 1.15;
 }
 
-.player-result-head span {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.45rem;
+.player-result-head > strong {
+  min-width: 6.4rem;
   font-weight: 900;
 }
 
@@ -2247,10 +2275,58 @@ h2 {
   background: #b88317;
 }
 
-.result-hand-preview {
+.player-result-row.loser .player-result-head em {
+  background: #9a3d3d;
+}
+
+.player-result-head span {
+  margin-left: auto;
+  color: #17211c;
+  font-weight: 900;
+}
+
+.result-hand-breakdown {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(200px, 0.65fr);
+  gap: 0.55rem;
+}
+
+.result-meld-column,
+.result-rest-column {
+  display: grid;
+  align-content: start;
+  gap: 0.24rem;
+  min-width: 0;
+}
+
+.result-meld-column > span,
+.result-rest-column > span {
+  color: #596a60;
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.result-meld-groups,
+.result-card-group {
   display: flex;
   flex-wrap: wrap;
   gap: 0.18rem;
+  min-width: 0;
+}
+
+.result-meld-groups {
+  gap: 0.34rem;
+}
+
+.result-card-group {
+  align-items: flex-start;
+}
+
+.result-card-group em,
+.result-meld-groups em {
+  color: #657169;
+  font-style: normal;
+  font-weight: 800;
 }
 
 .result-winner-call {
@@ -2258,22 +2334,25 @@ h2 {
 }
 
 .result-winner-call h1 {
-  margin-bottom: 0.4rem;
+  margin-bottom: 0;
+  font-size: clamp(1.45rem, 2.7vw, 2rem);
 }
 
 .result-actions {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 0.7rem;
+  gap: 0.55rem;
 }
 
 .result-actions button {
+  min-height: 42px;
   min-width: 150px;
+  padding: 0.55rem 0.9rem;
 }
 
 .result-summary strong {
-  font-size: 1.6rem;
+  font-size: 1.35rem;
 }
 
 .loss-list {
