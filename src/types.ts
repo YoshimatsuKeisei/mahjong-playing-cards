@@ -1,0 +1,88 @@
+export type Suit = "S" | "H" | "D" | "C";
+export type Direction = "clockwise" | "counterclockwise";
+export type DrawnFrom = "deck" | "discard";
+export type Phase = "setup" | "handoff" | "draw" | "discard" | "reachConfirm" | "result";
+export type WinType = "tsumo" | "ron" | "deckout";
+
+export interface Card {
+  id: string;
+  suit: Suit;
+  rank: number;
+}
+
+export interface Player {
+  id: string;
+  name: string;
+  hand: Card[];
+  discardPile: Card[];
+  openMelds: Card[][];
+  hasCalled: boolean;
+  isReach: boolean;
+  winningResult?: WinningResult;
+}
+
+export interface WinningResult {
+  canWin: boolean;
+  melds: Card[][];
+  keyCard: Card | null;
+}
+
+export interface WinningDiscardOption {
+  discardCard: Card;
+  winningResult: WinningResult;
+}
+
+export interface ScoreResult {
+  winnerScore: number;
+  playerLosses: number[];
+}
+
+export interface RonResult {
+  winnerIndex: number;
+  winningResult: WinningResult;
+  score: ScoreResult;
+}
+
+export interface GameResult {
+  winnerIndex: number;
+  winType: WinType;
+  winningResult: WinningResult;
+  score: ScoreResult;
+  discarderIndex: number | null;
+  ronResults?: RonResult[];
+}
+
+export interface GameState {
+  players: Player[];
+  deck: Card[];
+  currentPlayerIndex: number;
+  direction: Direction;
+  phase: Phase;
+  drawnCard: Card | null;
+  drawnFrom: DrawnFrom | null;
+  lastDiscarderIndex: number | null;
+  takenDiscardOwnerIndex: number | null;
+  winner: number | null;
+  result: GameResult | null;
+  declaredReachThisTurn: boolean;
+  message: string;
+}
+
+export type AvatarCategory = "bishoujo" | "animal" | "ikemen" | "busho" | "fantasy" | "casual";
+
+export interface AvatarOption {
+  id: string;
+  category: AvatarCategory;
+  name: string;
+  face: string;
+  hair: string;
+  outfit: string;
+  accent: string;
+  variant: "longHair" | "shortHair" | "ears" | "cool" | "helmet" | "mage" | "archer" | "hoodie" | "cap";
+}
+
+export interface ProfileData {
+  userName: string;
+  comment: string;
+  avatarId: string;
+}
