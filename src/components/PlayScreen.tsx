@@ -20,6 +20,8 @@ interface PlayScreenProps {
 
 type AnimationPhase = "idle" | "drawingFromDeck" | "revealingDrawnCard" | "movingDrawnCardToHand" | "discardingCard";
 
+const reachVisualSrc = new URL("../../黒ローブ男.png", import.meta.url).href;
+
 const seatPositions: Record<number, Array<{ left: string; top: string }>> = {
   3: [
     { left: "50%", top: "82%" },
@@ -56,12 +58,23 @@ export default function PlayScreen({ state, dispatch }: PlayScreenProps) {
   const [animationCard, setAnimationCard] = useState<Card | null>(null);
   const [selectedDiscardId, setSelectedDiscardId] = useState<string | null>(null);
   const [discardingCardId, setDiscardingCardId] = useState<string | null>(null);
+  const [reachSplashPlayerName, setReachSplashPlayerName] = useState<string | null>(null);
+  const [ronCountdown, setRonCountdown] = useState(3);
   const timeoutsRef = useRef<number[]>([]);
+  const reachSplashTimeoutRef = useRef<number | null>(null);
   const isAnimating = animationPhase !== "idle";
+  const pendingRonResult = state.pendingRonResult;
+  const ronDiscarderIndex = pendingRonResult?.discarderIndex ?? null;
+  const ronDiscarder = ronDiscarderIndex !== null ? state.players[ronDiscarderIndex] : null;
+  const ronCard = ronDiscarder?.discardPile.at(-1) ?? null;
+  const ronWinners = pendingRonResult?.ronResults ?? [];
 
   useEffect(() => {
     return () => {
       timeoutsRef.current.forEach(window.clearTimeout);
+      if (reachSplashTimeoutRef.current !== null) {
+        window.clearTimeout(reachSplashTimeoutRef.current);
+      }
     };
   }, []);
 
@@ -85,7 +98,26 @@ export default function PlayScreen({ state, dispatch }: PlayScreenProps) {
 
   useEffect(() => {
     if (state.phase === "handoff") {
-      dispatch({ type: "confirmHandoff" });
+      const timeoutId = window.setTimeout(() => {
+        dispatch({ type: "confirmHandoff" });
+      }, 3000);
+
+      return () => {
+        window.clearTimeout(timeoutId);
+      };
+    }
+  }, [state.phase, dispatch]);
+
+  useEffect(() => {
+    if (state.phase === "ronCheck") {
+      setRonCountdown(3);
+      const intervalId = window.setInterval(() => {
+        setRonCountdown((count) => Math.max(0, count - 1));
+      }, 1000);
+
+      return () => {
+        window.clearInterval(intervalId);
+      };
     }
   }, [state.phase, dispatch]);
 
@@ -140,6 +172,29 @@ export default function PlayScreen({ state, dispatch }: PlayScreenProps) {
     animateDiscard(card, () => dispatch({ type: "winWithDiscard", discardCardId: card.id }));
   }
 
+  function showReachSplash(playerName: string) {
+    setReachSplashPlayerName(playerName);
+    if (reachSplashTimeoutRef.current !== null) {
+      window.clearTimeout(reachSplashTimeoutRef.current);
+    }
+    reachSplashTimeoutRef.current = window.setTimeout(() => {
+      setReachSplashPlayerName(null);
+      reachSplashTimeoutRef.current = null;
+    }, 2600);
+  }
+
+  function handleDeclareReach() {
+    dispatch({ type: "declareReach" });
+    showReachSplash(currentPlayer.name);
+  }
+
+  function handleReachConfirmAnswer(declareReach: boolean) {
+    dispatch({ type: "answerReachAfterDiscard", declareReach });
+    if (declareReach) {
+      showReachSplash(currentPlayer.name);
+    }
+  }
+
   return (
     <main className="screen play-screen">
       <section className={`table-scene table-${playerCount}`} aria-label={`${playerCount}人用テーブル`}>
@@ -172,6 +227,71 @@ export default function PlayScreen({ state, dispatch }: PlayScreenProps) {
           <div className={`card-animation ${animationPhase} seat-${getSeat(playerCount, state.currentPlayerIndex)}`}>
             <span className="card-animation-label">{getAnimationLabel(animationPhase)}</span>
             <PlayingCard card={animationCard} />
+          </div>
+        )}
+
+        {reachSplashPlayerName && (
+          <div className="reach-splash" role="status" aria-live="assertive">
+            <div className="reach-splash-band">
+              <img src={reachVisualSrc} alt="" className="reach-splash-visual" />
+              <div className="reach-splash-copy">
+                <span>宣言</span>
+                <strong>{reachSplashPlayerName} リーチ!!</strong>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {state.phase === "ronCheck" && pendingRonResult && (
+          <div className="ron-check-overlay" role="status" aria-live="assertive">
+            <section className="ron-check-panel">
+              <p className="eyebrow">ロン確認</p>
+              <h1>{ronWinners.map((item) => state.players[item.winnerIndex].name).join("・")} ロン!!</h1>
+              <div className="ron-check-card">
+                <span>{ronDiscarder ? `${ronDiscarder.name}の捨て札` : "捨て札"}</span>
+                <strong>{ronCard ? formatCard(ronCard) : "確認中"}</strong>
+              </div>
+              <div className="ron-check-winners">
+                {(
+                  ronWinners.length > 0
+                    ? ronWinners
+                    : [
+                        {
+                          winnerIndex: pendingRonResult.winnerIndex,
+                          winningResult: pendingRonResult.winningResult,
+                          score: pendingRonResult.score,
+                        },
+                      ]
+                ).map((item) => (
+                    <section className="ron-check-candidate" key={item.winnerIndex}>
+                      <div className="ron-check-row">
+                        <span>{state.players[item.winnerIndex].name}</span>
+                        <strong>{item.score.winnerScore}点</strong>
+                      </div>
+                      <div className="ron-hand-preview" aria-label={`${state.players[item.winnerIndex].name}の手札完成プレビュー`}>
+                        {item.winningResult.melds.map((meld, meldIndex) => (
+                          <div className="ron-preview-meld" key={`${item.winnerIndex}-${meldIndex}-${meld.map((card) => card.id).join("-")}`}>
+                            {meld.map((card) => (
+                              <PlayingCard card={card} compact key={card.id} />
+                            ))}
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                  ))}
+              </div>
+              <div className="countdown-ring" aria-label={`ロン確認 ${ronCountdown}秒`}>
+                {ronCountdown}
+              </div>
+              <div className="ron-check-actions">
+                <button type="button" className="primary-button" onClick={() => dispatch({ type: "answerRon", takeRon: true })}>
+                  はい
+                </button>
+                <button type="button" onClick={() => dispatch({ type: "answerRon", takeRon: false })}>
+                  いいえ
+                </button>
+              </div>
+            </section>
           </div>
         )}
 
@@ -264,7 +384,7 @@ export default function PlayScreen({ state, dispatch }: PlayScreenProps) {
           {state.phase === "discard" && (
             <>
               {canReachAfterDraw && (
-                <button type="button" className="primary-button" disabled={isAnimating} onClick={() => dispatch({ type: "declareReach" })}>
+                <button type="button" className="primary-button" disabled={isAnimating} onClick={handleDeclareReach}>
                   リーチ
                 </button>
               )}
@@ -307,7 +427,7 @@ export default function PlayScreen({ state, dispatch }: PlayScreenProps) {
                 type="button"
                 className="primary-button"
                 disabled={isAnimating}
-                onClick={() => dispatch({ type: "answerReachAfterDiscard", declareReach: true })}
+                onClick={() => handleReachConfirmAnswer(true)}
               >
                 はい
               </button>
@@ -315,12 +435,13 @@ export default function PlayScreen({ state, dispatch }: PlayScreenProps) {
                 type="button"
                 className="primary-button"
                 disabled={isAnimating}
-                onClick={() => dispatch({ type: "answerReachAfterDiscard", declareReach: false })}
+                onClick={() => handleReachConfirmAnswer(false)}
               >
                 いいえ
               </button>
             </div>
           )}
+
         </section>
 
         <section className="hand-section">
@@ -369,6 +490,11 @@ function getPlayerStatus(player: GameState["players"][number]) {
 
 function getDiscardHighlights(state: GameState, discardSources: number[]) {
   const highlights = new Map<number, "call" | "ron">();
+  const ronDiscarderIndex = state.pendingRonResult?.discarderIndex ?? null;
+  if (state.phase === "ronCheck" && ronDiscarderIndex !== null) {
+    highlights.set(ronDiscarderIndex, "ron");
+    return highlights;
+  }
   if (state.phase !== "draw") return highlights;
 
   for (const ownerIndex of discardSources) {
@@ -388,6 +514,7 @@ function getActionText(state: GameState) {
   if (state.phase === "draw") return "山札または直前の捨て札から1枚取ってください。";
   if (state.phase === "discard") return "手札から1枚選んで捨ててください。";
   if (state.phase === "reachConfirm") return "リーチ宣言を確認してください。";
+  if (state.phase === "ronCheck") return "ロン可能な捨て札を確認しています。";
   if (state.phase === "handoff") return "次のプレイヤーへ交代してください。";
   if (state.drawnCard) return `引いたカード: ${formatCard(state.drawnCard)}`;
   return state.message;

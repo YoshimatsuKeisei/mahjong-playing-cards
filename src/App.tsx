@@ -22,6 +22,7 @@ const initialState: GameState = {
   takenDiscardOwnerIndex: null,
   winner: null,
   result: null,
+  pendingRonResult: null,
   declaredReachThisTurn: false,
   message: "",
 };

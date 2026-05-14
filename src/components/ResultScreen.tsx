@@ -26,6 +26,24 @@ export default function ResultScreen({ state, onRestart }: ResultScreenProps) {
           <strong>{result.score.winnerScore}点</strong>
         </div>
 
+        <section className="score-formula">
+          <h2>得点計算</h2>
+          <div className="formula-box">
+            <span>{getScoreFormulaLabel(result.winType)}</span>
+            <strong>{buildScoreFormula(state, result)}</strong>
+          </div>
+          {ronResults.length > 1 && (
+            <div className="formula-breakdown">
+              {ronResults.map((item) => (
+                <div className="formula-row" key={item.winnerIndex}>
+                  <span>{state.players[item.winnerIndex].name}</span>
+                  <strong>{buildScoreFormula(state, { ...result, winnerIndex: item.winnerIndex, score: item.score })}</strong>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
         {ronResults.length > 1 && (
           <section>
             <h2>ロンしたプレイヤー</h2>
@@ -86,4 +104,23 @@ function singleRonResult(result: NonNullable<GameState["result"]>): RonResult {
     winningResult: result.winningResult,
     score: result.score,
   };
+}
+
+function getScoreFormulaLabel(winType: NonNullable<GameState["result"]>["winType"]) {
+  if (winType === "ron") return "ロン";
+  if (winType === "tsumo") return "ツモ";
+  return "山札切れ";
+}
+
+function buildScoreFormula(state: GameState, result: NonNullable<GameState["result"]>) {
+  const winnerLoss = result.score.playerLosses[result.winnerIndex] ?? 0;
+
+  if (result.winType === "ron" && result.discarderIndex !== null) {
+    const discarderLoss = result.score.playerLosses[result.discarderIndex] ?? 0;
+    return `(${state.players[result.discarderIndex].name}の失点 ${discarderLoss} - ${state.players[result.winnerIndex].name}の失点 ${winnerLoss}) × 100 = ${result.score.winnerScore}点`;
+  }
+
+  const totalOtherLoss = result.score.playerLosses.reduce((sum, loss, index) => (index === result.winnerIndex ? sum : sum + loss), 0);
+  const divisor = Math.max(1, state.players.length - 1);
+  return `(他プレイヤー失点合計 ${totalOtherLoss} ÷ ${divisor} - ${state.players[result.winnerIndex].name}の失点 ${winnerLoss}) × 100 = ${result.score.winnerScore}点`;
 }
