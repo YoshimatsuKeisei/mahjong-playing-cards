@@ -1,5 +1,7 @@
 import type { Card, GameResult, GameState, Player, RonResult, WinningResult } from "../types";
 import { findPossibleMelds, getCardPenalty } from "../game/rules";
+import { getAvatarById } from "../data/avatars";
+import AvatarPreview from "./AvatarPreview";
 import PlayingCard from "./PlayingCard";
 
 interface ResultScreenProps {
@@ -13,6 +15,13 @@ interface HandBreakdown {
   remainder: Card[];
 }
 
+interface FormulaPart {
+  value: string;
+  label?: string;
+}
+
+const resultAvatar = getAvatarById("fantasy-mage");
+
 export default function ResultScreen({ state, onRestart, onBackHome }: ResultScreenProps) {
   const result = state.result!;
   const ronResults = result.winType === "ron" ? result.ronResults ?? [singleRonResult(result)] : [];
@@ -25,6 +34,7 @@ export default function ResultScreen({ state, onRestart, onBackHome }: ResultScr
   return (
     <main className="screen result-screen">
       <section className="result-panel result-board">
+        <div className="result-round-title">1回戦</div>
         <h1 className="result-board-title result-pop-item" style={{ animationDelay: "0s" }}>
           各プレイヤーの失点
         </h1>
@@ -40,75 +50,89 @@ export default function ResultScreen({ state, onRestart, onBackHome }: ResultScr
                 style={{ animationDelay: `${0.4 + index * 0.4}s` }}
                 key={player.id}
               >
-                <div className="player-result-head">
-                  <strong>{player.name}</strong>
-                  {label && <em>{label}</em>}
-                  <span>失点{result.score.playerLosses[index]}</span>
+                <div className="player-result-profile">
+                  <div className="player-result-head">
+                    <strong>{player.name}</strong>
+                    {label && <em>{label}</em>}
+                  </div>
+                  <div className="result-avatar">
+                    <AvatarPreview avatar={resultAvatar} size="small" />
+                  </div>
                 </div>
 
-                <div className="result-hand-breakdown" aria-label={`${player.name}の手札内訳`}>
-                  <div className="result-meld-column">
-                    <span>できた役</span>
-                    <div className="result-meld-groups">
-                      {breakdown.melds.length === 0 ? (
-                        <em>なし</em>
-                      ) : (
-                        breakdown.melds.map((meld, meldIndex) => (
-                          <div className="result-card-group" key={`${player.id}-meld-${meldIndex}-${meld.map((card) => card.id).join("-")}`}>
-                            {sortCardsForDisplay(meld).map((card) => (
-                              <PlayingCard card={card} compact key={card.id} />
-                            ))}
-                          </div>
-                        ))
-                      )}
+                <div className="player-result-cards">
+                  <div className="result-hand-breakdown" aria-label={`${player.name}の手札内訳`}>
+                    <div className="result-meld-column">
+                      <span>できた役</span>
+                      <div className="result-meld-groups">
+                        {breakdown.melds.length === 0 ? (
+                          <em>なし</em>
+                        ) : (
+                          breakdown.melds.map((meld, meldIndex) => (
+                            <div className="result-card-group" key={`${player.id}-meld-${meldIndex}-${meld.map((card) => card.id).join("-")}`}>
+                              {sortCardsForDisplay(meld).map((card) => (
+                                <PlayingCard card={card} compact key={card.id} />
+                              ))}
+                            </div>
+                          ))
+                        )}
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="result-rest-column">
-                    <span>余り札</span>
-                    <div className="result-card-group">
-                      {breakdown.remainder.length === 0 ? (
-                        <em>なし</em>
-                      ) : (
-                        sortCardsForDisplay(breakdown.remainder).map((card) => <PlayingCard card={card} compact key={card.id} />)
-                      )}
+                    <div className="result-rest-column">
+                      <span>余り札</span>
+                      <div className="result-card-group">
+                        {breakdown.remainder.length === 0 ? (
+                          <em>なし</em>
+                        ) : (
+                          sortCardsForDisplay(breakdown.remainder).map((card) => <PlayingCard card={card} compact key={card.id} />)
+                        )}
+                      </div>
                     </div>
                   </div>
+                </div>
+
+                <div className="player-result-score">
+                  <span>失点</span>
+                  <strong>{result.score.playerLosses[index]}</strong>
                 </div>
               </section>
             );
           })}
         </div>
 
-        <section className="score-formula result-pop-item" style={{ animationDelay: `${0.4 + state.players.length * 0.4}s` }}>
-          <h2>計算過程</h2>
-          <div className="formula-box">
-            <span>{getScoreFormulaLabel(result.winType)}</span>
-            <strong>{buildScoreFormula(state, result)}</strong>
+        <section className="score-result-panel result-pop-item" style={{ animationDelay: `${0.4 + state.players.length * 0.4}s` }}>
+          <div className="score-result-main">
+            <div className="score-method">{winTypeLabel}</div>
+            <FormulaExpression parts={buildScoreFormulaParts(state, result)} />
+          </div>
+          <div className="score-final">
+            <span>得点</span>
+            <strong>{result.score.winnerScore}点</strong>
           </div>
           {ronResults.length > 1 && (
             <div className="formula-breakdown">
               {ronResults.map((item) => (
                 <div className="formula-row" key={item.winnerIndex}>
                   <span>{state.players[item.winnerIndex].name}</span>
-                  <strong>{buildScoreFormula(state, { ...result, winnerIndex: item.winnerIndex, score: item.score })}</strong>
+                  <FormulaExpression parts={buildScoreFormulaParts(state, { ...result, winnerIndex: item.winnerIndex, score: item.score })} />
                 </div>
               ))}
             </div>
           )}
         </section>
 
-        <div className="result-summary result-pop-item" style={{ animationDelay: `${0.8 + state.players.length * 0.4}s` }}>
-          <span>{winTypeLabel}</span>
-          <strong>{result.score.winnerScore}点</strong>
-        </div>
-
-        <section className="result-winner-call result-pop-item" style={{ animationDelay: `${1.2 + state.players.length * 0.4}s` }}>
+        <section className="result-winner-call result-pop-item" style={{ animationDelay: `${0.8 + state.players.length * 0.4}s` }}>
           <p className="eyebrow">結果</p>
-          <h1>{winnerTitle}</h1>
+          <h1>
+            <span className="result-trophy" aria-hidden="true">
+              🏆
+            </span>
+            {winnerTitle}
+          </h1>
         </section>
 
-        <div className="result-actions result-pop-item" style={{ animationDelay: `${2.2 + state.players.length * 0.4}s` }}>
+        <div className="result-actions result-pop-item" style={{ animationDelay: `${1.8 + state.players.length * 0.4}s` }}>
           <button type="button" className="primary-button" onClick={onRestart}>
             もう一度遊ぶ
           </button>
@@ -121,18 +145,31 @@ export default function ResultScreen({ state, onRestart, onBackHome }: ResultScr
   );
 }
 
+function FormulaExpression({ parts }: { parts: FormulaPart[] }) {
+  return (
+    <div className="formula-expression">
+      {parts.map((part, index) =>
+        part.label ? (
+          <span className="formula-number" key={`${part.value}-${part.label}-${index}`}>
+            <strong>{part.value}</strong>
+            <em>{part.label}</em>
+          </span>
+        ) : (
+          <span className="formula-symbol" key={`${part.value}-${index}`}>
+            {part.value}
+          </span>
+        ),
+      )}
+    </div>
+  );
+}
+
 function singleRonResult(result: NonNullable<GameState["result"]>): RonResult {
   return {
     winnerIndex: result.winnerIndex,
     winningResult: result.winningResult,
     score: result.score,
   };
-}
-
-function getScoreFormulaLabel(winType: NonNullable<GameState["result"]>["winType"]) {
-  if (winType === "ron") return "ロン";
-  if (winType === "tsumo") return "ツモ";
-  return "山札切れ";
 }
 
 function getResultLabel(result: GameResult, playerIndex: number) {
@@ -232,15 +269,31 @@ function sumPenalty(cards: Card[]) {
   return cards.reduce((sum, card) => sum + getCardPenalty(card), 0);
 }
 
-function buildScoreFormula(state: GameState, result: GameResult) {
+function buildScoreFormulaParts(state: GameState, result: GameResult): FormulaPart[] {
   const winnerLoss = result.score.playerLosses[result.winnerIndex] ?? 0;
 
   if (result.winType === "ron" && result.discarderIndex !== null) {
     const discarderLoss = result.score.playerLosses[result.discarderIndex] ?? 0;
-    return `(${state.players[result.discarderIndex].name}の失点 ${discarderLoss} - ${state.players[result.winnerIndex].name}の失点 ${winnerLoss}) × 100 = ${result.score.winnerScore}点`;
+    return [
+      { value: "(" },
+      { value: String(discarderLoss), label: `${state.players[result.discarderIndex].name}の失点` },
+      { value: "-" },
+      { value: String(winnerLoss), label: `${state.players[result.winnerIndex].name}の失点` },
+      { value: ")×100=" },
+      { value: String(result.score.winnerScore) },
+    ];
   }
 
   const totalOtherLoss = result.score.playerLosses.reduce((sum, loss, index) => (index === result.winnerIndex ? sum : sum + loss), 0);
   const divisor = Math.max(1, state.players.length - 1);
-  return `(他プレイヤー失点合計 ${totalOtherLoss} ÷ ${divisor} - ${state.players[result.winnerIndex].name}の失点 ${winnerLoss}) × 100 = ${result.score.winnerScore}点`;
+  return [
+    { value: "(" },
+    { value: String(totalOtherLoss), label: "他プレイヤー失点合計" },
+    { value: "÷" },
+    { value: String(divisor), label: "人数-1" },
+    { value: "-" },
+    { value: String(winnerLoss), label: `${state.players[result.winnerIndex].name}の失点` },
+    { value: ")×100=" },
+    { value: String(result.score.winnerScore) },
+  ];
 }
