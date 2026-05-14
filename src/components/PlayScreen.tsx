@@ -266,7 +266,7 @@ export default function PlayScreen({ state, dispatch }: PlayScreenProps) {
                     <section className="ron-check-candidate" key={item.winnerIndex}>
                       <div className="ron-check-row">
                         <span>{state.players[item.winnerIndex].name}</span>
-                        <strong>{item.score.winnerScore}点</strong>
+                        <strong>ロン可能</strong>
                       </div>
                       <div className="ron-hand-preview" aria-label={`${state.players[item.winnerIndex].name}の手札完成プレビュー`}>
                         {item.winningResult.melds.map((meld, meldIndex) => (
@@ -276,6 +276,18 @@ export default function PlayScreen({ state, dispatch }: PlayScreenProps) {
                             ))}
                           </div>
                         ))}
+                      </div>
+                      <div className="ron-rest-preview" aria-label={`${state.players[item.winnerIndex].name}の余ったトランプ`}>
+                        <span>余ったトランプ</span>
+                        <div>
+                          {getRonRemainingCards(state.players[item.winnerIndex].hand, ronCard, item.winningResult.melds).length === 0 ? (
+                            <em>なし</em>
+                          ) : (
+                            getRonRemainingCards(state.players[item.winnerIndex].hand, ronCard, item.winningResult.melds).map((card) => (
+                              <PlayingCard card={card} compact key={card.id} />
+                            ))
+                          )}
+                        </div>
                       </div>
                     </section>
                   ))}
@@ -508,6 +520,22 @@ function isWinningCall(hand: Card[], openMelds: Card[][], meld: Card[], discard:
   const usedHandIds = new Set(meld.filter((card) => card.id !== discard.id).map((card) => card.id));
   const handAfterCall = hand.filter((card) => !usedHandIds.has(card.id));
   return checkWinningHandWithOpenMelds(handAfterCall, [...openMelds, meld]).canWin;
+}
+
+function getRonRemainingCards(hand: Card[], ronCard: Card | null, melds: Card[][]) {
+  const cards = ronCard ? [...hand, ronCard] : hand;
+  const usedCounts = new Map<string, number>();
+
+  for (const card of melds.flat()) {
+    usedCounts.set(card.id, (usedCounts.get(card.id) ?? 0) + 1);
+  }
+
+  return cards.filter((card) => {
+    const count = usedCounts.get(card.id) ?? 0;
+    if (count <= 0) return true;
+    usedCounts.set(card.id, count - 1);
+    return false;
+  });
 }
 
 function getActionText(state: GameState) {
