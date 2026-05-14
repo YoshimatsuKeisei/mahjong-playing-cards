@@ -83,7 +83,7 @@ export default function App() {
   }
 
   if (state.phase === "result" && state.result) {
-    return <ResultScreen state={state} onRestart={restartToNewGame} />;
+    return <ResultScreen state={state} onRestart={restartToNewGame} onBackHome={returnToHome} />;
   }
 
   return <PlayScreen state={state} dispatch={dispatch} />;

@@ -1,12 +1,14 @@
 import type { GameState, RonResult } from "../types";
 import { formatCard } from "./HandView";
+import PlayingCard from "./PlayingCard";
 
 interface ResultScreenProps {
   state: GameState;
   onRestart: () => void;
+  onBackHome: () => void;
 }
 
-export default function ResultScreen({ state, onRestart }: ResultScreenProps) {
+export default function ResultScreen({ state, onRestart, onBackHome }: ResultScreenProps) {
   const result = state.result!;
   const ronResults = result.winType === "ron" ? result.ronResults ?? [singleRonResult(result)] : [];
   const winner = state.players[result.winnerIndex];
@@ -19,15 +21,50 @@ export default function ResultScreen({ state, onRestart }: ResultScreenProps) {
   return (
     <main className="screen result-screen">
       <section className="result-panel">
-        <p className="eyebrow">結果</p>
-        <h1>{title}</h1>
-        <div className="result-summary">
-          <span>{winTypeLabel}</span>
-          <strong>{result.score.winnerScore}点</strong>
-        </div>
+        <section className="result-pop" style={{ animationDelay: "0s" }}>
+          <h2>勝ち役</h2>
+          <div className="result-melds">
+            {result.winningResult.melds.length === 0 ? (
+              <span>山札切れのため役なし</span>
+            ) : (
+              result.winningResult.melds.map((meld, index) => (
+                <div className="meld" key={`${index}-${meld.map((card) => card.id).join("-")}`}>
+                  {meld.map(formatCard).join(" ")}
+                </div>
+              ))
+            )}
+          </div>
+        </section>
 
-        <section className="score-formula">
-          <h2>得点計算</h2>
+        <section className="result-pop" style={{ animationDelay: "0.18s" }}>
+          <h2>キーカード</h2>
+          <div className="key-card">{result.winningResult.keyCard ? formatCard(result.winningResult.keyCard) : "なし"}</div>
+        </section>
+
+        <section className="result-pop" style={{ animationDelay: "0.36s" }}>
+          <h2>各プレイヤーの失点</h2>
+          <div className="player-result-list">
+            {state.players.map((player, index) => (
+              <div className={`player-result-row ${isWinner(result, index) ? "winner" : "loser"}`} key={player.id}>
+                <div className="player-result-head">
+                  <span>
+                    {player.name}
+                    <em>{isWinner(result, index) ? "勝者" : "敗者"}</em>
+                  </span>
+                  <strong>{result.score.playerLosses[index]}</strong>
+                </div>
+                <div className="result-hand-preview" aria-label={`${player.name}の手札公開`}>
+                  {player.hand.map((card) => (
+                    <PlayingCard card={card} compact key={card.id} />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="score-formula result-pop" style={{ animationDelay: "0.54s" }}>
+          <h2>計算過程</h2>
           <div className="formula-box">
             <span>{getScoreFormulaLabel(result.winType)}</span>
             <strong>{buildScoreFormula(state, result)}</strong>
@@ -44,55 +81,24 @@ export default function ResultScreen({ state, onRestart }: ResultScreenProps) {
           )}
         </section>
 
-        {ronResults.length > 1 && (
-          <section>
-            <h2>ロンしたプレイヤー</h2>
-            <div className="loss-list">
-              {ronResults.map((item) => (
-                <div className="loss-row" key={item.winnerIndex}>
-                  <span>{state.players[item.winnerIndex].name}</span>
-                  <strong>{item.score.winnerScore}点</strong>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
+        <div className="result-summary result-pop" style={{ animationDelay: "0.72s" }}>
+          <span>{winTypeLabel}</span>
+          <strong>{result.score.winnerScore}点</strong>
+        </div>
 
-        <section>
-          <h2>勝ち役</h2>
-          <div className="result-melds">
-            {result.winningResult.melds.length === 0 ? (
-              <span>山札切れのため役なし</span>
-            ) : (
-              result.winningResult.melds.map((meld, index) => (
-                <div className="meld" key={`${index}-${meld.map((card) => card.id).join("-")}`}>
-                  {meld.map(formatCard).join(" ")}
-                </div>
-              ))
-            )}
-          </div>
+        <section className="result-winner-call result-pop" style={{ animationDelay: "0.9s" }}>
+          <p className="eyebrow">結果</p>
+          <h1>{title}</h1>
         </section>
 
-        <section>
-          <h2>キーカード</h2>
-          <div className="key-card">{result.winningResult.keyCard ? formatCard(result.winningResult.keyCard) : "なし"}</div>
-        </section>
-
-        <section>
-          <h2>各プレイヤーの失点</h2>
-          <div className="loss-list">
-            {state.players.map((player, index) => (
-              <div className="loss-row" key={player.id}>
-                <span>{player.name}</span>
-                <strong>{result.score.playerLosses[index]}</strong>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <button type="button" className="primary-button" onClick={onRestart}>
-          もう一度遊ぶ
-        </button>
+        <div className="result-actions result-pop" style={{ animationDelay: "1.08s" }}>
+          <button type="button" className="primary-button" onClick={onRestart}>
+            もう一度遊ぶ
+          </button>
+          <button type="button" onClick={onBackHome}>
+            ホーム画面に戻る
+          </button>
+        </div>
       </section>
     </main>
   );
@@ -110,6 +116,10 @@ function getScoreFormulaLabel(winType: NonNullable<GameState["result"]>["winType
   if (winType === "ron") return "ロン";
   if (winType === "tsumo") return "ツモ";
   return "山札切れ";
+}
+
+function isWinner(result: NonNullable<GameState["result"]>, playerIndex: number) {
+  return result.ronResults?.some((item) => item.winnerIndex === playerIndex) ?? result.winnerIndex === playerIndex;
 }
 
 function buildScoreFormula(state: GameState, result: NonNullable<GameState["result"]>) {
