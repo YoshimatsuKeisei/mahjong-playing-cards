@@ -1,7 +1,7 @@
 export type Suit = "S" | "H" | "D" | "C";
 export type Direction = "clockwise" | "counterclockwise";
 export type DrawnFrom = "deck" | "discard";
-export type Phase = "setup" | "handoff" | "draw" | "discard" | "reachConfirm" | "result";
+export type Phase = "setup" | "handoff" | "draw" | "discard" | "reachConfirm" | "ronCheck" | "result";
 export type WinType = "tsumo" | "ron" | "deckout";
 
 export interface Card {
@@ -64,6 +64,7 @@ export interface GameState {
   takenDiscardOwnerIndex: number | null;
   winner: number | null;
   result: GameResult | null;
+  pendingRonResult: GameResult | null;
   declaredReachThisTurn: boolean;
   message: string;
 }

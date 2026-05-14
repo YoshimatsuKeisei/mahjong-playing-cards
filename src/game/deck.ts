@@ -75,6 +75,7 @@ export function dealCards(deck: Card[], playerCount: number, direction: Directio
     takenDiscardOwnerIndex: null,
     winner: null,
     result: null,
+    pendingRonResult: null,
     declaredReachThisTurn: false,
     message: "カードを1枚取ってください。",
   };

@@ -58,21 +58,23 @@ function makeResult(
 }
 
 function findReachRonResults(players: Player[], discarderIndex: number, discardCard: Card): Array<RonResult & { player: Player }> {
-  return players
-    .map((player, winnerIndex) => {
-      if (winnerIndex === discarderIndex || !player.isReach) return null;
-      const options = findWinningDiscardsAfterDraw([...player.hand, discardCard], discardCard.id, player.openMelds);
-      const option = options[0];
-      if (!option) return null;
+  const results: Array<RonResult & { player: Player }> = [];
 
-      return {
-        winnerIndex,
-        winningResult: option.winningResult,
-        score: calculateRonScore(players, winnerIndex, discarderIndex, option.winningResult),
-        player: { ...player, winningResult: option.winningResult },
-      };
-    })
-    .filter((result): result is RonResult & { player: Player } => Boolean(result));
+  players.forEach((player, winnerIndex) => {
+    if (winnerIndex === discarderIndex || !player.isReach) return;
+    const options = findWinningDiscardsAfterDraw([...player.hand, discardCard], discardCard.id, player.openMelds);
+    const option = options[0];
+    if (!option) return;
+
+    results.push({
+      winnerIndex,
+      winningResult: option.winningResult,
+      score: calculateRonScore(players, winnerIndex, discarderIndex, option.winningResult),
+      player: { ...player, winningResult: option.winningResult },
+    });
+  });
+
+  return results;
 }
 
 function makeReachRonResult(state: GameState, discarderIndex: number): { result: GameResult; players: Player[] } | null {
@@ -121,7 +123,7 @@ function deckoutResult(state: GameState, players: Player[]): GameState {
   });
   const deckoutState = { ...state, players: withWinnerResult };
   const result = makeResult(deckoutState, winnerIndex, "deckout", deckoutState.players[winnerIndex].winningResult);
-  return { ...deckoutState, phase: "result", winner: winnerIndex, result, declaredReachThisTurn: false };
+  return { ...deckoutState, phase: "result", winner: winnerIndex, result, pendingRonResult: null, declaredReachThisTurn: false };
 }
 
 function advanceToNextDraw(state: GameState, players: Player[], discarderIndex: number): GameState {
@@ -130,31 +132,30 @@ function advanceToNextDraw(state: GameState, players: Player[], discarderIndex: 
     return {
       ...state,
       players: ron.players,
-      phase: "result",
-      winner: ron.result.winnerIndex,
-      result: ron.result,
+      phase: "ronCheck",
+      pendingRonResult: ron.result,
       declaredReachThisTurn: false,
+      message: "ロン確認中です。",
     };
   }
 
-  // TODO: If ron interruption needs a visible UI later, add a 3-second wait after every discard.
   return {
     ...state,
     players,
-    currentPlayerIndex: getNextPlayerIndex(discarderIndex, state.players.length, state.direction),
-    phase: "draw",
+    phase: "handoff",
     drawnCard: null,
     drawnFrom: null,
     lastDiscarderIndex: discarderIndex,
     takenDiscardOwnerIndex: null,
     declaredReachThisTurn: false,
-    message: "カードを1枚取ってください。",
+    message: "次のプレイヤーへ交代してください。",
   };
 }
 
 export type GameAction =
   | { type: "start"; playerCount: number; direction: Direction }
   | { type: "confirmHandoff" }
+  | { type: "answerRon"; takeRon: boolean }
   | { type: "drawFromDeck" }
   | { type: "takeDiscard"; ownerIndex: number; meld?: Card[] }
   | { type: "declareReach" }
@@ -182,12 +183,49 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         takenDiscardOwnerIndex: null,
         winner: null,
         result: null,
+        pendingRonResult: null,
         declaredReachThisTurn: false,
         message: "",
       };
 
-    case "confirmHandoff":
-      return { ...state, phase: "draw", message: "カードを1枚取ってください。" };
+    case "confirmHandoff": {
+      const nextPlayerIndex =
+        state.lastDiscarderIndex === null
+          ? state.currentPlayerIndex
+          : getNextPlayerIndex(state.lastDiscarderIndex, state.players.length, state.direction);
+      return {
+        ...state,
+        currentPlayerIndex: nextPlayerIndex,
+        phase: "draw",
+        pendingRonResult: null,
+        message: "カードを1枚取ってください。",
+      };
+    }
+
+    case "answerRon":
+      if (state.phase !== "ronCheck" || !state.pendingRonResult) return state;
+      if (!action.takeRon) {
+        return {
+          ...state,
+          phase: "handoff",
+          currentPlayerIndex: state.pendingRonResult.discarderIndex ?? state.currentPlayerIndex,
+          lastDiscarderIndex: state.pendingRonResult.discarderIndex,
+          pendingRonResult: null,
+          drawnCard: null,
+          drawnFrom: null,
+          takenDiscardOwnerIndex: null,
+          declaredReachThisTurn: false,
+          message: "次のプレイヤーへ交代してください。",
+        };
+      }
+      return {
+        ...state,
+        phase: "result",
+        winner: state.pendingRonResult.winnerIndex,
+        result: state.pendingRonResult,
+        pendingRonResult: null,
+        declaredReachThisTurn: false,
+      };
 
     case "drawFromDeck": {
       if (state.phase !== "draw" || state.deck.length === 0) return state;
@@ -315,7 +353,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         state.drawnFrom === "discard" ? state.takenDiscardOwnerIndex : null,
       );
 
-      return { ...nextState, phase: "result", winner: state.currentPlayerIndex, result };
+      return { ...nextState, phase: "result", winner: state.currentPlayerIndex, result, pendingRonResult: null };
     }
 
     case "discard": {
@@ -347,7 +385,14 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           winningResult,
           state.drawnFrom === "discard" ? state.takenDiscardOwnerIndex : null,
         );
-        return { ...nextState, phase: "result", winner: state.currentPlayerIndex, result, declaredReachThisTurn: false };
+        return {
+          ...nextState,
+          phase: "result",
+          winner: state.currentPlayerIndex,
+          result,
+          pendingRonResult: null,
+          declaredReachThisTurn: false,
+        };
       }
 
       if (state.deck.length === 0) {
