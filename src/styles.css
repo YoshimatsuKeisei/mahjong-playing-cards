@@ -73,6 +73,385 @@ button:disabled {
   box-shadow: 0 16px 36px rgba(45, 57, 50, 0.12);
 }
 
+.start-screen {
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 18%, rgba(214, 165, 64, 0.2), transparent 28%),
+    radial-gradient(circle at 18% 82%, rgba(47, 122, 88, 0.2), transparent 26%),
+    linear-gradient(135deg, rgba(3, 8, 6, 0.68), rgba(8, 20, 15, 0.66)),
+    url("../トランプ背景.png") center / cover no-repeat,
+    #101812;
+}
+
+.start-panel {
+  position: relative;
+  isolation: isolate;
+  width: min(94vw, 760px);
+  border-color: rgba(230, 183, 83, 0.72);
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(232, 205, 120, 0.18), transparent 30%),
+    radial-gradient(circle at 48% 48%, rgba(79, 151, 108, 0.18), transparent 42%),
+    linear-gradient(180deg, rgba(35, 78, 55, 0.98), rgba(9, 30, 24, 0.98));
+  color: #fffdf7;
+  box-shadow:
+    0 34px 86px rgba(0, 0, 0, 0.56),
+    0 0 0 1px rgba(76, 42, 12, 0.36),
+    inset 0 1px 0 rgba(255, 245, 200, 0.17),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06),
+    inset 0 -22px 46px rgba(0, 0, 0, 0.28),
+    inset 0 0 42px rgba(214, 165, 64, 0.08);
+  backdrop-filter: blur(6px);
+}
+
+.start-panel::before {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 72px;
+  height: 3px;
+  margin: 0 auto 0.75rem;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, #d6a540, transparent);
+  content: "";
+}
+
+.start-panel::after {
+  position: absolute;
+  inset: 8px;
+  z-index: -1;
+  border: 1px solid rgba(255, 231, 158, 0.1);
+  border-radius: 10px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.045), transparent 34%),
+    radial-gradient(circle at 50% 0%, rgba(255, 231, 158, 0.06), transparent 34%);
+  pointer-events: none;
+  content: "";
+}
+
+.start-panel h1 {
+  position: relative;
+  z-index: 1;
+  margin-bottom: 1.25rem;
+  color: #fff8dc;
+  text-align: center;
+  font-size: clamp(2.25rem, 5vw, 3.8rem);
+  line-height: 1;
+  text-shadow:
+    0 1px 0 rgba(78, 47, 12, 0.75),
+    0 0 22px rgba(214, 165, 64, 0.3);
+}
+
+.room-subtitle {
+  margin: 0 0 0.25rem;
+  color: #315846;
+  font-weight: 900;
+}
+
+.start-screen .field {
+  position: relative;
+  z-index: 1;
+  margin-bottom: 0.85rem;
+}
+
+.start-screen .field > span,
+.room-settings label > span {
+  color: #d7bd72;
+  font-weight: 900;
+}
+
+.start-screen .segmented {
+  gap: 0.55rem;
+}
+
+.start-screen .segmented button {
+  min-height: 54px;
+  border-color: rgba(149, 178, 158, 0.2);
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, rgba(255, 253, 247, 0.07), rgba(255, 253, 247, 0.018)),
+    linear-gradient(180deg, rgba(23, 68, 49, 0.72), rgba(8, 36, 29, 0.72));
+  color: #dfe9e1;
+  box-shadow:
+    0 5px 0 rgba(0, 0, 0, 0.18),
+    0 10px 18px rgba(0, 0, 0, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    inset 0 -10px 18px rgba(0, 0, 0, 0.16);
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
+}
+
+.start-screen .segmented button:hover:not(.selected):not(:disabled) {
+  border-color: rgba(225, 230, 205, 0.34);
+  background:
+    linear-gradient(180deg, rgba(255, 253, 247, 0.13), rgba(255, 253, 247, 0.05)),
+    linear-gradient(180deg, rgba(35, 88, 64, 0.78), rgba(12, 48, 38, 0.76));
+  transform: translateY(-1px);
+}
+
+.start-screen .segmented button.selected {
+  border-color: #ffe09a;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255, 232, 166, 0.2), transparent 46%),
+    linear-gradient(180deg, rgba(178, 121, 31, 0.98), rgba(95, 83, 34, 0.98) 42%, rgba(28, 86, 61, 0.96));
+  color: #fff8dc;
+  box-shadow:
+    0 5px 0 rgba(58, 34, 6, 0.34),
+    0 10px 18px rgba(0, 0, 0, 0.22),
+    0 0 22px rgba(240, 199, 104, 0.26),
+    inset 0 1px 0 rgba(255, 245, 200, 0.22),
+    inset 0 0 0 2px rgba(255, 211, 122, 0.28),
+    inset 0 -14px 24px rgba(0, 0, 0, 0.18);
+  text-shadow: 0 1px 7px rgba(0, 0, 0, 0.38);
+}
+
+.start-screen .segmented button:active:not(:disabled),
+.match-type-grid button:active:not(:disabled),
+.room-presets button:active:not(:disabled),
+.room-actions button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.match-type-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.match-type-grid button {
+  display: grid;
+  justify-items: start;
+  gap: 0.24rem;
+  min-height: 88px;
+  border-color: rgba(149, 178, 158, 0.2);
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, rgba(255, 253, 247, 0.075), rgba(255, 253, 247, 0.02)),
+    linear-gradient(180deg, rgba(23, 66, 48, 0.72), rgba(7, 34, 27, 0.74));
+  color: #dfe9e1;
+  padding: 0.85rem;
+  text-align: left;
+  box-shadow:
+    0 5px 0 rgba(0, 0, 0, 0.17),
+    0 10px 18px rgba(0, 0, 0, 0.13),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    inset 0 -12px 18px rgba(0, 0, 0, 0.15);
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
+}
+
+.match-type-grid button strong {
+  font-size: 1.08rem;
+}
+
+.match-type-grid button:hover:not(.selected) {
+  border-color: rgba(225, 230, 205, 0.34);
+  background:
+    linear-gradient(180deg, rgba(255, 253, 247, 0.13), rgba(255, 253, 247, 0.05)),
+    linear-gradient(180deg, rgba(35, 88, 64, 0.78), rgba(12, 48, 38, 0.76));
+  box-shadow:
+    0 5px 0 rgba(0, 0, 0, 0.18),
+    0 12px 20px rgba(0, 0, 0, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 -12px 18px rgba(0, 0, 0, 0.13);
+  transform: translateY(-1px);
+}
+
+.match-type-grid button.selected {
+  border-color: #ffe09a;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255, 232, 166, 0.2), transparent 46%),
+    linear-gradient(180deg, rgba(178, 121, 31, 0.98), rgba(95, 83, 34, 0.98) 42%, rgba(26, 72, 52, 0.96));
+  box-shadow:
+    0 5px 0 rgba(58, 34, 6, 0.34),
+    0 10px 18px rgba(0, 0, 0, 0.22),
+    0 0 24px rgba(240, 199, 104, 0.26),
+    inset 0 1px 0 rgba(255, 245, 200, 0.22),
+    inset 0 0 0 2px rgba(255, 211, 122, 0.28),
+    inset 0 -16px 24px rgba(0, 0, 0, 0.18);
+  text-shadow: 0 1px 7px rgba(0, 0, 0, 0.38);
+}
+
+.match-type-grid small {
+  color: #d4e0d8;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.match-type-grid button.selected strong {
+  color: #fff8dc;
+}
+
+.match-type-grid button.selected small {
+  color: #fff1bd;
+}
+
+.match-type-grid button:hover:not(.selected) small {
+  color: #edf4ee;
+}
+
+.room-settings {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  justify-items: center;
+  gap: 0.62rem;
+  margin-bottom: 1rem;
+  border: 1px solid rgba(226, 181, 85, 0.42);
+  border-radius: 12px;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255, 232, 166, 0.1), transparent 42%),
+    linear-gradient(180deg, rgba(255, 253, 247, 0.15), rgba(255, 253, 247, 0.06)),
+    linear-gradient(180deg, rgba(51, 105, 77, 0.48), rgba(19, 57, 43, 0.52));
+  padding: 0.78rem 0.95rem;
+  box-shadow:
+    0 10px 22px rgba(0, 0, 0, 0.16),
+    inset 0 1px 0 rgba(255, 245, 200, 0.1),
+    inset 0 -14px 24px rgba(0, 0, 0, 0.14);
+}
+
+.room-rule-summary {
+  display: grid;
+  justify-items: center;
+  gap: 0.16rem;
+  color: #fffdf7;
+  text-align: center;
+}
+
+.room-rule-summary strong {
+  color: #fff8dc;
+  font-size: 1.22rem;
+}
+
+.room-rule-summary span {
+  color: #d7e4dc;
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.room-settings label {
+  display: grid;
+  justify-items: center;
+  gap: 0.34rem;
+}
+
+.room-settings input {
+  width: min(100%, 240px);
+  border: 1px solid rgba(214, 165, 64, 0.56);
+  border-radius: 8px;
+  background: #fffdf7;
+  color: #17211c;
+  font: inherit;
+  font-weight: 900;
+  padding: 0.7rem 0.8rem;
+  text-align: center;
+  box-shadow:
+    0 4px 10px rgba(0, 0, 0, 0.14),
+    inset 0 2px 6px rgba(23, 33, 28, 0.1);
+}
+
+.room-settings input:focus {
+  outline: 2px solid rgba(240, 199, 104, 0.48);
+  border-color: #f0c768;
+}
+
+.room-preset-group {
+  display: grid;
+  justify-items: center;
+  gap: 0.42rem;
+}
+
+.room-preset-group > span {
+  color: #d7bd72;
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.room-presets {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.45rem;
+}
+
+.room-presets button {
+  min-height: 36px;
+  border-color: rgba(214, 165, 64, 0.38);
+  border-radius: 999px;
+  background:
+    linear-gradient(180deg, rgba(255, 253, 247, 0.12), rgba(255, 253, 247, 0.04)),
+    rgba(18, 59, 43, 0.62);
+  color: #fffdf7;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.9rem;
+  box-shadow:
+    0 4px 0 rgba(0, 0, 0, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.room-presets button:hover {
+  border-color: rgba(255, 211, 122, 0.6);
+  background:
+    linear-gradient(180deg, rgba(214, 165, 64, 0.28), rgba(214, 165, 64, 0.12)),
+    rgba(21, 72, 52, 0.7);
+}
+
+.room-error {
+  margin: 0.55rem 0 0;
+  color: #ff7f7f;
+  text-align: center;
+  font-size: 0.86rem;
+  font-weight: 900;
+}
+
+.room-actions {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.65rem;
+}
+
+.room-actions .secondary-button {
+  margin-top: 0;
+  border-color: rgba(214, 165, 64, 0.32);
+  background: rgba(255, 253, 247, 0.92);
+}
+
+.room-actions .primary-button {
+  border-color: rgba(255, 211, 122, 0.42);
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255, 245, 200, 0.14), transparent 45%),
+    linear-gradient(180deg, #39a979, #176344);
+  box-shadow:
+    0 5px 0 rgba(7, 53, 35, 0.88),
+    0 12px 22px rgba(0, 0, 0, 0.28),
+    0 0 16px rgba(56, 170, 122, 0.18),
+    inset 0 1px 0 rgba(255, 245, 200, 0.18),
+    inset 0 -14px 22px rgba(0, 0, 0, 0.18);
+  color: #fffdf7;
+  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.28);
+}
+
+.room-actions .primary-button:hover:not(:disabled) {
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255, 245, 200, 0.18), transparent 45%),
+    linear-gradient(180deg, #43bd89, #1c7350);
+  box-shadow:
+    0 5px 0 rgba(7, 53, 35, 0.88),
+    0 12px 22px rgba(0, 0, 0, 0.28),
+    0 0 22px rgba(56, 170, 122, 0.32),
+    inset 0 1px 0 rgba(255, 245, 200, 0.2),
+    inset 0 -14px 22px rgba(0, 0, 0, 0.16);
+}
+
 .eyebrow {
   margin: 0 0 0.3rem;
   color: #596a60;
@@ -2635,6 +3014,19 @@ h2 {
 
   .home-menu-button {
     min-height: 50px;
+  }
+
+  .start-panel {
+    width: min(94vw, 420px);
+    padding: 1rem;
+  }
+
+  .match-type-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .match-type-grid button {
+    min-height: 58px;
   }
 
   .profile-panel {
