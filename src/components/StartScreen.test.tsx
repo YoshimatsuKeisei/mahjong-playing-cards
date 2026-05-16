@@ -77,4 +77,18 @@ describe("StartScreen room settings validation", () => {
 
     expect(onStart).toHaveBeenCalledWith(4, "clockwise", "rounds", 3);
   });
+
+  it("passes the target score value when creating a target-score match", async () => {
+    const user = userEvent.setup();
+    const onStart = vi.fn();
+    render(<StartScreen onStart={onStart} onBackHome={vi.fn()} />);
+
+    await user.click(screen.getByRole("button", { name: /目標点制/ }));
+    const input = screen.getByLabelText(MATCH_RULE_SETTINGS.targetScore.inputLabel);
+    await user.clear(input);
+    await user.type(input, "50");
+    await user.click(screen.getByRole("button", { name: "作成" }));
+
+    expect(onStart).toHaveBeenCalledWith(4, "clockwise", "targetScore", 50);
+  });
 });
