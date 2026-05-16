@@ -58,6 +58,37 @@ export function calculateRawRoundScores(result: GameResult, playerCount: number)
   return scores;
 }
 
+export function calculatePointDeductions(result: GameResult, playerCount: number): number[] {
+  const deductions = Array.from({ length: playerCount }, () => 0);
+
+  if (result.winType === "ron" && result.discarderIndex !== null) {
+    const ronResults = result.ronResults ?? [
+      {
+        winnerIndex: result.winnerIndex,
+        winningResult: result.winningResult,
+        score: result.score,
+      },
+    ];
+
+    for (const ronResult of ronResults) {
+      const winnerLoss = ronResult.score.playerLosses[ronResult.winnerIndex] ?? 0;
+      const discarderLoss = ronResult.score.playerLosses[result.discarderIndex] ?? 0;
+      deductions[result.discarderIndex] += calculateRawScoreFromLosses(discarderLoss, winnerLoss);
+    }
+
+    return deductions;
+  }
+
+  const tsumoDeduction = calculateRawTsumoScoreFromLosses(result.score.playerLosses, result.winnerIndex);
+  result.score.playerLosses.forEach((loss, index) => {
+    if (index !== result.winnerIndex) {
+      deductions[index] = tsumoDeduction;
+    }
+  });
+
+  return deductions;
+}
+
 export function getRonLoserIndexes(discarderIndex: number): number[] {
   return [discarderIndex];
 }

@@ -1,15 +1,18 @@
 import type { Card, GameResult, GameState, Player, RonResult, WinningResult } from "../types";
 import { findPossibleMelds, getCardPenalty } from "../game/rules";
-import { calculateRawScoreFromLosses, calculateRawWinnerScore } from "../game/scoring";
+import { calculatePointDeductions, calculateRawScoreFromLosses, calculateRawTsumoScoreFromLosses, calculateRawWinnerScore } from "../game/scoring";
 import { getAvatarById } from "../data/avatars";
 import AvatarPreview from "./AvatarPreview";
 import PlayingCard from "./PlayingCard";
+
+type ScoreDisplayMode = "score" | "targetScore" | "startingPoints";
 
 interface ResultScreenProps {
   state: GameState;
   currentRound?: number;
   totalRounds?: number;
   useRawScore?: boolean;
+  scoreDisplayMode?: ScoreDisplayMode;
   onNextRound?: () => void;
   onRestart: () => void;
   onBackHome: () => void;
@@ -25,10 +28,25 @@ interface FormulaPart {
   label?: string;
 }
 
+interface DeductionRow {
+  playerName: string;
+  parts: FormulaPart[];
+}
+
 const resultAvatar = getAvatarById("fantasy-mage");
 
-export default function ResultScreen({ state, currentRound = 1, totalRounds, useRawScore = false, onNextRound, onRestart, onBackHome }: ResultScreenProps) {
+export default function ResultScreen({
+  state,
+  currentRound = 1,
+  totalRounds,
+  useRawScore = false,
+  scoreDisplayMode,
+  onNextRound,
+  onRestart,
+  onBackHome,
+}: ResultScreenProps) {
   const result = state.result!;
+  const displayMode: ScoreDisplayMode = scoreDisplayMode ?? (useRawScore ? "targetScore" : "score");
   const ronResults = result.winType === "ron" ? result.ronResults ?? [singleRonResult(result)] : [];
   const nextRound = currentRound + 1;
   const canShowNextRound = Boolean(onNextRound && (totalRounds === undefined || currentRound < totalRounds));
@@ -111,18 +129,28 @@ export default function ResultScreen({ state, currentRound = 1, totalRounds, use
         <section className="score-result-panel result-pop-item" style={{ animationDelay: `${0.4 + state.players.length * 0.4}s` }}>
           <div className="score-result-main">
             <div className="score-method">{winTypeLabel}</div>
-            <FormulaExpression parts={buildScoreFormulaPartsForMode(state, result, useRawScore)} />
+            {displayMode !== "startingPoints" && <FormulaExpression parts={buildScoreFormulaPartsForMode(state, result, displayMode)} />}
           </div>
           <div className="score-final">
-            <span>得点</span>
-            <strong>{getDisplayWinnerScore(result, useRawScore)}点</strong>
+            <span>{displayMode === "startingPoints" ? "持ち点" : "得点"}</span>
+            <strong>{getDisplayFinalScore(result, state.players.length, displayMode)}点</strong>
           </div>
-          {ronResults.length > 1 && (
+          {ronResults.length > 1 && displayMode !== "startingPoints" && (
             <div className="formula-breakdown">
               {ronResults.map((item) => (
                 <div className="formula-row" key={item.winnerIndex}>
                   <span>{state.players[item.winnerIndex].name}</span>
-                  <FormulaExpression parts={buildScoreFormulaPartsForMode(state, { ...result, winnerIndex: item.winnerIndex, score: item.score }, useRawScore)} />
+                  <FormulaExpression parts={buildScoreFormulaPartsForMode(state, { ...result, winnerIndex: item.winnerIndex, score: item.score }, displayMode)} />
+                </div>
+              ))}
+            </div>
+          )}
+          {displayMode === "startingPoints" && (
+            <div className="formula-breakdown">
+              {buildStartingPointDeductionRows(state, result).map((row) => (
+                <div className="formula-row" key={`${row.playerName}-${row.parts.map((part) => part.value).join("-")}`}>
+                  <span>{row.playerName}</span>
+                  <FormulaExpression parts={row.parts} />
                 </div>
               ))}
             </div>
@@ -188,7 +216,7 @@ function getResultLabel(result: GameResult, playerIndex: number) {
   const isWinner = result.ronResults?.some((item) => item.winnerIndex === playerIndex) ?? result.winnerIndex === playerIndex;
   if (isWinner) return "勝者";
   if (result.winType === "ron") return result.discarderIndex === playerIndex ? "敗者" : "";
-  if (result.winType === "tsumo") return "敗者";
+  if (result.winType === "tsumo") return result.winnerIndex === playerIndex ? "勝者" : "敗者";
   return "";
 }
 
@@ -286,12 +314,16 @@ function sumPenalty(cards: Card[]) {
   return cards.reduce((sum, card) => sum + getCardPenalty(card), 0);
 }
 
-function getDisplayWinnerScore(result: GameResult, useRawScore: boolean) {
-  return useRawScore ? calculateRawWinnerScore(result) : result.score.winnerScore;
+function getDisplayFinalScore(result: GameResult, playerCount: number, mode: ScoreDisplayMode) {
+  if (mode === "startingPoints") {
+    const deduction = calculateStartingPointDisplayDeduction(result, playerCount);
+    return deduction > 0 ? `-${deduction}` : "0";
+  }
+  return mode === "targetScore" ? calculateRawWinnerScore(result) : result.score.winnerScore;
 }
 
-function buildScoreFormulaPartsForMode(state: GameState, result: GameResult, useRawScore: boolean): FormulaPart[] {
-  if (!useRawScore) return buildScoreFormulaParts(state, result);
+function buildScoreFormulaPartsForMode(state: GameState, result: GameResult, mode: ScoreDisplayMode): FormulaPart[] {
+  if (mode === "score") return buildScoreFormulaParts(state, result);
 
   const winnerLoss = result.score.playerLosses[result.winnerIndex] ?? 0;
   if (result.winType === "ron" && result.discarderIndex !== null) {
@@ -306,10 +338,98 @@ function buildScoreFormulaPartsForMode(state: GameState, result: GameResult, use
     ];
   }
 
-  const score = calculateRawWinnerScore(result);
+  const totalOtherLoss = result.score.playerLosses.reduce((sum, loss, index) => (index === result.winnerIndex ? sum : sum + loss), 0);
+  const divisor = Math.max(1, state.players.length - 1);
+  const score = calculateRawTsumoScoreFromLosses(result.score.playerLosses, result.winnerIndex);
   return [
-    { value: String(score), label: "純粋失点差合計" },
+    { value: "round(" },
+    { value: String(totalOtherLoss), label: "敗者失点合計" },
+    { value: "÷" },
+    { value: String(divisor), label: "敗者人数" },
+    { value: "-" },
+    { value: String(winnerLoss), label: `${state.players[result.winnerIndex].name}の失点` },
+    { value: ")=" },
+    { value: String(score) },
   ];
+}
+
+function buildStartingPointDeductionRows(state: GameState, result: GameResult): DeductionRow[] {
+  if (result.winType === "ron" && result.discarderIndex !== null) {
+    const discarderIndex = result.discarderIndex;
+    const discarderName = state.players[discarderIndex].name;
+    const discarderLoss = result.score.playerLosses[discarderIndex] ?? 0;
+    const ronResults = result.ronResults ?? [singleRonResult(result)];
+
+    if (ronResults.length > 1) {
+      const winnerLosses = ronResults.map((item) => item.score.playerLosses[item.winnerIndex] ?? 0);
+      const winnerAverageLoss = Math.round(winnerLosses.reduce((sum, loss) => sum + loss, 0) / winnerLosses.length);
+      const deduction = calculateRawScoreFromLosses(discarderLoss, winnerAverageLoss);
+      return [
+        {
+          playerName: "勝者平均",
+          parts: [
+            { value: "(" },
+            { value: String(winnerAverageLoss), label: "勝者平均失点" },
+            { value: "-" },
+            { value: String(discarderLoss), label: `${discarderName}の失点` },
+            { value: ")=" },
+            { value: deduction > 0 ? `-${deduction}` : "0" },
+          ],
+        },
+      ];
+    }
+
+    const winnerIndex = ronResults[0].winnerIndex;
+    const winnerLoss = ronResults[0].score.playerLosses[winnerIndex] ?? 0;
+    const deduction = calculateRawScoreFromLosses(discarderLoss, winnerLoss);
+    return [
+      {
+        playerName: discarderName,
+        parts: [
+          { value: "(" },
+          { value: String(winnerLoss), label: `${state.players[winnerIndex].name}の失点` },
+          { value: "-" },
+          { value: String(discarderLoss), label: `${discarderName}の失点` },
+          { value: ")=" },
+          { value: deduction > 0 ? `-${deduction}` : "0" },
+        ],
+      },
+    ];
+  }
+
+  const loserLosses = result.score.playerLosses.filter((_, playerIndex) => playerIndex !== result.winnerIndex);
+  const loserAverageLoss = loserLosses.length > 0 ? Math.round(loserLosses.reduce((sum, loss) => sum + loss, 0) / loserLosses.length) : 0;
+  const winnerLoss = result.score.playerLosses[result.winnerIndex] ?? 0;
+  const winnerName = state.players[result.winnerIndex].name;
+  const deduction = calculateRawScoreFromLosses(loserAverageLoss, winnerLoss);
+  return [
+    {
+      playerName: "敗者平均",
+      parts: [
+        { value: "(" },
+        { value: String(winnerLoss), label: `${winnerName}の失点` },
+        { value: "-" },
+        { value: String(loserAverageLoss), label: "敗者平均失点" },
+        { value: ")=" },
+        { value: deduction > 0 ? `-${deduction}` : "0" },
+      ],
+    },
+  ];
+}
+
+function calculateStartingPointDisplayDeduction(result: GameResult, playerCount: number) {
+  if (result.winType === "ron" && result.discarderIndex !== null) {
+    const ronResults = result.ronResults ?? [singleRonResult(result)];
+    const discarderLoss = result.score.playerLosses[result.discarderIndex] ?? 0;
+    const winnerLoss =
+      ronResults.length > 1
+        ? Math.round(ronResults.reduce((sum, item) => sum + (item.score.playerLosses[item.winnerIndex] ?? 0), 0) / ronResults.length)
+        : ronResults[0].score.playerLosses[ronResults[0].winnerIndex] ?? 0;
+    return calculateRawScoreFromLosses(discarderLoss, winnerLoss);
+  }
+
+  const deductions = calculatePointDeductions(result, playerCount);
+  return Math.max(...deductions);
 }
 
 function buildScoreFormulaParts(state: GameState, result: GameResult): FormulaPart[] {
@@ -330,7 +450,7 @@ function buildScoreFormulaParts(state: GameState, result: GameResult): FormulaPa
   const totalOtherLoss = result.score.playerLosses.reduce((sum, loss, index) => (index === result.winnerIndex ? sum : sum + loss), 0);
   const divisor = Math.max(1, state.players.length - 1);
   return [
-    { value: "(" },
+    { value: "round(" },
     { value: String(totalOtherLoss), label: "他プレイヤー失点合計" },
     { value: "÷" },
     { value: String(divisor), label: "人数-1" },

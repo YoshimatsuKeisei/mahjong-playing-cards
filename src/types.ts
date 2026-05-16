@@ -74,10 +74,12 @@ export interface MatchState {
   matchMode: MatchMode;
   totalRounds: number;
   targetScore: number;
+  startingPoints: number;
   currentRound: number;
   playerCount: number;
   direction: Direction;
   cumulativeScores: number[];
+  pointBalances: number[];
   scoredRound: number | null;
   gameState: GameState;
 }

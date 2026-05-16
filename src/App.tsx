@@ -8,7 +8,8 @@ import PlayScreen from "./components/PlayScreen";
 import ResultScreen from "./components/ResultScreen";
 import { createInitialGame, gameReducer, type GameAction } from "./game/gameState";
 import { advanceRound, canAdvanceRound, createMatchState, syncMatchGameState } from "./game/matchState";
-import { createDoubleRonResultFixture } from "./game/resultFixtures";
+import { calculatePointDeductions, calculateRawRoundScores } from "./game/scoring";
+import { createDoubleRonResultFixture, createSingleRonResultFixture, createStartingPointsTsumoResultFixture } from "./game/resultFixtures";
 import type { GameState, MatchMode, MatchState, ProfileData } from "./types";
 import type { HomeMenuTarget } from "./components/HomeMenu";
 
@@ -30,6 +31,7 @@ const initialState: GameState = {
 };
 
 type AppScreen = "home" | "newGame" | "play" | "manual" | "moreGame" | "settings" | "profile" | "result";
+type DebugResultKind = "ron" | "tsumo" | "doubleRon";
 
 export default function App() {
   const [state, setState] = useState<GameState>(initialState);
@@ -60,7 +62,7 @@ export default function App() {
   }
 
   function startGame(playerCount: number, direction: GameState["direction"], matchMode: MatchMode, ruleValue: number) {
-    if (matchMode === "rounds" || matchMode === "targetScore") {
+    if (matchMode === "rounds" || matchMode === "targetScore" || matchMode === "startingPoints") {
       const nextMatch = createMatchState(matchMode, playerCount, direction, ruleValue);
       setMatchState(nextMatch);
       setState(nextMatch.gameState);
@@ -88,17 +90,30 @@ export default function App() {
     });
   }
 
-  function showDebugDoubleRonResult() {
-    const debugState = createDoubleRonResultFixture();
+  function createDebugResultState(kind: DebugResultKind) {
+    if (kind === "ron") return createSingleRonResultFixture();
+    if (kind === "doubleRon") return createDoubleRonResultFixture();
+    return createStartingPointsTsumoResultFixture();
+  }
+
+  function showDebugResult(matchMode: "rounds" | "targetScore" | "startingPoints", kind: DebugResultKind) {
+    const debugState = createDebugResultState(kind);
+    const playerCount = debugState.players.length;
+    const roundScores = debugState.result ? calculateRawRoundScores(debugState.result, playerCount) : Array.from({ length: playerCount }, () => 0);
+    const pointDeductions = debugState.result ? calculatePointDeductions(debugState.result, playerCount) : Array.from({ length: playerCount }, () => 0);
+    const startingPoints = 40;
     setState(debugState);
     setMatchState({
-      matchMode: "targetScore",
-      totalRounds: 0,
-      targetScore: 100,
+      matchMode,
+      totalRounds: matchMode === "rounds" ? 5 : 0,
+      targetScore: matchMode === "targetScore" ? 100 : 0,
+      startingPoints: matchMode === "startingPoints" ? startingPoints : 0,
       currentRound: 4,
-      playerCount: debugState.players.length,
+      playerCount,
       direction: debugState.direction,
-      cumulativeScores: [21, 0, 23],
+      cumulativeScores: matchMode === "targetScore" ? roundScores : Array.from({ length: playerCount }, () => 0),
+      pointBalances:
+        matchMode === "startingPoints" ? pointDeductions.map((deduction) => startingPoints - deduction) : Array.from({ length: playerCount }, () => 0),
       scoredRound: 4,
       gameState: debugState,
     });
@@ -110,7 +125,21 @@ export default function App() {
       <HomeScreen
         entryMode={homeEntryMode}
         onNavigate={handleHomeNavigate}
-        onDebugDoubleRon={import.meta.env.DEV ? showDebugDoubleRonResult : undefined}
+        debugResultActions={
+          import.meta.env.DEV
+            ? [
+                { label: "Debug Rounds Ron", onClick: () => showDebugResult("rounds", "ron") },
+                { label: "Debug Rounds Tsumo", onClick: () => showDebugResult("rounds", "tsumo") },
+                { label: "Debug Rounds W Ron", onClick: () => showDebugResult("rounds", "doubleRon") },
+                { label: "Debug Target Ron", onClick: () => showDebugResult("targetScore", "ron") },
+                { label: "Debug Target Tsumo", onClick: () => showDebugResult("targetScore", "tsumo") },
+                { label: "Debug Target W Ron", onClick: () => showDebugResult("targetScore", "doubleRon") },
+                { label: "Debug Points Ron", onClick: () => showDebugResult("startingPoints", "ron") },
+                { label: "Debug Points Tsumo", onClick: () => showDebugResult("startingPoints", "tsumo") },
+                { label: "Debug Points W Ron", onClick: () => showDebugResult("startingPoints", "doubleRon") },
+              ]
+            : undefined
+        }
       />
     );
   }
@@ -139,9 +168,16 @@ export default function App() {
     return (
       <ResultScreen
         state={state}
-        currentRound={matchState?.matchMode === "rounds" || matchState?.matchMode === "targetScore" ? matchState.currentRound : 1}
+        currentRound={
+          matchState?.matchMode === "rounds" || matchState?.matchMode === "targetScore" || matchState?.matchMode === "startingPoints"
+            ? matchState.currentRound
+            : 1
+        }
         totalRounds={matchState?.matchMode === "rounds" ? matchState.totalRounds : undefined}
-        useRawScore={matchState?.matchMode === "targetScore"}
+        useRawScore={matchState?.matchMode === "targetScore" || matchState?.matchMode === "startingPoints"}
+        scoreDisplayMode={
+          matchState?.matchMode === "startingPoints" ? "startingPoints" : matchState?.matchMode === "targetScore" ? "targetScore" : "score"
+        }
         onNextRound={canAdvanceRound(matchState) ? advanceToNextRound : undefined}
         onRestart={restartToNewGame}
         onBackHome={returnToHome}
@@ -153,7 +189,11 @@ export default function App() {
     <PlayScreen
       state={state}
       dispatch={dispatch}
-      currentRound={matchState?.matchMode === "rounds" || matchState?.matchMode === "targetScore" ? matchState.currentRound : undefined}
+      currentRound={
+        matchState?.matchMode === "rounds" || matchState?.matchMode === "targetScore" || matchState?.matchMode === "startingPoints"
+          ? matchState.currentRound
+          : undefined
+      }
     />
   );
 }

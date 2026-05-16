@@ -1,6 +1,6 @@
 import type { Direction, GameState, MatchMode, MatchState } from "../types";
 import { createInitialGame } from "./gameState";
-import { calculateRawRoundScores } from "./scoring";
+import { calculatePointDeductions, calculateRawRoundScores } from "./scoring";
 
 export function createMatchState(
   matchMode: MatchMode,
@@ -12,10 +12,12 @@ export function createMatchState(
     matchMode,
     totalRounds: matchMode === "rounds" ? totalRounds : 0,
     targetScore: matchMode === "targetScore" ? totalRounds : 0,
+    startingPoints: matchMode === "startingPoints" ? totalRounds : 0,
     currentRound: 1,
     playerCount,
     direction,
     cumulativeScores: Array.from({ length: playerCount }, () => 0),
+    pointBalances: Array.from({ length: playerCount }, () => (matchMode === "startingPoints" ? totalRounds : 0)),
     scoredRound: null,
     gameState: createInitialGame(playerCount, direction),
   };
@@ -25,6 +27,7 @@ export function canAdvanceRound(matchState: MatchState | null): boolean {
   if (!matchState) return false;
   if (matchState.matchMode === "rounds") return matchState.currentRound < matchState.totalRounds;
   if (matchState.matchMode === "targetScore") return !hasReachedTargetScore(matchState);
+  if (matchState.matchMode === "startingPoints") return !hasPlayerBust(matchState);
   return false;
 }
 
@@ -43,12 +46,21 @@ export function syncMatchGameState(matchState: MatchState | null, gameState: Gam
   if (!matchState) return null;
 
   const nextMatch = { ...matchState, gameState };
-  if (nextMatch.matchMode !== "targetScore" || gameState.phase !== "result" || !gameState.result) {
+  if ((nextMatch.matchMode !== "targetScore" && nextMatch.matchMode !== "startingPoints") || gameState.phase !== "result" || !gameState.result) {
     return nextMatch;
   }
 
   if (nextMatch.scoredRound === nextMatch.currentRound) {
     return nextMatch;
+  }
+
+  if (nextMatch.matchMode === "startingPoints") {
+    const deductions = calculatePointDeductions(gameState.result, nextMatch.playerCount);
+    return {
+      ...nextMatch,
+      pointBalances: nextMatch.pointBalances.map((points, index) => points - (deductions[index] ?? 0)),
+      scoredRound: nextMatch.currentRound,
+    };
   }
 
   const roundScores = calculateRawRoundScores(gameState.result, nextMatch.playerCount);
@@ -61,4 +73,8 @@ export function syncMatchGameState(matchState: MatchState | null, gameState: Gam
 
 export function hasReachedTargetScore(matchState: MatchState): boolean {
   return matchState.matchMode === "targetScore" && matchState.cumulativeScores.some((score) => score >= matchState.targetScore);
+}
+
+export function hasPlayerBust(matchState: MatchState): boolean {
+  return matchState.matchMode === "startingPoints" && matchState.pointBalances.some((points) => points <= 0);
 }
