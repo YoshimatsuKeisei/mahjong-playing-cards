@@ -2927,24 +2927,56 @@ h2 {
 .standings-panel {
   position: absolute;
   left: 50%;
-  bottom: 5.2rem;
+  bottom: 4.95rem;
   z-index: 8;
-  width: min(980px, 92vw);
-  min-height: 260px;
-  max-height: calc(100vh - 190px);
+  width: min(1040px, 94vw);
+  min-height: 320px;
+  max-height: calc(100vh - 170px);
   overflow: auto;
-  padding: 1.25rem 1.35rem 1.35rem;
-  border: 1px solid rgba(214, 165, 64, 0.68);
-  border-radius: 16px;
+  padding: 1.55rem 1.75rem 1.65rem;
+  border: 1px solid rgba(232, 190, 91, 0.78);
+  border-radius: 18px;
   background:
-    radial-gradient(circle at 20% 0%, rgba(214, 165, 64, 0.18), transparent 34%),
-    linear-gradient(135deg, rgba(7, 17, 12, 0.98), rgba(26, 54, 39, 0.98));
-  box-shadow: 0 24px 55px rgba(0, 0, 0, 0.42), inset 0 0 24px rgba(255, 238, 177, 0.05);
+    radial-gradient(circle at 18% 0%, rgba(232, 190, 91, 0.22), transparent 30%),
+    radial-gradient(circle at 88% 18%, rgba(74, 149, 102, 0.22), transparent 28%),
+    linear-gradient(135deg, rgba(6, 14, 10, 0.99), rgba(18, 45, 32, 0.99) 56%, rgba(8, 23, 16, 0.99));
+  box-shadow:
+    0 30px 70px rgba(0, 0, 0, 0.5),
+    0 0 36px rgba(214, 165, 64, 0.12),
+    inset 0 0 0 1px rgba(255, 244, 192, 0.08),
+    inset 0 0 34px rgba(255, 238, 177, 0.06);
   opacity: 0;
   pointer-events: none;
   transform: translateX(-50%) scale(0.92);
   transform-origin: center center;
   transition: opacity 220ms ease-out, transform 220ms ease-out;
+}
+
+.standings-panel::before,
+.standings-panel::after {
+  content: "";
+  position: absolute;
+  left: 1rem;
+  right: 1rem;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(232, 190, 91, 0.72), transparent);
+  pointer-events: none;
+}
+
+.standings-panel::before {
+  top: 0.78rem;
+}
+
+.standings-panel::after {
+  bottom: 0.78rem;
+}
+
+.standings-panel-ornament {
+  position: absolute;
+  inset: 0.55rem;
+  border: 1px solid rgba(214, 165, 64, 0.2);
+  border-radius: 14px;
+  pointer-events: none;
 }
 
 .standings-panel.open {
@@ -2958,37 +2990,41 @@ h2 {
   align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
-  margin-bottom: 1.1rem;
+  margin-bottom: 1.35rem;
+  padding: 0.1rem 0.2rem 0.9rem;
+  border-bottom: 1px solid rgba(214, 165, 64, 0.18);
 }
 
 .standings-panel-head h2 {
   margin: 0;
   color: #fff8dc;
-  font-size: clamp(1.55rem, 2.2vw, 2rem);
+  font-size: clamp(1.9rem, 2.8vw, 2.6rem);
+  text-shadow: 0 0 22px rgba(214, 165, 64, 0.28);
 }
 
 .standings-close-button {
   display: grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
-  min-width: 34px;
-  border-color: rgba(214, 165, 64, 0.55);
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+  border-color: rgba(214, 165, 64, 0.68);
   border-radius: 999px;
   background: rgba(255, 248, 220, 0.95);
   color: #17211c;
   padding: 0;
-  font-size: 1.2rem;
+  font-size: 1.35rem;
   font-weight: 900;
 }
 
 .standings-axis {
   position: relative;
-  height: 1.35rem;
-  margin-left: 9.5rem;
-  margin-right: 5.8rem;
+  height: 1.6rem;
+  margin-left: 10.8rem;
+  margin-right: 6.7rem;
+  margin-bottom: 0.28rem;
   color: #d7bd72;
-  font-size: 0.82rem;
+  font-size: 0.9rem;
   font-weight: 800;
 }
 
@@ -3001,32 +3037,77 @@ h2 {
 
 .standings-bars {
   display: grid;
-  gap: 0.8rem;
+  gap: 0.95rem;
+  counter-reset: standing-rank;
 }
 
 .standings-row {
+  counter-increment: standing-rank;
   display: grid;
-  grid-template-columns: 9rem minmax(180px, 1fr) 5.2rem;
+  grid-template-columns: 4.2rem 10.2rem minmax(220px, 1fr) 6.2rem;
   align-items: center;
-  gap: 0.75rem;
-  min-height: 42px;
+  gap: 0.9rem;
+  min-height: 58px;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid rgba(214, 165, 64, 0.18);
+  border-radius: 12px;
+  background:
+    radial-gradient(circle at 0% 50%, rgba(214, 165, 64, 0.12), transparent 34%),
+    rgba(3, 12, 8, 0.38);
+}
+
+.standings-row::before {
+  content: counter(standing-rank) "位";
+  display: grid;
+  place-items: center;
+  width: 3.2rem;
+  height: 2.6rem;
+  border: 1px solid rgba(232, 190, 91, 0.56);
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(255, 248, 220, 0.16), rgba(214, 165, 64, 0.16));
+  color: #fff8dc;
+  font-weight: 900;
+  box-shadow: inset 0 0 12px rgba(214, 165, 64, 0.08);
+}
+
+.standings-row.leader::before {
+  content: "♛";
+  border-color: rgba(241, 199, 93, 0.82);
+  background: linear-gradient(180deg, rgba(255, 239, 164, 0.32), rgba(165, 112, 28, 0.28));
+  color: #fff4ba;
 }
 
 .standings-player {
   color: #fff8dc;
   font-weight: 900;
+  font-size: 1.02rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .standings-track {
-  height: 26px;
-  border: 1px solid rgba(214, 165, 64, 0.45);
+  position: relative;
+  height: 34px;
+  border: 1px solid rgba(232, 190, 91, 0.56);
   border-radius: 999px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(2, 8, 6, 0.72));
-  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.55), 0 2px 10px rgba(0, 0, 0, 0.18);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(2, 8, 6, 0.74)),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.04) 0 1px, transparent 1px 12px);
+  box-shadow:
+    inset 0 0 13px rgba(0, 0, 0, 0.62),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 4px 14px rgba(0, 0, 0, 0.24);
   overflow: hidden;
+}
+
+.standings-track::after {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border-radius: inherit;
+  border: 1px solid rgba(255, 248, 220, 0.07);
+  pointer-events: none;
 }
 
 .standings-bar {
@@ -3034,20 +3115,26 @@ h2 {
   height: 100%;
   border-radius: inherit;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.26), transparent 46%),
-    linear-gradient(90deg, #2f8a65, #d6a540);
-  box-shadow: 0 0 18px rgba(214, 165, 64, 0.35), inset 0 0 8px rgba(255, 255, 255, 0.16);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0.08) 40%, rgba(0, 0, 0, 0.16) 100%),
+    linear-gradient(90deg, #1f7b58 0%, #4faf78 52%, #d9b653 100%);
+  box-shadow:
+    0 0 22px rgba(214, 165, 64, 0.44),
+    0 0 10px rgba(67, 170, 111, 0.26),
+    inset 0 0 10px rgba(255, 255, 255, 0.22);
   transition: width 650ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .standings-row.leader .standings-bar {
-  background: linear-gradient(90deg, #46a779, #f1c75d);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.08) 42%, rgba(0, 0, 0, 0.12) 100%),
+    linear-gradient(90deg, #46a779, #f1c75d);
 }
 
 .standings-row strong {
   color: #fff8dc;
-  font-size: 1.12rem;
+  font-size: 1.28rem;
   text-align: right;
+  text-shadow: 0 0 12px rgba(214, 165, 64, 0.22);
 }
 
 .standings-row strong em {

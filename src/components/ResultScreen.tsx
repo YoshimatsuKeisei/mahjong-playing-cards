@@ -5,6 +5,7 @@ import { calculatePointDeductions, calculateRawScoreFromLosses, calculateRawTsum
 import { getAvatarById } from "../data/avatars";
 import AvatarPreview from "./AvatarPreview";
 import PlayingCard from "./PlayingCard";
+import ResultStandingsPanel, { type CurrentStandings } from "./ResultStandingsPanel";
 
 type ScoreDisplayMode = "score" | "targetScore" | "startingPoints";
 
@@ -18,13 +19,6 @@ interface ResultScreenProps {
   onNextRound?: () => void;
   onRestart: () => void;
   onBackHome: () => void;
-}
-
-interface CurrentStandings {
-  mode: "rounds" | "targetScore" | "startingPoints";
-  values: number[];
-  previousValues?: number[];
-  axisMax?: number;
 }
 
 interface HandBreakdown {
@@ -86,7 +80,7 @@ export default function ResultScreen({
     setAnimateStandingsToCurrent(false);
     const timeoutId = window.setTimeout(() => setAnimateStandingsToCurrent(true), 120);
     return () => window.clearTimeout(timeoutId);
-  }, [isStandingsOpen, standingsModel]);
+  }, [isStandingsOpen, currentStandings]);
 
   return (
     <main className="screen result-screen">
@@ -208,6 +202,7 @@ export default function ResultScreen({
 
         {standingsModel && (
           <section className={`standings-panel ${isStandingsOpen ? "open" : ""}`} aria-hidden={!isStandingsOpen} data-testid="current-standing-panel">
+            <div className="standings-panel-ornament" aria-hidden="true" />
             <div className="standings-panel-head">
               <div>
                 <p className="eyebrow">{standingsModel.subtitle}</p>
@@ -411,7 +406,7 @@ function buildStandingsModel(players: Player[], standings: CurrentStandings) {
     subtitle: "現時点の成績",
     axisMax,
     ticks,
-    rows: values.map((row) => {
+    rows: values.sort((a, b) => b.value - a.value || a.playerIndex - b.playerIndex).map((row) => {
       const clampedValue = Math.min(Math.max(row.value, 0), axisMax);
       const clampedPreviousValue = Math.min(Math.max(row.previousValue, 0), axisMax);
       const rawPercent = axisMax > 0 ? (clampedValue / axisMax) * 100 : 0;
