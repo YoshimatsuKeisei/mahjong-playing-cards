@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { GameState } from "../types";
 import { createInitialGame } from "../game/gameState";
-import { createDoubleRonResultFixture } from "../game/resultFixtures";
+import { createDoubleRonResultFixture, createSingleRonResultFixture, createStartingPointsTsumoResultFixture } from "../game/resultFixtures";
 import ResultScreen from "./ResultScreen";
 
 function createResultState(): GameState {
@@ -27,6 +27,10 @@ function createResultState(): GameState {
       discarderIndex: null,
     },
   };
+}
+
+function formulaTexts(container: HTMLElement) {
+  return Array.from(container.querySelectorAll(".formula-expression")).map((item) => item.textContent ?? "");
 }
 
 describe("ResultScreen round controls", () => {
@@ -106,23 +110,14 @@ describe("ResultScreen round controls", () => {
       discarderIndex: 1,
     };
 
-    render(
-      <ResultScreen
-        state={state}
-        currentRound={1}
-        useRawScore
-        onNextRound={vi.fn()}
-        onRestart={vi.fn()}
-        onBackHome={vi.fn()}
-      />,
-    );
+    render(<ResultScreen state={state} currentRound={1} useRawScore onNextRound={vi.fn()} onRestart={vi.fn()} onBackHome={vi.fn()} />);
 
     expect(screen.getByText("19点")).toBeInTheDocument();
     expect(screen.queryByText("1900点")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "2回戦に進む" })).toBeInTheDocument();
   });
 
-  it("shows the double-ron fixture losses and formulas consistently", () => {
+  it("shows the double-ron fixture losses and target-score formulas consistently", () => {
     const state = createDoubleRonResultFixture();
 
     const { container } = render(<ResultScreen state={state} useRawScore onRestart={vi.fn()} onBackHome={vi.fn()} />);
@@ -134,8 +129,63 @@ describe("ResultScreen round controls", () => {
     expect(rows[2].querySelector(".player-result-score strong")?.textContent).not.toBe("16");
     expect(screen.queryByText("16")).not.toBeInTheDocument();
 
-    const formulaRows = Array.from(container.querySelectorAll(".formula-expression")).map((item) => item.textContent ?? "");
-    expect(formulaRows.some((text) => text.includes("28") && text.includes("7") && text.includes("21"))).toBe(true);
-    expect(formulaRows.some((text) => text.includes("28") && text.includes("5") && text.includes("23"))).toBe(true);
+    const texts = formulaTexts(container);
+    expect(texts.some((text) => text.includes("28") && text.includes("7") && text.includes("21"))).toBe(true);
+    expect(texts.some((text) => text.includes("28") && text.includes("5") && text.includes("23"))).toBe(true);
+  });
+
+  it("shows target-score tsumo calculation details instead of only a final raw value", () => {
+    const state = createStartingPointsTsumoResultFixture();
+
+    const { container } = render(<ResultScreen state={state} scoreDisplayMode="targetScore" onRestart={vi.fn()} onBackHome={vi.fn()} />);
+
+    expect(screen.getByText("28点")).toBeInTheDocument();
+    const texts = formulaTexts(container);
+    expect(texts.some((text) => text.includes("64") && text.includes("2") && text.includes("4") && text.includes("28"))).toBe(true);
+  });
+
+  it("shows starting-points ron as winner loss minus loser loss", () => {
+    const state = createSingleRonResultFixture();
+
+    const { container } = render(<ResultScreen state={state} scoreDisplayMode="startingPoints" onRestart={vi.fn()} onBackHome={vi.fn()} />);
+
+    expect(screen.getByText("持ち点")).toBeInTheDocument();
+    expect(screen.getByText("-21点")).toBeInTheDocument();
+    expect(screen.queryByText("敗者減点合計")).not.toBeInTheDocument();
+
+    const texts = formulaTexts(container);
+    expect(texts.some((text) => text.includes("7") && text.includes("28") && text.includes("-21"))).toBe(true);
+    expect(texts.some((text) => text.indexOf("28") < text.indexOf("7") && text.includes("-21"))).toBe(false);
+  });
+
+  it("shows starting-points double ron as average winner loss minus loser loss", () => {
+    const state = createDoubleRonResultFixture();
+
+    const { container } = render(<ResultScreen state={state} scoreDisplayMode="startingPoints" onRestart={vi.fn()} onBackHome={vi.fn()} />);
+
+    expect(screen.getByText("持ち点")).toBeInTheDocument();
+    expect(screen.getByText("-22点")).toBeInTheDocument();
+    expect(screen.queryByText("敗者減点合計")).not.toBeInTheDocument();
+
+    const texts = formulaTexts(container);
+    expect(texts.some((text) => text.includes("6") && text.includes("28") && text.includes("-22"))).toBe(true);
+    expect(texts.some((text) => text.includes("28") && text.includes("7") && text.includes("-21"))).toBe(false);
+    expect(texts.some((text) => text.includes("28") && text.includes("5") && text.includes("-23"))).toBe(false);
+  });
+
+  it("shows starting-points tsumo as winner loss minus average loser loss", () => {
+    const state = createStartingPointsTsumoResultFixture();
+
+    const { container } = render(<ResultScreen state={state} scoreDisplayMode="startingPoints" onRestart={vi.fn()} onBackHome={vi.fn()} />);
+
+    expect(screen.getByText("持ち点")).toBeInTheDocument();
+    expect(screen.getByText("-28点")).toBeInTheDocument();
+    expect(screen.queryByText("持ち点変動")).not.toBeInTheDocument();
+    expect(screen.queryByText("敗者減点合計")).not.toBeInTheDocument();
+
+    const texts = formulaTexts(container);
+    expect(texts.some((text) => text.includes("4") && text.includes("32") && text.includes("-28"))).toBe(true);
+    expect(texts.some((text) => text.includes("16") && text.includes("4") && text.includes("-12"))).toBe(false);
+    expect(texts.some((text) => text.includes("48") && text.includes("4") && text.includes("-44"))).toBe(false);
   });
 });

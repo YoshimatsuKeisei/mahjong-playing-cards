@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { MatchState } from "../types";
-import { advanceRound, canAdvanceRound, createMatchState, syncMatchGameState } from "./matchState";
+import { advanceRound, canAdvanceRound, createMatchState, hasPlayerBust, syncMatchGameState } from "./matchState";
+import { createDoubleRonResultFixture, createStartingPointsTsumoResultFixture } from "./resultFixtures";
 
 describe("rounds match state", () => {
   it("initializes a rounds match with the selected total rounds and starts at round 1", () => {
@@ -112,5 +113,53 @@ describe("rounds match state", () => {
     expect(nextRound.currentRound).toBe(2);
     expect(nextRound.cumulativeScores).toEqual([19, 0, 0, 0]);
     expect(nextRound.gameState.phase).toBe("draw");
+  });
+
+  it("initializes a starting-points match with the selected points for every player", () => {
+    const matchState = createMatchState("startingPoints", 3, "clockwise", 50);
+
+    expect(matchState.matchMode).toBe("startingPoints");
+    expect(matchState.startingPoints).toBe(50);
+    expect(matchState.currentRound).toBe(1);
+    expect(matchState.pointBalances).toEqual([50, 50, 50]);
+  });
+
+  it("deducts only losers' starting points and allows advancing while everyone is above 0", () => {
+    const matchState = createMatchState("startingPoints", 3, "clockwise", 50);
+    const resultState = createDoubleRonResultFixture();
+
+    const counted = syncMatchGameState(matchState, resultState)!;
+    const countedAgain = syncMatchGameState(counted, resultState)!;
+    const nextRound = advanceRound(counted);
+
+    expect(counted.pointBalances).toEqual([50, 6, 50]);
+    expect(countedAgain.pointBalances).toEqual([50, 6, 50]);
+    expect(hasPlayerBust(counted)).toBe(false);
+    expect(canAdvanceRound(counted)).toBe(true);
+    expect(nextRound.currentRound).toBe(2);
+    expect(nextRound.pointBalances).toEqual([50, 6, 50]);
+    expect(nextRound.gameState.phase).toBe("draw");
+  });
+
+  it("ends a starting-points match when any player reaches 0 or less", () => {
+    const matchState = createMatchState("startingPoints", 3, "clockwise", 40);
+    const resultState = createDoubleRonResultFixture();
+
+    const counted = syncMatchGameState(matchState, resultState)!;
+
+    expect(counted.pointBalances).toEqual([40, -4, 40]);
+    expect(hasPlayerBust(counted)).toBe(true);
+    expect(canAdvanceRound(counted)).toBe(false);
+  });
+
+  it("deducts the shared average-loss value from each loser in starting-points tsumo", () => {
+    const matchState = createMatchState("startingPoints", 3, "clockwise", 40);
+    const resultState = createStartingPointsTsumoResultFixture();
+
+    const counted = syncMatchGameState(matchState, resultState)!;
+
+    expect(counted.pointBalances).toEqual([12, 40, 12]);
+    expect(hasPlayerBust(counted)).toBe(false);
+    expect(canAdvanceRound(counted)).toBe(true);
   });
 });

@@ -4,10 +4,10 @@ import HomeMenu, { type HomeMenuTarget } from "./HomeMenu";
 interface HomeScreenProps {
   entryMode: "initial" | "return";
   onNavigate: (target: HomeMenuTarget) => void;
-  onDebugDoubleRon?: () => void;
+  debugResultActions?: Array<{ label: string; onClick: () => void }>;
 }
 
-export default function HomeScreen({ entryMode, onNavigate, onDebugDoubleRon }: HomeScreenProps) {
+export default function HomeScreen({ entryMode, onNavigate, debugResultActions = [] }: HomeScreenProps) {
   const [exiting, setExiting] = useState(false);
   const timeoutRef = useRef<number | null>(null);
 
@@ -35,11 +35,12 @@ export default function HomeScreen({ entryMode, onNavigate, onDebugDoubleRon }: 
       </section>
       <section className={`home-menu-shell ${entryMode === "return" ? "entering" : ""} ${exiting ? "exiting" : ""}`}>
         <HomeMenu disabled={exiting} onSelect={handleSelect} />
-        {import.meta.env.DEV && onDebugDoubleRon && (
-          <button type="button" className="debug-result-button" disabled={exiting} onClick={onDebugDoubleRon}>
-            Debug W Ron Result
-          </button>
-        )}
+        {import.meta.env.DEV &&
+          debugResultActions.map((action) => (
+            <button type="button" className="debug-result-button" disabled={exiting} onClick={action.onClick} key={action.label}>
+              {action.label}
+            </button>
+          ))}
       </section>
     </main>
   );

@@ -5,6 +5,7 @@ import {
   calculateRawRoundScores,
   calculateRawScoreFromLosses,
   calculateRawTsumoScoreFromLosses,
+  calculatePointDeductions,
   calculateScoreFromLosses,
   calculateTsumoScore,
   getRonLoserIndexes,
@@ -117,5 +118,62 @@ describe("scoring", () => {
         3,
       ),
     ).toEqual([51, 0, 0]);
+  });
+
+  it("deducts only the discarder for starting-points double ron results", () => {
+    expect(
+      calculatePointDeductions(
+        {
+          winnerIndex: 0,
+          winType: "ron",
+          winningResult: { canWin: true, melds: [], keyCard: card("winner-1-loss", 7) },
+          score: { winnerScore: 2100, playerLosses: [7, 28, 16] },
+          discarderIndex: 1,
+          ronResults: [
+            {
+              winnerIndex: 0,
+              winningResult: { canWin: true, melds: [], keyCard: card("winner-1-loss", 7) },
+              score: { winnerScore: 2100, playerLosses: [7, 28, 16] },
+            },
+            {
+              winnerIndex: 2,
+              winningResult: { canWin: true, melds: [], keyCard: card("winner-3-loss", 5) },
+              score: { winnerScore: 2300, playerLosses: [7, 28, 5] },
+            },
+          ],
+        },
+        3,
+      ),
+    ).toEqual([0, 44, 0]);
+  });
+
+  it("deducts each non-winner by the shared average-loss tsumo deduction for starting-points tsumo results", () => {
+    expect(
+      calculatePointDeductions(
+        {
+          winnerIndex: 0,
+          winType: "tsumo",
+          winningResult: { canWin: true, melds: [], keyCard: card("winner-loss", 5) },
+          score: { winnerScore: 5100, playerLosses: [5, 63, 48] },
+          discarderIndex: null,
+        },
+        3,
+      ),
+    ).toEqual([0, 51, 51]);
+  });
+
+  it("uses the shared average-loss tsumo deduction for starting-points fixture values", () => {
+    expect(
+      calculatePointDeductions(
+        {
+          winnerIndex: 1,
+          winType: "tsumo",
+          winningResult: { canWin: true, melds: [], keyCard: card("winner-loss", 4) },
+          score: { winnerScore: 2800, playerLosses: [16, 4, 48] },
+          discarderIndex: null,
+        },
+        3,
+      ),
+    ).toEqual([28, 0, 28]);
   });
 });
