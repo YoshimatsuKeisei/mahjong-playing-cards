@@ -46,7 +46,7 @@ export function syncMatchGameState(matchState: MatchState | null, gameState: Gam
   if (!matchState) return null;
 
   const nextMatch = { ...matchState, gameState };
-  if ((nextMatch.matchMode !== "targetScore" && nextMatch.matchMode !== "startingPoints") || gameState.phase !== "result" || !gameState.result) {
+  if (gameState.phase !== "result" || !gameState.result) {
     return nextMatch;
   }
 
@@ -63,7 +63,8 @@ export function syncMatchGameState(matchState: MatchState | null, gameState: Gam
     };
   }
 
-  const roundScores = calculateRawRoundScores(gameState.result, nextMatch.playerCount);
+  const roundScores =
+    nextMatch.matchMode === "rounds" ? calculateRoundScores(gameState.result, nextMatch.playerCount) : calculateRawRoundScores(gameState.result, nextMatch.playerCount);
   return {
     ...nextMatch,
     cumulativeScores: nextMatch.cumulativeScores.map((score, index) => score + (roundScores[index] ?? 0)),
@@ -77,4 +78,19 @@ export function hasReachedTargetScore(matchState: MatchState): boolean {
 
 export function hasPlayerBust(matchState: MatchState): boolean {
   return matchState.matchMode === "startingPoints" && matchState.pointBalances.some((points) => points <= 0);
+}
+
+function calculateRoundScores(result: GameState["result"], playerCount: number): number[] {
+  const scores = Array.from({ length: playerCount }, () => 0);
+  if (!result) return scores;
+
+  if (result.winType === "ron" && result.ronResults) {
+    for (const ronResult of result.ronResults) {
+      scores[ronResult.winnerIndex] += ronResult.score.winnerScore;
+    }
+    return scores;
+  }
+
+  scores[result.winnerIndex] = result.score.winnerScore;
+  return scores;
 }
