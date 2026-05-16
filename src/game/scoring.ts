@@ -5,6 +5,18 @@ export function calculateCardLoss(card: Card): number {
   return getCardPenalty(card);
 }
 
+export function calculateScoreFromLosses(loserLoss: number, winnerLoss: number): number {
+  return Math.max(0, loserLoss - winnerLoss) * 100;
+}
+
+export function getRonLoserIndexes(discarderIndex: number): number[] {
+  return [discarderIndex];
+}
+
+export function getTsumoLoserIndexes(players: Player[], winnerIndex: number): number[] {
+  return players.map((_, index) => index).filter((index) => index !== winnerIndex);
+}
+
 function removeCards(source: Card[], cardsToRemove: Card[]): Card[] {
   const removeIds = new Set(cardsToRemove.map((card) => card.id));
   return source.filter((card) => !removeIds.has(card.id));
@@ -88,7 +100,7 @@ export function calculateRonScore(
   winningResult?: WinningResult,
 ): ScoreResult {
   const playerLosses = calculateLosses(players, winnerIndex, winningResult);
-  const winnerScore = Math.max(0, (playerLosses[discarderIndex] - playerLosses[winnerIndex]) * 100);
+  const winnerScore = calculateScoreFromLosses(playerLosses[discarderIndex], playerLosses[winnerIndex]);
 
   return {
     winnerScore,
