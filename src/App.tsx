@@ -1,4 +1,4 @@
-import { useReducer, useState } from "react";
+import { useState } from "react";
 import HomeScreen from "./components/HomeScreen";
 import ManualScreen from "./components/ManualScreen";
 import PlaceholderScreen from "./components/PlaceholderScreen";
@@ -6,8 +6,9 @@ import ProfileScreen from "./components/ProfileScreen";
 import StartScreen from "./components/StartScreen";
 import PlayScreen from "./components/PlayScreen";
 import ResultScreen from "./components/ResultScreen";
-import { gameReducer } from "./game/gameState";
-import type { GameState, ProfileData } from "./types";
+import { createInitialGame, gameReducer, type GameAction } from "./game/gameState";
+import { advanceRound, canAdvanceRound, createMatchState, syncMatchGameState } from "./game/matchState";
+import type { GameState, MatchMode, MatchState, ProfileData } from "./types";
 import type { HomeMenuTarget } from "./components/HomeMenu";
 
 const initialState: GameState = {
@@ -30,7 +31,8 @@ const initialState: GameState = {
 type AppScreen = "home" | "newGame" | "play" | "manual" | "moreGame" | "settings" | "profile" | "result";
 
 export default function App() {
-  const [state, dispatch] = useReducer(gameReducer, initialState);
+  const [state, setState] = useState<GameState>(initialState);
+  const [matchState, setMatchState] = useState<MatchState | null>(null);
   const [screen, setScreen] = useState<AppScreen>("home");
   const [homeEntryMode, setHomeEntryMode] = useState<"initial" | "return">("initial");
   const [profile, setProfile] = useState<ProfileData>({
@@ -48,14 +50,41 @@ export default function App() {
     setScreen(target);
   }
 
-  function startGame(playerCount: number, direction: GameState["direction"]) {
-    dispatch({ type: "start", playerCount, direction });
+  function dispatch(action: GameAction) {
+    setState((currentState) => {
+      const nextState = gameReducer(currentState, action);
+      setMatchState((currentMatch) => syncMatchGameState(currentMatch, nextState));
+      return nextState;
+    });
+  }
+
+  function startGame(playerCount: number, direction: GameState["direction"], matchMode: MatchMode, ruleValue: number) {
+    if (matchMode === "rounds") {
+      const nextMatch = createMatchState("rounds", playerCount, direction, ruleValue);
+      setMatchState(nextMatch);
+      setState(nextMatch.gameState);
+    } else {
+      const nextState = createInitialGame(playerCount, direction);
+      setMatchState(null);
+      setState(nextState);
+    }
     setScreen("play");
   }
 
   function restartToNewGame() {
-    dispatch({ type: "restart" });
+    setMatchState(null);
+    setState(gameReducer(state, { type: "restart" }));
     setScreen("newGame");
+  }
+
+  function advanceToNextRound() {
+    setMatchState((currentMatch) => {
+      if (!currentMatch || !canAdvanceRound(currentMatch)) return currentMatch;
+      const nextMatch = advanceRound(currentMatch);
+      setState(nextMatch.gameState);
+      setScreen("play");
+      return nextMatch;
+    });
   }
 
   if (screen === "home") {
@@ -83,8 +112,23 @@ export default function App() {
   }
 
   if (state.phase === "result" && state.result) {
-    return <ResultScreen state={state} onRestart={restartToNewGame} onBackHome={returnToHome} />;
+    return (
+      <ResultScreen
+        state={state}
+        currentRound={matchState?.matchMode === "rounds" ? matchState.currentRound : 1}
+        totalRounds={matchState?.matchMode === "rounds" ? matchState.totalRounds : 1}
+        onNextRound={canAdvanceRound(matchState) ? advanceToNextRound : undefined}
+        onRestart={restartToNewGame}
+        onBackHome={returnToHome}
+      />
+    );
   }
 
-  return <PlayScreen state={state} dispatch={dispatch} />;
+  return (
+    <PlayScreen
+      state={state}
+      dispatch={dispatch}
+      currentRound={matchState?.matchMode === "rounds" ? matchState.currentRound : undefined}
+    />
+  );
 }

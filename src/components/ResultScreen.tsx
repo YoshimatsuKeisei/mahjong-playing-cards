@@ -6,6 +6,9 @@ import PlayingCard from "./PlayingCard";
 
 interface ResultScreenProps {
   state: GameState;
+  currentRound?: number;
+  totalRounds?: number;
+  onNextRound?: () => void;
   onRestart: () => void;
   onBackHome: () => void;
 }
@@ -22,9 +25,11 @@ interface FormulaPart {
 
 const resultAvatar = getAvatarById("fantasy-mage");
 
-export default function ResultScreen({ state, onRestart, onBackHome }: ResultScreenProps) {
+export default function ResultScreen({ state, currentRound = 1, totalRounds = 1, onNextRound, onRestart, onBackHome }: ResultScreenProps) {
   const result = state.result!;
   const ronResults = result.winType === "ron" ? result.ronResults ?? [singleRonResult(result)] : [];
+  const nextRound = currentRound + 1;
+  const canShowNextRound = Boolean(onNextRound && currentRound < totalRounds);
   const winTypeLabel = result.winType === "tsumo" ? "ツモ" : result.winType === "ron" ? "ロン" : "山札切れ";
   const winnerTitle =
     ronResults.length > 1
@@ -34,7 +39,7 @@ export default function ResultScreen({ state, onRestart, onBackHome }: ResultScr
   return (
     <main className="screen result-screen">
       <section className="result-panel result-board">
-        <div className="result-round-title">1回戦</div>
+        <div className="result-round-title">{currentRound}回戦</div>
         <h1 className="result-board-title result-pop-item" style={{ animationDelay: "0s" }}>
           各プレイヤーの失点
         </h1>
@@ -133,8 +138,13 @@ export default function ResultScreen({ state, onRestart, onBackHome }: ResultScr
         </section>
 
         <div className="result-actions result-pop-item" style={{ animationDelay: `${1.8 + state.players.length * 0.4}s` }}>
+          {canShowNextRound && (
+            <button type="button" className="primary-button next-round-button" onClick={onNextRound}>
+              {nextRound}回戦に進む
+            </button>
+          )}
           <button type="button" className="primary-button" onClick={onRestart}>
-            もう一度遊ぶ
+            やめる
           </button>
           <button type="button" onClick={onBackHome}>
             ホーム画面に戻る

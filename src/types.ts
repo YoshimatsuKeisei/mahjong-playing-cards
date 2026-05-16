@@ -3,6 +3,7 @@ export type Direction = "clockwise" | "counterclockwise";
 export type DrawnFrom = "deck" | "discard";
 export type Phase = "setup" | "handoff" | "draw" | "discard" | "reachConfirm" | "ronCheck" | "result";
 export type WinType = "tsumo" | "ron" | "deckout";
+export type MatchMode = "rounds" | "targetScore" | "startingPoints";
 
 export interface Card {
   id: string;
@@ -67,6 +68,15 @@ export interface GameState {
   pendingRonResult: GameResult | null;
   declaredReachThisTurn: boolean;
   message: string;
+}
+
+export interface MatchState {
+  matchMode: MatchMode;
+  totalRounds: number;
+  currentRound: number;
+  playerCount: number;
+  direction: Direction;
+  gameState: GameState;
 }
 
 export type AvatarCategory = "bishoujo" | "animal" | "ikemen" | "busho" | "fantasy" | "casual";

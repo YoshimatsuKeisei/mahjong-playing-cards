@@ -1,8 +1,8 @@
 import { useState } from "react";
-import type { Direction } from "../types";
+import type { Direction, MatchMode } from "../types";
 
 interface StartScreenProps {
-  onStart: (playerCount: number, direction: Direction) => void;
+  onStart: (playerCount: number, direction: Direction, matchMode: MatchMode, ruleValue: number) => void;
   onBackHome: () => void;
 }
 
@@ -164,7 +164,12 @@ export default function StartScreen({ onStart, onBackHome }: StartScreenProps) {
         </div>
 
         <div className="room-actions">
-          <button type="button" className="primary-button" disabled={Boolean(settingsError)} onClick={() => onStart(playerCount, direction)}>
+          <button
+            type="button"
+            className="primary-button"
+            disabled={Boolean(settingsError)}
+            onClick={() => onStart(playerCount, direction, getMatchMode(matchType), Number(activeValue))}
+          >
             作成
           </button>
           <button type="button" className="secondary-button" onClick={onBackHome}>
@@ -184,4 +189,8 @@ export function getSettingsError(matchType: MatchRuleType, value: string) {
     return rule.errorMessage;
   }
   return "";
+}
+
+export function getMatchMode(matchType: MatchRuleType): MatchMode {
+  return matchType === "fixedRounds" ? "rounds" : matchType;
 }

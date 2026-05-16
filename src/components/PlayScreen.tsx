@@ -16,6 +16,7 @@ import PlayingCard, { formatCard } from "./PlayingCard";
 interface PlayScreenProps {
   state: GameState;
   dispatch: Dispatch<GameAction>;
+  currentRound?: number;
 }
 
 type AnimationPhase = "idle" | "drawingFromDeck" | "revealingDrawnCard" | "movingDrawnCardToHand" | "discardingCard";
@@ -43,7 +44,7 @@ const seatPositions: Record<number, Array<{ left: string; top: string }>> = {
   ],
 };
 
-export default function PlayScreen({ state, dispatch }: PlayScreenProps) {
+export default function PlayScreen({ state, dispatch, currentRound }: PlayScreenProps) {
   const currentPlayer = state.players[state.currentPlayerIndex];
   const reachOptions = getReachWinningOptions(state);
   const discardSources = getAvailableDiscardSources(state);
@@ -198,6 +199,7 @@ export default function PlayScreen({ state, dispatch }: PlayScreenProps) {
   return (
     <main className="screen play-screen">
       <section className={`table-scene table-${playerCount}`} aria-label={`${playerCount}人用テーブル`}>
+        {currentRound && <div className="round-scroll-banner">- {currentRound}回戦 -</div>}
         <header
           className={`top-toolbar ${animationPhase === "discardingCard" ? "toolbar-exiting" : ""}`}
           key={`toolbar-${state.currentPlayerIndex}`}
