@@ -6,9 +6,9 @@ interface StartScreenProps {
   onBackHome: () => void;
 }
 
-type MatchRuleType = "fixedRounds" | "targetScore" | "startingPoints";
+export type MatchRuleType = "fixedRounds" | "targetScore" | "startingPoints";
 
-const MATCH_RULE_SETTINGS: Record<
+export const MATCH_RULE_SETTINGS: Record<
   MatchRuleType,
   {
     label: string;
@@ -176,7 +176,7 @@ export default function StartScreen({ onStart, onBackHome }: StartScreenProps) {
   );
 }
 
-function getSettingsError(matchType: MatchRuleType, value: string) {
+export function getSettingsError(matchType: MatchRuleType, value: string) {
   const rule = MATCH_RULE_SETTINGS[matchType];
   if (value.trim() === "") return `${rule.inputLabel}を入力してください。`;
   const numberValue = Number(value);
