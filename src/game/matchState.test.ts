@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { MatchState } from "../types";
-import { advanceRound, canAdvanceRound, createMatchState } from "./matchState";
+import { advanceRound, canAdvanceRound, createMatchState, syncMatchGameState } from "./matchState";
 
 describe("rounds match state", () => {
   it("initializes a rounds match with the selected total rounds and starts at round 1", () => {
@@ -58,5 +58,59 @@ describe("rounds match state", () => {
 
     expect(canAdvanceRound(finalRound)).toBe(false);
     expect(advanceRound(finalRound)).toBe(finalRound);
+  });
+
+  it("initializes a target-score match and starts at round 1", () => {
+    const matchState = createMatchState("targetScore", 4, "clockwise", 50);
+
+    expect(matchState.matchMode).toBe("targetScore");
+    expect(matchState.targetScore).toBe(50);
+    expect(matchState.currentRound).toBe(1);
+    expect(matchState.cumulativeScores).toEqual([0, 0, 0, 0]);
+  });
+
+  it("adds raw target-score points once and blocks advancing after reaching the target", () => {
+    const matchState = createMatchState("targetScore", 4, "clockwise", 19);
+    const resultState = {
+      ...matchState.gameState,
+      phase: "result" as const,
+      result: {
+        winnerIndex: 0,
+        winType: "ron" as const,
+        winningResult: { canWin: true, melds: [], keyCard: matchState.gameState.players[0].hand[0] },
+        score: { winnerScore: 1900, playerLosses: [10, 29, 3, 5] },
+        discarderIndex: 1,
+      },
+    };
+
+    const counted = syncMatchGameState(matchState, resultState)!;
+    const countedAgain = syncMatchGameState(counted, resultState)!;
+
+    expect(counted.cumulativeScores).toEqual([19, 0, 0, 0]);
+    expect(countedAgain.cumulativeScores).toEqual([19, 0, 0, 0]);
+    expect(canAdvanceRound(counted)).toBe(false);
+  });
+
+  it("allows target-score matches to advance while nobody has reached the target", () => {
+    const matchState = createMatchState("targetScore", 4, "clockwise", 50);
+    const resultState = {
+      ...matchState.gameState,
+      phase: "result" as const,
+      result: {
+        winnerIndex: 0,
+        winType: "ron" as const,
+        winningResult: { canWin: true, melds: [], keyCard: matchState.gameState.players[0].hand[0] },
+        score: { winnerScore: 1900, playerLosses: [10, 29, 3, 5] },
+        discarderIndex: 1,
+      },
+    };
+
+    const counted = syncMatchGameState(matchState, resultState)!;
+    const nextRound = advanceRound(counted);
+
+    expect(canAdvanceRound(counted)).toBe(true);
+    expect(nextRound.currentRound).toBe(2);
+    expect(nextRound.cumulativeScores).toEqual([19, 0, 0, 0]);
+    expect(nextRound.gameState.phase).toBe("draw");
   });
 });

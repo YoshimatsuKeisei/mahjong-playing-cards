@@ -8,6 +8,7 @@ import PlayScreen from "./components/PlayScreen";
 import ResultScreen from "./components/ResultScreen";
 import { createInitialGame, gameReducer, type GameAction } from "./game/gameState";
 import { advanceRound, canAdvanceRound, createMatchState, syncMatchGameState } from "./game/matchState";
+import { createDoubleRonResultFixture } from "./game/resultFixtures";
 import type { GameState, MatchMode, MatchState, ProfileData } from "./types";
 import type { HomeMenuTarget } from "./components/HomeMenu";
 
@@ -59,8 +60,8 @@ export default function App() {
   }
 
   function startGame(playerCount: number, direction: GameState["direction"], matchMode: MatchMode, ruleValue: number) {
-    if (matchMode === "rounds") {
-      const nextMatch = createMatchState("rounds", playerCount, direction, ruleValue);
+    if (matchMode === "rounds" || matchMode === "targetScore") {
+      const nextMatch = createMatchState(matchMode, playerCount, direction, ruleValue);
       setMatchState(nextMatch);
       setState(nextMatch.gameState);
     } else {
@@ -87,8 +88,31 @@ export default function App() {
     });
   }
 
+  function showDebugDoubleRonResult() {
+    const debugState = createDoubleRonResultFixture();
+    setState(debugState);
+    setMatchState({
+      matchMode: "targetScore",
+      totalRounds: 0,
+      targetScore: 100,
+      currentRound: 4,
+      playerCount: debugState.players.length,
+      direction: debugState.direction,
+      cumulativeScores: [21, 0, 23],
+      scoredRound: 4,
+      gameState: debugState,
+    });
+    setScreen("result");
+  }
+
   if (screen === "home") {
-    return <HomeScreen entryMode={homeEntryMode} onNavigate={handleHomeNavigate} />;
+    return (
+      <HomeScreen
+        entryMode={homeEntryMode}
+        onNavigate={handleHomeNavigate}
+        onDebugDoubleRon={import.meta.env.DEV ? showDebugDoubleRonResult : undefined}
+      />
+    );
   }
 
   if (screen === "newGame") {
@@ -115,8 +139,9 @@ export default function App() {
     return (
       <ResultScreen
         state={state}
-        currentRound={matchState?.matchMode === "rounds" ? matchState.currentRound : 1}
-        totalRounds={matchState?.matchMode === "rounds" ? matchState.totalRounds : 1}
+        currentRound={matchState?.matchMode === "rounds" || matchState?.matchMode === "targetScore" ? matchState.currentRound : 1}
+        totalRounds={matchState?.matchMode === "rounds" ? matchState.totalRounds : undefined}
+        useRawScore={matchState?.matchMode === "targetScore"}
         onNextRound={canAdvanceRound(matchState) ? advanceToNextRound : undefined}
         onRestart={restartToNewGame}
         onBackHome={returnToHome}
@@ -128,7 +153,7 @@ export default function App() {
     <PlayScreen
       state={state}
       dispatch={dispatch}
-      currentRound={matchState?.matchMode === "rounds" ? matchState.currentRound : undefined}
+      currentRound={matchState?.matchMode === "rounds" || matchState?.matchMode === "targetScore" ? matchState.currentRound : undefined}
     />
   );
 }

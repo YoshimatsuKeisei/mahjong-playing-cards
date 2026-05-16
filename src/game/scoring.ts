@@ -1,4 +1,4 @@
-import type { Card, Player, ScoreResult, WinningResult } from "../types";
+import type { Card, GameResult, Player, ScoreResult, WinningResult } from "../types";
 import { analyzeHandForWin, findPossibleMelds, getCardPenalty } from "./rules";
 
 export function calculateCardLoss(card: Card): number {
@@ -7,6 +7,55 @@ export function calculateCardLoss(card: Card): number {
 
 export function calculateScoreFromLosses(loserLoss: number, winnerLoss: number): number {
   return Math.max(0, loserLoss - winnerLoss) * 100;
+}
+
+export function calculateRawScoreFromLosses(loserLoss: number, winnerLoss: number): number {
+  return Math.max(0, loserLoss - winnerLoss);
+}
+
+export function calculateRawTsumoScoreFromLosses(playerLosses: number[], winnerIndex: number): number {
+  const winnerLoss = playerLosses[winnerIndex] ?? 0;
+  const loserLosses = playerLosses.filter((_, index) => index !== winnerIndex);
+  if (loserLosses.length === 0) return 0;
+
+  const totalLoserLoss = loserLosses.reduce((sum, loss) => sum + loss, 0);
+  return Math.max(0, Math.round(totalLoserLoss / loserLosses.length - winnerLoss));
+}
+
+export function calculateRawWinnerScore(result: GameResult): number {
+  const winnerLoss = result.score.playerLosses[result.winnerIndex] ?? 0;
+
+  if (result.winType === "ron" && result.discarderIndex !== null) {
+    const discarderLoss = result.score.playerLosses[result.discarderIndex] ?? 0;
+    return calculateRawScoreFromLosses(discarderLoss, winnerLoss);
+  }
+
+  return calculateRawTsumoScoreFromLosses(result.score.playerLosses, result.winnerIndex);
+}
+
+export function calculateRawRoundScores(result: GameResult, playerCount: number): number[] {
+  const scores = Array.from({ length: playerCount }, () => 0);
+
+  if (result.winType === "ron" && result.discarderIndex !== null) {
+    const ronResults = result.ronResults ?? [
+      {
+        winnerIndex: result.winnerIndex,
+        winningResult: result.winningResult,
+        score: result.score,
+      },
+    ];
+
+    for (const ronResult of ronResults) {
+      const winnerLoss = ronResult.score.playerLosses[ronResult.winnerIndex] ?? 0;
+      const discarderLoss = ronResult.score.playerLosses[result.discarderIndex] ?? 0;
+      scores[ronResult.winnerIndex] += calculateRawScoreFromLosses(discarderLoss, winnerLoss);
+    }
+
+    return scores;
+  }
+
+  scores[result.winnerIndex] = calculateRawWinnerScore(result);
+  return scores;
 }
 
 export function getRonLoserIndexes(discarderIndex: number): number[] {
@@ -83,9 +132,7 @@ export function calculateLosses(players: Player[], winnerIndex: number, winningR
 
 export function calculateTsumoScore(players: Player[], winnerIndex: number, winningResult?: WinningResult): ScoreResult {
   const playerLosses = calculateLosses(players, winnerIndex, winningResult);
-  const winnerLoss = playerLosses[winnerIndex];
-  const totalOtherLoss = playerLosses.reduce((sum, loss) => sum + loss, 0) - winnerLoss;
-  const winnerScore = Math.max(0, Math.round((totalOtherLoss / (players.length - 1) - winnerLoss) * 100));
+  const winnerScore = calculateRawTsumoScoreFromLosses(playerLosses, winnerIndex) * 100;
 
   return {
     winnerScore,

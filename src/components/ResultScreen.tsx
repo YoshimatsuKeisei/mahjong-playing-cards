@@ -1,5 +1,6 @@
 import type { Card, GameResult, GameState, Player, RonResult, WinningResult } from "../types";
 import { findPossibleMelds, getCardPenalty } from "../game/rules";
+import { calculateRawScoreFromLosses, calculateRawWinnerScore } from "../game/scoring";
 import { getAvatarById } from "../data/avatars";
 import AvatarPreview from "./AvatarPreview";
 import PlayingCard from "./PlayingCard";
@@ -8,6 +9,7 @@ interface ResultScreenProps {
   state: GameState;
   currentRound?: number;
   totalRounds?: number;
+  useRawScore?: boolean;
   onNextRound?: () => void;
   onRestart: () => void;
   onBackHome: () => void;
@@ -25,11 +27,11 @@ interface FormulaPart {
 
 const resultAvatar = getAvatarById("fantasy-mage");
 
-export default function ResultScreen({ state, currentRound = 1, totalRounds = 1, onNextRound, onRestart, onBackHome }: ResultScreenProps) {
+export default function ResultScreen({ state, currentRound = 1, totalRounds, useRawScore = false, onNextRound, onRestart, onBackHome }: ResultScreenProps) {
   const result = state.result!;
   const ronResults = result.winType === "ron" ? result.ronResults ?? [singleRonResult(result)] : [];
   const nextRound = currentRound + 1;
-  const canShowNextRound = Boolean(onNextRound && currentRound < totalRounds);
+  const canShowNextRound = Boolean(onNextRound && (totalRounds === undefined || currentRound < totalRounds));
   const winTypeLabel = result.winType === "tsumo" ? "ツモ" : result.winType === "ron" ? "ロン" : "山札切れ";
   const winnerTitle =
     ronResults.length > 1
@@ -99,7 +101,7 @@ export default function ResultScreen({ state, currentRound = 1, totalRounds = 1,
 
                 <div className="player-result-score">
                   <span>失点</span>
-                  <strong>{result.score.playerLosses[index]}</strong>
+                  <strong>{getDisplayPlayerLoss(result, index)}</strong>
                 </div>
               </section>
             );
@@ -109,18 +111,18 @@ export default function ResultScreen({ state, currentRound = 1, totalRounds = 1,
         <section className="score-result-panel result-pop-item" style={{ animationDelay: `${0.4 + state.players.length * 0.4}s` }}>
           <div className="score-result-main">
             <div className="score-method">{winTypeLabel}</div>
-            <FormulaExpression parts={buildScoreFormulaParts(state, result)} />
+            <FormulaExpression parts={buildScoreFormulaPartsForMode(state, result, useRawScore)} />
           </div>
           <div className="score-final">
             <span>得点</span>
-            <strong>{result.score.winnerScore}点</strong>
+            <strong>{getDisplayWinnerScore(result, useRawScore)}点</strong>
           </div>
           {ronResults.length > 1 && (
             <div className="formula-breakdown">
               {ronResults.map((item) => (
                 <div className="formula-row" key={item.winnerIndex}>
                   <span>{state.players[item.winnerIndex].name}</span>
-                  <FormulaExpression parts={buildScoreFormulaParts(state, { ...result, winnerIndex: item.winnerIndex, score: item.score })} />
+                  <FormulaExpression parts={buildScoreFormulaPartsForMode(state, { ...result, winnerIndex: item.winnerIndex, score: item.score }, useRawScore)} />
                 </div>
               ))}
             </div>
@@ -188,6 +190,11 @@ function getResultLabel(result: GameResult, playerIndex: number) {
   if (result.winType === "ron") return result.discarderIndex === playerIndex ? "敗者" : "";
   if (result.winType === "tsumo") return "敗者";
   return "";
+}
+
+function getDisplayPlayerLoss(result: GameResult, playerIndex: number) {
+  const ronResult = result.ronResults?.find((item) => item.winnerIndex === playerIndex);
+  return ronResult?.score.playerLosses[playerIndex] ?? result.score.playerLosses[playerIndex] ?? 0;
 }
 
 function buildPlayerBreakdown(state: GameState, result: GameResult, player: Player, playerIndex: number): HandBreakdown {
@@ -277,6 +284,32 @@ function sortCardsForDisplay(cards: Card[]) {
 
 function sumPenalty(cards: Card[]) {
   return cards.reduce((sum, card) => sum + getCardPenalty(card), 0);
+}
+
+function getDisplayWinnerScore(result: GameResult, useRawScore: boolean) {
+  return useRawScore ? calculateRawWinnerScore(result) : result.score.winnerScore;
+}
+
+function buildScoreFormulaPartsForMode(state: GameState, result: GameResult, useRawScore: boolean): FormulaPart[] {
+  if (!useRawScore) return buildScoreFormulaParts(state, result);
+
+  const winnerLoss = result.score.playerLosses[result.winnerIndex] ?? 0;
+  if (result.winType === "ron" && result.discarderIndex !== null) {
+    const discarderLoss = result.score.playerLosses[result.discarderIndex] ?? 0;
+    return [
+      { value: "(" },
+      { value: String(discarderLoss), label: `${state.players[result.discarderIndex].name}の失点` },
+      { value: "-" },
+      { value: String(winnerLoss), label: `${state.players[result.winnerIndex].name}の失点` },
+      { value: ")=" },
+      { value: String(calculateRawScoreFromLosses(discarderLoss, winnerLoss)) },
+    ];
+  }
+
+  const score = calculateRawWinnerScore(result);
+  return [
+    { value: String(score), label: "純粋失点差合計" },
+  ];
 }
 
 function buildScoreFormulaParts(state: GameState, result: GameResult): FormulaPart[] {
