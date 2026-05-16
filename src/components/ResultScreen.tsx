@@ -338,12 +338,13 @@ function buildScoreFormulaPartsForMode(state: GameState, result: GameResult, mod
     ];
   }
 
-  const totalOtherLoss = result.score.playerLosses.reduce((sum, loss, index) => (index === result.winnerIndex ? sum : sum + loss), 0);
-  const divisor = Math.max(1, state.players.length - 1);
+  const loserLosses = result.score.playerLosses.filter((_, index) => index !== result.winnerIndex);
+  const divisor = Math.max(1, loserLosses.length);
   const score = calculateRawTsumoScoreFromLosses(result.score.playerLosses, result.winnerIndex);
   return [
-    { value: "round(" },
-    { value: String(totalOtherLoss), label: "敗者失点合計" },
+    { value: "((" },
+    ...buildLossSumParts(loserLosses, "敗者"),
+    { value: ")" },
     { value: "÷" },
     { value: String(divisor), label: "敗者人数" },
     { value: "-" },
@@ -368,8 +369,11 @@ function buildStartingPointDeductionRows(state: GameState, result: GameResult): 
         {
           playerName: "勝者平均",
           parts: [
-            { value: "(" },
-            { value: String(winnerAverageLoss), label: "勝者平均失点" },
+            { value: "((" },
+            ...buildLossSumParts(winnerLosses, "勝者"),
+            { value: ")" },
+            { value: "÷" },
+            { value: String(winnerLosses.length), label: "勝者人数" },
             { value: "-" },
             { value: String(discarderLoss), label: `${discarderName}の失点` },
             { value: ")=" },
@@ -409,7 +413,11 @@ function buildStartingPointDeductionRows(state: GameState, result: GameResult): 
         { value: "(" },
         { value: String(winnerLoss), label: `${winnerName}の失点` },
         { value: "-" },
-        { value: String(loserAverageLoss), label: "敗者平均失点" },
+        { value: "(" },
+        ...buildLossSumParts(loserLosses, "敗者"),
+        { value: ")" },
+        { value: "÷" },
+        { value: String(loserLosses.length), label: "敗者人数" },
         { value: ")=" },
         { value: deduction > 0 ? `-${deduction}` : "0" },
       ],
@@ -432,6 +440,13 @@ function calculateStartingPointDisplayDeduction(result: GameResult, playerCount:
   return Math.max(...deductions);
 }
 
+function buildLossSumParts(losses: number[], labelPrefix: string): FormulaPart[] {
+  return losses.flatMap((loss, index) => [
+    ...(index > 0 ? [{ value: "+" }] : []),
+    { value: String(loss), label: `${labelPrefix}${index + 1}の失点` },
+  ]);
+}
+
 function buildScoreFormulaParts(state: GameState, result: GameResult): FormulaPart[] {
   const winnerLoss = result.score.playerLosses[result.winnerIndex] ?? 0;
 
@@ -447,11 +462,12 @@ function buildScoreFormulaParts(state: GameState, result: GameResult): FormulaPa
     ];
   }
 
-  const totalOtherLoss = result.score.playerLosses.reduce((sum, loss, index) => (index === result.winnerIndex ? sum : sum + loss), 0);
-  const divisor = Math.max(1, state.players.length - 1);
+  const loserLosses = result.score.playerLosses.filter((_, index) => index !== result.winnerIndex);
+  const divisor = Math.max(1, loserLosses.length);
   return [
-    { value: "round(" },
-    { value: String(totalOtherLoss), label: "他プレイヤー失点合計" },
+    { value: "((" },
+    ...buildLossSumParts(loserLosses, "敗者"),
+    { value: ")" },
     { value: "÷" },
     { value: String(divisor), label: "人数-1" },
     { value: "-" },

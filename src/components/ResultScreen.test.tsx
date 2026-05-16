@@ -141,7 +141,21 @@ describe("ResultScreen round controls", () => {
 
     expect(screen.getByText("28点")).toBeInTheDocument();
     const texts = formulaTexts(container);
-    expect(texts.some((text) => text.includes("64") && text.includes("2") && text.includes("4") && text.includes("28"))).toBe(true);
+    expect(texts.some((text) => text.includes("16") && text.includes("48") && text.includes("2") && text.includes("4") && text.includes("28"))).toBe(true);
+    expect(texts.some((text) => text.includes("64") && text.includes("28"))).toBe(false);
+    expect(texts.some((text) => text.includes("round"))).toBe(false);
+  });
+
+  it("shows rounds tsumo calculation details with loser loss additions before multiplying by 100", () => {
+    const state = createStartingPointsTsumoResultFixture();
+
+    const { container } = render(<ResultScreen state={state} onRestart={vi.fn()} onBackHome={vi.fn()} />);
+
+    expect(screen.getByText("2800点")).toBeInTheDocument();
+    const texts = formulaTexts(container);
+    expect(texts.some((text) => text.includes("16") && text.includes("48") && text.includes("2") && text.includes("4") && text.includes("2800"))).toBe(true);
+    expect(texts.some((text) => text.includes("64") && text.includes("2800"))).toBe(false);
+    expect(texts.some((text) => text.includes("round"))).toBe(false);
   });
 
   it("shows starting-points ron as winner loss minus loser loss", () => {
@@ -168,7 +182,9 @@ describe("ResultScreen round controls", () => {
     expect(screen.queryByText("敗者減点合計")).not.toBeInTheDocument();
 
     const texts = formulaTexts(container);
-    expect(texts.some((text) => text.includes("6") && text.includes("28") && text.includes("-22"))).toBe(true);
+    expect(texts.some((text) => text.includes("7") && text.includes("5") && text.includes("2") && text.includes("28") && text.includes("-22"))).toBe(true);
+    expect(texts.some((text) => text.includes("6") && text.includes("28") && text.includes("-22"))).toBe(false);
+    expect(texts.some((text) => text.includes("round"))).toBe(false);
     expect(texts.some((text) => text.includes("28") && text.includes("7") && text.includes("-21"))).toBe(false);
     expect(texts.some((text) => text.includes("28") && text.includes("5") && text.includes("-23"))).toBe(false);
   });
@@ -184,7 +200,9 @@ describe("ResultScreen round controls", () => {
     expect(screen.queryByText("敗者減点合計")).not.toBeInTheDocument();
 
     const texts = formulaTexts(container);
-    expect(texts.some((text) => text.includes("4") && text.includes("32") && text.includes("-28"))).toBe(true);
+    expect(texts.some((text) => text.includes("4") && text.includes("16") && text.includes("48") && text.includes("2") && text.includes("-28"))).toBe(true);
+    expect(texts.some((text) => text.includes("32") && text.includes("-28"))).toBe(false);
+    expect(texts.some((text) => text.includes("round"))).toBe(false);
     expect(texts.some((text) => text.includes("16") && text.includes("4") && text.includes("-12"))).toBe(false);
     expect(texts.some((text) => text.includes("48") && text.includes("4") && text.includes("-44"))).toBe(false);
   });
