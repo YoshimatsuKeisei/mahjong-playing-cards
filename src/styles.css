@@ -976,9 +976,32 @@ h2 {
   display: none;
 }
 
+.round-scroll-banner {
+  position: absolute;
+  top: clamp(1rem, 3.4vh, 2.1rem);
+  left: 50%;
+  z-index: 11;
+  min-width: min(44vw, 280px);
+  border: 1px solid rgba(120, 74, 24, 0.7);
+  border-radius: 999px;
+  background:
+    linear-gradient(90deg, rgba(73, 42, 16, 0.9), rgba(216, 178, 105, 0.94) 18%, rgba(245, 221, 157, 0.96) 50%, rgba(216, 178, 105, 0.94) 82%, rgba(73, 42, 16, 0.9));
+  color: #2c1b0c;
+  padding: 0.22rem 1.5rem;
+  text-align: center;
+  font-size: clamp(1rem, 1.7vw, 1.35rem);
+  font-weight: 900;
+  box-shadow:
+    0 8px 18px rgba(0, 0, 0, 0.34),
+    inset 0 1px 0 rgba(255, 255, 255, 0.58),
+    inset 0 -2px 6px rgba(83, 44, 13, 0.32);
+  text-shadow: 0 1px 0 rgba(255, 246, 208, 0.68);
+  transform: translateX(-50%);
+}
+
 .top-toolbar {
   position: absolute;
-  top: clamp(1.8rem, 7vh, 4.4rem);
+  top: clamp(3.7rem, 8.6vh, 5.7rem);
   left: 52.5%;
   z-index: 10;
   display: grid;
@@ -2897,6 +2920,10 @@ h2 {
   color: #fffdf7;
 }
 
+.result-actions .next-round-button {
+  min-width: 190px;
+}
+
 .result-summary strong {
   color: #fff8dc;
   font-size: 1.55rem;
@@ -3090,11 +3117,17 @@ h2 {
   }
 
   .top-toolbar {
-    top: 1rem;
+    top: 3.15rem;
     left: 50%;
     grid-template-columns: 1fr auto;
     width: min(94vw, 560px);
     border-radius: 18px;
+  }
+
+  .round-scroll-banner {
+    top: 0.75rem;
+    min-width: min(72vw, 260px);
+    padding-inline: 1.1rem;
   }
 
   .toolbar-action {

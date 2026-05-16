@@ -64,4 +64,17 @@ describe("StartScreen room settings validation", () => {
     expect(screen.queryByText("初期持ち点は50〜10000の整数で入力してください。")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "作成" })).toBeEnabled();
   });
+
+  it("passes the fixed round count when creating a rounds match", async () => {
+    const user = userEvent.setup();
+    const onStart = vi.fn();
+    render(<StartScreen onStart={onStart} onBackHome={vi.fn()} />);
+
+    const input = screen.getByLabelText(MATCH_RULE_SETTINGS.fixedRounds.inputLabel);
+    await user.clear(input);
+    await user.type(input, "3");
+    await user.click(screen.getByRole("button", { name: "作成" }));
+
+    expect(onStart).toHaveBeenCalledWith(4, "clockwise", "rounds", 3);
+  });
 });
