@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { GameState } from "../types";
@@ -57,12 +57,83 @@ describe("ResultScreen round controls", () => {
     expect(screen.getByRole("button", { name: "2回戦に進む" })).toBeInTheDocument();
   });
 
+  it("opens and closes the current standings panel with a scaled bar chart", async () => {
+    const user = userEvent.setup();
+    render(
+      <ResultScreen
+        state={createResultState()}
+        currentRound={1}
+        totalRounds={3}
+        currentStandings={{ mode: "rounds", values: [2800, 300, 1200], previousValues: [0, 300, 1200] }}
+        onNextRound={vi.fn()}
+        onRestart={vi.fn()}
+        onBackHome={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "現時点の成績" }));
+
+    expect(screen.getByRole("heading", { name: "累計得点" })).toBeInTheDocument();
+    expect(screen.getByText("2800点")).toBeInTheDocument();
+    expect(screen.getByText("3000")).toBeInTheDocument();
+    expect(screen.getByTestId("standing-bar-player-1")).toHaveAttribute("data-previous-value", "0");
+    expect(screen.getByTestId("standing-bar-player-1")).toHaveAttribute("data-current-value", "2800");
+    expect(screen.getByRole("button", { name: "2回戦に進む" })).toBeEnabled();
+
+    await user.click(screen.getByRole("button", { name: "成績パネルを閉じる" }));
+
+    expect(screen.getByText("累計得点").closest(".standings-panel")).not.toHaveClass("open");
+  });
+
+  it("uses target score as the standings axis in target-score mode", async () => {
+    const user = userEvent.setup();
+    render(
+      <ResultScreen
+        state={createResultState()}
+        currentRound={1}
+        currentStandings={{ mode: "targetScore", values: [51, 20, 0, 0], previousValues: [20, 20, 0, 0], axisMax: 100 }}
+        onNextRound={vi.fn()}
+        onRestart={vi.fn()}
+        onBackHome={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "現時点の成績" }));
+
+    expect(screen.getByRole("heading", { name: "目標点までの進捗" })).toBeInTheDocument();
+    expect(screen.getByText("100")).toBeInTheDocument();
+    expect(screen.getByTestId("standing-bar-player-1")).toHaveAttribute("data-previous-value", "20");
+    expect(screen.getByTestId("standing-bar-player-1")).toHaveAttribute("data-current-value", "51");
+    expect(screen.getByText("51点")).toBeInTheDocument();
+  });
+
+  it("uses current point balances in starting-points standings", async () => {
+    const user = userEvent.setup();
+    render(
+      <ResultScreen
+        state={createResultState()}
+        currentRound={1}
+        currentStandings={{ mode: "startingPoints", values: [72, 100, 72, 0], previousValues: [100, 100, 100, 0], axisMax: 100 }}
+        onNextRound={vi.fn()}
+        onRestart={vi.fn()}
+        onBackHome={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "現時点の成績" }));
+
+    expect(screen.getByRole("heading", { name: "現時点の持ち点" })).toBeInTheDocument();
+    expect(screen.getByText("100点")).toBeInTheDocument();
+    expect(screen.getAllByText("72点")).toHaveLength(2);
+  });
+
   it("hides the next round button on the final round", () => {
     render(
       <ResultScreen state={createResultState()} currentRound={3} totalRounds={3} onNextRound={undefined} onRestart={vi.fn()} onBackHome={vi.fn()} />,
     );
 
     expect(screen.queryByRole("button", { name: "4回戦に進む" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "現時点の成績" })).not.toBeInTheDocument();
   });
 
   it("calls the next round handler when the next round button is clicked", async () => {
@@ -205,5 +276,30 @@ describe("ResultScreen round controls", () => {
     expect(texts.some((text) => text.includes("round"))).toBe(false);
     expect(texts.some((text) => text.includes("16") && text.includes("4") && text.includes("-12"))).toBe(false);
     expect(texts.some((text) => text.includes("48") && text.includes("4") && text.includes("-44"))).toBe(false);
+  });
+
+  it("exposes previous and current standings values for bar animation and minimum visible widths", () => {
+    const { container } = render(
+      <ResultScreen
+        state={createResultState()}
+        currentRound={1}
+        currentStandings={{ mode: "rounds", values: [100000, 2000, 0, 0], previousValues: [99000, 2000, 0, 0] }}
+        onNextRound={vi.fn()}
+        onRestart={vi.fn()}
+        onBackHome={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(container.querySelector<HTMLButtonElement>(".standings-toggle-button")!);
+
+    const p1 = screen.getByTestId("standing-bar-player-1");
+    const p2Bar = screen.getByTestId("standing-bar-player-2").querySelector(".standings-bar");
+    const p3Bar = screen.getByTestId("standing-bar-player-3").querySelector(".standings-bar");
+
+    expect(p1).toHaveAttribute("data-previous-value", "99000");
+    expect(p1).toHaveAttribute("data-current-value", "100000");
+    expect(screen.getByText("100000")).toBeInTheDocument();
+    expect(p2Bar).toHaveStyle({ width: "5%" });
+    expect(p3Bar).toHaveStyle({ width: "0%" });
   });
 });

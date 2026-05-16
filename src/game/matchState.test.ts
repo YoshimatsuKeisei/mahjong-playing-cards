@@ -61,6 +61,17 @@ describe("rounds match state", () => {
     expect(advanceRound(finalRound)).toBe(finalRound);
   });
 
+  it("adds normal multiplied scores to cumulative scores in rounds mode", () => {
+    const matchState = createMatchState("rounds", 3, "clockwise", 3);
+    const resultState = createDoubleRonResultFixture();
+
+    const counted = syncMatchGameState(matchState, resultState)!;
+    const countedAgain = syncMatchGameState(counted, resultState)!;
+
+    expect(counted.cumulativeScores).toEqual([2100, 0, 2300]);
+    expect(countedAgain.cumulativeScores).toEqual([2100, 0, 2300]);
+  });
+
   it("initializes a target-score match and starts at round 1", () => {
     const matchState = createMatchState("targetScore", 4, "clockwise", 50);
 

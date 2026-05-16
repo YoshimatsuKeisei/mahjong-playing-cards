@@ -100,6 +100,7 @@ export default function App() {
     const debugState = createDebugResultState(kind);
     const playerCount = debugState.players.length;
     const roundScores = debugState.result ? calculateRawRoundScores(debugState.result, playerCount) : Array.from({ length: playerCount }, () => 0);
+    const normalRoundScores = calculateDebugRoundScores(debugState, playerCount);
     const pointDeductions = debugState.result ? calculatePointDeductions(debugState.result, playerCount) : Array.from({ length: playerCount }, () => 0);
     const startingPoints = 40;
     setState(debugState);
@@ -111,7 +112,7 @@ export default function App() {
       currentRound: 4,
       playerCount,
       direction: debugState.direction,
-      cumulativeScores: matchMode === "targetScore" ? roundScores : Array.from({ length: playerCount }, () => 0),
+      cumulativeScores: matchMode === "rounds" ? normalRoundScores : matchMode === "targetScore" ? roundScores : Array.from({ length: playerCount }, () => 0),
       pointBalances:
         matchMode === "startingPoints" ? pointDeductions.map((deduction) => startingPoints - deduction) : Array.from({ length: playerCount }, () => 0),
       scoredRound: 4,
@@ -179,6 +180,21 @@ export default function App() {
           matchState?.matchMode === "startingPoints" ? "startingPoints" : matchState?.matchMode === "targetScore" ? "targetScore" : "score"
         }
         onNextRound={canAdvanceRound(matchState) ? advanceToNextRound : undefined}
+        currentStandings={
+          matchState && canAdvanceRound(matchState)
+            ? {
+                mode: matchState.matchMode,
+                values: matchState.matchMode === "startingPoints" ? matchState.pointBalances : matchState.cumulativeScores,
+                previousValues: calculatePreviousStandings(matchState, state),
+                axisMax:
+                  matchState.matchMode === "targetScore"
+                    ? matchState.targetScore
+                    : matchState.matchMode === "startingPoints"
+                      ? matchState.startingPoints
+                      : undefined,
+              }
+            : undefined
+        }
         onRestart={restartToNewGame}
         onBackHome={returnToHome}
       />
@@ -196,4 +212,34 @@ export default function App() {
       }
     />
   );
+}
+
+function calculatePreviousStandings(matchState: MatchState, state: GameState) {
+  if (!state.result) {
+    return matchState.matchMode === "startingPoints" ? matchState.pointBalances : matchState.cumulativeScores;
+  }
+
+  if (matchState.matchMode === "startingPoints") {
+    const deductions = calculatePointDeductions(state.result, matchState.playerCount);
+    return matchState.pointBalances.map((points, index) => points + (deductions[index] ?? 0));
+  }
+
+  const roundScores =
+    matchState.matchMode === "rounds" ? calculateDebugRoundScores(state, matchState.playerCount) : calculateRawRoundScores(state.result, matchState.playerCount);
+  return matchState.cumulativeScores.map((score, index) => Math.max(0, score - (roundScores[index] ?? 0)));
+}
+
+function calculateDebugRoundScores(state: GameState, playerCount: number) {
+  const scores = Array.from({ length: playerCount }, () => 0);
+  if (!state.result) return scores;
+
+  if (state.result.winType === "ron" && state.result.ronResults) {
+    for (const ronResult of state.result.ronResults) {
+      scores[ronResult.winnerIndex] += ronResult.score.winnerScore;
+    }
+    return scores;
+  }
+
+  scores[state.result.winnerIndex] = state.result.score.winnerScore;
+  return scores;
 }
