@@ -4,6 +4,7 @@ import type { Direction, MatchMode } from "../types";
 interface StartScreenProps {
   onStart: (playerCount: number, direction: Direction, matchMode: MatchMode, ruleValue: number) => void;
   onBackHome: () => void;
+  onCancel?: () => void;
 }
 
 export type MatchRuleType = "fixedRounds" | "targetScore" | "startingPoints";
@@ -57,7 +58,7 @@ export const MATCH_RULE_SETTINGS: Record<
   },
 };
 
-export default function StartScreen({ onStart, onBackHome }: StartScreenProps) {
+export default function StartScreen({ onStart, onBackHome, onCancel = onBackHome }: StartScreenProps) {
   const [playerCount, setPlayerCount] = useState(4);
   const [direction, setDirection] = useState<Direction>("clockwise");
   const [matchType, setMatchType] = useState<MatchRuleType>("fixedRounds");
@@ -172,8 +173,11 @@ export default function StartScreen({ onStart, onBackHome }: StartScreenProps) {
           >
             作成
           </button>
-          <button type="button" className="secondary-button" onClick={onBackHome}>
+          <button type="button" className="secondary-button" onClick={onCancel}>
             キャンセル
+          </button>
+          <button type="button" onClick={onBackHome}>
+            ホーム画面に戻る
           </button>
         </div>
       </section>

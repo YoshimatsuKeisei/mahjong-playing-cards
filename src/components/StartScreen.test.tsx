@@ -78,6 +78,19 @@ describe("StartScreen room settings validation", () => {
     expect(onStart).toHaveBeenCalledWith(4, "clockwise", "rounds", 3);
   });
 
+  it("separates cancel from returning to the home screen", async () => {
+    const user = userEvent.setup();
+    const onCancel = vi.fn();
+    const onBackHome = vi.fn();
+    render(<StartScreen onStart={vi.fn()} onBackHome={onBackHome} onCancel={onCancel} />);
+
+    await user.click(screen.getByRole("button", { name: "キャンセル" }));
+    await user.click(screen.getByRole("button", { name: "ホーム画面に戻る" }));
+
+    expect(onCancel).toHaveBeenCalledTimes(1);
+    expect(onBackHome).toHaveBeenCalledTimes(1);
+  });
+
   it("passes the target score value when creating a target-score match", async () => {
     const user = userEvent.setup();
     const onStart = vi.fn();

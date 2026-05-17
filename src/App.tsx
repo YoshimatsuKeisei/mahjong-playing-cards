@@ -3,6 +3,8 @@ import HomeScreen from "./components/HomeScreen";
 import ManualScreen from "./components/ManualScreen";
 import PlaceholderScreen from "./components/PlaceholderScreen";
 import ProfileScreen from "./components/ProfileScreen";
+import RoomListScreen from "./components/RoomListScreen";
+import RoomSelectScreen from "./components/RoomSelectScreen";
 import StartScreen from "./components/StartScreen";
 import PlayScreen from "./components/PlayScreen";
 import ResultScreen from "./components/ResultScreen";
@@ -30,7 +32,7 @@ const initialState: GameState = {
   message: "",
 };
 
-type AppScreen = "home" | "newGame" | "play" | "manual" | "moreGame" | "settings" | "profile" | "result";
+type AppScreen = "home" | "roomSelect" | "roomList" | "newGame" | "play" | "manual" | "moreGame" | "settings" | "profile" | "result";
 type DebugResultKind = "ron" | "tsumo" | "doubleRon";
 type DebugStandingsCase = "roundsNoRankChange" | "roundsRankChange" | "targetNoRankChange" | "pointsLoss";
 
@@ -51,6 +53,10 @@ export default function App() {
   }
 
   function handleHomeNavigate(target: HomeMenuTarget) {
+    if (target === "newGame") {
+      setScreen("roomSelect");
+      return;
+    }
     setScreen(target);
   }
 
@@ -183,7 +189,15 @@ export default function App() {
   }
 
   if (screen === "newGame") {
-    return <StartScreen onStart={startGame} onBackHome={returnToHome} />;
+    return <StartScreen onStart={startGame} onBackHome={returnToHome} onCancel={() => setScreen("roomSelect")} />;
+  }
+
+  if (screen === "roomSelect") {
+    return <RoomSelectScreen onBackHome={returnToHome} onCreateRoom={() => setScreen("newGame")} onJoinRoom={() => setScreen("roomList")} />;
+  }
+
+  if (screen === "roomList") {
+    return <RoomListScreen onBackHome={returnToHome} onBackToSelect={() => setScreen("roomSelect")} />;
   }
 
   if (screen === "manual") {
