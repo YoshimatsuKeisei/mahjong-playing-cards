@@ -1,8 +1,24 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Direction, MatchMode } from "../types";
 
+export type RoomVisibility = "private" | "public";
+export type RoomTotalPlayers = 3 | 4 | 5;
+
+export interface RoomCreateSettings {
+  roomName: string;
+  totalPlayers: RoomTotalPlayers;
+  humanPlayers: number;
+  cpuPlayers: number;
+  matchType: MatchMode;
+  visibility: RoomVisibility;
+  roundCount?: number;
+  targetScore?: number;
+  initialPoints?: number;
+  turnDirection: Direction;
+}
+
 interface StartScreenProps {
-  onStart: (playerCount: number, direction: Direction, matchMode: MatchMode, ruleValue: number) => void;
+  onStart: (playerCount: number, direction: Direction, matchMode: MatchMode, ruleValue: number, roomSettings: RoomCreateSettings) => void;
   onBackHome: () => void;
   onCancel?: () => void;
 }
@@ -58,9 +74,13 @@ export const MATCH_RULE_SETTINGS: Record<
   },
 };
 
+const DEFAULT_DIRECTION: Direction = "clockwise";
+
 export default function StartScreen({ onStart, onBackHome, onCancel = onBackHome }: StartScreenProps) {
-  const [playerCount, setPlayerCount] = useState(4);
-  const [direction, setDirection] = useState<Direction>("clockwise");
+  const [roomName, setRoomName] = useState("");
+  const [playerCount, setPlayerCount] = useState<RoomTotalPlayers>(4);
+  const [humanPlayerCount, setHumanPlayerCount] = useState(4);
+  const [visibility, setVisibility] = useState<RoomVisibility>("private");
   const [matchType, setMatchType] = useState<MatchRuleType>("fixedRounds");
   const [ruleValues, setRuleValues] = useState<Record<MatchRuleType, string>>({
     fixedRounds: String(MATCH_RULE_SETTINGS.fixedRounds.defaultValue),
@@ -70,15 +90,83 @@ export default function StartScreen({ onStart, onBackHome, onCancel = onBackHome
   const activeRule = MATCH_RULE_SETTINGS[matchType];
   const activeValue = ruleValues[matchType];
   const settingsError = getSettingsError(matchType, activeValue);
+  const cpuPlayerCount = playerCount - humanPlayerCount;
+  const canSelectPublic = humanPlayerCount >= 2;
+
+  useEffect(() => {
+    if (!canSelectPublic && visibility === "public") {
+      setVisibility("private");
+    }
+  }, [canSelectPublic, visibility]);
 
   function updateRuleValue(value: string) {
     setRuleValues((current) => ({ ...current, [matchType]: value }));
+  }
+
+  function updatePlayerCount(count: RoomTotalPlayers) {
+    setPlayerCount(count);
+    setHumanPlayerCount(count);
+  }
+
+  function buildRoomSettings(): RoomCreateSettings {
+    const matchMode = getMatchMode(matchType);
+    const ruleNumber = Number(activeValue);
+    return {
+      roomName: roomName.trim() || "名無しのルーム",
+      totalPlayers: playerCount,
+      humanPlayers: humanPlayerCount,
+      cpuPlayers: cpuPlayerCount,
+      matchType: matchMode,
+      visibility: canSelectPublic ? visibility : "private",
+      roundCount: matchMode === "rounds" ? ruleNumber : undefined,
+      targetScore: matchMode === "targetScore" ? ruleNumber : undefined,
+      initialPoints: matchMode === "startingPoints" ? ruleNumber : undefined,
+      turnDirection: DEFAULT_DIRECTION,
+    };
+  }
+
+  function handleCreateRoom() {
+    const matchMode = getMatchMode(matchType);
+    onStart(playerCount, DEFAULT_DIRECTION, matchMode, Number(activeValue), buildRoomSettings());
+  }
+
+  function toggleVisibility() {
+    if (!canSelectPublic) return;
+    setVisibility((current) => (current === "public" ? "private" : "public"));
   }
 
   return (
     <main className="screen start-screen">
       <section className="start-panel">
         <h1>ルーム作成</h1>
+
+        <div className="room-top-row">
+          <div className="field room-name-field">
+            <label>
+              <span>ルーム名</span>
+              <input placeholder="例: 初心者歓迎ルーム" value={roomName} onChange={(event) => setRoomName(event.target.value)} />
+            </label>
+          </div>
+
+          <div className={`field visibility-field ${canSelectPublic ? "" : "is-locked"}`}>
+            <span>公開設定</span>
+            <button
+              type="button"
+              className={`visibility-switch ${visibility === "public" ? "is-public" : "is-private"}`}
+              role="switch"
+              aria-checked={visibility === "public"}
+              disabled={!canSelectPublic}
+              onClick={toggleVisibility}
+              title={!canSelectPublic ? "参加枠がないため、Publicは選択できません" : undefined}
+            >
+              <span className="visibility-switch-track" aria-hidden="true">
+                <span className="visibility-switch-knob" />
+              </span>
+              <span className="visibility-switch-label">{visibility === "public" ? "Public" : "Private"}</span>
+            </button>
+            {!canSelectPublic && <small>参加枠がないためPrivate固定です</small>}
+          </div>
+        </div>
 
         <div className="field">
           <span>プレイヤー人数</span>
@@ -88,30 +176,30 @@ export default function StartScreen({ onStart, onBackHome, onCancel = onBackHome
                 key={count}
                 type="button"
                 className={playerCount === count ? "selected" : ""}
-                onClick={() => setPlayerCount(count)}
+                onClick={() => updatePlayerCount(count as RoomTotalPlayers)}
               >
                 {count}人
               </button>
             ))}
           </div>
         </div>
+
         <div className="field">
-          <span>回転方向</span>
-          <div className="segmented">
-            <button
-              type="button"
-              className={direction === "clockwise" ? "selected" : ""}
-              onClick={() => setDirection("clockwise")}
-            >
-              時計回り
-            </button>
-            <button
-              type="button"
-              className={direction === "counterclockwise" ? "selected" : ""}
-              onClick={() => setDirection("counterclockwise")}
-            >
-              反時計回り
-            </button>
+          <span>参加内訳</span>
+          <div className="composition-grid">
+            {buildHumanPlayerOptions(playerCount).map((humanCount) => {
+              const cpuCount = playerCount - humanCount;
+              return (
+                <button
+                  type="button"
+                  className={humanPlayerCount === humanCount ? "selected" : ""}
+                  onClick={() => setHumanPlayerCount(humanCount)}
+                  key={humanCount}
+                >
+                  Player {humanCount}人{cpuCount > 0 ? ` + CPU ${cpuCount}体` : ""}
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -136,10 +224,6 @@ export default function StartScreen({ onStart, onBackHome, onCancel = onBackHome
         </div>
 
         <div className="room-settings">
-          <div className="room-rule-summary">
-            <strong>{activeRule.label}</strong>
-            <span>{activeRule.description}</span>
-          </div>
           <label>
             <span>{activeRule.inputLabel}</span>
             <input
@@ -169,7 +253,7 @@ export default function StartScreen({ onStart, onBackHome, onCancel = onBackHome
             type="button"
             className="primary-button"
             disabled={Boolean(settingsError)}
-            onClick={() => onStart(playerCount, direction, getMatchMode(matchType), Number(activeValue))}
+            onClick={handleCreateRoom}
           >
             作成
           </button>
@@ -197,4 +281,8 @@ export function getSettingsError(matchType: MatchRuleType, value: string) {
 
 export function getMatchMode(matchType: MatchRuleType): MatchMode {
   return matchType === "fixedRounds" ? "rounds" : matchType;
+}
+
+export function buildHumanPlayerOptions(totalPlayers: RoomTotalPlayers) {
+  return Array.from({ length: totalPlayers }, (_, index) => totalPlayers - index);
 }

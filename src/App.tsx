@@ -5,7 +5,7 @@ import PlaceholderScreen from "./components/PlaceholderScreen";
 import ProfileScreen from "./components/ProfileScreen";
 import RoomListScreen from "./components/RoomListScreen";
 import RoomSelectScreen from "./components/RoomSelectScreen";
-import StartScreen from "./components/StartScreen";
+import StartScreen, { type RoomCreateSettings } from "./components/StartScreen";
 import PlayScreen from "./components/PlayScreen";
 import ResultScreen from "./components/ResultScreen";
 import { createInitialGame, gameReducer, type GameAction } from "./game/gameState";
@@ -68,7 +68,7 @@ export default function App() {
     });
   }
 
-  function startGame(playerCount: number, direction: GameState["direction"], matchMode: MatchMode, ruleValue: number) {
+  function startGame(playerCount: number, direction: GameState["direction"], matchMode: MatchMode, ruleValue: number, _roomSettings?: RoomCreateSettings) {
     if (matchMode === "rounds" || matchMode === "targetScore" || matchMode === "startingPoints") {
       const nextMatch = createMatchState(matchMode, playerCount, direction, ruleValue);
       setMatchState(nextMatch);
