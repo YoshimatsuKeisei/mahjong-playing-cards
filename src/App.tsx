@@ -32,6 +32,7 @@ const initialState: GameState = {
 
 type AppScreen = "home" | "newGame" | "play" | "manual" | "moreGame" | "settings" | "profile" | "result";
 type DebugResultKind = "ron" | "tsumo" | "doubleRon";
+type DebugStandingsCase = "roundsNoRankChange" | "roundsRankChange" | "targetNoRankChange" | "pointsLoss";
 
 export default function App() {
   const [state, setState] = useState<GameState>(initialState);
@@ -121,6 +122,38 @@ export default function App() {
     setScreen("result");
   }
 
+  function showDebugStandings(caseName: DebugStandingsCase) {
+    const matchMode = caseName === "pointsLoss" ? "startingPoints" : caseName === "targetNoRankChange" ? "targetScore" : "rounds";
+    const debugState = caseName === "pointsLoss" ? createStartingPointsTsumoResultFixture() : createSingleRonResultFixture();
+    const playerCount = debugState.players.length;
+    const pointDeductions = debugState.result ? calculatePointDeductions(debugState.result, playerCount) : Array.from({ length: playerCount }, () => 0);
+    const startingPoints = 100;
+    const standingsValues =
+      caseName === "roundsNoRankChange"
+        ? [5200, 2200, 1200]
+        : caseName === "roundsRankChange"
+          ? [5200, 4900, 1200]
+          : caseName === "targetNoRankChange"
+            ? [51, 20, 18]
+            : Array.from({ length: playerCount }, (_, index) => startingPoints - (pointDeductions[index] ?? 0));
+
+    setState(debugState);
+    setMatchState({
+      matchMode,
+      totalRounds: matchMode === "rounds" ? 5 : 0,
+      targetScore: matchMode === "targetScore" ? 100 : 0,
+      startingPoints: matchMode === "startingPoints" ? startingPoints : 0,
+      currentRound: 4,
+      playerCount,
+      direction: debugState.direction,
+      cumulativeScores: matchMode === "startingPoints" ? Array.from({ length: playerCount }, () => 0) : standingsValues,
+      pointBalances: matchMode === "startingPoints" ? standingsValues : Array.from({ length: playerCount }, () => 0),
+      scoredRound: 4,
+      gameState: debugState,
+    });
+    setScreen("result");
+  }
+
   if (screen === "home") {
     return (
       <HomeScreen
@@ -138,6 +171,10 @@ export default function App() {
                 { label: "Debug Points Ron", onClick: () => showDebugResult("startingPoints", "ron") },
                 { label: "Debug Points Tsumo", onClick: () => showDebugResult("startingPoints", "tsumo") },
                 { label: "Debug Points W Ron", onClick: () => showDebugResult("startingPoints", "doubleRon") },
+                { label: "DEV: 成績UI / 局数制 / 順位変動なし", onClick: () => showDebugStandings("roundsNoRankChange") },
+                { label: "DEV: 成績UI / 局数制 / 順位変動あり", onClick: () => showDebugStandings("roundsRankChange") },
+                { label: "DEV: 成績UI / 目標点制 / 順位変動なし", onClick: () => showDebugStandings("targetNoRankChange") },
+                { label: "DEV: 成績UI / 持ち点制 / 減少あり", onClick: () => showDebugStandings("pointsLoss") },
               ]
             : undefined
         }
