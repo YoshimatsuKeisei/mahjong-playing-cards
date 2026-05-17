@@ -107,6 +107,11 @@ button:disabled {
   backdrop-filter: blur(6px);
 }
 
+.start-panel {
+  max-height: 96vh;
+  overflow: auto;
+}
+
 .start-panel::before,
 .room-choice-panel::before {
   position: relative;
@@ -114,7 +119,7 @@ button:disabled {
   display: block;
   width: 72px;
   height: 3px;
-  margin: 0 auto 0.75rem;
+  margin: 0 auto 0.55rem;
   border-radius: 999px;
   background: linear-gradient(90deg, transparent, #d6a540, transparent);
   content: "";
@@ -138,7 +143,7 @@ button:disabled {
 .room-choice-panel h1 {
   position: relative;
   z-index: 1;
-  margin-bottom: 1.25rem;
+  margin-bottom: 0.95rem;
   color: #fff8dc;
   text-align: center;
   font-size: clamp(2.25rem, 5vw, 3.8rem);
@@ -232,6 +237,21 @@ button:disabled {
   padding: 0 0.15rem;
 }
 
+.room-list-panel .room-choice-actions button {
+  flex: 0 0 168px;
+  width: 168px;
+  min-width: 168px;
+  height: 44px;
+  min-height: 0;
+  margin: 0;
+  padding: 0 1rem;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
 .room-list-panel {
   width: min(94vw, 820px);
 }
@@ -296,13 +316,57 @@ button:disabled {
 .start-screen .field {
   position: relative;
   z-index: 1;
-  margin-bottom: 0.85rem;
+  margin-bottom: 0.66rem;
 }
 
 .start-screen .field > span,
+.start-screen .field label > span,
 .room-settings label > span {
   color: #d7bd72;
   font-weight: 900;
+}
+
+.room-top-row {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 240px;
+  align-items: start;
+  gap: 0.7rem;
+  margin-bottom: 0.66rem;
+}
+
+.room-top-row .field {
+  margin-bottom: 0;
+}
+
+.room-name-field label {
+  display: grid;
+  gap: 0.36rem;
+}
+
+.room-name-field input {
+  width: 100%;
+  border: 1px solid rgba(214, 165, 64, 0.56);
+  border-radius: 8px;
+  background: #fffdf7;
+  color: #17211c;
+  font: inherit;
+  font-weight: 900;
+  padding: 0.7rem 0.8rem;
+  box-shadow:
+    0 4px 10px rgba(0, 0, 0, 0.14),
+    inset 0 2px 6px rgba(23, 33, 28, 0.1);
+}
+
+.room-name-field input::placeholder {
+  color: #7d897f;
+  font-weight: 800;
+}
+
+.room-name-field input:focus {
+  outline: 2px solid rgba(240, 199, 104, 0.48);
+  border-color: #f0c768;
 }
 
 .start-screen .segmented {
@@ -366,18 +430,198 @@ button:disabled {
   gap: 0.55rem;
 }
 
+.composition-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.composition-grid button {
+  border-color: rgba(149, 178, 158, 0.2);
+  background:
+    linear-gradient(180deg, rgba(255, 253, 247, 0.075), rgba(255, 253, 247, 0.02)),
+    linear-gradient(180deg, rgba(23, 66, 48, 0.72), rgba(7, 34, 27, 0.74));
+  color: #dfe9e1;
+  box-shadow:
+    0 5px 0 rgba(0, 0, 0, 0.17),
+    0 10px 18px rgba(0, 0, 0, 0.13),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    inset 0 -12px 18px rgba(0, 0, 0, 0.15);
+}
+
+.composition-grid button.selected {
+  border-color: #ffe09a;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255, 232, 166, 0.2), transparent 46%),
+    linear-gradient(180deg, rgba(178, 121, 31, 0.98), rgba(95, 83, 34, 0.98) 42%, rgba(26, 72, 52, 0.96));
+  color: #fff8dc;
+  box-shadow:
+    0 5px 0 rgba(58, 34, 6, 0.34),
+    0 10px 18px rgba(0, 0, 0, 0.22),
+    inset 0 1px 0 rgba(255, 245, 200, 0.22),
+    inset 0 0 0 2px rgba(255, 211, 122, 0.28),
+    inset 0 -16px 24px rgba(0, 0, 0, 0.18);
+}
+
+.visibility-field {
+  display: grid;
+  gap: 0.36rem;
+  align-content: start;
+  width: 100%;
+  max-width: 240px;
+}
+
+.visibility-field small {
+  max-width: 100%;
+  color: #cdbf9f;
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1.35;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.visibility-field.is-locked > span,
+.visibility-field.is-locked small {
+  color: rgba(206, 211, 204, 0.58);
+}
+
+.visibility-switch {
+  display: inline-grid;
+  grid-template-columns: auto auto;
+  align-items: center;
+  justify-self: start;
+  gap: 0.48rem;
+  min-height: 40px;
+  border: 1px solid rgba(214, 165, 64, 0.45);
+  border-radius: 999px;
+  background:
+    linear-gradient(180deg, rgba(255, 253, 247, 0.11), rgba(255, 253, 247, 0.02)),
+    linear-gradient(180deg, rgba(43, 58, 51, 0.94), rgba(13, 28, 24, 0.94));
+  color: #dfe9e1;
+  padding: 0.24rem 0.56rem 0.24rem 0.28rem;
+  box-shadow:
+    0 4px 0 rgba(0, 0, 0, 0.18),
+    0 8px 16px rgba(0, 0, 0, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    inset 0 -10px 18px rgba(0, 0, 0, 0.14);
+  transition:
+    background 0.22s ease,
+    border-color 0.22s ease,
+    box-shadow 0.22s ease,
+    color 0.22s ease;
+}
+
+.visibility-switch:hover:not(:disabled) {
+  border-color: rgba(255, 211, 122, 0.58);
+  filter: brightness(1.05);
+}
+
+.visibility-switch-track {
+  position: relative;
+  display: block;
+  width: 54px;
+  height: 28px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 245, 200, 0.12);
+  border-radius: 999px;
+  background:
+    linear-gradient(180deg, rgba(255, 253, 247, 0.1), rgba(0, 0, 0, 0.04)),
+    rgba(8, 24, 20, 0.78);
+  box-shadow:
+    inset 0 2px 8px rgba(0, 0, 0, 0.32),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.22);
+}
+
+.visibility-switch-knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  z-index: 2;
+  width: 22px;
+  height: 22px;
+  border: 1px solid rgba(255, 245, 200, 0.38);
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 42% 28%, rgba(255, 255, 255, 0.38), transparent 34%),
+    linear-gradient(180deg, #a8b1a9, #5d6961);
+  box-shadow:
+    0 2px 7px rgba(0, 0, 0, 0.34),
+    0 0 8px rgba(255, 255, 255, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 0 -5px 10px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s cubic-bezier(0.25, 0.9, 0.32, 1);
+}
+
+.visibility-switch-label {
+  min-width: 42px;
+  color: #edf4ee;
+  font-size: 0.9rem;
+  font-weight: 900;
+  text-align: left;
+}
+
+.visibility-switch.is-public {
+  border-color: rgba(255, 220, 128, 0.78);
+  background:
+    radial-gradient(circle at 45% 0%, rgba(255, 232, 166, 0.24), transparent 46%),
+    linear-gradient(180deg, rgba(150, 123, 43, 0.98), rgba(29, 96, 67, 0.98));
+  color: #fff8dc;
+  box-shadow:
+    0 5px 0 rgba(58, 34, 6, 0.28),
+    0 12px 20px rgba(0, 0, 0, 0.22),
+    0 0 18px rgba(240, 199, 104, 0.2),
+    inset 0 1px 0 rgba(255, 245, 200, 0.18),
+    inset 0 -14px 22px rgba(0, 0, 0, 0.15);
+}
+
+.visibility-switch.is-public .visibility-switch-knob {
+  background:
+    radial-gradient(circle at 42% 28%, rgba(255, 250, 218, 0.58), transparent 36%),
+    linear-gradient(180deg, #f1cf6a, #b38f38 50%, #39a979);
+  transform: translateX(26px);
+  transition-duration: 0.42s;
+}
+
+.visibility-switch.is-public .visibility-switch-label {
+  color: #fff8dc;
+  text-shadow: 0 1px 7px rgba(0, 0, 0, 0.36);
+}
+
+.visibility-switch:disabled {
+  border-color: rgba(94, 101, 96, 0.42);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.028), rgba(0, 0, 0, 0.1)),
+    rgba(30, 36, 33, 0.78);
+  color: rgba(215, 224, 216, 0.42);
+  cursor: not-allowed;
+  filter: grayscale(0.65);
+  box-shadow:
+    0 4px 0 rgba(0, 0, 0, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.visibility-switch:disabled .visibility-switch-track,
+.visibility-switch:disabled .visibility-switch-knob {
+  opacity: 0.58;
+}
+
+.visibility-switch:disabled .visibility-switch-label {
+  color: rgba(215, 224, 216, 0.46);
+}
+
 .match-type-grid button {
   display: grid;
   justify-items: start;
-  gap: 0.24rem;
-  min-height: 88px;
+  gap: 0.18rem;
+  min-height: 78px;
   border-color: rgba(149, 178, 158, 0.2);
   border-radius: 10px;
   background:
     linear-gradient(180deg, rgba(255, 253, 247, 0.075), rgba(255, 253, 247, 0.02)),
     linear-gradient(180deg, rgba(23, 66, 48, 0.72), rgba(7, 34, 27, 0.74));
   color: #dfe9e1;
-  padding: 0.85rem;
+  padding: 0.72rem 0.78rem;
   text-align: left;
   box-shadow:
     0 5px 0 rgba(0, 0, 0, 0.17),
@@ -446,44 +690,25 @@ button:disabled {
   z-index: 1;
   display: grid;
   justify-items: center;
-  gap: 0.62rem;
-  margin-bottom: 1rem;
+  gap: 0.5rem;
+  margin-bottom: 0.78rem;
   border: 1px solid rgba(226, 181, 85, 0.42);
   border-radius: 12px;
   background:
     radial-gradient(circle at 50% 0%, rgba(255, 232, 166, 0.1), transparent 42%),
     linear-gradient(180deg, rgba(255, 253, 247, 0.15), rgba(255, 253, 247, 0.06)),
     linear-gradient(180deg, rgba(51, 105, 77, 0.48), rgba(19, 57, 43, 0.52));
-  padding: 0.78rem 0.95rem;
+  padding: 0.68rem 0.9rem;
   box-shadow:
     0 10px 22px rgba(0, 0, 0, 0.16),
     inset 0 1px 0 rgba(255, 245, 200, 0.1),
     inset 0 -14px 24px rgba(0, 0, 0, 0.14);
 }
 
-.room-rule-summary {
-  display: grid;
-  justify-items: center;
-  gap: 0.16rem;
-  color: #fffdf7;
-  text-align: center;
-}
-
-.room-rule-summary strong {
-  color: #fff8dc;
-  font-size: 1.22rem;
-}
-
-.room-rule-summary span {
-  color: #d7e4dc;
-  font-size: 0.86rem;
-  font-weight: 800;
-}
-
 .room-settings label {
   display: grid;
   justify-items: center;
-  gap: 0.34rem;
+  gap: 0.3rem;
 }
 
 .room-settings input {
@@ -494,7 +719,7 @@ button:disabled {
   color: #17211c;
   font: inherit;
   font-weight: 900;
-  padding: 0.7rem 0.8rem;
+  padding: 0.62rem 0.78rem;
   text-align: center;
   box-shadow:
     0 4px 10px rgba(0, 0, 0, 0.14),
@@ -509,7 +734,7 @@ button:disabled {
 .room-preset-group {
   display: grid;
   justify-items: center;
-  gap: 0.42rem;
+  gap: 0.36rem;
 }
 
 .room-preset-group > span {
@@ -522,18 +747,18 @@ button:disabled {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 0.45rem;
+  gap: 0.38rem;
 }
 
 .room-presets button {
-  min-height: 36px;
+  min-height: 34px;
   border-color: rgba(214, 165, 64, 0.38);
   border-radius: 999px;
   background:
     linear-gradient(180deg, rgba(255, 253, 247, 0.12), rgba(255, 253, 247, 0.04)),
     rgba(18, 59, 43, 0.62);
   color: #fffdf7;
-  padding: 0.35rem 0.75rem;
+  padding: 0.3rem 0.72rem;
   font-size: 0.9rem;
   box-shadow:
     0 4px 0 rgba(0, 0, 0, 0.14),
@@ -561,7 +786,8 @@ button:disabled {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 0.65rem;
+  gap: 0.58rem;
+  padding-bottom: 0.08rem;
 }
 
 .room-actions .secondary-button {
@@ -3650,7 +3876,16 @@ h2 {
     padding: 1rem;
   }
 
+  .room-top-row {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
   .match-type-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .composition-grid {
     grid-template-columns: 1fr;
   }
 
