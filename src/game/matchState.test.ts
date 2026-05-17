@@ -70,6 +70,9 @@ describe("rounds match state", () => {
 
     expect(counted.cumulativeScores).toEqual([2100, 0, 2300]);
     expect(countedAgain.cumulativeScores).toEqual([2100, 0, 2300]);
+    expect(counted.history).toHaveLength(1);
+    expect(counted.history[0].loserIndexes).toEqual([1]);
+    expect(counted.history[0].playerLosses).toEqual([7, 28, 5]);
   });
 
   it("initializes a target-score match and starts at round 1", () => {

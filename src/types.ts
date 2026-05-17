@@ -53,6 +53,19 @@ export interface GameResult {
   ronResults?: RonResult[];
 }
 
+export interface MatchRoundHistoryEntry {
+  round: number;
+  result: GameResult;
+  playerLosses: number[];
+  loserIndexes: number[];
+  roundScores: number[];
+  pointDeductions: number[];
+  cumulativeScoresAfter: number[];
+  pointBalancesAfter: number[];
+  calledPlayerIndexes: number[];
+  reachPlayerIndexes: number[];
+}
+
 export interface GameState {
   players: Player[];
   deck: Card[];
@@ -72,6 +85,7 @@ export interface GameState {
 
 export interface MatchState {
   matchMode: MatchMode;
+  roomName: string;
   totalRounds: number;
   targetScore: number;
   startingPoints: number;
@@ -80,6 +94,7 @@ export interface MatchState {
   direction: Direction;
   cumulativeScores: number[];
   pointBalances: number[];
+  history: MatchRoundHistoryEntry[];
   scoredRound: number | null;
   gameState: GameState;
 }

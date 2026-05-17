@@ -8,6 +8,7 @@ import RoomSelectScreen from "./components/RoomSelectScreen";
 import StartScreen, { type RoomCreateSettings } from "./components/StartScreen";
 import PlayScreen from "./components/PlayScreen";
 import ResultScreen from "./components/ResultScreen";
+import FinalResultScreen from "./components/FinalResultScreen";
 import { createInitialGame, gameReducer, type GameAction } from "./game/gameState";
 import { advanceRound, canAdvanceRound, createMatchState, syncMatchGameState } from "./game/matchState";
 import { calculatePointDeductions, calculateRawRoundScores } from "./game/scoring";
@@ -68,9 +69,9 @@ export default function App() {
     });
   }
 
-  function startGame(playerCount: number, direction: GameState["direction"], matchMode: MatchMode, ruleValue: number, _roomSettings?: RoomCreateSettings) {
+  function startGame(playerCount: number, direction: GameState["direction"], matchMode: MatchMode, ruleValue: number, roomSettings?: RoomCreateSettings) {
     if (matchMode === "rounds" || matchMode === "targetScore" || matchMode === "startingPoints") {
-      const nextMatch = createMatchState(matchMode, playerCount, direction, ruleValue);
+      const nextMatch = createMatchState(matchMode, playerCount, direction, ruleValue, roomSettings?.roomName);
       setMatchState(nextMatch);
       setState(nextMatch.gameState);
     } else {
@@ -113,6 +114,7 @@ export default function App() {
     setState(debugState);
     setMatchState({
       matchMode,
+      roomName: "DEV Room",
       totalRounds: matchMode === "rounds" ? 5 : 0,
       targetScore: matchMode === "targetScore" ? 100 : 0,
       startingPoints: matchMode === "startingPoints" ? startingPoints : 0,
@@ -122,6 +124,7 @@ export default function App() {
       cumulativeScores: matchMode === "rounds" ? normalRoundScores : matchMode === "targetScore" ? roundScores : Array.from({ length: playerCount }, () => 0),
       pointBalances:
         matchMode === "startingPoints" ? pointDeductions.map((deduction) => startingPoints - deduction) : Array.from({ length: playerCount }, () => 0),
+      history: [],
       scoredRound: 4,
       gameState: debugState,
     });
@@ -146,6 +149,7 @@ export default function App() {
     setState(debugState);
     setMatchState({
       matchMode,
+      roomName: "DEV Room",
       totalRounds: matchMode === "rounds" ? 5 : 0,
       targetScore: matchMode === "targetScore" ? 100 : 0,
       startingPoints: matchMode === "startingPoints" ? startingPoints : 0,
@@ -154,6 +158,7 @@ export default function App() {
       direction: debugState.direction,
       cumulativeScores: matchMode === "startingPoints" ? Array.from({ length: playerCount }, () => 0) : standingsValues,
       pointBalances: matchMode === "startingPoints" ? standingsValues : Array.from({ length: playerCount }, () => 0),
+      history: [],
       scoredRound: 4,
       gameState: debugState,
     });
@@ -217,6 +222,17 @@ export default function App() {
   }
 
   if (state.phase === "result" && state.result) {
+    if (matchState && !canAdvanceRound(matchState)) {
+      return (
+        <FinalResultScreen
+          matchState={matchState}
+          players={state.players}
+          onJoinAnotherMatch={() => setScreen("roomSelect")}
+          onBackHome={returnToHome}
+        />
+      );
+    }
+
     return (
       <ResultScreen
         state={state}
