@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import type { Card, GameResult, GameState, Player, RonResult, WinningResult } from "../types";
 import { findPossibleMelds, getCardPenalty } from "../game/rules";
 import { calculatePointDeductions, calculateRawScoreFromLosses, calculateRawTsumoScoreFromLosses, calculateRawWinnerScore } from "../game/scoring";
@@ -57,10 +57,6 @@ export default function ResultScreen({
   const nextRound = currentRound + 1;
   const canShowNextRound = Boolean(onNextRound && (totalRounds === undefined || currentRound < totalRounds));
   const canShowStandings = Boolean(currentStandings && canShowNextRound);
-  const standingsModel = useMemo(
-    () => (currentStandings ? buildStandingsModel(state.players, currentStandings) : null),
-    [currentStandings, state.players],
-  );
   const winTypeLabel = result.winType === "tsumo" ? "ツモ" : result.winType === "ron" ? "ロン" : "山札切れ";
   const winnerTitle =
     ronResults.length > 1
@@ -200,43 +196,14 @@ export default function ResultScreen({
           </div>
         </section>
 
-        {standingsModel && (
-          <section className={`standings-panel ${isStandingsOpen ? "open" : ""}`} aria-hidden={!isStandingsOpen} data-testid="current-standing-panel">
-            <div className="standings-panel-ornament" aria-hidden="true" />
-            <div className="standings-panel-head">
-              <div>
-                <p className="eyebrow">{standingsModel.subtitle}</p>
-                <h2>{standingsModel.title}</h2>
-              </div>
-              <button type="button" className="standings-close-button" aria-label="成績パネルを閉じる" onClick={() => setIsStandingsOpen(false)}>
-                ×
-              </button>
-            </div>
-            <div className="standings-axis" aria-hidden="true">
-              {standingsModel.ticks.map((tick) => (
-                <span key={tick} style={{ left: `${standingsModel.axisMax > 0 ? (tick / standingsModel.axisMax) * 100 : 0}%` }}>
-                  {tick}
-                </span>
-              ))}
-            </div>
-            <div className="standings-bars">
-              {standingsModel.rows.map((row) => (
-                <div
-                  className={`standings-row ${row.isLeader ? "leader" : ""}`}
-                  data-current-value={row.value}
-                  data-previous-value={row.previousValue}
-                  data-testid={`standing-bar-player-${row.playerIndex + 1}`}
-                  key={row.playerName}
-                >
-                  <span className="standings-player">{row.playerName}</span>
-                  <div className="standings-track">
-                    <span className="standings-bar" style={{ width: `${animateStandingsToCurrent ? row.currentWidthPercent : row.previousWidthPercent}%` }} />
-                  </div>
-                  <strong>{row.value}点</strong>
-                </div>
-              ))}
-            </div>
-          </section>
+        {currentStandings && (
+          <ResultStandingsPanel
+            animateToCurrent={animateStandingsToCurrent}
+            isOpen={isStandingsOpen}
+            onClose={() => setIsStandingsOpen(false)}
+            players={state.players}
+            standings={currentStandings}
+          />
         )}
 
         <div className="result-actions result-pop-item" style={{ animationDelay: `${1.8 + state.players.length * 0.4}s` }}>
@@ -384,92 +351,6 @@ function sortCardsForDisplay(cards: Card[]) {
 
 function sumPenalty(cards: Card[]) {
   return cards.reduce((sum, card) => sum + getCardPenalty(card), 0);
-}
-
-function buildStandingsModel(players: Player[], standings: CurrentStandings) {
-  const values = players.map((player, index) => ({
-    playerIndex: index,
-    playerName: player.name,
-    value: standings.values[index] ?? 0,
-    previousValue: standings.previousValues?.[index] ?? standings.values[index] ?? 0,
-  }));
-  const maxValue = Math.max(0, ...values.map((row) => row.value));
-  const axisMax =
-    standings.mode === "rounds"
-      ? getNiceAxisMax(maxValue)
-      : Math.max(1, standings.axisMax ?? maxValue);
-  const ticks = buildAxisTicks(axisMax);
-  const leaderValue = standings.mode === "startingPoints" ? maxValue : maxValue;
-
-  return {
-    title: standings.mode === "startingPoints" ? "現時点の持ち点" : standings.mode === "targetScore" ? "目標点までの進捗" : "累計得点",
-    subtitle: "現時点の成績",
-    axisMax,
-    ticks,
-    rows: values.sort((a, b) => b.value - a.value || a.playerIndex - b.playerIndex).map((row) => {
-      const clampedValue = Math.min(Math.max(row.value, 0), axisMax);
-      const clampedPreviousValue = Math.min(Math.max(row.previousValue, 0), axisMax);
-      const rawPercent = axisMax > 0 ? (clampedValue / axisMax) * 100 : 0;
-      const previousRawPercent = axisMax > 0 ? (clampedPreviousValue / axisMax) * 100 : 0;
-      const currentWidthPercent = getVisibleBarWidthPercent(row.value, axisMax);
-      const previousWidthPercent = row.previousValue > 0 ? Math.min(100, Math.max(previousRawPercent, 5)) : 0;
-      return {
-        ...row,
-        currentWidthPercent,
-        previousWidthPercent,
-        delta: row.value - row.previousValue,
-        isLeader: row.value === leaderValue && leaderValue > 0,
-      };
-    }),
-  };
-}
-
-function getVisibleBarWidthPercent(value: number, max: number): number {
-  if (value <= 0 || max <= 0) return 0;
-  return Math.min(100, Math.max((Math.min(value, max) / max) * 100, 5));
-}
-
-function getNiceAxisMax(value: number): number {
-  if (value <= 0) return 1;
-
-  const exponent = Math.floor(Math.log10(value));
-  const base = 10 ** exponent;
-  const normalized = value / base;
-
-  let niceNormalized: number;
-  if (normalized <= 1) niceNormalized = 1;
-  else if (normalized <= 2) niceNormalized = 2;
-  else if (normalized <= 3) niceNormalized = 3;
-  else if (normalized <= 5) niceNormalized = 5;
-  else niceNormalized = 10;
-
-  return niceNormalized * base;
-}
-
-function buildAxisTicks(axisMax: number) {
-  const niceMax = Math.max(1, axisMax);
-  const roughStep = niceMax / 4;
-  const step = getNiceStep(roughStep);
-  const ticks: number[] = [];
-  for (let tick = 0; tick < niceMax; tick += step) {
-    ticks.push(tick);
-  }
-  if (ticks.at(-1) !== niceMax) ticks.push(niceMax);
-  return ticks;
-}
-
-function getNiceStep(value: number) {
-  if (value <= 0) return 1;
-
-  const exponent = Math.floor(Math.log10(value));
-  const base = 10 ** exponent;
-  const normalized = value / base;
-
-  if (normalized <= 1) return base;
-  if (normalized <= 2) return 2 * base;
-  if (normalized <= 2.5) return 2.5 * base;
-  if (normalized <= 5) return 5 * base;
-  return 10 * base;
 }
 
 function getDisplayFinalScore(result: GameResult, playerCount: number, mode: ScoreDisplayMode) {

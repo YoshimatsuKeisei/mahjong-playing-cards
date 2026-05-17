@@ -58,16 +58,20 @@ export default function ResultStandingsPanel({ animateToCurrent, isOpen, onClose
         {model.rows.map((row) => {
           const rank = animateToCurrent ? row.currentRank : row.previousRank;
           const rankIndex = animateToCurrent ? row.currentRankIndex : row.previousRankIndex;
-          const displayValue = row.value;
+          const displayValue = animateToCurrent ? row.value : row.previousValue;
           const isPositiveDelta = row.delta > 0;
           const isNegativeDelta = row.delta < 0;
           const baseWidth = isNegativeDelta && animateToCurrent ? row.currentWidthPercent : row.previousWidthPercent;
           const positiveDeltaWidth = isPositiveDelta && animateToCurrent ? row.deltaWidthPercent : 0;
           const negativeDeltaWidth = isNegativeDelta && animateToCurrent ? row.deltaWidthPercent : 0;
+          const deltaLabel = row.delta > 0 ? `+${row.delta}点` : `${row.delta}点`;
+          const isShowingPositiveDelta = isPositiveDelta && animateToCurrent;
+          const isShowingNegativeDelta = isNegativeDelta && animateToCurrent;
+          const deltaState = isShowingPositiveDelta ? "gain" : isShowingNegativeDelta ? "loss" : "none";
 
           return (
             <div
-              className={`standing-race-card ${row.isLeader ? "leader" : ""}`}
+              className={`standing-race-card ${row.isLeader ? "leader" : ""} ${row.delta > 0 ? "gain" : row.delta < 0 ? "loss" : "same"}`}
               data-current-rank={row.currentRank}
               data-current-value={row.value}
               data-previous-rank={row.previousRank}
@@ -78,18 +82,30 @@ export default function ResultStandingsPanel({ animateToCurrent, isOpen, onClose
             >
               <span className="standing-rank-badge">{rank === 1 ? "♛" : `${rank}位`}</span>
               <span className="standings-player">{row.playerName}</span>
-              <div className="standings-track">
-                <span className="standings-bar" style={{ width: `${baseWidth}%` }} />
+              <div className={`standings-track delta-${deltaState}`} data-delta-state={deltaState}>
+                <span className={`standings-bar ${isShowingPositiveDelta ? "connects-delta" : ""}`} style={{ width: `${baseWidth}%` }} />
                 {isPositiveDelta && (
-                  <span className="standings-delta-segment gain" style={{ left: `${row.previousWidthPercent}%`, width: `${positiveDeltaWidth}%` }} />
+                  <span
+                    className={`standings-delta-segment gain ${isShowingPositiveDelta ? "active" : ""}`}
+                    style={{
+                      left: isShowingPositiveDelta ? `calc(${row.previousWidthPercent}% - 1px)` : `${row.previousWidthPercent}%`,
+                      width: isShowingPositiveDelta ? `calc(${positiveDeltaWidth}% + 1px)` : `${positiveDeltaWidth}%`,
+                    }}
+                  />
                 )}
                 {isNegativeDelta && (
-                  <span className="standings-delta-segment loss" style={{ left: `${row.currentWidthPercent}%`, width: `${negativeDeltaWidth}%` }} />
+                  <span
+                    className={`standings-delta-segment loss ${isShowingNegativeDelta ? "active" : ""}`}
+                    style={{
+                      left: isShowingNegativeDelta ? `calc(${row.currentWidthPercent}% - 1px)` : `${row.currentWidthPercent}%`,
+                      width: isShowingNegativeDelta ? `calc(${negativeDeltaWidth}% + 1px)` : `${negativeDeltaWidth}%`,
+                    }}
+                  />
                 )}
               </div>
               <strong>
                 {displayValue}点
-                {row.delta !== 0 && <em>{row.delta > 0 ? `+${row.delta}点` : `${row.delta}点`}</em>}
+                <em>{row.delta === 0 ? "前回比 変化なし" : `前回比 ${deltaLabel}`}</em>
               </strong>
             </div>
           );
@@ -117,22 +133,24 @@ export function buildStandingsRaceModel(players: Player[], standings: CurrentSta
     axisMax,
     ticks,
     title: standings.mode === "startingPoints" ? "現在の持ち点" : "累計得点",
-    rows: rawRows.map((row): StandingRowModel => {
-      const previousWidthPercent = getVisibleBarWidthPercent(row.previousValue, axisMax);
-      const currentWidthPercent = getVisibleBarWidthPercent(row.value, axisMax);
-      return {
-        ...row,
-        currentRank: currentRanks.get(row.playerIndex)! + 1,
-        currentRankIndex: currentRanks.get(row.playerIndex)!,
-        currentWidthPercent,
-        delta: row.value - row.previousValue,
-        deltaWidthPercent: Math.abs(currentWidthPercent - previousWidthPercent),
-        isLeader: row.value === leaderValue && leaderValue > 0,
-        previousRank: previousRanks.get(row.playerIndex)! + 1,
-        previousRankIndex: previousRanks.get(row.playerIndex)!,
-        previousWidthPercent,
-      };
-    }),
+    rows: rawRows
+      .map((row): StandingRowModel => {
+        const previousWidthPercent = getVisibleBarWidthPercent(row.previousValue, axisMax);
+        const currentWidthPercent = getVisibleBarWidthPercent(row.value, axisMax);
+        return {
+          ...row,
+          currentRank: currentRanks.get(row.playerIndex)! + 1,
+          currentRankIndex: currentRanks.get(row.playerIndex)!,
+          currentWidthPercent,
+          delta: row.value - row.previousValue,
+          deltaWidthPercent: Math.abs(currentWidthPercent - previousWidthPercent),
+          isLeader: row.value === leaderValue && leaderValue > 0,
+          previousRank: previousRanks.get(row.playerIndex)! + 1,
+          previousRankIndex: previousRanks.get(row.playerIndex)!,
+          previousWidthPercent,
+        };
+      })
+      .sort((a, b) => a.currentRankIndex - b.currentRankIndex),
   };
 }
 
@@ -151,25 +169,13 @@ function getVisibleBarWidthPercent(value: number, max: number): number {
 
 function getNiceAxisMax(value: number): number {
   if (value <= 0) return 1;
-
-  const exponent = Math.floor(Math.log10(value));
-  const base = 10 ** exponent;
-  const normalized = value / base;
-
-  let niceNormalized: number;
-  if (normalized <= 1) niceNormalized = 1;
-  else if (normalized <= 2) niceNormalized = 2;
-  else if (normalized <= 3) niceNormalized = 3;
-  else if (normalized <= 5) niceNormalized = 5;
-  else niceNormalized = 10;
-
-  return niceNormalized * base;
+  const step = getNiceStep(value / 5);
+  return Math.max(step, Math.ceil(value / step) * step);
 }
 
 function buildAxisTicks(axisMax: number) {
   const niceMax = Math.max(1, axisMax);
-  const roughStep = niceMax / 4;
-  const step = getNiceStep(roughStep);
+  const step = getNiceStep(niceMax / 5);
   const ticks: number[] = [];
   for (let tick = 0; tick < niceMax; tick += step) {
     ticks.push(tick);
@@ -179,7 +185,14 @@ function buildAxisTicks(axisMax: number) {
 }
 
 function buildFixedTicks(axisMax: number) {
-  return [0, axisMax * 0.25, axisMax * 0.5, axisMax * 0.75, axisMax].map((tick) => Math.round(tick));
+  const max = Math.max(1, axisMax);
+  const step = getNiceStep(max / 5);
+  const ticks: number[] = [];
+  for (let tick = 0; tick < max; tick += step) {
+    ticks.push(tick);
+  }
+  if (ticks.at(-1) !== max) ticks.push(max);
+  return ticks;
 }
 
 function getNiceStep(value: number) {
@@ -189,9 +202,10 @@ function getNiceStep(value: number) {
   const base = 10 ** exponent;
   const normalized = value / base;
 
-  if (normalized <= 1) return base;
+  if (normalized <= 1.5) return base;
   if (normalized <= 2) return 2 * base;
-  if (normalized <= 2.5) return 2.5 * base;
+  if (normalized <= 2.5) return 2 * base;
+  if (normalized <= 3) return 2.5 * base;
   if (normalized <= 5) return 5 * base;
   return 10 * base;
 }

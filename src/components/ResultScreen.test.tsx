@@ -74,7 +74,7 @@ describe("ResultScreen round controls", () => {
     await user.click(screen.getByRole("button", { name: "現時点の成績" }));
 
     expect(screen.getByRole("heading", { name: "累計得点" })).toBeInTheDocument();
-    expect(screen.getByText("2800点")).toBeInTheDocument();
+    expect(await screen.findByText("2800点")).toBeInTheDocument();
     expect(screen.getByText("3000")).toBeInTheDocument();
     expect(screen.getByTestId("standing-bar-player-1")).toHaveAttribute("data-previous-value", "0");
     expect(screen.getByTestId("standing-bar-player-1")).toHaveAttribute("data-current-value", "2800");
@@ -100,11 +100,11 @@ describe("ResultScreen round controls", () => {
 
     await user.click(screen.getByRole("button", { name: "現時点の成績" }));
 
-    expect(screen.getByRole("heading", { name: "目標点までの進捗" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "累計得点" })).toBeInTheDocument();
     expect(screen.getByText("100")).toBeInTheDocument();
     expect(screen.getByTestId("standing-bar-player-1")).toHaveAttribute("data-previous-value", "20");
     expect(screen.getByTestId("standing-bar-player-1")).toHaveAttribute("data-current-value", "51");
-    expect(screen.getByText("51点")).toBeInTheDocument();
+    expect(await screen.findByText("51点")).toBeInTheDocument();
   });
 
   it("uses current point balances in starting-points standings", async () => {
@@ -122,9 +122,9 @@ describe("ResultScreen round controls", () => {
 
     await user.click(screen.getByRole("button", { name: "現時点の成績" }));
 
-    expect(screen.getByRole("heading", { name: "現時点の持ち点" })).toBeInTheDocument();
-    expect(screen.getByText("100点")).toBeInTheDocument();
-    expect(screen.getAllByText("72点")).toHaveLength(2);
+    expect(screen.getByRole("heading", { name: "現在の持ち点" })).toBeInTheDocument();
+    expect(screen.getAllByText("100点").length).toBeGreaterThan(0);
+    expect(await screen.findAllByText("72点")).toHaveLength(2);
   });
 
   it("hides the next round button on the final round", () => {
@@ -278,7 +278,7 @@ describe("ResultScreen round controls", () => {
     expect(texts.some((text) => text.includes("48") && text.includes("4") && text.includes("-44"))).toBe(false);
   });
 
-  it("exposes previous and current standings values for bar animation and minimum visible widths", () => {
+  it("exposes previous and current standings values for bar animation and minimum visible widths", async () => {
     const { container } = render(
       <ResultScreen
         state={createResultState()}
@@ -298,7 +298,7 @@ describe("ResultScreen round controls", () => {
 
     expect(p1).toHaveAttribute("data-previous-value", "99000");
     expect(p1).toHaveAttribute("data-current-value", "100000");
-    expect(screen.getByText("100000")).toBeInTheDocument();
+    expect(await screen.findByText("100000点")).toBeInTheDocument();
     expect(p2Bar).toHaveStyle({ width: "5%" });
     expect(p3Bar).toHaveStyle({ width: "0%" });
   });
