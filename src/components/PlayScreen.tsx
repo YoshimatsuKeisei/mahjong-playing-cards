@@ -50,6 +50,7 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
   const discardSources = getAvailableDiscardSources(state);
   const discardHighlights = getDiscardHighlights(state, discardSources);
   const playerCount = state.players.length;
+  const showTableCardLayer = playerCount === 3;
   const canReachAfterDraw =
     state.phase === "discard" &&
     state.drawnFrom === "deck" &&
@@ -319,47 +320,49 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
           />
         ))}
 
-        <div className="table-card-layer" aria-label="捨て札と公開役">
-          {state.players.map((player, index) => {
-            const area = getAreaName(getSeat(playerCount, index));
-            if (area === "self") {
-              return (
-                <div className="self-table-zone" key={`${player.id}-field`}>
-                  <div className="self-discard-column">
-                    <DiscardPile cards={player.discardPile} area={area} highlightLatest={discardHighlights.get(index) ?? null} />
+        {showTableCardLayer && (
+          <div className="table-card-layer" aria-label="捨て札と公開役">
+            {state.players.map((player, index) => {
+              const area = getAreaName(getSeat(playerCount, index));
+              if (area === "self") {
+                return (
+                  <div className="self-table-zone" key={`${player.id}-field`}>
+                    <div className="self-discard-column">
+                      <DiscardPile cards={player.discardPile} area={area} highlightLatest={discardHighlights.get(index) ?? null} />
+                    </div>
+                    <div className="self-open-melds-zone">
+                      <MeldArea melds={player.openMelds} area={area} />
+                    </div>
                   </div>
-                  <div className="self-open-melds-zone">
+                );
+              }
+
+              if (area === "left" || area === "right") {
+                return (
+                  <div className={`opponent-field opponent-field--${area}`} key={`${player.id}-field`}>
+                    <div className="opponent-card-group">
+                      <div className="opponent-discard-stack">
+                        <DiscardPile cards={player.discardPile} area={area} highlightLatest={discardHighlights.get(index) ?? null} />
+                      </div>
+                      <div className="opponent-meld-zone">
+                        <MeldArea melds={player.openMelds} area={area} />
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+
+              return (
+                <div className={`card-field card-field--${area}`} key={`${player.id}-field`}>
+                  <DiscardPile cards={player.discardPile} area={area} highlightLatest={discardHighlights.get(index) ?? null} />
+                  <div className={`open-meld-field open-meld-field--${area}`}>
                     <MeldArea melds={player.openMelds} area={area} />
                   </div>
                 </div>
               );
-            }
-
-            if (area === "left" || area === "right") {
-              return (
-                <div className={`opponent-field opponent-field--${area}`} key={`${player.id}-field`}>
-                  <div className="opponent-card-group">
-                    <div className="opponent-discard-stack">
-                      <DiscardPile cards={player.discardPile} area={area} highlightLatest={discardHighlights.get(index) ?? null} />
-                    </div>
-                    <div className="opponent-meld-zone">
-                      <MeldArea melds={player.openMelds} area={area} />
-                    </div>
-                  </div>
-                </div>
-              );
-            }
-
-            return (
-              <div className={`card-field card-field--${area}`} key={`${player.id}-field`}>
-                <DiscardPile cards={player.discardPile} area={area} highlightLatest={discardHighlights.get(index) ?? null} />
-                <div className={`open-meld-field open-meld-field--${area}`}>
-                  <MeldArea melds={player.openMelds} area={area} />
-                </div>
-              </div>
-            );
-          })}
-        </div>
+            })}
+          </div>
+        )}
 
         <section className="action-panel">
           {state.phase === "draw" && (

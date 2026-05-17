@@ -34,6 +34,29 @@ function formulaTexts(container: HTMLElement) {
 }
 
 describe("ResultScreen round controls", () => {
+  it.each([4, 5])("renders result rows for all %i players", (playerCount) => {
+    const state = createInitialGame(playerCount, "clockwise");
+    const resultState: GameState = {
+      ...state,
+      phase: "result",
+      winner: 0,
+      result: {
+        winnerIndex: 0,
+        winType: "tsumo",
+        winningResult: { canWin: true, melds: [], keyCard: state.players[0].hand[0] },
+        score: {
+          winnerScore: 1000,
+          playerLosses: Array.from({ length: playerCount }, (_, index) => index + 1),
+        },
+        discarderIndex: null,
+      },
+    };
+    const { container } = render(<ResultScreen state={resultState} currentRound={1} onRestart={vi.fn()} onBackHome={vi.fn()} />);
+
+    expect(container.querySelectorAll(".player-result-row")).toHaveLength(playerCount);
+    expect(screen.getByText(`プレイヤー${playerCount}`)).toBeInTheDocument();
+  });
+
   it("shows the current round in the result header", () => {
     const { rerender } = render(
       <ResultScreen state={createResultState()} currentRound={1} totalRounds={3} onNextRound={vi.fn()} onRestart={vi.fn()} onBackHome={vi.fn()} />,

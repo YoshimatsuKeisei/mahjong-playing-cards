@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createDeck, dealCards } from "./deck";
-import { gameReducer } from "./gameState";
+import { gameReducer, getNextPlayerIndex } from "./gameState";
 
 describe("deck and game state card counts", () => {
   it("creates an initial deck with 104 cards", () => {
@@ -12,6 +12,28 @@ describe("deck and game state card counts", () => {
 
     expect(state.players).toHaveLength(4);
     expect(state.players.every((player) => player.hand.length === 10)).toBe(true);
+  });
+
+  it.each([3, 4, 5])("generates %i players with numbered names", (playerCount) => {
+    const state = dealCards(createDeck(), playerCount);
+
+    expect(state.players).toHaveLength(playerCount);
+    expect(state.players.map((player) => player.name)).toEqual(
+      Array.from({ length: playerCount }, (_, index) => `プレイヤー${index + 1}`),
+    );
+  });
+
+  it.each([
+    { playerCount: 3, sequence: [0, 1, 2, 0] },
+    { playerCount: 4, sequence: [0, 1, 2, 3, 0] },
+    { playerCount: 5, sequence: [0, 1, 2, 3, 4, 0] },
+  ])("loops turns by player length for $playerCount players", ({ playerCount, sequence }) => {
+    const actual = [0];
+    for (let index = 0; index < playerCount; index += 1) {
+      actual.push(getNextPlayerIndex(actual.at(-1)!, playerCount, "clockwise"));
+    }
+
+    expect(actual).toEqual(sequence);
   });
 
   it("adds one card to the current player's hand when drawing from the deck", () => {
