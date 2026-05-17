@@ -16,12 +16,15 @@ describe("FinalResultScreen", () => {
     render(<FinalResultScreen matchState={match} players={resultState.players} onJoinAnotherMatch={onJoinAnotherMatch} onBackHome={onBackHome} />);
 
     expect(screen.getByRole("heading", { name: "最終結果" })).toBeInTheDocument();
+    expect(screen.getByText(/の優勝/)).toBeInTheDocument();
     expect(screen.getByText("初心者歓迎ルーム")).toBeInTheDocument();
     expect(screen.getByText("局数制")).toBeInTheDocument();
     expect(screen.getByText("3人")).toBeInTheDocument();
     expect(screen.getByText("1回戦")).toBeInTheDocument();
     expect(screen.getByRole("img", { name: "得点推移グラフ" })).toBeInTheDocument();
+    expect(document.querySelector(".final-chart-y-tick text")).toBeInTheDocument();
     expect(screen.getByRole("columnheader", { name: "失点効率" })).toBeInTheDocument();
+    expect(screen.getByText(/守備・頭脳プレーの指標/)).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "別の試合に参加する" }));
     await user.click(screen.getByRole("button", { name: "ホーム画面に戻る" }));

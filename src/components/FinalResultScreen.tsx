@@ -45,6 +45,12 @@ export default function FinalResultScreen({ matchState, players, onJoinAnotherMa
       <section className="final-result-panel">
         <p className="eyebrow">Final Result</p>
         <h1>最終結果</h1>
+        {model.summaries[0] && (
+          <div className="final-champion-banner final-pop-item" style={{ animationDelay: "0.04s" }}>
+            <span aria-hidden="true">🏆</span>
+            <strong>{model.summaries[0].playerName}の優勝</strong>
+          </div>
+        )}
 
         <section className="final-result-meta final-pop-item" style={{ animationDelay: "0.08s" }}>
           <div>
@@ -98,7 +104,7 @@ export default function FinalResultScreen({ matchState, players, onJoinAnotherMa
               ))}
             </tbody>
           </table>
-          <p className="final-result-note">失点効率が小さいほど、敗者時に相手へ与える点差が小さい指標です。</p>
+          <p className="final-result-note">※ 失点効率が小さいほど、敗者時に相手へ与える点差が小さく、守備・頭脳プレーの指標になります。</p>
         </section>
 
         <section className="final-chart-panel final-pop-item" style={{ animationDelay: "0.26s" }}>
@@ -202,22 +208,31 @@ function buildChartPoints(matchState: MatchState): FinalChartPoint[] {
 
 function FinalScoreChart({ points, players }: { points: FinalChartPoint[]; players: Player[] }) {
   const width = 720;
-  const height = 260;
-  const padding = { top: 18, right: 24, bottom: 34, left: 48 };
+  const height = 220;
+  const padding = { top: 14, right: 24, bottom: 30, left: 54 };
   const allValues = points.flatMap((point) => point.values);
   const minValue = Math.min(0, ...allValues);
   const maxValue = Math.max(1, ...allValues);
-  const valueRange = Math.max(1, maxValue - minValue);
+  const yTicks = buildChartValueTicks(minValue, maxValue);
+  const chartMinValue = yTicks[0] ?? minValue;
+  const chartMaxValue = yTicks[yTicks.length - 1] ?? maxValue;
+  const valueRange = Math.max(1, chartMaxValue - chartMinValue);
   const maxRound = Math.max(1, ...points.map((point) => point.round));
 
   const x = (round: number) => padding.left + (round / maxRound) * (width - padding.left - padding.right);
-  const y = (value: number) => padding.top + ((maxValue - value) / valueRange) * (height - padding.top - padding.bottom);
+  const y = (value: number) => padding.top + ((chartMaxValue - value) / valueRange) * (height - padding.top - padding.bottom);
 
   return (
     <div className="final-chart-scroll">
       <svg className="final-score-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="得点推移グラフ">
         <line x1={padding.left} y1={height - padding.bottom} x2={width - padding.right} y2={height - padding.bottom} />
         <line x1={padding.left} y1={padding.top} x2={padding.left} y2={height - padding.bottom} />
+        {yTicks.map((tick) => (
+          <g className="final-chart-y-tick" key={tick}>
+            <line x1={padding.left} y1={y(tick)} x2={width - padding.right} y2={y(tick)} />
+            <text x={padding.left - 10} y={y(tick)}>{tick}</text>
+          </g>
+        ))}
         {points.map((point) => (
           <g className="final-chart-tick" key={point.round}>
             <line x1={x(point.round)} y1={padding.top} x2={x(point.round)} y2={height - padding.bottom} />
@@ -245,6 +260,21 @@ function FinalScoreChart({ points, players }: { points: FinalChartPoint[]; playe
       </div>
     </div>
   );
+}
+
+function buildChartValueTicks(minValue: number, maxValue: number) {
+  const range = Math.max(1, maxValue - minValue);
+  const roughStep = range / 4;
+  const magnitude = 10 ** Math.floor(Math.log10(roughStep));
+  const normalized = roughStep / magnitude;
+  const step = (normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 5 ? 5 : 10) * magnitude;
+  const start = Math.floor(minValue / step) * step;
+  const end = Math.ceil(maxValue / step) * step;
+  const ticks: number[] = [];
+  for (let value = start; value <= end + step * 0.5; value += step) {
+    ticks.push(Math.round(value));
+  }
+  return ticks;
 }
 
 function getMatchLabel(matchMode: MatchMode) {
