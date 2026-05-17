@@ -1633,6 +1633,20 @@ h2 {
   box-shadow: none;
 }
 
+.table-scene.table-4 {
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.02), rgba(0, 0, 0, 0.08)),
+    url("../トランププレイ背景-4人用.png") center / cover no-repeat,
+    #1c211b;
+}
+
+.table-scene.table-5 {
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.02), rgba(0, 0, 0, 0.08)),
+    url("../トランププレイ背景-5人用.png") center / cover no-repeat,
+    #1c211b;
+}
+
 .table-scene::before {
   display: none;
 }

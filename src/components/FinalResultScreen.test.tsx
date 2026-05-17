@@ -73,4 +73,33 @@ describe("FinalResultScreen", () => {
     expect(screen.getByText("持ち点制")).toBeInTheDocument();
     expect(screen.getByText("40点 / 1回戦")).toBeInTheDocument();
   });
+
+  it.each([4, 5])("renders final summaries and chart legends for all %i players", (playerCount) => {
+    const resultState = createSingleRonResultFixture();
+    const players = Array.from({ length: playerCount }, (_, index) => ({
+      ...resultState.players[index % resultState.players.length],
+      id: `player-${index + 1}`,
+      name: `プレイヤー${index + 1}`,
+    }));
+    const match = {
+      ...syncMatchGameState(createMatchState("rounds", 3, "clockwise", 1, "人数確認部屋"), resultState)!,
+      playerCount,
+      gameState: { ...resultState, players },
+      cumulativeScores: Array.from({ length: playerCount }, (_, index) => (index === 0 ? 2100 : 0)),
+      pointBalances: Array.from({ length: playerCount }, () => 0),
+      history: [
+        {
+          ...syncMatchGameState(createMatchState("rounds", 3, "clockwise", 1, "人数確認部屋"), resultState)!.history[0],
+          cumulativeScoresAfter: Array.from({ length: playerCount }, (_, index) => (index === 0 ? 2100 : 0)),
+          pointBalancesAfter: Array.from({ length: playerCount }, () => 0),
+          playerLosses: Array.from({ length: playerCount }, (_, index) => index + 1),
+        },
+      ],
+    };
+
+    render(<FinalResultScreen matchState={match} players={players} onJoinAnotherMatch={vi.fn()} onBackHome={vi.fn()} />);
+
+    expect(screen.getByText(`${playerCount}人`)).toBeInTheDocument();
+    expect(screen.getAllByText(`プレイヤー${playerCount}`).length).toBeGreaterThan(0);
+  });
 });
