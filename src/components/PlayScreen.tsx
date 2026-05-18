@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties, type Dispatch } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type Dispatch } from "react";
 import { canDeclareReachAfterDraw, checkWinningHandWithOpenMelds } from "../game/rules";
 import {
   getAvailableDiscardSources,
@@ -30,17 +30,54 @@ const seatPositions: Record<number, Array<{ left: string; top: string }>> = {
     { left: "24%", top: "34%" },
   ],
   4: [
-    { left: "50%", top: "16%" },
-    { left: "79%", top: "52%" },
-    { left: "50%", top: "83%" },
-    { left: "21%", top: "52%" },
+    { left: "57%", top: "24%" },
+    { left: "80%", top: "47%" },
+    { left: "50%", top: "84%" },
+    { left: "20%", top: "47%" },
   ],
   5: [
-    { left: "50%", top: "15%" },
-    { left: "78%", top: "40%" },
-    { left: "70%", top: "80%" },
-    { left: "30%", top: "80%" },
-    { left: "22%", top: "40%" },
+    { left: "36%", top: "25%" },
+    { left: "64%", top: "25%" },
+    { left: "78%", top: "54%" },
+    { left: "50%", top: "82%" },
+    { left: "22%", top: "54%" },
+  ],
+};
+
+const historyAnchorPositions: Record<number, Array<{ left: string; top: string }>> = {
+  3: [
+    { left: "63.4%", top: "74.2%" },
+    { left: "63.4%", top: "55.6%" },
+    { left: "40.8%", top: "54.8%" },
+  ],
+  4: [
+    { left: "50%", top: "31%" },
+    { left: "84%", top: "52%" },
+    { left: "63%", top: "84%" },
+    { left: "16%", top: "52%" },
+  ],
+  5: [
+    { left: "36.8%", top: "31.4%" },
+    { left: "63.2%", top: "31.4%" },
+    { left: "81.4%", top: "58.9%" },
+    { left: "62%", top: "82%" },
+    { left: "18.6%", top: "58.9%" },
+  ],
+};
+
+const measuredAnchorLayouts: Record<number, Array<{ left: string; top: string; width: string; height: string }>> = {
+  4: [
+    { left: "45%", top: "28%", width: "10%", height: "10%" },
+    { left: "79%", top: "45%", width: "10%", height: "18%" },
+    { left: "61%", top: "80%", width: "5%", height: "8%" },
+    { left: "11%", top: "45%", width: "10%", height: "18%" },
+  ],
+  5: [
+    { left: "31%", top: "26%", width: "15%", height: "14%" },
+    { left: "54%", top: "26%", width: "15%", height: "14%" },
+    { left: "77%", top: "43%", width: "11%", height: "25%" },
+    { left: "61%", top: "78%", width: "5%", height: "8%" },
+    { left: "12%", top: "43%", width: "11%", height: "25%" },
   ],
 };
 
@@ -62,6 +99,9 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
   const [discardingCardId, setDiscardingCardId] = useState<string | null>(null);
   const [reachSplashPlayerName, setReachSplashPlayerName] = useState<string | null>(null);
   const [ronCountdown, setRonCountdown] = useState(3);
+  const sceneRef = useRef<HTMLElement | null>(null);
+  const historyMeasureRefs = useRef(new Map<number, HTMLElement>());
+  const [measuredHistoryPositions, setMeasuredHistoryPositions] = useState<Record<number, { left: string; top: string }>>({});
   const timeoutsRef = useRef<number[]>([]);
   const reachSplashTimeoutRef = useRef<number | null>(null);
   const isAnimating = animationPhase !== "idle";
@@ -122,6 +162,81 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
       };
     }
   }, [state.phase, dispatch]);
+
+  useLayoutEffect(() => {
+    if (playerCount < 3) {
+      setMeasuredHistoryPositions({});
+      return;
+    }
+
+    let frameId = 0;
+
+    const measureHistoryAnchors = () => {
+      const scene = sceneRef.current;
+      if (!scene) return;
+
+      const sceneRect = scene.getBoundingClientRect();
+      const next: Record<number, { left: string; top: string }> = {};
+      const debugRows: Array<Record<string, unknown>> = [];
+
+      for (let index = 0; index < state.players.length; index += 1) {
+        const element = historyMeasureRefs.current.get(index);
+        if (!element) continue;
+
+        const rect = element.getBoundingClientRect();
+        let left = rect.left + rect.width / 2 - sceneRect.left;
+        let top = rect.top + rect.height / 2 - sceneRect.top;
+
+        if (playerCount === 5 && index === 4) {
+          const player4 = next[3];
+          if (player4) {
+            const player4Left = Number.parseFloat(player4.left);
+            const player4Top = Number.parseFloat(player4.top);
+            if (Math.hypot(left - player4Left, top - player4Top) < 58) {
+              left -= 42;
+              top -= 18;
+            }
+          }
+        }
+
+        left = Math.max(24, Math.min(sceneRect.width - 24, left));
+        top = Math.max(24, Math.min(sceneRect.height - 24, top));
+        next[index] = {
+          left: `${Math.round(left)}px`,
+          top: `${Math.round(top)}px`,
+        };
+
+        debugRows.push({
+          playerId: state.players[index]?.id,
+          playerName: state.players[index]?.name,
+          rectLeft: Math.round(rect.left),
+          rectTop: Math.round(rect.top),
+          rectWidth: Math.round(rect.width),
+          rectHeight: Math.round(rect.height),
+          finalLeft: next[index].left,
+          finalTop: next[index].top,
+        });
+      }
+
+      setMeasuredHistoryPositions((current) => (JSON.stringify(current) === JSON.stringify(next) ? current : next));
+
+      if (window.localStorage.getItem("debugHistoryAnchors") === "1") {
+        console.table(debugRows);
+      }
+    };
+
+    const scheduleMeasure = () => {
+      window.cancelAnimationFrame(frameId);
+      frameId = window.requestAnimationFrame(measureHistoryAnchors);
+    };
+
+    scheduleMeasure();
+    window.addEventListener("resize", scheduleMeasure);
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      window.removeEventListener("resize", scheduleMeasure);
+    };
+  }, [playerCount, state.players]);
 
   function schedule(callback: () => void, delay: number) {
     const timeoutId = window.setTimeout(callback, delay);
@@ -199,7 +314,7 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
 
   return (
     <main className="screen play-screen">
-      <section className={`table-scene table-${playerCount}`} aria-label={`${playerCount}人用テーブル`}>
+      <section className={`table-scene table-${playerCount}`} aria-label={`${playerCount}人用テーブル`} ref={sceneRef}>
         {currentRound && <div className="round-scroll-banner">- {currentRound}回戦 -</div>}
         <header
           className={`top-toolbar ${animationPhase === "discardingCard" ? "toolbar-exiting" : ""}`}
@@ -321,18 +436,56 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
         ))}
 
         {playerCount >= 4 &&
+          state.players.map((player, index) => {
+            const layout = measuredAnchorLayouts[playerCount]?.[index];
+            if (!layout) return null;
+
+            return (
+              <span
+                className={`history-measure-anchor history-measure-anchor--p${index + 1}`}
+                style={layout}
+                ref={(node) => {
+                  if (node) {
+                    historyMeasureRefs.current.set(index, node);
+                  } else {
+                    historyMeasureRefs.current.delete(index);
+                  }
+                }}
+                aria-hidden="true"
+                key={`${player.id}-history-measure`}
+              />
+            );
+          })}
+
+        {playerCount >= 4 &&
           state.players.map((player, index) => (
             <div
-              className={`history-hover-anchor history-hover-anchor--${getSeat(playerCount, index)}`}
-              style={getSeatStyle(playerCount, index)}
+              className={`history-hover-anchor history-hover-anchor--${getSeat(playerCount, index)} history-hover-anchor--p${index + 1}`}
+              style={measuredHistoryPositions[index] ?? getHistoryAnchorStyle(playerCount, index)}
               key={`${player.id}-history-hover`}
             >
               <button type="button" className="history-hover-marker" aria-label={`${player.name}の履歴を確認`}>
-                確認
+                ?
               </button>
               <PlayerHistoryPopover player={player} showMelds />
             </div>
           ))}
+
+        {showTableCardLayer &&
+          state.players.map((player, index) =>
+            player.discardPile.length > 0 ? (
+              <div
+                className={`history-hover-anchor table-history-anchor table-history-anchor--${getAreaName(getSeat(playerCount, index))}`}
+                style={measuredHistoryPositions[index] ?? getHistoryAnchorStyle(playerCount, index)}
+                key={`${player.id}-table-history-hover`}
+              >
+                <button type="button" className="history-hover-marker" aria-label={`${player.name}の捨て札履歴を確認`}>
+                  ?
+                </button>
+                <PlayerHistoryPopover player={player} showMelds={false} />
+              </div>
+            ) : null,
+          )}
 
         {showTableCardLayer && (
           <div className="table-card-layer" aria-label="捨て札と公開役">
@@ -341,9 +494,21 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
               if (area === "self") {
                 return (
                   <div className="self-table-zone" key={`${player.id}-field`}>
-                    <div className="self-discard-column history-hover-zone">
+                    <div className="self-discard-column">
                       <DiscardPile cards={player.discardPile} area={area} highlightLatest={discardHighlights.get(index) ?? null} />
-                      <PlayerHistoryPopover player={player} showMelds={false} />
+                      {player.discardPile.length > 0 && (
+                        <span
+                          className="discard-first-card-anchor"
+                          ref={(node) => {
+                            if (node) {
+                              historyMeasureRefs.current.set(index, node);
+                            } else {
+                              historyMeasureRefs.current.delete(index);
+                            }
+                          }}
+                          aria-hidden="true"
+                        />
+                      )}
                     </div>
                     <div className="self-open-melds-zone">
                       <MeldArea melds={player.openMelds} area={area} />
@@ -356,9 +521,21 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
                 return (
                   <div className={`opponent-field opponent-field--${area}`} key={`${player.id}-field`}>
                     <div className="opponent-card-group">
-                      <div className="opponent-discard-stack history-hover-zone">
+                      <div className={`opponent-discard-stack history-hover-zone--${area}`}>
                         <DiscardPile cards={player.discardPile} area={area} highlightLatest={discardHighlights.get(index) ?? null} />
-                        <PlayerHistoryPopover player={player} showMelds={false} />
+                        {player.discardPile.length > 0 && (
+                          <span
+                            className="discard-first-card-anchor"
+                            ref={(node) => {
+                              if (node) {
+                                historyMeasureRefs.current.set(index, node);
+                              } else {
+                                historyMeasureRefs.current.delete(index);
+                              }
+                            }}
+                            aria-hidden="true"
+                          />
+                        )}
                       </div>
                       <div className="opponent-meld-zone">
                         <MeldArea melds={player.openMelds} area={area} />
@@ -370,9 +547,21 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
 
               return (
                 <div className={`card-field card-field--${area}`} key={`${player.id}-field`}>
-                  <div className="history-hover-zone">
+                  <div className={`history-hover-zone--${area}`}>
                     <DiscardPile cards={player.discardPile} area={area} highlightLatest={discardHighlights.get(index) ?? null} />
-                    <PlayerHistoryPopover player={player} showMelds={false} />
+                    {player.discardPile.length > 0 && (
+                      <span
+                        className="discard-first-card-anchor"
+                        ref={(node) => {
+                          if (node) {
+                            historyMeasureRefs.current.set(index, node);
+                          } else {
+                            historyMeasureRefs.current.delete(index);
+                          }
+                        }}
+                        aria-hidden="true"
+                      />
+                    )}
                   </div>
                   <div className={`open-meld-field open-meld-field--${area}`}>
                     <MeldArea melds={player.openMelds} area={area} />
@@ -559,6 +748,12 @@ function getSeatStyle(playerCount: number, index: number): CSSProperties {
     left: position.left,
     top: position.top,
   };
+}
+
+function getHistoryAnchorStyle(playerCount: number, index: number): CSSProperties {
+  const exact = historyAnchorPositions[playerCount]?.[index];
+  if (exact) return exact;
+  return getSeatStyle(playerCount, index);
 }
 
 function getPlayerStatus(player: GameState["players"][number]) {
