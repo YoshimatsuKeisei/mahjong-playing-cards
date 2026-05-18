@@ -8,6 +8,7 @@ export function createMatchState(
   direction: Direction,
   totalRounds: number,
   roomName = "名無しのルーム",
+  humanPlayerCount = playerCount,
 ): MatchState {
   return {
     matchMode,
@@ -17,12 +18,13 @@ export function createMatchState(
     startingPoints: matchMode === "startingPoints" ? totalRounds : 0,
     currentRound: 1,
     playerCount,
+    humanPlayerCount,
     direction,
     cumulativeScores: Array.from({ length: playerCount }, () => 0),
     pointBalances: Array.from({ length: playerCount }, () => (matchMode === "startingPoints" ? totalRounds : 0)),
     history: [],
     scoredRound: null,
-    gameState: createInitialGame(playerCount, direction),
+    gameState: createInitialGame(playerCount, direction, humanPlayerCount),
   };
 }
 
@@ -41,7 +43,7 @@ export function advanceRound(matchState: MatchState): MatchState {
     ...matchState,
     currentRound: matchState.currentRound + 1,
     scoredRound: null,
-    gameState: createInitialGame(matchState.playerCount, matchState.direction),
+    gameState: createInitialGame(matchState.playerCount, matchState.direction, matchState.humanPlayerCount),
   };
 }
 

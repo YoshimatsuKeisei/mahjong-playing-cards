@@ -7,6 +7,8 @@ function players(count: number): Player[] {
   return Array.from({ length: count }, (_, index) => ({
     id: `player-${index + 1}`,
     name: `プレイヤー${index + 1}`,
+    type: "human",
+    isCpu: false,
     hand: [],
     discardPile: [],
     openMelds: [],

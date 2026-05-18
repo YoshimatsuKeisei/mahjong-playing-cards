@@ -14,6 +14,8 @@ export interface Card {
 export interface Player {
   id: string;
   name: string;
+  type: "human" | "cpu";
+  isCpu: boolean;
   hand: Card[];
   discardPile: Card[];
   openMelds: Card[][];
@@ -91,6 +93,7 @@ export interface MatchState {
   startingPoints: number;
   currentRound: number;
   playerCount: number;
+  humanPlayerCount: number;
   direction: Direction;
   cumulativeScores: number[];
   pointBalances: number[];

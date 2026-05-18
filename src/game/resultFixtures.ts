@@ -8,6 +8,8 @@ function player(index: number, hand: Card[], discardPile: Card[] = []): Player {
   return {
     id: `player-${index}`,
     name: `プレイヤー${index}`,
+    type: "human",
+    isCpu: false,
     hand,
     discardPile,
     openMelds: [],

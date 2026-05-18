@@ -71,11 +71,11 @@ export default function App() {
 
   function startGame(playerCount: number, direction: GameState["direction"], matchMode: MatchMode, ruleValue: number, roomSettings?: RoomCreateSettings) {
     if (matchMode === "rounds" || matchMode === "targetScore" || matchMode === "startingPoints") {
-      const nextMatch = createMatchState(matchMode, playerCount, direction, ruleValue, roomSettings?.roomName);
+      const nextMatch = createMatchState(matchMode, playerCount, direction, ruleValue, roomSettings?.roomName, roomSettings?.humanPlayers ?? playerCount);
       setMatchState(nextMatch);
       setState(nextMatch.gameState);
     } else {
-      const nextState = createInitialGame(playerCount, direction);
+      const nextState = createInitialGame(playerCount, direction, roomSettings?.humanPlayers ?? playerCount);
       setMatchState(null);
       setState(nextState);
     }
@@ -120,6 +120,7 @@ export default function App() {
       startingPoints: matchMode === "startingPoints" ? startingPoints : 0,
       currentRound: 4,
       playerCount,
+      humanPlayerCount: playerCount,
       direction: debugState.direction,
       cumulativeScores: matchMode === "rounds" ? normalRoundScores : matchMode === "targetScore" ? roundScores : Array.from({ length: playerCount }, () => 0),
       pointBalances:
@@ -155,6 +156,7 @@ export default function App() {
       startingPoints: matchMode === "startingPoints" ? startingPoints : 0,
       currentRound: 4,
       playerCount,
+      humanPlayerCount: playerCount,
       direction: debugState.direction,
       cumulativeScores: matchMode === "startingPoints" ? Array.from({ length: playerCount }, () => 0) : standingsValues,
       pointBalances: matchMode === "startingPoints" ? standingsValues : Array.from({ length: playerCount }, () => 0),
