@@ -58,6 +58,7 @@ describe("PlayScreen round display", () => {
     rerender(<PlayScreen state={createInitialGame(5, "clockwise")} dispatch={vi.fn()} currentRound={1} />);
     expect(screen.queryByLabelText("捨て札と公開役")).not.toBeInTheDocument();
   });
+
   it("keeps the three-player table display and adds discard-only hover history", () => {
     const { container } = render(<PlayScreen state={createHistoryState(3)} dispatch={vi.fn()} currentRound={1} />);
 
@@ -65,6 +66,15 @@ describe("PlayScreen round display", () => {
     expect(screen.getAllByText("過去の捨て札").length).toBeGreaterThan(0);
     expect(screen.queryByText("鳴いた役")).not.toBeInTheDocument();
     expect(screen.getAllByLabelText(/過去の捨て札/).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("button", { name: /捨て札履歴を確認/ }).every((button) => button.textContent === "?")).toBe(true);
+  });
+
+  it("does not render a three-player hover history when there are no discards", () => {
+    const { container } = render(<PlayScreen state={createInitialGame(3, "clockwise")} dispatch={vi.fn()} currentRound={1} />);
+
+    expect(container.querySelector(".table-card-layer")).toBeInTheDocument();
+    expect(screen.queryByText("まだ捨てていません")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /捨て札履歴を確認/ })).not.toBeInTheDocument();
   });
 
   it.each([4, 5])("shows two-column hover history markers for %i-player games", (playerCount) => {
@@ -72,6 +82,7 @@ describe("PlayScreen round display", () => {
 
     expect(container.querySelector(".table-card-layer")).not.toBeInTheDocument();
     expect(screen.getAllByLabelText(/履歴を確認/).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("button", { name: /履歴を確認/ }).every((button) => button.textContent === "?")).toBe(true);
     expect(screen.getAllByText("過去の捨て札").length).toBeGreaterThan(0);
     expect(screen.getAllByText("鳴いた役").length).toBeGreaterThan(0);
     expect(screen.getAllByLabelText(/鳴いた役/).length).toBeGreaterThan(0);
