@@ -2008,6 +2008,13 @@ h2 {
   isolation: isolate;
 }
 
+.history-hover-anchor:hover,
+.history-hover-anchor:focus-within,
+.table-history-anchor:hover,
+.table-history-anchor:focus-within {
+  z-index: 2500;
+}
+
 .history-hover-anchor--top {
   transform: translate(-50%, -50%);
 }
@@ -2031,11 +2038,17 @@ h2 {
 
 .history-hover-marker {
   appearance: none;
+  -webkit-appearance: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
   display: grid;
   place-items: center;
   position: relative;
-  width: clamp(30px, 2.15vw, 36px);
-  height: clamp(30px, 2.15vw, 36px);
+  z-index: 1;
+  width: clamp(32px, 2.2vw, 38px);
+  min-width: clamp(32px, 2.2vw, 38px);
+  height: clamp(32px, 2.2vw, 38px);
+  min-height: clamp(32px, 2.2vw, 38px);
   border: 1px solid rgba(150, 132, 92, 0.62);
   border-radius: 50%;
   padding: 0;
@@ -2043,7 +2056,7 @@ h2 {
     radial-gradient(circle at 36% 28%, #ffffff 0 34%, #fff8e7 64%, #eadfc3 100%),
     #fff8e7;
   color: #c3262b;
-  font-size: clamp(18px, 1.3vw, 21px);
+  font-size: clamp(19px, 1.35vw, 22px);
   font-weight: 900;
   line-height: 1;
   box-shadow:
@@ -2052,8 +2065,9 @@ h2 {
     0 0 10px rgba(211, 173, 83, 0.18),
     inset 0 0 0 1px rgba(255, 255, 255, 0.86);
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.55);
-  cursor: help;
+  cursor: pointer;
   outline: none;
+  user-select: none;
   animation: history-marker-float 2.1s ease-in-out infinite;
   transform: rotate(0deg);
 }
@@ -2061,6 +2075,7 @@ h2 {
 .history-hover-marker::before,
 .history-hover-marker::after {
   content: none !important;
+  display: none !important;
 }
 
 .history-hover-marker:hover,
@@ -2072,6 +2087,8 @@ h2 {
     0 0 0 2px rgba(20, 45, 34, 0.24),
     0 0 14px rgba(211, 173, 83, 0.34),
     inset 0 0 0 1px rgba(255, 255, 255, 0.86);
+  filter: brightness(1.04);
+  transform: scale(1.04);
 }
 
 .table-history-marker {
@@ -2123,7 +2140,7 @@ h2 {
   position: absolute;
   left: 50%;
   bottom: calc(100% + 0.5rem);
-  z-index: 1000;
+  z-index: 2600;
   display: grid;
   gap: 0.58rem;
   width: max-content;
@@ -3196,7 +3213,7 @@ h2 {
 .ron-check-overlay {
   position: fixed;
   inset: 0;
-  z-index: 35;
+  z-index: 4000;
   display: grid;
   place-items: center;
   background:

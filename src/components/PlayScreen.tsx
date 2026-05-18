@@ -57,11 +57,11 @@ const historyAnchorPositions: Record<number, Array<{ left: string; top: string }
     { left: "16%", top: "52%" },
   ],
   5: [
-    { left: "36.8%", top: "31.4%" },
-    { left: "63.2%", top: "31.4%" },
-    { left: "81.4%", top: "58.9%" },
-    { left: "62%", top: "82%" },
-    { left: "18.6%", top: "58.9%" },
+    { left: "34.2%", top: "22.8%" },
+    { left: "70%", top: "31.5%" },
+    { left: "86%", top: "55.5%" },
+    { left: "63%", top: "82%" },
+    { left: "15%", top: "56%" },
   ],
 };
 
@@ -73,11 +73,11 @@ const measuredAnchorLayouts: Record<number, Array<{ left: string; top: string; w
     { left: "11%", top: "45%", width: "10%", height: "18%" },
   ],
   5: [
-    { left: "31%", top: "26%", width: "15%", height: "14%" },
-    { left: "54%", top: "26%", width: "15%", height: "14%" },
-    { left: "77%", top: "43%", width: "11%", height: "25%" },
-    { left: "61%", top: "78%", width: "5%", height: "8%" },
-    { left: "12%", top: "43%", width: "11%", height: "25%" },
+    { left: "32.8%", top: "19.8%", width: "4%", height: "6%" },
+    { left: "66%", top: "28%", width: "8%", height: "7%" },
+    { left: "84%", top: "51%", width: "4%", height: "9%" },
+    { left: "61%", top: "79%", width: "4%", height: "6%" },
+    { left: "13%", top: "51%", width: "4%", height: "9%" },
   ],
 };
 
@@ -192,9 +192,9 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
           if (player4) {
             const player4Left = Number.parseFloat(player4.left);
             const player4Top = Number.parseFloat(player4.top);
-            if (Math.hypot(left - player4Left, top - player4Top) < 58) {
-              left -= 42;
-              top -= 18;
+            if (Math.hypot(left - player4Left, top - player4Top) < 72) {
+              left -= 48;
+              top -= 20;
             }
           }
         }
