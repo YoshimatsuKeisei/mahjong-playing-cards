@@ -320,6 +320,20 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
           />
         ))}
 
+        {playerCount >= 4 &&
+          state.players.map((player, index) => (
+            <div
+              className={`history-hover-anchor history-hover-anchor--${getSeat(playerCount, index)}`}
+              style={getSeatStyle(playerCount, index)}
+              key={`${player.id}-history-hover`}
+            >
+              <button type="button" className="history-hover-marker" aria-label={`${player.name}の履歴を確認`}>
+                確認
+              </button>
+              <PlayerHistoryPopover player={player} showMelds />
+            </div>
+          ))}
+
         {showTableCardLayer && (
           <div className="table-card-layer" aria-label="捨て札と公開役">
             {state.players.map((player, index) => {
@@ -327,8 +341,9 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
               if (area === "self") {
                 return (
                   <div className="self-table-zone" key={`${player.id}-field`}>
-                    <div className="self-discard-column">
+                    <div className="self-discard-column history-hover-zone">
                       <DiscardPile cards={player.discardPile} area={area} highlightLatest={discardHighlights.get(index) ?? null} />
+                      <PlayerHistoryPopover player={player} showMelds={false} />
                     </div>
                     <div className="self-open-melds-zone">
                       <MeldArea melds={player.openMelds} area={area} />
@@ -341,8 +356,9 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
                 return (
                   <div className={`opponent-field opponent-field--${area}`} key={`${player.id}-field`}>
                     <div className="opponent-card-group">
-                      <div className="opponent-discard-stack">
+                      <div className="opponent-discard-stack history-hover-zone">
                         <DiscardPile cards={player.discardPile} area={area} highlightLatest={discardHighlights.get(index) ?? null} />
+                        <PlayerHistoryPopover player={player} showMelds={false} />
                       </div>
                       <div className="opponent-meld-zone">
                         <MeldArea melds={player.openMelds} area={area} />
@@ -354,7 +370,10 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
 
               return (
                 <div className={`card-field card-field--${area}`} key={`${player.id}-field`}>
-                  <DiscardPile cards={player.discardPile} area={area} highlightLatest={discardHighlights.get(index) ?? null} />
+                  <div className="history-hover-zone">
+                    <DiscardPile cards={player.discardPile} area={area} highlightLatest={discardHighlights.get(index) ?? null} />
+                    <PlayerHistoryPopover player={player} showMelds={false} />
+                  </div>
                   <div className={`open-meld-field open-meld-field--${area}`}>
                     <MeldArea melds={player.openMelds} area={area} />
                   </div>
@@ -474,6 +493,49 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
         </section>
       </section>
     </main>
+  );
+}
+
+interface PlayerHistoryPopoverProps {
+  player: GameState["players"][number];
+  showMelds: boolean;
+}
+
+function PlayerHistoryPopover({ player, showMelds }: PlayerHistoryPopoverProps) {
+  return (
+    <section className={`player-history-popover ${showMelds ? "with-melds" : "discard-only"}`} role="tooltip">
+      <div className="history-column">
+        <h3>過去の捨て札</h3>
+        {player.discardPile.length === 0 ? (
+          <p className="history-empty">まだ捨てていません</p>
+        ) : (
+          <div className="history-card-grid" aria-label={`${player.name}の過去の捨て札`}>
+            {player.discardPile.map((card) => (
+              <PlayingCard card={card} compact key={card.id} />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {showMelds && (
+        <div className="history-column history-meld-column">
+          <h3>鳴いた役</h3>
+          {player.openMelds.length === 0 ? (
+            <p className="history-empty">まだ鳴いていません</p>
+          ) : (
+            <div className="history-meld-list" aria-label={`${player.name}の鳴いた役`}>
+              {player.openMelds.map((meld, index) => (
+                <div className="history-meld-row" key={`${player.id}-meld-${index}-${meld.map((card) => card.id).join("-")}`}>
+                  {meld.map((card) => (
+                    <PlayingCard card={card} compact key={card.id} />
+                  ))}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </section>
   );
 }
 

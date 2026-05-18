@@ -1,7 +1,28 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { createInitialGame } from "../game/gameState";
+import type { Card, GameState } from "../types";
 import PlayScreen from "./PlayScreen";
+
+function card(id: string, rank: number, suit: Card["suit"]): Card {
+  return { id, rank, suit };
+}
+
+function createHistoryState(playerCount: number): GameState {
+  const state = createInitialGame(playerCount, "clockwise");
+  return {
+    ...state,
+    players: state.players.map((player, index) =>
+      index === 1
+        ? {
+            ...player,
+            discardPile: [card("discard-3c", 3, "C"), card("discard-7d", 7, "D"), card("discard-10s", 10, "S")],
+            openMelds: [[card("meld-8s", 8, "S"), card("meld-8h", 8, "H"), card("meld-8d", 8, "D")]],
+          }
+        : player,
+    ),
+  };
+}
 
 describe("PlayScreen round display", () => {
   it("shows the current round on the play screen", () => {
@@ -36,5 +57,30 @@ describe("PlayScreen round display", () => {
 
     rerender(<PlayScreen state={createInitialGame(5, "clockwise")} dispatch={vi.fn()} currentRound={1} />);
     expect(screen.queryByLabelText("捨て札と公開役")).not.toBeInTheDocument();
+  });
+  it("keeps the three-player table display and adds discard-only hover history", () => {
+    const { container } = render(<PlayScreen state={createHistoryState(3)} dispatch={vi.fn()} currentRound={1} />);
+
+    expect(container.querySelector(".table-card-layer")).toBeInTheDocument();
+    expect(screen.getAllByText("過去の捨て札").length).toBeGreaterThan(0);
+    expect(screen.queryByText("鳴いた役")).not.toBeInTheDocument();
+    expect(screen.getAllByLabelText(/過去の捨て札/).length).toBeGreaterThan(0);
+  });
+
+  it.each([4, 5])("shows two-column hover history markers for %i-player games", (playerCount) => {
+    const { container } = render(<PlayScreen state={createHistoryState(playerCount)} dispatch={vi.fn()} currentRound={1} />);
+
+    expect(container.querySelector(".table-card-layer")).not.toBeInTheDocument();
+    expect(screen.getAllByLabelText(/履歴を確認/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText("過去の捨て札").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("鳴いた役").length).toBeGreaterThan(0);
+    expect(screen.getAllByLabelText(/鳴いた役/).length).toBeGreaterThan(0);
+  });
+
+  it("shows empty messages in hover history when a player has no discard or meld data", () => {
+    render(<PlayScreen state={createInitialGame(4, "clockwise")} dispatch={vi.fn()} currentRound={1} />);
+
+    expect(screen.getAllByText("まだ捨てていません").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("まだ鳴いていません").length).toBeGreaterThan(0);
   });
 });
