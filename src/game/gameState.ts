@@ -14,8 +14,8 @@ export function getNextPlayerIndex(currentIndex: number, playerCount: number, di
     : (currentIndex - 1 + playerCount) % playerCount;
 }
 
-export function createInitialGame(playerCount: number, direction: Direction): GameState {
-  return dealCards(shuffleDeck(createDeck()), playerCount, direction);
+export function createInitialGame(playerCount: number, direction: Direction, humanPlayerCount = playerCount): GameState {
+  return dealCards(shuffleDeck(createDeck()), playerCount, direction, humanPlayerCount);
 }
 
 function replacePlayer(players: Player[], index: number, nextPlayer: Player): Player[] {
@@ -24,6 +24,10 @@ function replacePlayer(players: Player[], index: number, nextPlayer: Player): Pl
 
 function topDiscard(player: Player): Card | null {
   return player.discardPile[player.discardPile.length - 1] ?? null;
+}
+
+function formatCpuCard(card: Card): string {
+  return `${card.rank}${card.suit}`;
 }
 
 function makeResult(
@@ -126,7 +130,7 @@ function deckoutResult(state: GameState, players: Player[]): GameState {
   return { ...deckoutState, phase: "result", winner: winnerIndex, result, pendingRonResult: null, declaredReachThisTurn: false };
 }
 
-function advanceToNextDraw(state: GameState, players: Player[], discarderIndex: number): GameState {
+function advanceToNextDraw(state: GameState, players: Player[], discarderIndex: number, message?: string): GameState {
   const ron = makeReachRonResult({ ...state, players }, discarderIndex);
   if (ron) {
     return {
@@ -148,12 +152,12 @@ function advanceToNextDraw(state: GameState, players: Player[], discarderIndex: 
     lastDiscarderIndex: discarderIndex,
     takenDiscardOwnerIndex: null,
     declaredReachThisTurn: false,
-    message: "次のプレイヤーへ交代してください。",
+    message: message ?? "次のプレイヤーへ交代してください。",
   };
 }
 
 export type GameAction =
-  | { type: "start"; playerCount: number; direction: Direction }
+  | { type: "start"; playerCount: number; direction: Direction; humanPlayerCount?: number }
   | { type: "confirmHandoff" }
   | { type: "answerRon"; takeRon: boolean }
   | { type: "drawFromDeck" }
@@ -168,7 +172,7 @@ export type GameAction =
 export function gameReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
     case "start":
-      return createInitialGame(action.playerCount, action.direction);
+      return createInitialGame(action.playerCount, action.direction, action.humanPlayerCount ?? action.playerCount);
 
     case "restart":
       return {
@@ -251,7 +255,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         drawnFrom: "deck",
         takenDiscardOwnerIndex: null,
         declaredReachThisTurn: false,
-        message: player.isReach
+        message: player.isCpu ? `${player.name}（CPU）が山札から引きました。` : player.isReach
           ? "リーチ中です。上がれない場合は引いたカードをそのまま捨ててください。"
           : "捨てるカードを選んでください。",
       };
@@ -299,7 +303,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         drawnFrom: "discard",
         takenDiscardOwnerIndex: action.ownerIndex,
         declaredReachThisTurn: false,
-        message: action.meld ? "鳴きました。捨てるカードを選んでください。" : "捨てるカードを選んでください。",
+        message: player.isCpu ? `${player.name}（CPU）が鳴きました。` : action.meld ? "鳴きました。捨てるカードを選んでください。" : "捨てるカードを選んでください。",
       };
     }
 
@@ -412,7 +416,12 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         };
       }
 
-      return advanceToNextDraw(nextState, players, state.currentPlayerIndex);
+      return advanceToNextDraw(
+        nextState,
+        players,
+        state.currentPlayerIndex,
+        player.isCpu ? `${player.name}（CPU）が ${formatCpuCard(discardCard)} を捨てました。` : undefined,
+      );
     }
 
     case "discardDrawnOnly": {
@@ -429,7 +438,12 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       };
       const players = replacePlayer(state.players, state.currentPlayerIndex, nextPlayer);
 
-      return advanceToNextDraw({ ...state, players }, players, state.currentPlayerIndex);
+      return advanceToNextDraw(
+        { ...state, players },
+        players,
+        state.currentPlayerIndex,
+        player.isCpu && state.drawnCard ? `${player.name}（CPU）が ${formatCpuCard(state.drawnCard)} を捨てました。` : undefined,
+      );
     }
 
     default:

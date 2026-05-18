@@ -20,6 +20,8 @@ function player(id: string, lossCards: Card[] = []): Player {
   return {
     id,
     name: id,
+    type: "human",
+    isCpu: false,
     hand: [],
     discardPile: lossCards,
     openMelds: [],

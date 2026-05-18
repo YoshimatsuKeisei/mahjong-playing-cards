@@ -39,10 +39,12 @@ export function sortCards(cards: Card[]): Card[] {
   });
 }
 
-export function dealCards(deck: Card[], playerCount: number, direction: Direction = "clockwise"): GameState {
+export function dealCards(deck: Card[], playerCount: number, direction: Direction = "clockwise", humanPlayerCount = playerCount): GameState {
   const players: Player[] = Array.from({ length: playerCount }, (_, index) => ({
     id: `player-${index + 1}`,
     name: `プレイヤー${index + 1}`,
+    type: index < humanPlayerCount ? "human" : "cpu",
+    isCpu: index >= humanPlayerCount,
     hand: [],
     discardPile: [],
     openMelds: [],

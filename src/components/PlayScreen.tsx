@@ -1,6 +1,15 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type Dispatch } from "react";
 import { canDeclareReachAfterDraw, checkWinningHandWithOpenMelds } from "../game/rules";
 import {
+  chooseCpuDiscardCard,
+  chooseCpuDrawSource,
+  chooseCpuWinningDiscard,
+  CPU_AFTER_DRAW_DELAY_MS,
+  CPU_DECISION_DELAY_MS,
+  CPU_DISCARD_DELAY_MS,
+  CPU_THINK_DELAY_MS,
+} from "../game/cpu";
+import {
   getAvailableDiscardSources,
   getCallOptionsForSource,
   getReachWinningOptions,
@@ -99,12 +108,17 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
   const [discardingCardId, setDiscardingCardId] = useState<string | null>(null);
   const [reachSplashPlayerName, setReachSplashPlayerName] = useState<string | null>(null);
   const [ronCountdown, setRonCountdown] = useState(3);
+  const [cpuActionInProgress, setCpuActionInProgress] = useState(false);
   const sceneRef = useRef<HTMLElement | null>(null);
   const historyMeasureRefs = useRef(new Map<number, HTMLElement>());
   const [measuredHistoryPositions, setMeasuredHistoryPositions] = useState<Record<number, { left: string; top: string }>>({});
   const timeoutsRef = useRef<number[]>([]);
+  const cpuTimeoutsRef = useRef<number[]>([]);
+  const lastCpuActionKeyRef = useRef<string | null>(null);
   const reachSplashTimeoutRef = useRef<number | null>(null);
   const isAnimating = animationPhase !== "idle";
+  const isCpuTurn = currentPlayer?.isCpu === true && state.phase !== "result";
+  const controlsDisabled = isAnimating || isCpuTurn || cpuActionInProgress;
   const pendingRonResult = state.pendingRonResult;
   const ronDiscarderIndex = pendingRonResult?.discarderIndex ?? null;
   const ronDiscarder = ronDiscarderIndex !== null ? state.players[ronDiscarderIndex] : null;
@@ -114,6 +128,7 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
   useEffect(() => {
     return () => {
       timeoutsRef.current.forEach(window.clearTimeout);
+      cpuTimeoutsRef.current.forEach(window.clearTimeout);
       if (reachSplashTimeoutRef.current !== null) {
         window.clearTimeout(reachSplashTimeoutRef.current);
       }
@@ -131,6 +146,75 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
     timeoutsRef.current.forEach(window.clearTimeout);
     timeoutsRef.current = [];
   }, [state.currentPlayerIndex]);
+
+  useEffect(() => {
+    if (!isCpuTurn || !currentPlayer || state.phase === "handoff" || state.phase === "result") {
+      cpuTimeoutsRef.current.forEach(window.clearTimeout);
+      cpuTimeoutsRef.current = [];
+      setCpuActionInProgress(false);
+      return;
+    }
+
+    const pendingCpuRon = state.pendingRonResult?.ronResults?.some((item) => state.players[item.winnerIndex]?.isCpu) ?? false;
+    const cpuActionKey = [
+      state.phase,
+      state.currentPlayerIndex,
+      state.deck.length,
+      state.drawnCard?.id ?? "none",
+      state.players.map((player) => `${player.hand.length}:${player.discardPile.length}:${player.openMelds.length}`).join("|"),
+      pendingCpuRon ? "cpu-ron" : "no-cpu-ron",
+    ].join("/");
+
+    if (lastCpuActionKeyRef.current === cpuActionKey) return;
+    lastCpuActionKeyRef.current = cpuActionKey;
+    setCpuActionInProgress(true);
+
+    const scheduleCpuAction = (callback: () => void, delay: number) => {
+      const timeoutId = window.setTimeout(() => {
+        callback();
+        setCpuActionInProgress(false);
+      }, delay);
+      cpuTimeoutsRef.current.push(timeoutId);
+    };
+
+    if (state.phase === "draw") {
+      scheduleCpuAction(() => dispatch(chooseCpuDrawSource(state)), CPU_THINK_DELAY_MS);
+      return;
+    }
+
+    if (state.phase === "discard") {
+      const winningDiscard = chooseCpuWinningDiscard(state);
+      if (winningDiscard) {
+        scheduleCpuAction(() => dispatch({ type: "winWithDiscard", discardCardId: winningDiscard.id }), CPU_DECISION_DELAY_MS);
+        return;
+      }
+
+      if (currentPlayer.isReach && !state.declaredReachThisTurn) {
+        scheduleCpuAction(() => dispatch({ type: "discardDrawnOnly" }), CPU_DISCARD_DELAY_MS);
+        return;
+      }
+
+      const discardCard = chooseCpuDiscardCard(state);
+      if (discardCard) {
+        const delay = state.drawnCard ? CPU_AFTER_DRAW_DELAY_MS + CPU_DISCARD_DELAY_MS : CPU_DISCARD_DELAY_MS;
+        scheduleCpuAction(() => dispatch({ type: "discard", cardId: discardCard.id }), delay);
+        return;
+      }
+    }
+
+    if (state.phase === "reachConfirm") {
+      scheduleCpuAction(() => dispatch({ type: "answerReachAfterDiscard", declareReach: false }), CPU_DECISION_DELAY_MS);
+      return;
+    }
+
+    if (state.phase === "ronCheck") {
+      if (pendingCpuRon) {
+        scheduleCpuAction(() => dispatch({ type: "answerRon", takeRon: true }), CPU_DECISION_DELAY_MS);
+        return;
+      }
+      setCpuActionInProgress(false);
+    }
+  }, [currentPlayer, dispatch, isCpuTurn, state]);
 
   useEffect(() => {
     if (selectedDiscardId && !currentPlayer.hand.some((card) => card.id === selectedDiscardId)) {
@@ -578,7 +662,7 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
               <button
                 type="button"
                 className="primary-button"
-                disabled={state.deck.length === 0 || isAnimating}
+                disabled={state.deck.length === 0 || controlsDisabled}
                 onClick={handleDrawFromDeck}
               >
                 山札から引く
@@ -593,7 +677,7 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
                       <button
                         type="button"
                         key={meld.map((card) => card.id).join("-")}
-                        disabled={isAnimating}
+                        disabled={controlsDisabled}
                         onClick={() => dispatch({ type: "takeDiscard", ownerIndex, meld })}
                       >
                         {sourceDiscard && isWinningCall(currentPlayer.hand, currentPlayer.openMelds, meld, sourceDiscard) ? "ロン" : "鳴く"}{" "}
@@ -609,12 +693,12 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
           {state.phase === "discard" && (
             <>
               {canReachAfterDraw && (
-                <button type="button" className="primary-button" disabled={isAnimating} onClick={handleDeclareReach}>
+                <button type="button" className="primary-button" disabled={controlsDisabled} onClick={handleDeclareReach}>
                   リーチ
                 </button>
               )}
               {currentPlayer.isReach && !state.declaredReachThisTurn && reachOptions.length === 0 && (
-                <button type="button" className="primary-button" disabled={isAnimating} onClick={handleDiscardDrawnOnly}>
+                <button type="button" className="primary-button" disabled={controlsDisabled} onClick={handleDiscardDrawnOnly}>
                   引いたカードをそのまま捨てる
                 </button>
               )}
@@ -626,7 +710,7 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
                       type="button"
                       className="primary-button"
                       key={option.discardCard.id}
-                      disabled={isAnimating}
+                      disabled={controlsDisabled}
                       onClick={() => handleWinWithDiscard(option.discardCard)}
                     >
                       上がる: {formatCard(option.discardCard)}を捨てる
@@ -637,7 +721,7 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
               {canChooseDiscard && (
                 <>
                   <p className="hint">手札のカードを選んでから捨てます。</p>
-                  <button type="button" className="primary-button" disabled={!selectedDiscardId || isAnimating} onClick={handleDiscardSelected}>
+                  <button type="button" className="primary-button" disabled={!selectedDiscardId || controlsDisabled} onClick={handleDiscardSelected}>
                     捨てる
                   </button>
                 </>
@@ -651,7 +735,7 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
               <button
                 type="button"
                 className="primary-button"
-                disabled={isAnimating}
+                disabled={controlsDisabled}
                 onClick={() => handleReachConfirmAnswer(true)}
               >
                 はい
@@ -659,7 +743,7 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
               <button
                 type="button"
                 className="primary-button"
-                disabled={isAnimating}
+                disabled={controlsDisabled}
                 onClick={() => handleReachConfirmAnswer(false)}
               >
                 いいえ
@@ -676,7 +760,7 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
             drawnCardId={state.drawnCard?.id ?? null}
             selectedCardId={selectedDiscardId}
             discardingCardId={discardingCardId}
-            disabled={state.phase !== "discard" || !canChooseDiscard || isAnimating}
+            disabled={state.phase !== "discard" || !canChooseDiscard || controlsDisabled}
             onCardClick={(card) => setSelectedDiscardId((previousId) => (previousId === card.id ? null : card.id))}
           />
         </section>
@@ -801,6 +885,14 @@ function getRonRemainingCards(hand: Card[], ronCard: Card | null, melds: Card[][
 }
 
 function getActionText(state: GameState) {
+  const currentPlayer = state.players[state.currentPlayerIndex];
+  if (currentPlayer?.isCpu) {
+    if (state.phase === "draw") return `${currentPlayer.name}（CPU）が引くカードを選んでいます。`;
+    if (state.phase === "discard") return `${currentPlayer.name}（CPU）が捨てるカードを選んでいます。`;
+    if (state.phase === "reachConfirm") return `${currentPlayer.name}（CPU）がリーチを確認しています。`;
+    if (state.phase === "ronCheck") return `${currentPlayer.name}（CPU）がロンを確認しています。`;
+  }
+
   if (state.phase === "draw") return "山札または直前の捨て札から1枚取ってください。";
   if (state.phase === "discard") return "手札から1枚選んで捨ててください。";
   if (state.phase === "reachConfirm") return "リーチ宣言を確認してください。";
