@@ -219,7 +219,10 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
     }
 
     if (state.phase === "reachConfirm") {
-      scheduleCpuAction(() => dispatch({ type: "answerReachAfterDiscard", declareReach: false }), CPU_DECISION_DELAY_MS);
+      scheduleCpuAction(
+        () => dispatch({ type: "answerReachAfterDiscard", declareReach: cpuModel.chooseReachDeclaration?.(cpuContext) ?? false }),
+        CPU_DECISION_DELAY_MS,
+      );
       return;
     }
 

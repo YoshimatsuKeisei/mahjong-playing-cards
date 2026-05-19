@@ -1,7 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Card, GameState, Player } from "../types";
 import { cpuModels, getCpuModel } from "./cpuModelRegistry";
 import { createCpuDecisionContext } from "./cpuTypes";
+import { easyChooseCpuCall, easyChooseCpuDiscardCard, easyChooseReachDeclaration } from "./easyCpu";
 import { getTacticalDiscardScores, tacticalChooseCpuCall, tacticalChooseCpuDiscardCard } from "./tacticalCpu";
 
 function card(id: string, rank: number, suit: Card["suit"] = "S"): Card {
@@ -43,11 +44,80 @@ function state(players: Player[], currentPlayerIndex = 1): GameState {
 }
 
 describe("CPU models", () => {
-  it("registers standard and tactical models", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("registers easy, standard, and tactical models", () => {
+    expect(cpuModels.easy.name).toBe("Easy CPU");
     expect(cpuModels.standard.name).toBe("Standard CPU");
     expect(cpuModels.tactical.name).toBe("Tactical CPU");
+    expect(getCpuModel("easy").id).toBe("easy");
     expect(getCpuModel("standard").id).toBe("standard");
     expect(getCpuModel("tactical").id).toBe("tactical");
+  });
+
+  it("easy CPU calls only sometimes when a call improves meld count", () => {
+    const gameState = state([
+      player(1, [], [card("discard-7d", 7, "D")]),
+      player(2, [card("7s", 7, "S"), card("7h", 7, "H"), card("2c", 2, "C"), card("11s", 11, "S")]),
+      player(3, []),
+    ]);
+    const context = createCpuDecisionContext(gameState)!;
+
+    vi.spyOn(Math, "random").mockReturnValueOnce(0.9);
+    expect(easyChooseCpuCall(context)).toBeNull();
+
+    vi.spyOn(Math, "random").mockReturnValueOnce(0.1);
+    expect(easyChooseCpuCall(context)?.ownerIndex).toBe(0);
+  });
+
+  it("easy CPU protects an obvious completed meld when discarding", () => {
+    const gameState = {
+      ...state([
+        player(1, []),
+        player(2, [card("3s", 3, "S"), card("3h", 3, "H"), card("3d", 3, "D"), card("9c", 9, "C")]),
+        player(3, []),
+      ]),
+      phase: "discard" as const,
+      drawnCard: card("drawn-9c", 9, "C"),
+    };
+    const context = createCpuDecisionContext(gameState)!;
+
+    vi.spyOn(Math, "random").mockReturnValue(0.99);
+    expect(easyChooseCpuDiscardCard(context)?.id).toBe("9c");
+  });
+
+  it("easy CPU prefers cards whose rank appears only once after protecting a meld", () => {
+    const gameState = {
+      ...state([
+        player(1, []),
+        player(2, [
+          card("3s", 3, "S"),
+          card("3h", 3, "H"),
+          card("3d", 3, "D"),
+          card("5s", 5, "S"),
+          card("5h", 5, "H"),
+          card("9c", 9, "C"),
+          card("12d", 12, "D"),
+        ]),
+        player(3, []),
+      ]),
+      phase: "discard" as const,
+      drawnCard: card("drawn-12d", 12, "D"),
+    };
+    const context = createCpuDecisionContext(gameState)!;
+
+    vi.spyOn(Math, "random").mockReturnValue(0.99);
+    expect(["9c", "12d"]).toContain(easyChooseCpuDiscardCard(context)?.id);
+  });
+
+  it("easy CPU reach declaration is probability based", () => {
+    vi.spyOn(Math, "random").mockReturnValueOnce(0.49);
+    expect(easyChooseReachDeclaration()).toBe(true);
+
+    vi.spyOn(Math, "random").mockReturnValueOnce(0.51);
+    expect(easyChooseReachDeclaration()).toBe(false);
   });
 
   it("tactical CPU avoids a call that does not increase meld count", () => {

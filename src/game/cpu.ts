@@ -6,6 +6,9 @@ export const CPU_DECISION_DELAY_MS = 900;
 export { createCpuDecisionContext, type CpuDecisionContext, type CpuModel } from "./cpuTypes";
 export { getCpuModel, DEFAULT_CPU_MODEL_ID, cpuModels } from "./cpuModelRegistry";
 export {
+  easyCpuModel,
+} from "./easyCpu";
+export {
   standardChooseCpuDiscardCard as chooseCpuDiscardCard,
   standardChooseCpuDrawSource as chooseCpuDrawSource,
   standardChooseCpuCall as chooseCpuCall,
