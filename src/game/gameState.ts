@@ -209,6 +209,8 @@ function getDaifugoEffectForCard(card: Card, options: DaifugoOptions): DaifugoEf
 
 function createPendingDaifugoEffect(state: GameState, discardCard: Card, continueState: PendingDaifugoContinue) {
   const effect = getDaifugoEffectForCard(discardCard, state.daifugoOptions);
+  const player = state.players[state.currentPlayerIndex];
+  if (effect === "tenSwapDraw" && player?.isReach) return null;
   if (!effect) return null;
   return {
     kind: "confirm" as const,
@@ -462,6 +464,9 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const player = state.players[state.currentPlayerIndex];
       const discardCard = player.hand.find((card) => card.id === action.cardId);
       if (!discardCard) return state;
+      if (pending.effect === "eightExtraTurn" && player.isReach && !state.declaredReachThisTurn && discardCard.id !== state.drawnCard?.id) {
+        return state;
+      }
 
       const handAfterDiscard = sortCards(player.hand.filter((card) => card.id !== discardCard.id));
       const winningResult = checkWinningHandWithOpenMelds(handAfterDiscard, player.openMelds);

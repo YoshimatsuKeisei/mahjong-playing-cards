@@ -121,6 +121,11 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
   const isDaifugoConfirm = pendingDaifugoEffect?.kind === "confirm";
   const isDaifugoExtraDiscard = pendingDaifugoEffect?.kind === "extraDiscard";
   const isDaifugoEffectDraw = pendingDaifugoEffect?.kind === "effectDraw";
+  const mustDiscardDrawnForReachDaifugo =
+    isDaifugoExtraDiscard &&
+    pendingDaifugoEffect.effect === "eightExtraTurn" &&
+    currentPlayer.isReach &&
+    !state.declaredReachThisTurn;
   const controlsDisabled = isAnimating || isCpuTurn || cpuActionInProgress || isDaifugoConfirm || isDaifugoEffectDraw;
   const pendingRonResult = state.pendingRonResult;
   const ronDiscarderIndex = pendingRonResult?.discarderIndex ?? null;
@@ -207,7 +212,10 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
         scheduleCpuAction(() => dispatch({ type: "winWithDiscard", discardCardId: winningDiscard.id }), CPU_DECISION_DELAY_MS);
         return;
       }
-      const discardCard = cpuModel.chooseDiscardCard(cpuContext) ?? currentPlayer.hand[0] ?? null;
+      const discardCard =
+        state.pendingDaifugoEffect.effect === "eightExtraTurn" && currentPlayer.isReach && !state.declaredReachThisTurn
+          ? state.drawnCard
+          : cpuModel.chooseDiscardCard(cpuContext) ?? currentPlayer.hand[0] ?? null;
       if (discardCard) {
         scheduleCpuAction(() => dispatch({ type: "discardForDaifugoEffect", cardId: discardCard.id }), CPU_DISCARD_DELAY_MS);
         return;
@@ -426,7 +434,14 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
   }
 
   function handleDaifugoExtraDiscard() {
-    const card = currentPlayer.hand.find((item) => item.id === selectedDiscardId);
+    const mustDiscardDrawnForReach =
+      state.pendingDaifugoEffect?.kind === "extraDiscard" &&
+      state.pendingDaifugoEffect.effect === "eightExtraTurn" &&
+      currentPlayer.isReach &&
+      !state.declaredReachThisTurn;
+    const card = mustDiscardDrawnForReach
+      ? state.drawnCard
+      : currentPlayer.hand.find((item) => item.id === selectedDiscardId);
     if (!card) return;
     animateDiscard(card, () => dispatch({ type: "discardForDaifugoEffect", cardId: card.id }));
   }
@@ -768,10 +783,10 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
               <button
                 type="button"
                 className="primary-button"
-                disabled={!selectedDiscardId || isAnimating || isCpuTurn || cpuActionInProgress}
+                disabled={(!selectedDiscardId && !mustDiscardDrawnForReachDaifugo) || isAnimating || isCpuTurn || cpuActionInProgress}
                 onClick={handleDaifugoExtraDiscard}
               >
-                効果で捨てる
+                {mustDiscardDrawnForReachDaifugo ? "引いたカードを捨てる" : "効果で捨てる"}
               </button>
             </div>
           )}
@@ -882,6 +897,7 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
             disabled={
               state.phase !== "discard" ||
               (!isDaifugoExtraDiscard && !canChooseDiscard) ||
+              mustDiscardDrawnForReachDaifugo ||
               (isDaifugoExtraDiscard ? isAnimating || isCpuTurn || cpuActionInProgress : controlsDisabled)
             }
             onCardClick={(card) => setSelectedDiscardId((previousId) => (previousId === card.id ? null : card.id))}

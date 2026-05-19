@@ -275,4 +275,34 @@ describe("daifugo game state", () => {
 
     expect(attemptedDraw).toBe(pending);
   });
+
+  it("does not activate the 10 effect while the player is in reach", () => {
+    const state = stateForDiscard(card("ten", 10));
+    state.players[0] = { ...state.players[0], isReach: true };
+    state.drawnCard = state.players[0].hand.find((item) => item.id === "ten") ?? null;
+
+    const resolved = gameReducer(state, { type: "discardDrawnOnly" });
+
+    expect(resolved.pendingDaifugoEffect).toBeNull();
+    expect(resolved.phase).toBe("handoff");
+  });
+
+  it("allows the 8 effect during reach but only discards the drawn card afterward", () => {
+    const state = stateForDiscard(card("eight", 8));
+    state.players[0] = { ...state.players[0], isReach: true };
+    state.drawnCard = state.players[0].hand.find((item) => item.id === "eight") ?? null;
+
+    const pending = gameReducer(state, { type: "discardDrawnOnly" });
+    expect(pending.pendingDaifugoEffect?.kind).toBe("confirm");
+    expect(pending.pendingDaifugoEffect?.effect).toBe("eightExtraTurn");
+
+    const drawPending = gameReducer(pending, { type: "answerDaifugoEffect", activate: true });
+    const extra = gameReducer(drawPending, { type: "drawForDaifugoEffect" });
+    const rejected = gameReducer(extra, { type: "discardForDaifugoEffect", cardId: "a-1" });
+    const resolved = gameReducer(extra, { type: "discardForDaifugoEffect", cardId: "deck-1" });
+
+    expect(rejected).toBe(extra);
+    expect(resolved.phase).toBe("handoff");
+    expect(resolved.players[0].discardPile.at(-1)?.id).toBe("deck-1");
+  });
 });
