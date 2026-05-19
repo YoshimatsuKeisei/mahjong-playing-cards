@@ -23,6 +23,13 @@ describe("deck and game state card counts", () => {
     );
   });
 
+  it("assigns the selected CPU model to CPU players only", () => {
+    const state = dealCards(createDeck(), 5, "clockwise", 2, "tactical");
+
+    expect(state.players.map((player) => player.isCpu)).toEqual([false, false, true, true, true]);
+    expect(state.players.map((player) => player.cpuModelId)).toEqual([undefined, undefined, "tactical", "tactical", "tactical"]);
+  });
+
   it.each([
     { playerCount: 3, sequence: [0, 1, 2, 0] },
     { playerCount: 4, sequence: [0, 1, 2, 3, 0] },

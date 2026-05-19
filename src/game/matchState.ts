@@ -1,4 +1,4 @@
-import type { Direction, GameResult, GameState, MatchMode, MatchRoundHistoryEntry, MatchState } from "../types";
+import type { CpuModelId, Direction, GameResult, GameState, MatchMode, MatchRoundHistoryEntry, MatchState } from "../types";
 import { createInitialGame } from "./gameState";
 import { calculatePointDeductions, calculateRawRoundScores } from "./scoring";
 
@@ -9,6 +9,7 @@ export function createMatchState(
   totalRounds: number,
   roomName = "名無しのルーム",
   humanPlayerCount = playerCount,
+  cpuModelId: CpuModelId = "standard",
 ): MatchState {
   return {
     matchMode,
@@ -19,12 +20,13 @@ export function createMatchState(
     currentRound: 1,
     playerCount,
     humanPlayerCount,
+    cpuModelId,
     direction,
     cumulativeScores: Array.from({ length: playerCount }, () => 0),
     pointBalances: Array.from({ length: playerCount }, () => (matchMode === "startingPoints" ? totalRounds : 0)),
     history: [],
     scoredRound: null,
-    gameState: createInitialGame(playerCount, direction, humanPlayerCount),
+    gameState: createInitialGame(playerCount, direction, humanPlayerCount, cpuModelId),
   };
 }
 
@@ -43,7 +45,7 @@ export function advanceRound(matchState: MatchState): MatchState {
     ...matchState,
     currentRound: matchState.currentRound + 1,
     scoredRound: null,
-    gameState: createInitialGame(matchState.playerCount, matchState.direction, matchState.humanPlayerCount),
+    gameState: createInitialGame(matchState.playerCount, matchState.direction, matchState.humanPlayerCount, matchState.cpuModelId),
   };
 }
 

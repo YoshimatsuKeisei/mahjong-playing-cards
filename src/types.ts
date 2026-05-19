@@ -4,6 +4,7 @@ export type DrawnFrom = "deck" | "discard";
 export type Phase = "setup" | "handoff" | "draw" | "discard" | "reachConfirm" | "ronCheck" | "result";
 export type WinType = "tsumo" | "ron" | "deckout";
 export type MatchMode = "rounds" | "targetScore" | "startingPoints";
+export type CpuModelId = "standard" | "tactical";
 
 export interface Card {
   id: string;
@@ -16,6 +17,7 @@ export interface Player {
   name: string;
   type: "human" | "cpu";
   isCpu: boolean;
+  cpuModelId?: CpuModelId;
   hand: Card[];
   discardPile: Card[];
   openMelds: Card[][];
@@ -94,6 +96,7 @@ export interface MatchState {
   currentRound: number;
   playerCount: number;
   humanPlayerCount: number;
+  cpuModelId: CpuModelId;
   direction: Direction;
   cumulativeScores: number[];
   pointBalances: number[];

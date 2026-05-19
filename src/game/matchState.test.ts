@@ -54,6 +54,14 @@ describe("rounds match state", () => {
     expect(secondRound.gameState.players.every((player) => player.hand.length === 10)).toBe(true);
   });
 
+  it("keeps the selected CPU model when advancing rounds", () => {
+    const matchState = createMatchState("rounds", 4, "clockwise", 3, "CPU部屋", 1, "tactical");
+    const nextRound = advanceRound(matchState);
+
+    expect(matchState.cpuModelId).toBe("tactical");
+    expect(nextRound.gameState.players.map((player) => player.cpuModelId)).toEqual([undefined, "tactical", "tactical", "tactical"]);
+  });
+
   it("does not advance beyond the final round", () => {
     const finalRound = { ...createMatchState("rounds", 4, "clockwise", 2), currentRound: 2 };
 

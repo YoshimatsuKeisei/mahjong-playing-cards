@@ -1,4 +1,4 @@
-import type { Card, Direction, GameState, Player, Suit } from "../types";
+import type { Card, CpuModelId, Direction, GameState, Player, Suit } from "../types";
 
 const suits: Suit[] = ["S", "H", "D", "C"];
 
@@ -39,12 +39,19 @@ export function sortCards(cards: Card[]): Card[] {
   });
 }
 
-export function dealCards(deck: Card[], playerCount: number, direction: Direction = "clockwise", humanPlayerCount = playerCount): GameState {
+export function dealCards(
+  deck: Card[],
+  playerCount: number,
+  direction: Direction = "clockwise",
+  humanPlayerCount = playerCount,
+  cpuModelId: CpuModelId = "standard",
+): GameState {
   const players: Player[] = Array.from({ length: playerCount }, (_, index) => ({
     id: `player-${index + 1}`,
     name: `プレイヤー${index + 1}`,
     type: index < humanPlayerCount ? "human" : "cpu",
     isCpu: index >= humanPlayerCount,
+    cpuModelId: index >= humanPlayerCount ? cpuModelId : undefined,
     hand: [],
     discardPile: [],
     openMelds: [],
