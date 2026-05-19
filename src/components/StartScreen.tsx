@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import type { Direction, MatchMode } from "../types";
+import type { CpuModelId, Direction, MatchMode } from "../types";
+import { DEFAULT_CPU_MODEL_ID, cpuModels } from "../game/cpuModelRegistry";
 
 export type RoomVisibility = "private" | "public";
 export type RoomTotalPlayers = 3 | 4 | 5;
@@ -15,6 +16,7 @@ export interface RoomCreateSettings {
   targetScore?: number;
   initialPoints?: number;
   turnDirection: Direction;
+  cpuModelId: CpuModelId;
 }
 
 interface StartScreenProps {
@@ -81,6 +83,7 @@ export default function StartScreen({ onStart, onBackHome, onCancel = onBackHome
   const [playerCount, setPlayerCount] = useState<RoomTotalPlayers>(4);
   const [humanPlayerCount, setHumanPlayerCount] = useState(4);
   const [visibility, setVisibility] = useState<RoomVisibility>("private");
+  const [cpuModelId, setCpuModelId] = useState<CpuModelId>(DEFAULT_CPU_MODEL_ID);
   const [matchType, setMatchType] = useState<MatchRuleType>("fixedRounds");
   const [ruleValues, setRuleValues] = useState<Record<MatchRuleType, string>>({
     fixedRounds: String(MATCH_RULE_SETTINGS.fixedRounds.defaultValue),
@@ -122,6 +125,7 @@ export default function StartScreen({ onStart, onBackHome, onCancel = onBackHome
       targetScore: matchMode === "targetScore" ? ruleNumber : undefined,
       initialPoints: matchMode === "startingPoints" ? ruleNumber : undefined,
       turnDirection: DEFAULT_DIRECTION,
+      cpuModelId,
     };
   }
 
@@ -202,6 +206,24 @@ export default function StartScreen({ onStart, onBackHome, onCancel = onBackHome
             })}
           </div>
         </div>
+
+        {import.meta.env.DEV && cpuPlayerCount > 0 && (
+          <div className="field cpu-model-dev-field">
+            <span>DEV CPUモデル</span>
+            <div className="segmented">
+              {(Object.keys(cpuModels) as CpuModelId[]).map((modelId) => (
+                <button
+                  type="button"
+                  className={cpuModelId === modelId ? "selected" : ""}
+                  onClick={() => setCpuModelId(modelId)}
+                  key={modelId}
+                >
+                  {cpuModels[modelId].name.replace(" CPU", "")}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="field">
           <span>試合形式</span>

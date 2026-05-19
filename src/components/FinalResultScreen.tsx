@@ -69,6 +69,12 @@ export default function FinalResultScreen({ matchState, players, onJoinAnotherMa
             <span>{model.primaryRuleLabel}</span>
             <strong>{getPrimaryRuleValue(matchState, model.endedRound)}</strong>
           </div>
+          {import.meta.env.DEV && (
+            <div>
+              <span>DEV CPU</span>
+              <strong>{matchState.cpuModelId}</strong>
+            </div>
+          )}
         </section>
 
         <section className="final-result-table-wrap final-pop-item" style={{ animationDelay: "0.16s" }}>

@@ -1,13 +1,12 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type Dispatch } from "react";
 import { canDeclareReachAfterDraw, checkWinningHandWithOpenMelds } from "../game/rules";
 import {
-  chooseCpuDiscardCard,
-  chooseCpuDrawSource,
-  chooseCpuWinningDiscard,
+  createCpuDecisionContext,
   CPU_AFTER_DRAW_DELAY_MS,
   CPU_DECISION_DELAY_MS,
   CPU_DISCARD_DELAY_MS,
   CPU_THINK_DELAY_MS,
+  getCpuModel,
 } from "../game/cpu";
 import {
   getAvailableDiscardSources,
@@ -159,6 +158,7 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
     const cpuActionKey = [
       state.phase,
       state.currentPlayerIndex,
+      currentPlayer.cpuModelId ?? "standard",
       state.deck.length,
       state.drawnCard?.id ?? "none",
       state.players.map((player) => `${player.hand.length}:${player.discardPile.length}:${player.openMelds.length}`).join("|"),
@@ -168,6 +168,12 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
     if (lastCpuActionKeyRef.current === cpuActionKey) return;
     lastCpuActionKeyRef.current = cpuActionKey;
     setCpuActionInProgress(true);
+    const cpuContext = createCpuDecisionContext(state);
+    const cpuModel = getCpuModel(currentPlayer.cpuModelId);
+    if (!cpuContext) {
+      setCpuActionInProgress(false);
+      return;
+    }
 
     const scheduleCpuAction = (callback: () => void, delay: number) => {
       const timeoutId = window.setTimeout(() => {
@@ -178,12 +184,16 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
     };
 
     if (state.phase === "draw") {
-      scheduleCpuAction(() => dispatch(chooseCpuDrawSource(state)), CPU_THINK_DELAY_MS);
+      scheduleCpuAction(() => {
+        const skipLog = cpuModel.describeCallSkip?.(cpuContext);
+        if (skipLog) console.info(skipLog);
+        dispatch(cpuModel.chooseDrawSource(cpuContext));
+      }, CPU_THINK_DELAY_MS);
       return;
     }
 
     if (state.phase === "discard") {
-      const winningDiscard = chooseCpuWinningDiscard(state);
+      const winningDiscard = cpuModel.chooseWinningDiscard(cpuContext);
       if (winningDiscard) {
         scheduleCpuAction(() => dispatch({ type: "winWithDiscard", discardCardId: winningDiscard.id }), CPU_DECISION_DELAY_MS);
         return;
@@ -194,10 +204,16 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
         return;
       }
 
-      const discardCard = chooseCpuDiscardCard(state);
+      const discardCard = cpuModel.chooseDiscardCard(cpuContext);
       if (discardCard) {
         const delay = state.drawnCard ? CPU_AFTER_DRAW_DELAY_MS + CPU_DISCARD_DELAY_MS : CPU_DISCARD_DELAY_MS;
-        scheduleCpuAction(() => dispatch({ type: "discard", cardId: discardCard.id }), delay);
+        scheduleCpuAction(() => {
+          const debugInfo = cpuModel.getDiscardDebugInfo?.(cpuContext);
+          if (debugInfo) console.info(debugInfo);
+          const discardLog = cpuModel.describeDiscardChoice?.(cpuContext, discardCard);
+          if (discardLog) console.info(discardLog);
+          dispatch({ type: "discard", cardId: discardCard.id });
+        }, delay);
         return;
       }
     }

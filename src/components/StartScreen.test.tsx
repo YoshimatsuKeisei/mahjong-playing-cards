@@ -99,6 +99,34 @@ describe("StartScreen room settings validation", () => {
     expect(screen.queryByText("CPUの強さ")).not.toBeInTheDocument();
   });
 
+  it("shows a DEV CPU model selector for CPU rooms and passes the selected model", async () => {
+    const user = userEvent.setup();
+    const onStart = vi.fn();
+    render(<StartScreen onStart={onStart} onBackHome={vi.fn()} />);
+
+    expect(screen.queryByText("DEV CPUモデル")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /Player 3.*CPU 1/ }));
+
+    expect(screen.getByText("DEV CPUモデル")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Standard" })).toHaveClass("selected");
+
+    await user.click(screen.getByRole("button", { name: "Tactical" }));
+    await user.click(screen.getByRole("button", { name: "作成" }));
+
+    expect(onStart).toHaveBeenCalledWith(
+      4,
+      "clockwise",
+      "rounds",
+      10,
+      expect.objectContaining({
+        cpuModelId: "tactical",
+        cpuPlayers: 1,
+        humanPlayers: 3,
+      }),
+    );
+  });
+
   it("toggles visibility with a switch and forces private when only the host and CPU fill the room", async () => {
     const user = userEvent.setup();
     render(<StartScreen onStart={vi.fn()} onBackHome={vi.fn()} />);

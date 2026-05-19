@@ -1,4 +1,4 @@
-import type { Card, Direction, GameResult, GameState, Player, RonResult } from "../types";
+import type { Card, CpuModelId, Direction, GameResult, GameState, Player, RonResult } from "../types";
 import { createDeck, dealCards, shuffleDeck, sortCards } from "./deck";
 import {
   canDeclareReachAfterDraw,
@@ -14,8 +14,13 @@ export function getNextPlayerIndex(currentIndex: number, playerCount: number, di
     : (currentIndex - 1 + playerCount) % playerCount;
 }
 
-export function createInitialGame(playerCount: number, direction: Direction, humanPlayerCount = playerCount): GameState {
-  return dealCards(shuffleDeck(createDeck()), playerCount, direction, humanPlayerCount);
+export function createInitialGame(
+  playerCount: number,
+  direction: Direction,
+  humanPlayerCount = playerCount,
+  cpuModelId: CpuModelId = "standard",
+): GameState {
+  return dealCards(shuffleDeck(createDeck()), playerCount, direction, humanPlayerCount, cpuModelId);
 }
 
 function replacePlayer(players: Player[], index: number, nextPlayer: Player): Player[] {
@@ -157,7 +162,7 @@ function advanceToNextDraw(state: GameState, players: Player[], discarderIndex: 
 }
 
 export type GameAction =
-  | { type: "start"; playerCount: number; direction: Direction; humanPlayerCount?: number }
+  | { type: "start"; playerCount: number; direction: Direction; humanPlayerCount?: number; cpuModelId?: CpuModelId }
   | { type: "confirmHandoff" }
   | { type: "answerRon"; takeRon: boolean }
   | { type: "drawFromDeck" }
@@ -172,7 +177,7 @@ export type GameAction =
 export function gameReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
     case "start":
-      return createInitialGame(action.playerCount, action.direction, action.humanPlayerCount ?? action.playerCount);
+      return createInitialGame(action.playerCount, action.direction, action.humanPlayerCount ?? action.playerCount, action.cpuModelId ?? "standard");
 
     case "restart":
       return {
