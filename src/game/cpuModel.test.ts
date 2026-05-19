@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Card, GameState, Player } from "../types";
 import { cpuModels, getCpuModel } from "./cpuModelRegistry";
 import { createCpuDecisionContext } from "./cpuTypes";
-import { easyChooseCpuCall, easyChooseCpuDiscardCard, easyChooseReachDeclaration } from "./easyCpu";
+import { easyChooseCpuCall, easyChooseCpuDiscardCard, easyChooseDaifugoEffectActivation, easyChooseReachDeclaration } from "./easyCpu";
 import { getTacticalDiscardScores, tacticalChooseCpuCall, tacticalChooseCpuDiscardCard } from "./tacticalCpu";
 import { createDefaultDaifugoOptions } from "./deck";
 
@@ -59,6 +59,14 @@ describe("CPU models", () => {
     expect(getCpuModel("easy").id).toBe("easy");
     expect(getCpuModel("standard").id).toBe("standard");
     expect(getCpuModel("tactical").id).toBe("tactical");
+  });
+
+  it("easy CPU uses daifugo effects only at a modest random rate", () => {
+    vi.spyOn(Math, "random").mockReturnValue(0.24);
+    expect(easyChooseDaifugoEffectActivation()).toBe(true);
+
+    vi.spyOn(Math, "random").mockReturnValue(0.25);
+    expect(easyChooseDaifugoEffectActivation()).toBe(false);
   });
 
   it("easy CPU calls only sometimes when a call improves meld count", () => {

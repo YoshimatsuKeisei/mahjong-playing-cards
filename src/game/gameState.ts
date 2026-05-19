@@ -1,6 +1,7 @@
 import type { Card, CpuModelId, DaifugoEffectId, DaifugoOptions, Direction, GameResult, GameState, PendingDaifugoContinue, Player, RonResult } from "../types";
 import { createDeck, createDefaultDaifugoOptions, dealCards, shuffleDeck, sortCards } from "./deck";
 import {
+  canDeclareReach,
   canDeclareReachAfterDraw,
   checkWinningHandWithOpenMelds,
   findCallMeldOptions,
@@ -171,21 +172,25 @@ function advanceToNextDraw(state: GameState, players: Player[], discarderIndex: 
 
 function continueAfterDaifugo(state: GameState, continueState: PendingDaifugoContinue, players = state.players): GameState {
   if (continueState.shouldConfirmReach) {
-    return {
-      ...state,
-      players,
-      pendingDaifugoEffect: null,
-      phase: "reachConfirm",
-      drawnCard: null,
-      drawnFrom: null,
-      lastDiscarderIndex: state.currentPlayerIndex,
-      takenDiscardOwnerIndex: null,
-      declaredReachThisTurn: false,
-      message: "リーチを宣言しますか？",
-    };
+    return reachConfirmState(state, players);
   }
 
   return advanceToNextDraw({ ...state, pendingDaifugoEffect: null, players }, players, state.currentPlayerIndex, continueState.message);
+}
+
+function reachConfirmState(state: GameState, players = state.players): GameState {
+  return {
+    ...state,
+    players,
+    pendingDaifugoEffect: null,
+    phase: "reachConfirm",
+    drawnCard: null,
+    drawnFrom: null,
+    lastDiscarderIndex: state.currentPlayerIndex,
+    takenDiscardOwnerIndex: null,
+    declaredReachThisTurn: false,
+    message: "リーチを宣言しますか？",
+  };
 }
 
 function reverseDirection(direction: Direction): Direction {
@@ -238,6 +243,27 @@ function drawOneForPlayer(state: GameState, playerIndex: number): { state: GameS
   return { state: { ...state, deck, players, drawnCard, drawnFrom: "deck" }, drawnCard };
 }
 
+function makeWinningState(state: GameState, players: Player[], winningResult = players[state.currentPlayerIndex].winningResult): GameState {
+  if (!winningResult) return state;
+  const result = makeResult(
+    { ...state, players },
+    state.currentPlayerIndex,
+    state.drawnFrom === "discard" ? "ron" : "tsumo",
+    winningResult,
+    state.drawnFrom === "discard" ? state.takenDiscardOwnerIndex : null,
+  );
+  return {
+    ...state,
+    players,
+    phase: "result",
+    winner: state.currentPlayerIndex,
+    result,
+    pendingRonResult: null,
+    pendingDaifugoEffect: null,
+    declaredReachThisTurn: false,
+  };
+}
+
 function applyDaifugoEffect(state: GameState): GameState {
   const pending = state.pendingDaifugoEffect;
   if (!pending || pending.kind !== "confirm" || pending.playerIndex !== state.currentPlayerIndex) return state;
@@ -256,18 +282,17 @@ function applyDaifugoEffect(state: GameState): GameState {
   }
 
   if (pending.effect === "eightExtraTurn") {
-    const drawn = drawOneForPlayer({ ...state, pendingDaifugoEffect: null, isJBackActive: false }, state.currentPlayerIndex);
-    if (!drawn.drawnCard) return continueAfterDaifugo(drawn.state, pending.continue);
+    if (state.deck.length === 0) return continueAfterDaifugo({ ...state, pendingDaifugoEffect: null, isJBackActive: false }, pending.continue);
     return {
-      ...drawn.state,
-      phase: "discard",
+      ...state,
+      isJBackActive: false,
       pendingDaifugoEffect: {
-        kind: "extraDiscard",
+        kind: "effectDraw",
         effect: "eightExtraTurn",
         playerIndex: state.currentPlayerIndex,
         continue: pending.continue,
       },
-      message: "8の効果：追加行動で1枚捨ててください。",
+      message: "8の効果：山札から1枚引きます。",
     };
   }
 
@@ -280,7 +305,6 @@ function applyDaifugoEffect(state: GameState): GameState {
         playerIndex: state.currentPlayerIndex,
         continue: pending.continue,
       },
-      phase: "discard",
       message: "10の効果：追加で捨てるカードを1枚選んでください。",
     };
   }
@@ -293,6 +317,7 @@ export type GameAction =
   | { type: "confirmHandoff" }
   | { type: "answerRon"; takeRon: boolean }
   | { type: "answerDaifugoEffect"; activate: boolean }
+  | { type: "drawForDaifugoEffect" }
   | { type: "discardForDaifugoEffect"; cardId: string }
   | { type: "drawFromDeck" }
   | { type: "takeDiscard"; ownerIndex: number; meld?: Card[] }
@@ -307,7 +332,11 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
   if (
     state.pendingDaifugoEffect &&
     action.type !== "answerDaifugoEffect" &&
+    action.type !== "drawForDaifugoEffect" &&
     action.type !== "discardForDaifugoEffect" &&
+    action.type !== "declareReach" &&
+    action.type !== "answerReachAfterDiscard" &&
+    action.type !== "winWithDiscard" &&
     action.type !== "restart"
   ) {
     return state;
@@ -392,6 +421,41 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return applyDaifugoEffect(state);
     }
 
+    case "drawForDaifugoEffect": {
+      const pending = state.pendingDaifugoEffect;
+      if (!pending || pending.kind !== "effectDraw" || pending.playerIndex !== state.currentPlayerIndex) return state;
+      const drawn = drawOneForPlayer(state, state.currentPlayerIndex);
+      if (!drawn.drawnCard) return continueAfterDaifugo({ ...drawn.state, pendingDaifugoEffect: null }, pending.continue);
+
+      if (pending.effect === "eightExtraTurn") {
+        return {
+          ...drawn.state,
+          phase: "discard",
+          pendingDaifugoEffect: {
+            kind: "extraDiscard",
+            effect: "eightExtraTurn",
+            playerIndex: state.currentPlayerIndex,
+          },
+          declaredReachThisTurn: false,
+          message: "8の効果：追加行動で1枚捨ててください。",
+        };
+      }
+
+      const player = drawn.state.players[state.currentPlayerIndex];
+      const winningResult = checkWinningHandWithOpenMelds(player.hand, player.openMelds);
+      if (winningResult.canWin) {
+        const nextPlayer = { ...player, winningResult };
+        const players = replacePlayer(drawn.state.players, state.currentPlayerIndex, nextPlayer);
+        return makeWinningState({ ...drawn.state, pendingDaifugoEffect: null }, players, winningResult);
+      }
+
+      if (canDeclareReach(player.hand, player.hasCalled, player.isReach)) {
+        return reachConfirmState({ ...drawn.state, pendingDaifugoEffect: null }, drawn.state.players);
+      }
+
+      return continueAfterDaifugo({ ...drawn.state, pendingDaifugoEffect: null }, pending.continue, drawn.state.players);
+    }
+
     case "discardForDaifugoEffect": {
       const pending = state.pendingDaifugoEffect;
       if (!pending || pending.kind !== "extraDiscard" || pending.playerIndex !== state.currentPlayerIndex) return state;
@@ -399,24 +463,49 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const discardCard = player.hand.find((card) => card.id === action.cardId);
       if (!discardCard) return state;
 
+      const handAfterDiscard = sortCards(player.hand.filter((card) => card.id !== discardCard.id));
+      const winningResult = checkWinningHandWithOpenMelds(handAfterDiscard, player.openMelds);
       const nextPlayer: Player = {
         ...player,
-        hand: sortCards(player.hand.filter((card) => card.id !== discardCard.id)),
+        hand: handAfterDiscard,
         discardPile: [...player.discardPile, discardCard],
+        winningResult: winningResult.canWin ? winningResult : player.winningResult,
       };
-      let nextState: GameState = {
-        ...state,
-        players: replacePlayer(state.players, state.currentPlayerIndex, nextPlayer),
-        pendingDaifugoEffect: null,
-        drawnCard: null,
-        drawnFrom: null,
-      };
+      const players = replacePlayer(state.players, state.currentPlayerIndex, nextPlayer);
 
-      if (pending.effect === "tenSwapDraw") {
-        nextState = drawOneForPlayer(nextState, state.currentPlayerIndex).state;
+      if (winningResult.canWin) {
+        return makeWinningState({ ...state, players, pendingDaifugoEffect: null }, players, winningResult);
       }
 
-      return continueAfterDaifugo(nextState, pending.continue, nextState.players);
+      if (state.deck.length === 0) {
+        return deckoutResult({ ...state, players, pendingDaifugoEffect: null }, players);
+      }
+
+      if (pending.effect === "tenSwapDraw") {
+        return {
+          ...state,
+          players,
+          pendingDaifugoEffect: {
+            kind: "effectDraw",
+            effect: "tenSwapDraw",
+            playerIndex: state.currentPlayerIndex,
+            continue: pending.continue ?? { shouldConfirmReach: false },
+          },
+          drawnCard: null,
+          drawnFrom: null,
+          message: "10の効果：山札から1枚引きます。",
+        };
+      }
+
+      const shouldConfirmReach =
+        state.drawnFrom === "deck" &&
+        !state.declaredReachThisTurn &&
+        canDeclareReachAfterDraw(player.hand, player.hasCalled, player.isReach);
+      if (shouldConfirmReach) {
+        return reachConfirmState({ ...state, players, pendingDaifugoEffect: null }, players);
+      }
+
+      return advanceToNextDraw({ ...state, players, pendingDaifugoEffect: null }, players, state.currentPlayerIndex);
     }
 
     case "drawFromDeck": {
@@ -513,7 +602,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const players = action.declareReach
         ? replacePlayer(state.players, state.currentPlayerIndex, { ...player, isReach: true })
         : state.players;
-      return advanceToNextDraw(state, players, state.currentPlayerIndex);
+      return advanceToNextDraw({ ...state, pendingDaifugoEffect: null }, players, state.currentPlayerIndex);
     }
 
     case "winWithDiscard": {
@@ -545,7 +634,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         state.drawnFrom === "discard" ? state.takenDiscardOwnerIndex : null,
       );
 
-      return { ...nextState, phase: "result", winner: state.currentPlayerIndex, result, pendingRonResult: null };
+      return { ...nextState, phase: "result", winner: state.currentPlayerIndex, result, pendingRonResult: null, pendingDaifugoEffect: null };
     }
 
     case "discard": {

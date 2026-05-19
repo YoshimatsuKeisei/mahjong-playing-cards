@@ -120,7 +120,8 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
   const pendingDaifugoEffect = state.pendingDaifugoEffect;
   const isDaifugoConfirm = pendingDaifugoEffect?.kind === "confirm";
   const isDaifugoExtraDiscard = pendingDaifugoEffect?.kind === "extraDiscard";
-  const controlsDisabled = isAnimating || isCpuTurn || cpuActionInProgress || isDaifugoConfirm;
+  const isDaifugoEffectDraw = pendingDaifugoEffect?.kind === "effectDraw";
+  const controlsDisabled = isAnimating || isCpuTurn || cpuActionInProgress || isDaifugoConfirm || isDaifugoEffectDraw;
   const pendingRonResult = state.pendingRonResult;
   const ronDiscarderIndex = pendingRonResult?.discarderIndex ?? null;
   const ronDiscarder = ronDiscarderIndex !== null ? state.players[ronDiscarderIndex] : null;
@@ -188,11 +189,24 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
     };
 
     if (state.pendingDaifugoEffect?.kind === "confirm") {
-      scheduleCpuAction(() => dispatch({ type: "answerDaifugoEffect", activate: true }), CPU_DECISION_DELAY_MS);
+      scheduleCpuAction(
+        () => dispatch({ type: "answerDaifugoEffect", activate: cpuModel.chooseDaifugoEffectActivation?.(cpuContext) ?? true }),
+        CPU_DECISION_DELAY_MS,
+      );
+      return;
+    }
+
+    if (state.pendingDaifugoEffect?.kind === "effectDraw") {
+      scheduleCpuAction(() => dispatch({ type: "drawForDaifugoEffect" }), CPU_AFTER_DRAW_DELAY_MS);
       return;
     }
 
     if (state.pendingDaifugoEffect?.kind === "extraDiscard") {
+      const winningDiscard = state.pendingDaifugoEffect.effect === "eightExtraTurn" ? cpuModel.chooseWinningDiscard(cpuContext) : null;
+      if (winningDiscard) {
+        scheduleCpuAction(() => dispatch({ type: "winWithDiscard", discardCardId: winningDiscard.id }), CPU_DECISION_DELAY_MS);
+        return;
+      }
       const discardCard = cpuModel.chooseDiscardCard(cpuContext) ?? currentPlayer.hand[0] ?? null;
       if (discardCard) {
         scheduleCpuAction(() => dispatch({ type: "discardForDaifugoEffect", cardId: discardCard.id }), CPU_DISCARD_DELAY_MS);
@@ -271,6 +285,11 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
       };
     }
   }, [state.phase, dispatch]);
+
+  useEffect(() => {
+    if (currentPlayer?.isCpu || state.pendingDaifugoEffect?.kind !== "effectDraw" || isAnimating) return;
+    animateDrawFromDeck(() => dispatch({ type: "drawForDaifugoEffect" }));
+  }, [currentPlayer?.isCpu, dispatch, isAnimating, state.pendingDaifugoEffect]);
 
   useEffect(() => {
     if (state.phase === "ronCheck") {
@@ -372,6 +391,10 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
   }
 
   function handleDrawFromDeck() {
+    animateDrawFromDeck(() => dispatch({ type: "drawFromDeck" }));
+  }
+
+  function animateDrawFromDeck(afterAnimation: () => void) {
     if (isAnimating || state.deck.length === 0) return;
     const card = state.deck[0];
     setAnimationCard(card);
@@ -379,7 +402,7 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
     schedule(() => setAnimationPhase("revealingDrawnCard"), 280);
     schedule(() => setAnimationPhase("movingDrawnCardToHand"), 1550);
     schedule(() => {
-      dispatch({ type: "drawFromDeck" });
+      afterAnimation();
       finishAnimation();
     }, 2100);
   }
@@ -589,7 +612,6 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
               />
             );
           })}
-
         {playerCount >= 4 &&
           state.players.map((player, index) => (
             <div
@@ -597,7 +619,7 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
               style={measuredHistoryPositions[index] ?? getHistoryAnchorStyle(playerCount, index)}
               key={`${player.id}-history-hover`}
             >
-              <button type="button" className="history-hover-marker" aria-label={`${player.name}の履歴を確認`}>
+              <button type="button" className="history-hover-marker" aria-label={`${player.name}\u306e\u5c65\u6b74\u3092\u78ba\u8a8d`}>
                 ?
               </button>
               <PlayerHistoryPopover player={player} showMelds />
@@ -612,7 +634,7 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
                 style={measuredHistoryPositions[index] ?? getHistoryAnchorStyle(playerCount, index)}
                 key={`${player.id}-table-history-hover`}
               >
-                <button type="button" className="history-hover-marker" aria-label={`${player.name}の捨て札履歴を確認`}>
+                <button type="button" className="history-hover-marker" aria-label={`${player.name}\u306e\u6368\u3066\u672d\u5c65\u6b74\u3092\u78ba\u8a8d`}>
                   ?
                 </button>
                 <PlayerHistoryPopover player={player} showMelds={false} />
@@ -704,7 +726,6 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
             })}
           </div>
         )}
-
         <section className="action-panel">
           {isDaifugoConfirm && (
             <div className="daifugo-effect-panel">
@@ -722,7 +743,28 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
 
           {isDaifugoExtraDiscard && (
             <div className="daifugo-effect-panel">
-              <strong>{pendingDaifugoEffect.effect === "eightExtraTurn" ? "8の効果：追加で1枚捨ててください。" : "10の効果：追加で1枚捨てて山札から1枚引きます。"}</strong>
+              <strong>{pendingDaifugoEffect.effect === "eightExtraTurn" ? "8の効果：追加で1枚捨ててください。" : "10の効果：追加で1枚捨ててください。"}</strong>
+              {pendingDaifugoEffect.effect === "eightExtraTurn" && canReachAfterDraw && (
+                <button type="button" className="primary-button" disabled={isAnimating || isCpuTurn || cpuActionInProgress} onClick={handleDeclareReach}>
+                  リーチ
+                </button>
+              )}
+              {pendingDaifugoEffect.effect === "eightExtraTurn" && currentPlayer.isReach && !state.declaredReachThisTurn && reachOptions.length > 0 && (
+                <div className="reach-win-options">
+                  <strong>上がるために捨てるカード</strong>
+                  {reachOptions.map((option) => (
+                    <button
+                      type="button"
+                      className="primary-button"
+                      key={option.discardCard.id}
+                      disabled={isAnimating || isCpuTurn || cpuActionInProgress}
+                      onClick={() => handleWinWithDiscard(option.discardCard)}
+                    >
+                      上がる {formatCard(option.discardCard)}を捨てる
+                    </button>
+                  ))}
+                </div>
+              )}
               <button
                 type="button"
                 className="primary-button"
@@ -971,6 +1013,9 @@ function getActionText(state: GameState) {
     return state.pendingDaifugoEffect.effect === "eightExtraTurn"
       ? "8の効果で追加行動中です。"
       : "10の効果で追加の捨て札を選んでいます。";
+  }
+  if (state.pendingDaifugoEffect?.kind === "effectDraw") {
+    return state.pendingDaifugoEffect.effect === "eightExtraTurn" ? "8の効果で山札から引いています。" : "10の効果で山札から引いています。";
   }
   const currentPlayer = state.players[state.currentPlayerIndex];
   if (currentPlayer?.isCpu) {
