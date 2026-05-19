@@ -36,6 +36,12 @@ export type PendingDaifugoEffect =
       kind: "extraDiscard";
       effect: "eightExtraTurn" | "tenSwapDraw";
       playerIndex: number;
+      continue?: PendingDaifugoContinue;
+    }
+  | {
+      kind: "effectDraw";
+      effect: "eightExtraTurn" | "tenSwapDraw";
+      playerIndex: number;
       continue: PendingDaifugoContinue;
     };
 

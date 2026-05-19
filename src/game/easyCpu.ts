@@ -10,6 +10,7 @@ import {
 
 const EASY_CALL_CHANCE = 0.35;
 const EASY_REACH_CHANCE = 0.5;
+const EASY_DAIFUGO_EFFECT_CHANCE = 0.25;
 
 export function easyChooseCpuCall(context: CpuDecisionContext): CpuCallChoice | null {
   const standardCall = standardChooseCpuCall(context);
@@ -56,6 +57,10 @@ export function easyChooseReachDeclaration(): boolean {
   return Math.random() < EASY_REACH_CHANCE;
 }
 
+export function easyChooseDaifugoEffectActivation(): boolean {
+  return Math.random() < EASY_DAIFUGO_EFFECT_CHANCE;
+}
+
 function getProtectedMeldCardIds(cards: Card[]): Set<string> {
   const meld = findPossibleMelds(cards)[0];
   return new Set(meld?.map((card) => card.id) ?? []);
@@ -95,4 +100,5 @@ export const easyCpuModel: CpuModel = {
   chooseDrawSource: easyChooseCpuDrawSource,
   chooseDiscardCard: easyChooseCpuDiscardCard,
   chooseReachDeclaration: easyChooseReachDeclaration,
+  chooseDaifugoEffectActivation: easyChooseDaifugoEffectActivation,
 };

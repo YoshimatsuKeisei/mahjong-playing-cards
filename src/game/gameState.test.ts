@@ -127,15 +127,16 @@ describe("daifugo game state", () => {
     expect(jBack.isJBackActive).toBe(true);
 
     const eightPending = gameReducer({ ...stateForDiscard(card("eight", 8)), isJBackActive: true }, { type: "discard", cardId: "eight" });
-    const extra = gameReducer(eightPending, { type: "answerDaifugoEffect", activate: true });
-    expect(extra.isJBackActive).toBe(false);
-    expect(extra.pendingDaifugoEffect?.kind).toBe("extraDiscard");
-    expect(extra.currentPlayerIndex).toBe(0);
+    const drawPending = gameReducer(eightPending, { type: "answerDaifugoEffect", activate: true });
+    expect(drawPending.isJBackActive).toBe(false);
+    expect(drawPending.pendingDaifugoEffect?.kind).toBe("effectDraw");
+    expect(drawPending.currentPlayerIndex).toBe(0);
   });
 
   it("resolves 8 extra discard without chaining another daifugo effect", () => {
     const pending = gameReducer(stateForDiscard(card("eight", 8)), { type: "discard", cardId: "eight" });
-    const extra = gameReducer(pending, { type: "answerDaifugoEffect", activate: true });
+    const drawPending = gameReducer(pending, { type: "answerDaifugoEffect", activate: true });
+    const extra = gameReducer(drawPending, { type: "drawForDaifugoEffect" });
     const resolved = gameReducer(extra, { type: "discardForDaifugoEffect", cardId: "deck-1" });
 
     expect(resolved.pendingDaifugoEffect).toBeNull();
@@ -147,12 +148,125 @@ describe("daifugo game state", () => {
     const extra = gameReducer(pending, { type: "answerDaifugoEffect", activate: true });
     const handBefore = extra.players[0].hand.length;
     const deckBefore = extra.deck.length;
-    const resolved = gameReducer(extra, { type: "discardForDaifugoEffect", cardId: "a-1" });
+    const drawPending = gameReducer(extra, { type: "discardForDaifugoEffect", cardId: "a-1" });
+    const resolved = gameReducer(drawPending, { type: "drawForDaifugoEffect" });
 
     expect(resolved.pendingDaifugoEffect).toBeNull();
     expect(resolved.phase).toBe("handoff");
     expect(resolved.players[0].hand.length).toBe(handBefore);
     expect(resolved.deck.length).toBe(deckBefore - 1);
+  });
+
+  it("adds the drawn card to hand after the 8 effect draw", () => {
+    const pending = gameReducer(stateForDiscard(card("eight", 8)), { type: "discard", cardId: "eight" });
+    const drawPending = gameReducer(pending, { type: "answerDaifugoEffect", activate: true });
+    const extra = gameReducer(drawPending, { type: "drawForDaifugoEffect" });
+
+    expect(extra.players[0].hand.some((item) => item.id === "deck-1")).toBe(true);
+    expect(extra.drawnCard?.id).toBe("deck-1");
+    expect(extra.pendingDaifugoEffect?.kind).toBe("extraDiscard");
+  });
+
+  it("allows tsumo after the 8 effect draw and extra discard completes a hand", () => {
+    const state = stateForDiscard(card("eight", 8));
+    state.players[0] = player(1, [
+      card("eight", 8),
+      card("t1s", 1, "S"),
+      card("t1h", 1, "H"),
+      card("t1d", 1, "D"),
+      card("t2s", 2, "S"),
+      card("t2h", 2, "H"),
+      card("t2d", 2, "D"),
+      card("t3s", 3, "S"),
+      card("t3h", 3, "H"),
+      card("key", 13, "C"),
+      card("junk", 12, "D"),
+    ]);
+    state.deck = [card("t3d", 3, "D")];
+
+    const pending = gameReducer(state, { type: "discard", cardId: "eight" });
+    const drawPending = gameReducer(pending, { type: "answerDaifugoEffect", activate: true });
+    const extra = gameReducer(drawPending, { type: "drawForDaifugoEffect" });
+    const result = gameReducer(extra, { type: "discardForDaifugoEffect", cardId: "junk" });
+
+    expect(result.phase).toBe("result");
+    expect(result.result?.winType).toBe("tsumo");
+  });
+
+  it("allows reach declaration after the 8 effect draw", () => {
+    const state = stateForDiscard(card("eight", 8));
+    state.players[0] = player(1, [
+      card("eight", 8),
+      card("r1", 1, "S"),
+      card("r2", 2, "S"),
+      card("r3", 3, "S"),
+      card("r4", 4, "S"),
+      card("r5", 5, "S"),
+      card("loose-a", 9, "H"),
+      card("loose-b", 10, "H"),
+      card("loose-c", 11, "H"),
+      card("loose-d", 12, "H"),
+      card("junk", 13, "H"),
+    ]);
+    state.deck = [card("r6", 6, "S")];
+    const pending = gameReducer(state, { type: "discard", cardId: "eight" });
+    const drawPending = gameReducer(pending, { type: "answerDaifugoEffect", activate: true });
+    const extra = gameReducer(drawPending, { type: "drawForDaifugoEffect" });
+    const reached = gameReducer(extra, { type: "declareReach" });
+
+    expect(reached.players[0].isReach).toBe(true);
+    expect(reached.pendingDaifugoEffect?.kind).toBe("extraDiscard");
+  });
+
+  it("allows tsumo after the 10 effect draw completes a hand", () => {
+    const state = stateForDiscard(card("ten", 10));
+    state.players[0] = player(1, [
+      card("ten", 10),
+      card("r1", 1, "S"),
+      card("r2", 2, "S"),
+      card("r3", 3, "S"),
+      card("r4", 4, "S"),
+      card("r5", 5, "S"),
+      card("r6", 6, "S"),
+      card("r7", 7, "S"),
+      card("r8", 8, "S"),
+      card("key", 13, "C"),
+      card("junk", 12, "D"),
+    ]);
+    state.deck = [card("r9", 9, "S")];
+
+    const pending = gameReducer(state, { type: "discard", cardId: "ten" });
+    const extra = gameReducer(pending, { type: "answerDaifugoEffect", activate: true });
+    const drawPending = gameReducer(extra, { type: "discardForDaifugoEffect", cardId: "junk" });
+    const result = gameReducer(drawPending, { type: "drawForDaifugoEffect" });
+
+    expect(result.phase).toBe("result");
+    expect(result.result?.winType).toBe("tsumo");
+  });
+
+  it("allows reach confirmation after the 10 effect draw meets reach conditions", () => {
+    const state = stateForDiscard(card("ten", 10));
+    state.players[0] = player(1, [
+      card("ten", 10),
+      card("r1", 1, "S"),
+      card("r2", 2, "S"),
+      card("r3", 3, "S"),
+      card("r4", 4, "S"),
+      card("r5", 5, "S"),
+      card("key", 13, "C"),
+      card("loose-a", 2, "H"),
+      card("loose-b", 5, "H"),
+      card("loose-c", 9, "H"),
+      card("junk", 12, "D"),
+    ]);
+    state.deck = [card("r6", 6, "S")];
+
+    const pending = gameReducer(state, { type: "discard", cardId: "ten" });
+    const extra = gameReducer(pending, { type: "answerDaifugoEffect", activate: true });
+    const drawPending = gameReducer(extra, { type: "discardForDaifugoEffect", cardId: "junk" });
+    const reachConfirm = gameReducer(drawPending, { type: "drawForDaifugoEffect" });
+
+    expect(reachConfirm.phase).toBe("reachConfirm");
   });
 
   it("locks other reducer actions while an effect confirmation is pending", () => {
