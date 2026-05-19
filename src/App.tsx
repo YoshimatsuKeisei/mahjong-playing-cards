@@ -12,6 +12,7 @@ import FinalResultScreen from "./components/FinalResultScreen";
 import { createInitialGame, gameReducer, type GameAction } from "./game/gameState";
 import { advanceRound, canAdvanceRound, createMatchState, syncMatchGameState } from "./game/matchState";
 import { calculatePointDeductions, calculateRawRoundScores } from "./game/scoring";
+import { createDefaultDaifugoOptions } from "./game/deck";
 import { createDoubleRonResultFixture, createSingleRonResultFixture, createStartingPointsTsumoResultFixture } from "./game/resultFixtures";
 import type { GameState, MatchMode, MatchState, ProfileData } from "./types";
 import type { HomeMenuTarget } from "./components/HomeMenu";
@@ -21,6 +22,9 @@ const initialState: GameState = {
   deck: [],
   currentPlayerIndex: 0,
   direction: "clockwise",
+  daifugoOptions: createDefaultDaifugoOptions(),
+  pendingDaifugoEffect: null,
+  isJBackActive: false,
   phase: "setup",
   drawnCard: null,
   drawnFrom: null,
@@ -79,11 +83,18 @@ export default function App() {
         roomSettings?.roomName,
         roomSettings?.humanPlayers ?? playerCount,
         roomSettings?.cpuModelId,
+        roomSettings?.daifugoOptions,
       );
       setMatchState(nextMatch);
       setState(nextMatch.gameState);
     } else {
-      const nextState = createInitialGame(playerCount, direction, roomSettings?.humanPlayers ?? playerCount, roomSettings?.cpuModelId);
+      const nextState = createInitialGame(
+        playerCount,
+        direction,
+        roomSettings?.humanPlayers ?? playerCount,
+        roomSettings?.cpuModelId,
+        roomSettings?.daifugoOptions,
+      );
       setMatchState(null);
       setState(nextState);
     }
@@ -131,6 +142,7 @@ export default function App() {
       humanPlayerCount: playerCount,
       cpuModelId: "standard",
       direction: debugState.direction,
+      daifugoOptions: debugState.daifugoOptions,
       cumulativeScores: matchMode === "rounds" ? normalRoundScores : matchMode === "targetScore" ? roundScores : Array.from({ length: playerCount }, () => 0),
       pointBalances:
         matchMode === "startingPoints" ? pointDeductions.map((deduction) => startingPoints - deduction) : Array.from({ length: playerCount }, () => 0),
@@ -168,6 +180,7 @@ export default function App() {
       humanPlayerCount: playerCount,
       cpuModelId: "standard",
       direction: debugState.direction,
+      daifugoOptions: debugState.daifugoOptions,
       cumulativeScores: matchMode === "startingPoints" ? Array.from({ length: playerCount }, () => 0) : standingsValues,
       pointBalances: matchMode === "startingPoints" ? standingsValues : Array.from({ length: playerCount }, () => 0),
       history: [],

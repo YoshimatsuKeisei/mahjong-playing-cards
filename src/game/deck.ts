@@ -1,4 +1,4 @@
-import type { Card, CpuModelId, Direction, GameState, Player, Suit } from "../types";
+import type { Card, CpuModelId, DaifugoOptions, Direction, GameState, Player, Suit } from "../types";
 
 const suits: Suit[] = ["S", "H", "D", "C"];
 
@@ -45,6 +45,7 @@ export function dealCards(
   direction: Direction = "clockwise",
   humanPlayerCount = playerCount,
   cpuModelId: CpuModelId = "standard",
+  daifugoOptions: DaifugoOptions = createDefaultDaifugoOptions(),
 ): GameState {
   const players: Player[] = Array.from({ length: playerCount }, (_, index) => ({
     id: `player-${index + 1}`,
@@ -77,6 +78,9 @@ export function dealCards(
     deck,
     currentPlayerIndex: 0,
     direction,
+    daifugoOptions,
+    pendingDaifugoEffect: null,
+    isJBackActive: false,
     phase: "draw",
     drawnCard: null,
     drawnFrom: null,
@@ -87,5 +91,20 @@ export function dealCards(
     pendingRonResult: null,
     declaredReachThisTurn: false,
     message: "カードを1枚取ってください。",
+  };
+}
+
+export function createDefaultDaifugoOptions(): DaifugoOptions {
+  return {
+    enabled: false,
+    effects: {
+      fiveSkip: false,
+      sevenExchange: false,
+      eightExtraTurn: false,
+      nineReverse: false,
+      tenSwapDraw: false,
+      jackBack: false,
+      queenNumberVanish: false,
+    },
   };
 }

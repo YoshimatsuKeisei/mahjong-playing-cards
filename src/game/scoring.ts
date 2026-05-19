@@ -1,8 +1,9 @@
 import type { Card, GameResult, Player, ScoreResult, WinningResult } from "../types";
 import { analyzeHandForWin, findPossibleMelds, getCardPenalty } from "./rules";
 
-export function calculateCardLoss(card: Card): number {
-  return getCardPenalty(card);
+export function calculateCardLoss(card: Card, isJBackActive = false): number {
+  if (!isJBackActive) return getCardPenalty(card);
+  return getCardPenalty({ ...card, rank: 14 - card.rank });
 }
 
 export function calculateScoreFromLosses(loserLoss: number, winnerLoss: number): number {
@@ -102,52 +103,52 @@ function removeCards(source: Card[], cardsToRemove: Card[]): Card[] {
   return source.filter((card) => !removeIds.has(card.id));
 }
 
-function sumCardLoss(cards: Card[]): number {
-  return cards.reduce((total, card) => total + calculateCardLoss(card), 0);
+function sumCardLoss(cards: Card[], isJBackActive = false): number {
+  return cards.reduce((total, card) => total + calculateCardLoss(card, isJBackActive), 0);
 }
 
-function chooseBetterRemainder(current: Card[] | null, candidate: Card[]): Card[] {
+function chooseBetterRemainder(current: Card[] | null, candidate: Card[], isJBackActive = false): Card[] {
   if (!current) return candidate;
   if (candidate.length < current.length) return candidate;
   if (candidate.length > current.length) return current;
 
-  const currentPenalty = sumCardLoss(current);
-  const candidatePenalty = sumCardLoss(candidate);
+  const currentPenalty = sumCardLoss(current, isJBackActive);
+  const candidatePenalty = sumCardLoss(candidate, isJBackActive);
   return candidatePenalty < currentPenalty ? candidate : current;
 }
 
-function findBestRemainderAfterMelds(cards: Card[], meldsToRemove: number): Card[] {
+function findBestRemainderAfterMelds(cards: Card[], meldsToRemove: number, isJBackActive = false): Card[] {
   if (meldsToRemove <= 0 || cards.length < 3) return cards;
 
   let best: Card[] | null = null;
   for (const meld of findPossibleMelds(cards)) {
     const rest = removeCards(cards, meld);
-    const candidate = findBestRemainderAfterMelds(rest, meldsToRemove - 1);
-    best = chooseBetterRemainder(best, candidate);
+    const candidate = findBestRemainderAfterMelds(rest, meldsToRemove - 1, isJBackActive);
+    best = chooseBetterRemainder(best, candidate, isJBackActive);
   }
 
   return best ?? cards;
 }
 
-function fallbackLossForPlayer(player: Player): number {
+function fallbackLossForPlayer(player: Player, isJBackActive = false): number {
   const cards = player.hand.length > 0 ? player.hand : player.discardPile;
   if (cards.length === 0) return 0;
 
   const meldsToRemove = Math.max(0, 3 - player.openMelds.length);
-  const remainder = findBestRemainderAfterMelds(cards, meldsToRemove);
+  const remainder = findBestRemainderAfterMelds(cards, meldsToRemove, isJBackActive);
   if (remainder.length === 0) return 0;
-  return sumCardLoss(remainder);
+  return sumCardLoss(remainder, isJBackActive);
 }
 
-function getPlayerLoss(player: Player): number {
+function getPlayerLoss(player: Player, isJBackActive = false): number {
   const keyCard = player.winningResult?.keyCard;
-  return keyCard ? calculateCardLoss(keyCard) : fallbackLossForPlayer(player);
+  return keyCard ? calculateCardLoss(keyCard, isJBackActive) : fallbackLossForPlayer(player, isJBackActive);
 }
 
-export function calculateLosses(players: Player[], winnerIndex: number, winningResult?: WinningResult): number[] {
+export function calculateLosses(players: Player[], winnerIndex: number, winningResult?: WinningResult, isJBackActive = false): number[] {
   return players.map((player, index) => {
     if (index === winnerIndex && winningResult?.keyCard) {
-      return calculateCardLoss(winningResult.keyCard);
+      return calculateCardLoss(winningResult.keyCard, isJBackActive);
     }
     const loserWinCheck = analyzeHandForWin(player.hand, player.openMelds);
     if (loserWinCheck.canWin) {
@@ -157,12 +158,12 @@ export function calculateLosses(players: Player[], winnerIndex: number, winningR
         melds: loserWinCheck.melds,
       });
     }
-    return getPlayerLoss(player);
+    return getPlayerLoss(player, isJBackActive);
   });
 }
 
-export function calculateTsumoScore(players: Player[], winnerIndex: number, winningResult?: WinningResult): ScoreResult {
-  const playerLosses = calculateLosses(players, winnerIndex, winningResult);
+export function calculateTsumoScore(players: Player[], winnerIndex: number, winningResult?: WinningResult, isJBackActive = false): ScoreResult {
+  const playerLosses = calculateLosses(players, winnerIndex, winningResult, isJBackActive);
   const winnerScore = calculateRawTsumoScoreFromLosses(playerLosses, winnerIndex) * 100;
 
   return {
@@ -176,8 +177,9 @@ export function calculateRonScore(
   winnerIndex: number,
   discarderIndex: number,
   winningResult?: WinningResult,
+  isJBackActive = false,
 ): ScoreResult {
-  const playerLosses = calculateLosses(players, winnerIndex, winningResult);
+  const playerLosses = calculateLosses(players, winnerIndex, winningResult, isJBackActive);
   const winnerScore = calculateScoreFromLosses(playerLosses[discarderIndex], playerLosses[winnerIndex]);
 
   return {

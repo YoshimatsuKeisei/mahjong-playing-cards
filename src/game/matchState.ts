@@ -1,4 +1,5 @@
-import type { CpuModelId, Direction, GameResult, GameState, MatchMode, MatchRoundHistoryEntry, MatchState } from "../types";
+import type { CpuModelId, DaifugoOptions, Direction, GameResult, GameState, MatchMode, MatchRoundHistoryEntry, MatchState } from "../types";
+import { createDefaultDaifugoOptions } from "./deck";
 import { createInitialGame } from "./gameState";
 import { calculatePointDeductions, calculateRawRoundScores } from "./scoring";
 
@@ -10,6 +11,7 @@ export function createMatchState(
   roomName = "名無しのルーム",
   humanPlayerCount = playerCount,
   cpuModelId: CpuModelId = "standard",
+  daifugoOptions: DaifugoOptions = createDefaultDaifugoOptions(),
 ): MatchState {
   return {
     matchMode,
@@ -22,11 +24,12 @@ export function createMatchState(
     humanPlayerCount,
     cpuModelId,
     direction,
+    daifugoOptions,
     cumulativeScores: Array.from({ length: playerCount }, () => 0),
     pointBalances: Array.from({ length: playerCount }, () => (matchMode === "startingPoints" ? totalRounds : 0)),
     history: [],
     scoredRound: null,
-    gameState: createInitialGame(playerCount, direction, humanPlayerCount, cpuModelId),
+    gameState: createInitialGame(playerCount, direction, humanPlayerCount, cpuModelId, daifugoOptions),
   };
 }
 
@@ -45,7 +48,13 @@ export function advanceRound(matchState: MatchState): MatchState {
     ...matchState,
     currentRound: matchState.currentRound + 1,
     scoredRound: null,
-    gameState: createInitialGame(matchState.playerCount, matchState.direction, matchState.humanPlayerCount, matchState.cpuModelId),
+    gameState: createInitialGame(
+      matchState.playerCount,
+      matchState.direction,
+      matchState.humanPlayerCount,
+      matchState.cpuModelId,
+      matchState.daifugoOptions,
+    ),
   };
 }
 

@@ -1,4 +1,5 @@
 import type { Card, GameState, Player, WinningResult } from "../types";
+import { createDefaultDaifugoOptions } from "./deck";
 
 function card(id: string, rank: number, suit: Card["suit"] = "S"): Card {
   return { id, rank, suit };
@@ -43,6 +44,9 @@ export function createDoubleRonResultFixture(): GameState {
     deck: [],
     currentPlayerIndex: 0,
     direction: "clockwise",
+    daifugoOptions: createDefaultDaifugoOptions(),
+    pendingDaifugoEffect: null,
+    isJBackActive: false,
     phase: "result",
     drawnCard: null,
     drawnFrom: null,
@@ -98,6 +102,9 @@ export function createSingleRonResultFixture(): GameState {
     deck: [],
     currentPlayerIndex: 0,
     direction: "clockwise",
+    daifugoOptions: createDefaultDaifugoOptions(),
+    pendingDaifugoEffect: null,
+    isJBackActive: false,
     phase: "result",
     drawnCard: null,
     drawnFrom: null,
@@ -134,6 +141,9 @@ export function createStartingPointsTsumoResultFixture(): GameState {
     deck: [],
     currentPlayerIndex: 1,
     direction: "clockwise",
+    daifugoOptions: createDefaultDaifugoOptions(),
+    pendingDaifugoEffect: null,
+    isJBackActive: false,
     phase: "result",
     drawnCard: null,
     drawnFrom: null,

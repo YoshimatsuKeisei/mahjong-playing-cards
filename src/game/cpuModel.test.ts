@@ -4,6 +4,7 @@ import { cpuModels, getCpuModel } from "./cpuModelRegistry";
 import { createCpuDecisionContext } from "./cpuTypes";
 import { easyChooseCpuCall, easyChooseCpuDiscardCard, easyChooseReachDeclaration } from "./easyCpu";
 import { getTacticalDiscardScores, tacticalChooseCpuCall, tacticalChooseCpuDiscardCard } from "./tacticalCpu";
+import { createDefaultDaifugoOptions } from "./deck";
 
 function card(id: string, rank: number, suit: Card["suit"] = "S"): Card {
   return { id, rank, suit };
@@ -30,6 +31,9 @@ function state(players: Player[], currentPlayerIndex = 1): GameState {
     deck: [card("deck-1", 1)],
     currentPlayerIndex,
     direction: "clockwise",
+    daifugoOptions: createDefaultDaifugoOptions(),
+    pendingDaifugoEffect: null,
+    isJBackActive: false,
     phase: "draw",
     drawnCard: null,
     drawnFrom: null,
