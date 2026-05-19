@@ -109,6 +109,7 @@ describe("StartScreen room settings validation", () => {
     await user.click(screen.getByRole("button", { name: /Player 3.*CPU 1/ }));
 
     expect(screen.getByText("DEV CPUモデル")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Easy" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Standard" })).toHaveClass("selected");
 
     await user.click(screen.getByRole("button", { name: "Tactical" }));

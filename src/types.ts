@@ -4,7 +4,7 @@ export type DrawnFrom = "deck" | "discard";
 export type Phase = "setup" | "handoff" | "draw" | "discard" | "reachConfirm" | "ronCheck" | "result";
 export type WinType = "tsumo" | "ron" | "deckout";
 export type MatchMode = "rounds" | "targetScore" | "startingPoints";
-export type CpuModelId = "standard" | "tactical";
+export type CpuModelId = "easy" | "standard" | "tactical";
 
 export interface Card {
   id: string;

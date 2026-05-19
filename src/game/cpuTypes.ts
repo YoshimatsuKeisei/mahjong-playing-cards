@@ -21,6 +21,7 @@ export interface CpuModel {
   shouldCall(context: CpuDecisionContext): boolean;
   chooseDrawSource(context: CpuDecisionContext): GameAction;
   chooseDiscardCard(context: CpuDecisionContext): Card | null;
+  chooseReachDeclaration?(context: CpuDecisionContext): boolean;
   getDiscardDebugInfo?(context: CpuDecisionContext): string | null;
   describeDiscardChoice?(context: CpuDecisionContext, card: Card): string | null;
   describeCallSkip?(context: CpuDecisionContext): string | null;
