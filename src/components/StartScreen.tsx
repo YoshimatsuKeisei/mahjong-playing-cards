@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { CpuModelId, Direction, MatchMode } from "../types";
+import type { CpuModelId, DaifugoOptions, Direction, MatchMode } from "../types";
 import { DEFAULT_CPU_MODEL_ID, cpuModels } from "../game/cpuModelRegistry";
 
 export type RoomVisibility = "private" | "public";
@@ -17,6 +17,7 @@ export interface RoomCreateSettings {
   initialPoints?: number;
   turnDirection: Direction;
   cpuModelId: CpuModelId;
+  daifugoOptions: DaifugoOptions;
 }
 
 interface StartScreenProps {
@@ -77,6 +78,33 @@ export const MATCH_RULE_SETTINGS: Record<
 };
 
 const DEFAULT_DIRECTION: Direction = "clockwise";
+const DEFAULT_DAIFUGO_OPTIONS: DaifugoOptions = {
+  enabled: false,
+  effects: {
+    fiveSkip: true,
+    sevenExchange: false,
+    eightExtraTurn: true,
+    nineReverse: true,
+    tenSwapDraw: true,
+    jackBack: true,
+    queenNumberVanish: false,
+  },
+};
+
+const DAIFUGO_EFFECT_LABELS: Array<{
+  key: keyof DaifugoOptions["effects"];
+  label: string;
+  disabled?: boolean;
+  note?: string;
+}> = [
+  { key: "fiveSkip", label: "5: スキップ" },
+  { key: "sevenExchange", label: "7: カード交換", disabled: true, note: "後日実装" },
+  { key: "eightExtraTurn", label: "8: 追加ターン / Jバック解除" },
+  { key: "nineReverse", label: "9: 逆回り" },
+  { key: "tenSwapDraw", label: "10: 捨てて引く" },
+  { key: "jackBack", label: "J: Jバック" },
+  { key: "queenNumberVanish", label: "Q: 任意数字全消去", disabled: true, note: "後日実装" },
+];
 
 export default function StartScreen({ onStart, onBackHome, onCancel = onBackHome }: StartScreenProps) {
   const [roomName, setRoomName] = useState("");
@@ -84,6 +112,7 @@ export default function StartScreen({ onStart, onBackHome, onCancel = onBackHome
   const [humanPlayerCount, setHumanPlayerCount] = useState(4);
   const [visibility, setVisibility] = useState<RoomVisibility>("private");
   const [cpuModelId, setCpuModelId] = useState<CpuModelId>(DEFAULT_CPU_MODEL_ID);
+  const [daifugoOptions, setDaifugoOptions] = useState<DaifugoOptions>(DEFAULT_DAIFUGO_OPTIONS);
   const [matchType, setMatchType] = useState<MatchRuleType>("fixedRounds");
   const [ruleValues, setRuleValues] = useState<Record<MatchRuleType, string>>({
     fixedRounds: String(MATCH_RULE_SETTINGS.fixedRounds.defaultValue),
@@ -126,7 +155,22 @@ export default function StartScreen({ onStart, onBackHome, onCancel = onBackHome
       initialPoints: matchMode === "startingPoints" ? ruleNumber : undefined,
       turnDirection: DEFAULT_DIRECTION,
       cpuModelId,
+      daifugoOptions,
     };
+  }
+
+  function toggleDaifugoEnabled() {
+    setDaifugoOptions((current) => ({ ...current, enabled: !current.enabled }));
+  }
+
+  function toggleDaifugoEffect(effect: keyof DaifugoOptions["effects"]) {
+    setDaifugoOptions((current) => ({
+      ...current,
+      effects: {
+        ...current.effects,
+        [effect]: !current.effects[effect],
+      },
+    }));
   }
 
   function handleCreateRoom() {
@@ -268,6 +312,40 @@ export default function StartScreen({ onStart, onBackHome, onCancel = onBackHome
             </div>
           </div>
           {settingsError && <p className="room-error">{settingsError}</p>}
+        </div>
+
+        <div className={`field daifugo-options ${daifugoOptions.enabled ? "is-enabled" : "is-disabled"}`}>
+          <div className="daifugo-options-head">
+            <span>大富豪ルール</span>
+            <button
+              type="button"
+              className={`visibility-switch ${daifugoOptions.enabled ? "is-public" : "is-private"}`}
+              aria-pressed={daifugoOptions.enabled}
+              onClick={toggleDaifugoEnabled}
+            >
+              <span className="visibility-switch-track" aria-hidden="true">
+                <span className="visibility-switch-knob" />
+              </span>
+              <span className="visibility-switch-label">{daifugoOptions.enabled ? "ON" : "OFF"}</span>
+            </button>
+          </div>
+
+          {daifugoOptions.enabled && (
+            <div className="daifugo-effect-grid">
+              {DAIFUGO_EFFECT_LABELS.map((effect) => (
+                <button
+                  type="button"
+                  className={daifugoOptions.effects[effect.key] ? "selected" : ""}
+                  disabled={effect.disabled}
+                  onClick={() => toggleDaifugoEffect(effect.key)}
+                  key={effect.key}
+                >
+                  <strong>{effect.label}</strong>
+                  {effect.note && <small>{effect.note}</small>}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="room-actions">

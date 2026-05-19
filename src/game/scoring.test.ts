@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Card, Player, WinningResult } from "../types";
 import {
+  calculateCardLoss,
   calculateRonScore,
   calculateRawRoundScores,
   calculateRawScoreFromLosses,
@@ -90,6 +91,23 @@ describe("scoring", () => {
     ];
 
     expect(calculateTsumoScore(players, 0, winningResult).winnerScore).toBe(600);
+  });
+
+  it("reverses card loss during J-back scoring", () => {
+    expect(calculateCardLoss(card("low", 3))).toBe(3);
+    expect(calculateCardLoss(card("low", 3), true)).toBe(10);
+    expect(calculateCardLoss(card("king", 13), true)).toBe(1);
+  });
+
+  it("uses reversed losses for J-back ron scoring", () => {
+    const winningResult: WinningResult = {
+      canWin: true,
+      melds: [],
+      keyCard: card("winner-loss", 13),
+    };
+    const players = [player("winner"), player("discarder", [card("d-3", 3)])];
+
+    expect(calculateRonScore(players, 0, 1, winningResult, true).winnerScore).toBe(900);
   });
 
   it("returns raw per-player round scores for target-score ron results", () => {

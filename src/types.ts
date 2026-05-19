@@ -5,6 +5,39 @@ export type Phase = "setup" | "handoff" | "draw" | "discard" | "reachConfirm" | 
 export type WinType = "tsumo" | "ron" | "deckout";
 export type MatchMode = "rounds" | "targetScore" | "startingPoints";
 export type CpuModelId = "easy" | "standard" | "tactical";
+export type DaifugoEffectId = "fiveSkip" | "eightExtraTurn" | "nineReverse" | "tenSwapDraw" | "jackBack";
+
+export interface DaifugoOptions {
+  enabled: boolean;
+  effects: {
+    fiveSkip: boolean;
+    sevenExchange: boolean;
+    eightExtraTurn: boolean;
+    nineReverse: boolean;
+    tenSwapDraw: boolean;
+    jackBack: boolean;
+    queenNumberVanish: boolean;
+  };
+}
+
+export interface PendingDaifugoContinue {
+  shouldConfirmReach: boolean;
+  message?: string;
+}
+
+export type PendingDaifugoEffect =
+  | {
+      kind: "confirm";
+      effect: DaifugoEffectId;
+      playerIndex: number;
+      continue: PendingDaifugoContinue;
+    }
+  | {
+      kind: "extraDiscard";
+      effect: "eightExtraTurn" | "tenSwapDraw";
+      playerIndex: number;
+      continue: PendingDaifugoContinue;
+    };
 
 export interface Card {
   id: string;
@@ -75,6 +108,9 @@ export interface GameState {
   deck: Card[];
   currentPlayerIndex: number;
   direction: Direction;
+  daifugoOptions: DaifugoOptions;
+  pendingDaifugoEffect: PendingDaifugoEffect | null;
+  isJBackActive: boolean;
   phase: Phase;
   drawnCard: Card | null;
   drawnFrom: DrawnFrom | null;
@@ -98,6 +134,7 @@ export interface MatchState {
   humanPlayerCount: number;
   cpuModelId: CpuModelId;
   direction: Direction;
+  daifugoOptions: DaifugoOptions;
   cumulativeScores: number[];
   pointBalances: number[];
   history: MatchRoundHistoryEntry[];

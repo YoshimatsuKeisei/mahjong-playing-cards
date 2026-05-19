@@ -718,6 +718,57 @@ button:disabled {
   gap: 0.55rem;
 }
 
+.daifugo-options {
+  display: grid;
+  gap: 0.58rem;
+}
+
+.daifugo-options-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.daifugo-effect-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.daifugo-effect-grid button {
+  display: grid;
+  align-content: center;
+  justify-items: start;
+  gap: 0.12rem;
+  min-height: 54px;
+  border-color: rgba(149, 178, 158, 0.2);
+  background:
+    linear-gradient(180deg, rgba(255, 253, 247, 0.075), rgba(255, 253, 247, 0.02)),
+    linear-gradient(180deg, rgba(23, 66, 48, 0.72), rgba(7, 34, 27, 0.74));
+  color: #dfe9e1;
+  text-align: left;
+}
+
+.daifugo-effect-grid button.selected {
+  border-color: #ffe09a;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255, 232, 166, 0.2), transparent 46%),
+    linear-gradient(180deg, rgba(178, 121, 31, 0.98), rgba(95, 83, 34, 0.98) 42%, rgba(26, 72, 52, 0.96));
+  color: #fff8dc;
+}
+
+.daifugo-effect-grid button:disabled {
+  border-color: rgba(149, 178, 158, 0.12);
+  background: rgba(10, 24, 20, 0.45);
+  color: rgba(223, 233, 225, 0.48);
+}
+
+.daifugo-effect-grid small {
+  color: #cdbf9f;
+  font-weight: 900;
+}
+
 .composition-grid button {
   border-color: rgba(149, 178, 158, 0.2);
   background:
@@ -2691,7 +2742,9 @@ h2 {
 }
 
 .discard-source,
-.reach-win-options {
+.reach-win-options,
+.daifugo-effect-panel,
+.daifugo-effect-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -2699,6 +2752,32 @@ h2 {
   gap: 0.45rem;
   max-width: 100%;
   color: #fffdf7;
+}
+
+.daifugo-effect-panel {
+  width: 100%;
+}
+
+.daifugo-effect-panel strong {
+  color: #fff8dc;
+}
+
+.daifugo-status {
+  grid-column: 1 / -1;
+  justify-self: center;
+  border: 1px solid rgba(214, 165, 64, 0.42);
+  border-radius: 999px;
+  background: rgba(5, 24, 18, 0.58);
+  color: #f5ead0;
+  padding: 0.18rem 0.7rem;
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.daifugo-status.active {
+  border-color: rgba(255, 220, 128, 0.78);
+  background: rgba(122, 45, 32, 0.76);
+  color: #fff8dc;
 }
 
 .action-panel .hint {
@@ -4507,6 +4586,10 @@ h2 {
   }
 
   .composition-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .daifugo-effect-grid {
     grid-template-columns: 1fr;
   }
 
