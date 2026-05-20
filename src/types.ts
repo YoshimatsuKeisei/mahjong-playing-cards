@@ -127,6 +127,7 @@ export interface GameState {
   pendingRonResult: GameResult | null;
   declaredReachThisTurn: boolean;
   message: string;
+  showCpuActions: boolean;
 }
 
 export interface MatchState {
@@ -139,6 +140,8 @@ export interface MatchState {
   playerCount: number;
   humanPlayerCount: number;
   cpuModelId: CpuModelId;
+  cpuModelIds: CpuModelId[];
+  showCpuActions: boolean;
   direction: Direction;
   daifugoOptions: DaifugoOptions;
   cumulativeScores: number[];

@@ -46,13 +46,15 @@ export function dealCards(
   humanPlayerCount = playerCount,
   cpuModelId: CpuModelId = "standard",
   daifugoOptions: DaifugoOptions = createDefaultDaifugoOptions(),
+  cpuModelIds: CpuModelId[] = [],
+  showCpuActions = true,
 ): GameState {
   const players: Player[] = Array.from({ length: playerCount }, (_, index) => ({
     id: `player-${index + 1}`,
     name: `プレイヤー${index + 1}`,
     type: index < humanPlayerCount ? "human" : "cpu",
     isCpu: index >= humanPlayerCount,
-    cpuModelId: index >= humanPlayerCount ? cpuModelId : undefined,
+    cpuModelId: index >= humanPlayerCount ? (cpuModelIds[index - humanPlayerCount] ?? cpuModelId) : undefined,
     hand: [],
     discardPile: [],
     openMelds: [],
@@ -89,6 +91,7 @@ export function dealCards(
     winner: null,
     result: null,
     pendingRonResult: null,
+    showCpuActions,
     declaredReachThisTurn: false,
     message: "カードを1枚取ってください。",
   };

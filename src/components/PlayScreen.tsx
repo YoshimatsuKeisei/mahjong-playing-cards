@@ -8,6 +8,7 @@ import {
   CPU_THINK_DELAY_MS,
   getCpuModel,
 } from "../game/cpu";
+import { getCpuModelDisplayName } from "../game/cpuModelRegistry";
 import {
   getAvailableDiscardSources,
   getCallOptionsForSource,
@@ -96,6 +97,7 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
   const discardHighlights = getDiscardHighlights(state, discardSources);
   const playerCount = state.players.length;
   const showTableCardLayer = playerCount === 3;
+  const cpuDisplayNames = buildCpuDisplayNames(state);
   const canReachAfterDraw =
     state.phase === "discard" &&
     state.drawnFrom === "deck" &&
@@ -117,6 +119,7 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
   const reachSplashTimeoutRef = useRef<number | null>(null);
   const isAnimating = animationPhase !== "idle";
   const isCpuTurn = currentPlayer?.isCpu === true && state.phase !== "result";
+  const shouldHideCpuDetails = !state.showCpuActions && isCpuTurn;
   const pendingDaifugoEffect = state.pendingDaifugoEffect;
   const isDaifugoConfirm = pendingDaifugoEffect?.kind === "confirm";
   const isDaifugoExtraDiscard = pendingDaifugoEffect?.kind === "extraDiscard";
@@ -488,7 +491,7 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
         >
           <div className="toolbar-player">
             <span>現在のプレイヤー</span>
-            <strong>{currentPlayer.name}</strong>
+            <strong>{cpuDisplayNames.get(state.currentPlayerIndex) ?? currentPlayer.name}</strong>
             <em>{getPlayerStatus(currentPlayer)}</em>
           </div>
           <div className="toolbar-action">{getActionText(state)}</div>
@@ -512,7 +515,7 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
           </div>
         </div>
 
-        {animationCard && animationPhase !== "discardingCard" && (
+        {animationCard && animationPhase !== "discardingCard" && !shouldHideCpuDetails && (
           <div className={`card-animation ${animationPhase} seat-${getSeat(playerCount, state.currentPlayerIndex)}`}>
             <span className="card-animation-label">{getAnimationLabel(animationPhase)}</span>
             <PlayingCard card={animationCard} />
@@ -602,6 +605,7 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
             player={player}
             isCurrent={index === state.currentPlayerIndex}
             seat={getSeat(playerCount, index)}
+            displayName={cpuDisplayNames.get(index)}
             style={getSeatStyle(playerCount, index)}
           />
         ))}
@@ -741,6 +745,7 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
             })}
           </div>
         )}
+        {!shouldHideCpuDetails && (
         <section className="action-panel">
           {isDaifugoConfirm && (
             <div className="daifugo-effect-panel">
@@ -886,7 +891,9 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
           )}
 
         </section>
+        )}
 
+        {!shouldHideCpuDetails && (
         <section className="hand-section">
           <HandView
             key={currentPlayer.id}
@@ -903,6 +910,7 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
             onCardClick={(card) => setSelectedDiscardId((previousId) => (previousId === card.id ? null : card.id))}
           />
         </section>
+        )}
       </section>
     </main>
   );
@@ -983,6 +991,26 @@ function getPlayerStatus(player: GameState["players"][number]) {
   if (player.isReach) return "リーチ中";
   if (player.hasCalled) return "鳴き済み";
   return "通常";
+}
+
+function buildCpuDisplayNames(state: GameState) {
+  const counts = new Map<string, number>();
+  for (const player of state.players) {
+    if (!player.isCpu) continue;
+    const label = getCpuModelDisplayName(player.cpuModelId);
+    counts.set(label, (counts.get(label) ?? 0) + 1);
+  }
+
+  const seen = new Map<string, number>();
+  const labels = new Map<number, string>();
+  state.players.forEach((player, index) => {
+    if (!player.isCpu) return;
+    const label = getCpuModelDisplayName(player.cpuModelId);
+    const nextSeen = (seen.get(label) ?? 0) + 1;
+    seen.set(label, nextSeen);
+    labels.set(index, `${player.name}:${label}${(counts.get(label) ?? 0) > 1 ? nextSeen : ""}`);
+  });
+  return labels;
 }
 
 function getDiscardHighlights(state: GameState, discardSources: number[]) {

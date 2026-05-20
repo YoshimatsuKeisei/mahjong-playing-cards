@@ -1,0 +1,38 @@
+Date : 2026-05-20 16:41:40
+Directory : c:\Users\jingc\Documents\8番出口
+Total : 8 files,  255 codes, 0 comments, 25 blanks, all 280 lines
+
+Languages
++----------------+------------+------------+------------+------------+------------+
+| language       | files      | code       | comment    | blank      | total      |
++----------------+------------+------------+------------+------------+------------+
+| TypeScript JSX |          3 |        141 |          0 |          6 |        147 |
+| TypeScript     |          4 |         63 |          0 |         12 |         75 |
+| PostCSS        |          1 |         51 |          0 |          7 |         58 |
++----------------+------------+------------+------------+------------+------------+
+
+Directories
++--------------------------------------------------------------+------------+------------+------------+------------+------------+
+| path                                                         | files      | code       | comment    | blank      | total      |
++--------------------------------------------------------------+------------+------------+------------+------------+------------+
+| .                                                            |          8 |        255 |          0 |         25 |        280 |
+| src                                                          |          8 |        255 |          0 |         25 |        280 |
+| src (Files)                                                  |          2 |        166 |          0 |         13 |        179 |
+| src\components                                               |          2 |         26 |          0 |          0 |         26 |
+| src\game                                                     |          4 |         63 |          0 |         12 |         75 |
++--------------------------------------------------------------+------------+------------+------------+------------+------------+
+
+Files
++--------------------------------------------------------------+----------------+------------+------------+------------+------------+
+| filename                                                     | language       | code       | comment    | blank      | total      |
++--------------------------------------------------------------+----------------+------------+------------+------------+------------+
+| c:\Users\jingc\Documents\8番出口\src\App.tsx                    | TypeScript JSX |        115 |          0 |          6 |        121 |
+| c:\Users\jingc\Documents\8番出口\src\components\PlayScreen.tsx  | TypeScript JSX |         16 |          0 |          0 |         16 |
+| c:\Users\jingc\Documents\8番出口\src\components\StartScreen.tsx | TypeScript JSX |         10 |          0 |          0 |         10 |
+| c:\Users\jingc\Documents\8番出口\src\game\gameState.test.ts     | TypeScript     |         46 |          0 |         10 |         56 |
+| c:\Users\jingc\Documents\8番出口\src\game\gameState.ts          | TypeScript     |          5 |          0 |          0 |          5 |
+| c:\Users\jingc\Documents\8番出口\src\game\rules.ts              | TypeScript     |         10 |          0 |          2 |         12 |
+| c:\Users\jingc\Documents\8番出口\src\game\scoring.test.ts       | TypeScript     |          2 |          0 |          0 |          2 |
+| c:\Users\jingc\Documents\8番出口\src\styles.css                 | PostCSS        |         51 |          0 |          7 |         58 |
+| Total                                                        |                |        255 |          0 |         25 |        280 |
++--------------------------------------------------------------+----------------+------------+------------+------------+------------+

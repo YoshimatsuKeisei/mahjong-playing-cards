@@ -99,20 +99,20 @@ describe("StartScreen room settings validation", () => {
     expect(screen.queryByText("CPUの強さ")).not.toBeInTheDocument();
   });
 
-  it("shows a DEV CPU model selector for CPU rooms and passes the selected model", async () => {
+  it("shows per-CPU model selectors for CPU rooms and passes the selected models", async () => {
     const user = userEvent.setup();
     const onStart = vi.fn();
     render(<StartScreen onStart={onStart} onBackHome={vi.fn()} />);
 
-    expect(screen.queryByText("DEV CPUモデル")).not.toBeInTheDocument();
+    expect(screen.queryByText("CPU設定")).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /Player 3.*CPU 1/ }));
 
-    expect(screen.getByText("DEV CPUモデル")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Easy" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Standard" })).toHaveClass("selected");
+    expect(screen.getByText("CPU設定")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "junior-CPU" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "standard-CPU" })).toHaveClass("selected");
 
-    await user.click(screen.getByRole("button", { name: "Tactical" }));
+    await user.click(screen.getByRole("button", { name: "pro-CPU" }));
     await user.click(screen.getByRole("button", { name: "作成" }));
 
     expect(onStart).toHaveBeenCalledWith(
@@ -122,8 +122,10 @@ describe("StartScreen room settings validation", () => {
       10,
       expect.objectContaining({
         cpuModelId: "tactical",
+        cpuModelIds: ["tactical"],
         cpuPlayers: 1,
         humanPlayers: 3,
+        showCpuActions: true,
       }),
     );
   });
@@ -262,7 +264,7 @@ describe("StartScreen room settings validation", () => {
 
     await user.type(screen.getByLabelText("ルーム名"), "初心者歓迎ルーム");
     await user.click(screen.getByRole("button", { name: "Player 2人 + CPU 2体" }));
-    await user.click(screen.getByRole("switch"));
+    await user.click(screen.getAllByRole("switch")[0]);
     await user.click(screen.getByRole("button", { name: "作成" }));
 
     expect(onStart).toHaveBeenCalledWith(
@@ -273,6 +275,7 @@ describe("StartScreen room settings validation", () => {
       expect.objectContaining({
         cpuPlayers: 2,
         humanPlayers: 2,
+        cpuModelIds: ["standard", "standard"],
         roomName: "初心者歓迎ルーム",
         totalPlayers: 4,
         visibility: "public",

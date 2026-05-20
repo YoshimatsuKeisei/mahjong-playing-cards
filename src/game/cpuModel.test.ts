@@ -42,6 +42,7 @@ function state(players: Player[], currentPlayerIndex = 1): GameState {
     winner: null,
     result: null,
     pendingRonResult: null,
+    showCpuActions: true,
     declaredReachThisTurn: false,
     message: "",
   };
