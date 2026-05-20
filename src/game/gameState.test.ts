@@ -202,7 +202,7 @@ describe("daifugo game state", () => {
       card("r3", 3, "S"),
       card("r4", 4, "S"),
       card("r5", 5, "S"),
-      card("loose-a", 9, "H"),
+      card("loose-a", 9, "D"),
       card("loose-b", 10, "H"),
       card("loose-c", 11, "H"),
       card("loose-d", 12, "H"),
@@ -304,5 +304,31 @@ describe("daifugo game state", () => {
     expect(rejected).toBe(extra);
     expect(resolved.phase).toBe("handoff");
     expect(resolved.players[0].discardPile.at(-1)?.id).toBe("deck-1");
+  });
+
+  it("applies J-back losses to result scoring", () => {
+    const state = stateForDiscard(card("junk", 13));
+    state.isJBackActive = true;
+    state.players[0] = player(1, [
+      card("r1", 1, "S"),
+      card("r2", 2, "S"),
+      card("r3", 3, "S"),
+      card("r4", 4, "S"),
+      card("r5", 5, "S"),
+      card("r6", 6, "S"),
+      card("loose-a", 9, "D"),
+      card("loose-b", 10, "H"),
+      card("loose-c", 11, "H"),
+      card("loose-d", 12, "H"),
+      card("junk", 13, "H"),
+    ]);
+    state.players[1] = player(2, [card("p2-6", 6)]);
+    state.players[2] = player(3, [card("p3-6", 6)]);
+    state.drawnCard = state.players[0].hand.find((item) => item.id === "r6") ?? null;
+
+    const result = gameReducer(state, { type: "discard", cardId: "junk" });
+
+    expect(result.phase).toBe("result");
+    expect(result.result?.score.playerLosses).toEqual([5, 8, 8]);
   });
 });

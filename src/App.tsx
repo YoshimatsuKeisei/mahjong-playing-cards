@@ -370,6 +370,7 @@ function createDebugDaifugoOptions() {
 }
 
 function createDebugDaifugoState(caseName: DebugDaifugoCase): GameState {
+  const isJBackCase = caseName === "jBack";
   const effectCard = caseName.startsWith("ten") || caseName === "reachTenBlocked" ? debugCard("effect-10", 10, "S") : debugCard("effect-8", 8, "S");
   const baseHand = [
     effectCard,
@@ -378,7 +379,20 @@ function createDebugDaifugoState(caseName: DebugDaifugoCase): GameState {
     debugCard("r3", 3, "S"),
     debugCard("r4", 4, "S"),
     debugCard("r5", 5, "S"),
-    debugCard("loose-a", 9, "H"),
+    debugCard("loose-a", 9, "D"),
+    debugCard("loose-b", 10, "H"),
+    debugCard("loose-c", 11, "H"),
+    debugCard("loose-d", 12, "H"),
+    debugCard("junk", 13, "H"),
+  ];
+  const jBackHand = [
+    debugCard("r1", 1, "S"),
+    debugCard("r2", 2, "S"),
+    debugCard("r3", 3, "S"),
+    debugCard("r4", 4, "S"),
+    debugCard("r5", 5, "S"),
+    debugCard("r6", 6, "S"),
+    debugCard("loose-a", 9, "D"),
     debugCard("loose-b", 10, "H"),
     debugCard("loose-c", 11, "H"),
     debugCard("loose-d", 12, "H"),
@@ -400,9 +414,9 @@ function createDebugDaifugoState(caseName: DebugDaifugoCase): GameState {
   const isTsumoCase = caseName === "eightTsumo" || caseName === "tenTsumo";
   const isReachCase = caseName === "reachTenBlocked" || caseName === "reachEight";
   const players = [
-    debugPlayer(1, isTsumoCase ? tsumoHand : baseHand, isReachCase),
-    debugPlayer(2, [debugCard("p2-1", 1), debugCard("p2-5", 5)]),
-    debugPlayer(3, [debugCard("p3-1", 1), debugCard("p3-5", 5)]),
+    debugPlayer(1, isJBackCase ? jBackHand : isTsumoCase ? tsumoHand : baseHand, isReachCase),
+    debugPlayer(2, isJBackCase ? [debugCard("p2-6", 6)] : [debugCard("p2-1", 1), debugCard("p2-5", 5)]),
+    debugPlayer(3, isJBackCase ? [debugCard("p3-6", 6)] : [debugCard("p3-1", 1), debugCard("p3-5", 5)]),
   ];
 
   return {
@@ -416,7 +430,7 @@ function createDebugDaifugoState(caseName: DebugDaifugoCase): GameState {
     pendingDaifugoEffect: null,
     isJBackActive: caseName === "jBack",
     phase: "discard",
-    drawnCard: effectCard,
+    drawnCard: isJBackCase ? jBackHand.find((card) => card.id === "r6") ?? null : effectCard,
     drawnFrom: "deck",
     lastDiscarderIndex: null,
     takenDiscardOwnerIndex: null,
