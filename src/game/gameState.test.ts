@@ -105,6 +105,29 @@ describe("daifugo game state", () => {
     expect(next.currentPlayerIndex).toBe(2);
   });
 
+  it("exchanges one card with the next player using the 7 effect", () => {
+    const pending = gameReducer(stateForDiscard(card("seven", 7), daifugoOptions({ sevenExchange: true })), { type: "discard", cardId: "seven" });
+    const selecting = gameReducer(pending, { type: "answerDaifugoEffect", activate: true });
+    const selectedByUser = gameReducer(selecting, { type: "selectSevenExchangeCard", playerIndex: 0, cardId: "a-1" });
+    const resolved = gameReducer(selectedByUser, { type: "selectSevenExchangeCard", playerIndex: 1, cardId: "p2-1" });
+
+    expect(resolved.pendingDaifugoEffect).toBeNull();
+    expect(resolved.players[0].hand.some((item) => item.id === "p2-1")).toBe(true);
+    expect(resolved.players[1].hand.some((item) => item.id === "a-1")).toBe(true);
+  });
+
+  it("removes the selected rank from hands and deck using the Q effect", () => {
+    const pending = gameReducer(stateForDiscard(card("queen", 12), daifugoOptions({ queenNumberVanish: true })), { type: "discard", cardId: "queen" });
+    const selecting = gameReducer(pending, { type: "answerDaifugoEffect", activate: true });
+    const resolved = gameReducer(selecting, { type: "selectQueenVanishRank", rank: 7 });
+
+    expect(resolved.pendingDaifugoEffect).toBeNull();
+    expect(resolved.players.flatMap((candidate) => candidate.hand).some((item) => item.rank === 7)).toBe(false);
+    expect(resolved.deck.some((item) => item.rank === 7)).toBe(false);
+    expect(resolved.players[0].discardPile.some((item) => item.id === "a-7")).toBe(true);
+    expect(resolved.players[0].hand.some((item) => item.id === "deck-1")).toBe(true);
+  });
+
   it("reverses direction with the 9 effect and applies 5 skip in that direction", () => {
     const reversedPending = gameReducer(stateForDiscard(card("nine", 9)), { type: "discard", cardId: "nine" });
     const reversed = gameReducer(reversedPending, { type: "answerDaifugoEffect", activate: true });

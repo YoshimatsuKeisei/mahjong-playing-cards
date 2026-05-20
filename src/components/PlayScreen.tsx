@@ -13,6 +13,8 @@ import {
   getAvailableDiscardSources,
   getCallOptionsForSource,
   getReachWinningOptions,
+  getSevenExchangeCandidateCards,
+  chooseCpuQueenRank,
   type GameAction,
 } from "../game/gameState";
 import type { Card, GameState } from "../types";
@@ -29,6 +31,8 @@ interface PlayScreenProps {
 }
 
 type AnimationPhase = "idle" | "drawingFromDeck" | "revealingDrawnCard" | "movingDrawnCardToHand" | "discardingCard";
+
+const queenRankOptions = Array.from({ length: 13 }, (_, index) => index + 1);
 
 const reachVisualSrc = new URL("../../黒ローブ男.png", import.meta.url).href;
 
@@ -108,6 +112,7 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
   const [selectedDiscardId, setSelectedDiscardId] = useState<string | null>(null);
   const [discardingCardId, setDiscardingCardId] = useState<string | null>(null);
   const [reachSplashPlayerName, setReachSplashPlayerName] = useState<string | null>(null);
+  const [reachSplashCall, setReachSplashCall] = useState("リーチ!!");
   const [ronCountdown, setRonCountdown] = useState(3);
   const [cpuActionInProgress, setCpuActionInProgress] = useState(false);
   const sceneRef = useRef<HTMLElement | null>(null);
@@ -124,17 +129,37 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
   const isDaifugoConfirm = pendingDaifugoEffect?.kind === "confirm";
   const isDaifugoExtraDiscard = pendingDaifugoEffect?.kind === "extraDiscard";
   const isDaifugoEffectDraw = pendingDaifugoEffect?.kind === "effectDraw";
+  const isSevenExchange = pendingDaifugoEffect?.kind === "sevenExchange";
+  const isQueenSelect = pendingDaifugoEffect?.kind === "queenSelect";
+  const isQueenWinConfirm = pendingDaifugoEffect?.kind === "queenWinConfirm";
   const mustDiscardDrawnForReachDaifugo =
     isDaifugoExtraDiscard &&
     pendingDaifugoEffect.effect === "eightExtraTurn" &&
     currentPlayer.isReach &&
     !state.declaredReachThisTurn;
-  const controlsDisabled = isAnimating || isCpuTurn || cpuActionInProgress || isDaifugoConfirm || isDaifugoEffectDraw;
+  const controlsDisabled =
+    isAnimating || isCpuTurn || cpuActionInProgress || isDaifugoConfirm || isDaifugoEffectDraw || isSevenExchange || isQueenSelect || isQueenWinConfirm;
   const pendingRonResult = state.pendingRonResult;
   const ronDiscarderIndex = pendingRonResult?.discarderIndex ?? null;
   const ronDiscarder = ronDiscarderIndex !== null ? state.players[ronDiscarderIndex] : null;
   const ronCard = ronDiscarder?.discardPile.at(-1) ?? null;
   const ronWinners = pendingRonResult?.ronResults ?? [];
+  const sevenSelectionPlayerIndex =
+    pendingDaifugoEffect?.kind === "sevenExchange"
+      ? [pendingDaifugoEffect.playerIndex, pendingDaifugoEffect.targetPlayerIndex].find(
+          (playerIndex) => !pendingDaifugoEffect.selections[playerIndex] && !state.players[playerIndex]?.isCpu,
+        ) ?? null
+      : null;
+  const sevenSelectionPlayer = sevenSelectionPlayerIndex !== null ? state.players[sevenSelectionPlayerIndex] : null;
+  const sevenSelectionCandidates =
+    pendingDaifugoEffect?.kind === "sevenExchange" && sevenSelectionPlayer
+      ? getSevenExchangeCandidateCards(sevenSelectionPlayer, sevenSelectionPlayerIndex === pendingDaifugoEffect.playerIndex)
+      : [];
+  const shouldShowActionPanel =
+    !shouldHideCpuDetails ||
+    sevenSelectionPlayerIndex !== null ||
+    (pendingDaifugoEffect?.kind === "queenSelect" && !state.players[pendingDaifugoEffect.playerIndex]?.isCpu) ||
+    (pendingDaifugoEffect?.kind === "queenWinConfirm" && !state.players[pendingDaifugoEffect.playerIndex]?.isCpu);
 
   useEffect(() => {
     return () => {
@@ -198,9 +223,28 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
 
     if (state.pendingDaifugoEffect?.kind === "confirm") {
       scheduleCpuAction(
-        () => dispatch({ type: "answerDaifugoEffect", activate: cpuModel.chooseDaifugoEffectActivation?.(cpuContext) ?? true }),
+        () => {
+          const activate = cpuModel.chooseDaifugoEffectActivation?.(cpuContext) ?? true;
+          if (activate && state.pendingDaifugoEffect?.effect === "sevenExchange") {
+            showReachSplash(currentPlayer.name, "カード交換!!");
+          }
+          if (activate && state.pendingDaifugoEffect?.effect === "queenNumberVanish") {
+            showReachSplash(currentPlayer.name, "数字消去!!");
+          }
+          dispatch({ type: "answerDaifugoEffect", activate });
+        },
         CPU_DECISION_DELAY_MS,
       );
+      return;
+    }
+
+    if (state.pendingDaifugoEffect?.kind === "queenSelect") {
+      scheduleCpuAction(() => dispatch({ type: "selectQueenVanishRank", rank: chooseCpuQueenRank(state, state.currentPlayerIndex) }), CPU_DECISION_DELAY_MS);
+      return;
+    }
+
+    if (state.pendingDaifugoEffect?.kind === "queenWinConfirm") {
+      scheduleCpuAction(() => dispatch({ type: "answerQueenWin", takeWin: true }), CPU_DECISION_DELAY_MS);
       return;
     }
 
@@ -464,8 +508,21 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
     animateDiscard(card, () => dispatch({ type: "winWithDiscard", discardCardId: card.id }));
   }
 
-  function showReachSplash(playerName: string) {
+  function handleDaifugoConfirmAnswer(activate: boolean) {
+    if (activate && pendingDaifugoEffect?.kind === "confirm") {
+      if (pendingDaifugoEffect.effect === "sevenExchange") {
+        showReachSplash(currentPlayer.name, "カード交換!!");
+      }
+      if (pendingDaifugoEffect.effect === "queenNumberVanish") {
+        showReachSplash(currentPlayer.name, "数字消去!!");
+      }
+    }
+    dispatch({ type: "answerDaifugoEffect", activate });
+  }
+
+  function showReachSplash(playerName: string, call = "リーチ!!") {
     setReachSplashPlayerName(playerName);
+    setReachSplashCall(call);
     if (reachSplashTimeoutRef.current !== null) {
       window.clearTimeout(reachSplashTimeoutRef.current);
     }
@@ -536,7 +593,7 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
                 <span>宣言</span>
                 <strong>
                   <span className="reach-splash-player">{reachSplashPlayerName}</span>
-                  <span className="reach-splash-call">リーチ!!</span>
+                  <span className="reach-splash-call">{reachSplashCall}</span>
                 </strong>
               </div>
             </div>
@@ -754,16 +811,16 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
             })}
           </div>
         )}
-        {!shouldHideCpuDetails && (
+        {shouldShowActionPanel && (
         <section className="action-panel">
           {isDaifugoConfirm && (
             <div className="daifugo-effect-panel">
               <strong>{getDaifugoEffectText(pendingDaifugoEffect.effect)}</strong>
               <div className="daifugo-effect-actions">
-                <button type="button" className="primary-button" disabled={isAnimating || isCpuTurn} onClick={() => dispatch({ type: "answerDaifugoEffect", activate: true })}>
+                <button type="button" className="primary-button" disabled={isAnimating || isCpuTurn} onClick={() => handleDaifugoConfirmAnswer(true)}>
                   はい
                 </button>
-                <button type="button" disabled={isAnimating || isCpuTurn} onClick={() => dispatch({ type: "answerDaifugoEffect", activate: false })}>
+                <button type="button" disabled={isAnimating || isCpuTurn} onClick={() => handleDaifugoConfirmAnswer(false)}>
                   いいえ
                 </button>
               </div>
@@ -802,6 +859,58 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
               >
                 {mustDiscardDrawnForReachDaifugo ? "引いたカードを捨てる" : "効果で捨てる"}
               </button>
+            </div>
+          )}
+
+          {isSevenExchange && sevenSelectionPlayer && (
+            <div className="daifugo-effect-panel seven-exchange-panel">
+              <strong>{sevenSelectionPlayer.name}：相手に渡すカードを1枚選んでください。</strong>
+              <div className="card-choice-grid">
+                {sevenSelectionCandidates.map((card) => (
+                  <button
+                    type="button"
+                    className="card-choice-button"
+                    key={card.id}
+                    disabled={isAnimating || cpuActionInProgress}
+                    onClick={() => dispatch({ type: "selectSevenExchangeCard", playerIndex: sevenSelectionPlayerIndex!, cardId: card.id })}
+                  >
+                    {formatCard(card)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {isQueenSelect && pendingDaifugoEffect.playerIndex === state.currentPlayerIndex && !currentPlayer.isCpu && (
+            <div className="daifugo-effect-panel queen-effect-panel">
+              <strong>Qの効果：消す数字を選んでください。</strong>
+              <div className="rank-choice-grid">
+                {queenRankOptions.map((rank) => (
+                  <button
+                    type="button"
+                    className="rank-choice-button"
+                    key={rank}
+                    disabled={isAnimating || cpuActionInProgress}
+                    onClick={() => dispatch({ type: "selectQueenVanishRank", rank })}
+                  >
+                    {formatRankLabel(rank)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {isQueenWinConfirm && pendingDaifugoEffect.playerIndex === state.currentPlayerIndex && !currentPlayer.isCpu && (
+            <div className="daifugo-effect-panel">
+              <strong>Qの効果で上がれます。上がりますか？</strong>
+              <div className="daifugo-effect-actions">
+                <button type="button" className="primary-button" disabled={isAnimating || cpuActionInProgress} onClick={() => dispatch({ type: "answerQueenWin", takeWin: true })}>
+                  はい
+                </button>
+                <button type="button" disabled={isAnimating || cpuActionInProgress} onClick={() => dispatch({ type: "answerQueenWin", takeWin: false })}>
+                  いいえ
+                </button>
+              </div>
             </div>
           )}
 
@@ -1044,6 +1153,14 @@ function isWinningCall(hand: Card[], openMelds: Card[][], meld: Card[], discard:
   return checkWinningHandWithOpenMelds(handAfterCall, [...openMelds, meld]).canWin;
 }
 
+function formatRankLabel(rank: number) {
+  if (rank === 1) return "A";
+  if (rank === 11) return "J";
+  if (rank === 12) return "Q";
+  if (rank === 13) return "K";
+  return String(rank);
+}
+
 function getRonRemainingCards(hand: Card[], ronCard: Card | null, melds: Card[][]) {
   const cards = ronCard ? [...hand, ronCard] : hand;
   const usedCounts = new Map<string, number>();
@@ -1061,6 +1178,9 @@ function getRonRemainingCards(hand: Card[], ronCard: Card | null, melds: Card[][
 }
 
 function getActionText(state: GameState) {
+  if (state.pendingDaifugoEffect?.kind === "sevenExchange") return state.message;
+  if (state.pendingDaifugoEffect?.kind === "queenSelect") return "Qの効果で消す数字を選んでいます。";
+  if (state.pendingDaifugoEffect?.kind === "queenWinConfirm") return "Qの効果後の上がりを確認しています。";
   if (state.pendingDaifugoEffect?.kind === "confirm") return getDaifugoEffectText(state.pendingDaifugoEffect.effect);
   if (state.pendingDaifugoEffect?.kind === "extraDiscard") {
     return state.pendingDaifugoEffect.effect === "eightExtraTurn"
@@ -1088,6 +1208,8 @@ function getActionText(state: GameState) {
 }
 
 function getDaifugoEffectText(effect: NonNullable<GameState["pendingDaifugoEffect"]>["effect"]) {
+  if (effect === "sevenExchange") return "7の効果：次のプレイヤーとカードを1枚交換しますか？";
+  if (effect === "queenNumberVanish") return "Qの効果：指定した数字を手札と山札から消しますか？";
   if (effect === "fiveSkip") return "5の効果：次のプレイヤーをスキップしますか？";
   if (effect === "eightExtraTurn") return "8の効果：追加ターンを行い、Jバックを解除しますか？";
   if (effect === "nineReverse") return "9の効果：手番方向を逆にしますか？";

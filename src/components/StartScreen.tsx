@@ -101,12 +101,12 @@ const DAIFUGO_EFFECT_LABELS: Array<{
   note?: string;
 }> = [
   { key: "fiveSkip", shortLabel: "5", label: "スキップ" },
-  { key: "sevenExchange", shortLabel: "7", label: "カード交換", disabled: true, note: "後日実装" },
+  { key: "sevenExchange", shortLabel: "7", label: "カード交換" },
   { key: "eightExtraTurn", shortLabel: "8", label: "追加ターン" },
   { key: "nineReverse", shortLabel: "9", label: "逆回り" },
   { key: "tenSwapDraw", shortLabel: "10", label: "捨てて引く" },
   { key: "jackBack", shortLabel: "J", label: "Jバック" },
-  { key: "queenNumberVanish", shortLabel: "Q", label: "数字全消去", disabled: true, note: "後日実装" },
+  { key: "queenNumberVanish", shortLabel: "Q", label: "数字全消去" },
 ];
 
 export default function StartScreen({ onStart, onBackHome, onCancel = onBackHome }: StartScreenProps) {

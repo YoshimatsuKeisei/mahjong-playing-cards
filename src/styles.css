@@ -2877,6 +2877,29 @@ h2 {
   color: #fff8dc;
 }
 
+.card-choice-grid,
+.rank-choice-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(58px, 1fr));
+  gap: 0.4rem;
+  width: min(680px, 100%);
+}
+
+.card-choice-button,
+.rank-choice-button {
+  min-height: 38px;
+  border: 1px solid rgba(255, 216, 121, 0.58);
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(34, 114, 80, 0.92), rgba(13, 66, 50, 0.94));
+  color: #fff8dc;
+  font-weight: 900;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 8px 16px rgba(0, 0, 0, 0.25);
+}
+
+.rank-choice-grid {
+  grid-template-columns: repeat(13, minmax(42px, 1fr));
+}
+
 .daifugo-status {
   grid-column: 1 / -1;
   justify-self: center;
