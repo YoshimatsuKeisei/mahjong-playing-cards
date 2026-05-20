@@ -1,6 +1,12 @@
 :root {
   color: #17211c;
   background: #f4f1e8;
+  --z-table-card: 10;
+  --z-help-icon: 20;
+  --z-player-status: 30;
+  --z-action-nav: 40;
+  --z-reach-banner: 60;
+  --z-modal: 100;
   font-family:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-size: 16px;
@@ -1842,7 +1848,7 @@ h2 {
   position: absolute;
   top: clamp(3.7rem, 8.6vh, 5.7rem);
   left: 52.5%;
-  z-index: 10;
+  z-index: var(--z-action-nav);
   display: grid;
   grid-template-columns: minmax(112px, auto) minmax(180px, 1fr) minmax(64px, auto);
   align-items: center;
@@ -2002,7 +2008,7 @@ h2 {
   position: absolute;
   left: 50%;
   top: 50%;
-  z-index: 4;
+  z-index: var(--z-player-status);
   display: grid;
   grid-template-areas: "player" "cards";
   justify-items: center;
@@ -2022,7 +2028,7 @@ h2 {
 }
 
 .player-area.seat-bottom {
-  z-index: 7;
+  z-index: var(--z-player-status);
   transform: translate(155%, 18%);
 }
 
@@ -2129,7 +2135,7 @@ h2 {
 .table-card-layer {
   position: absolute;
   inset: 0;
-  z-index: 30;
+  z-index: var(--z-table-card);
   pointer-events: none;
 }
 
@@ -2159,7 +2165,7 @@ h2 {
 
 .history-hover-anchor {
   position: absolute;
-  z-index: 130;
+  z-index: var(--z-help-icon);
   display: grid;
   place-items: center;
   width: clamp(28px, 2.2vw, 36px);
@@ -2172,7 +2178,7 @@ h2 {
 .history-hover-anchor:focus-within,
 .table-history-anchor:hover,
 .table-history-anchor:focus-within {
-  z-index: 2500;
+  z-index: var(--z-action-nav);
 }
 
 .history-hover-anchor--top {
@@ -2192,7 +2198,7 @@ h2 {
 }
 
 .table-history-anchor {
-  z-index: 155;
+  z-index: var(--z-help-icon);
   transform: translate(-50%, -50%);
 }
 
@@ -2300,7 +2306,7 @@ h2 {
   position: absolute;
   left: 50%;
   bottom: calc(100% + 0.5rem);
-  z-index: 2600;
+  z-index: var(--z-action-nav);
   display: grid;
   gap: 0.58rem;
   width: max-content;
@@ -2825,7 +2831,7 @@ h2 {
   right: auto;
   bottom: clamp(8.5rem, 20vh, 12.5rem);
   left: 50%;
-  z-index: 8;
+  z-index: var(--z-action-nav);
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
@@ -2898,7 +2904,7 @@ h2 {
   position: absolute;
   bottom: clamp(0.65rem, 3vh, 2rem);
   left: 50%;
-  z-index: 8;
+  z-index: var(--z-table-card);
   display: grid;
   justify-items: center;
   gap: 0;
@@ -3308,7 +3314,7 @@ h2 {
 .reach-splash {
   position: fixed;
   inset: 0;
-  z-index: 40;
+  z-index: var(--z-reach-banner);
   display: grid;
   place-items: center;
   overflow: hidden;
@@ -3389,19 +3395,41 @@ h2 {
 }
 
 .reach-splash-copy strong {
+  display: grid;
+  gap: 0.24em;
+  width: min(58vw, 680px);
   color: #fff8dc;
   font-size: clamp(2rem, 5vw, 4.8rem);
-  line-height: 0.95;
+  line-height: 1.02;
+  word-break: keep-all;
+  overflow-wrap: normal;
+  white-space: nowrap;
   text-shadow:
     0 4px 0 #0c261c,
     0 0 18px rgba(234, 192, 82, 0.72),
     0 20px 38px rgba(0, 0, 0, 0.78);
 }
 
+.reach-splash-copy > span:not(.reach-splash-player):not(.reach-splash-call) {
+  display: none;
+}
+
+.reach-splash-copy .reach-splash-player,
+.reach-splash-copy .reach-splash-call {
+  width: auto;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  padding: 0;
+  font-size: inherit;
+  line-height: inherit;
+  white-space: nowrap;
+}
+
 .ron-check-overlay {
   position: fixed;
   inset: 0;
-  z-index: 4000;
+  z-index: var(--z-modal);
   display: grid;
   place-items: center;
   background:

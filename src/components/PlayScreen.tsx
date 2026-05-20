@@ -264,7 +264,13 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
 
     if (state.phase === "reachConfirm") {
       scheduleCpuAction(
-        () => dispatch({ type: "answerReachAfterDiscard", declareReach: cpuModel.chooseReachDeclaration?.(cpuContext) ?? false }),
+        () => {
+          const declareReach = cpuModel.chooseReachDeclaration?.(cpuContext) ?? false;
+          dispatch({ type: "answerReachAfterDiscard", declareReach });
+          if (declareReach) {
+            showReachSplash(currentPlayer.name);
+          }
+        },
         CPU_DECISION_DELAY_MS,
       );
       return;
@@ -528,7 +534,10 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
               <img src={reachVisualSrc} alt="" className="reach-splash-visual" />
               <div className="reach-splash-copy">
                 <span>宣言</span>
-                <strong>{reachSplashPlayerName} リーチ!!</strong>
+                <strong>
+                  <span className="reach-splash-player">{reachSplashPlayerName}</span>
+                  <span className="reach-splash-call">リーチ!!</span>
+                </strong>
               </div>
             </div>
           </div>
