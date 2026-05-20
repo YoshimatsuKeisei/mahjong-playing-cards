@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { CpuModelId, DaifugoOptions, Direction, MatchMode } from "../types";
-import { DEFAULT_CPU_MODEL_ID, cpuModels } from "../game/cpuModelRegistry";
+import { DEFAULT_CPU_MODEL_ID, cpuModelDisplayNames, cpuModels } from "../game/cpuModelRegistry";
 
 export type RoomVisibility = "private" | "public";
 export type RoomTotalPlayers = 3 | 4 | 5;
@@ -17,6 +17,8 @@ export interface RoomCreateSettings {
   initialPoints?: number;
   turnDirection: Direction;
   cpuModelId: CpuModelId;
+  cpuModelIds: CpuModelId[];
+  showCpuActions: boolean;
   daifugoOptions: DaifugoOptions;
 }
 
@@ -112,7 +114,8 @@ export default function StartScreen({ onStart, onBackHome, onCancel = onBackHome
   const [playerCount, setPlayerCount] = useState<RoomTotalPlayers>(4);
   const [humanPlayerCount, setHumanPlayerCount] = useState(4);
   const [visibility, setVisibility] = useState<RoomVisibility>("private");
-  const [cpuModelId, setCpuModelId] = useState<CpuModelId>(DEFAULT_CPU_MODEL_ID);
+  const [cpuModelIds, setCpuModelIds] = useState<CpuModelId[]>([DEFAULT_CPU_MODEL_ID, DEFAULT_CPU_MODEL_ID, DEFAULT_CPU_MODEL_ID, DEFAULT_CPU_MODEL_ID]);
+  const [showCpuActions, setShowCpuActions] = useState(true);
   const [daifugoOptions, setDaifugoOptions] = useState<DaifugoOptions>(DEFAULT_DAIFUGO_OPTIONS);
   const [matchType, setMatchType] = useState<MatchRuleType>("fixedRounds");
   const [ruleValues, setRuleValues] = useState<Record<MatchRuleType, string>>({
@@ -124,6 +127,7 @@ export default function StartScreen({ onStart, onBackHome, onCancel = onBackHome
   const activeValue = ruleValues[matchType];
   const settingsError = getSettingsError(matchType, activeValue);
   const cpuPlayerCount = playerCount - humanPlayerCount;
+  const cpuModelId = cpuModelIds[0] ?? DEFAULT_CPU_MODEL_ID;
   const canSelectPublic = humanPlayerCount >= 2;
 
   useEffect(() => {
@@ -155,7 +159,9 @@ export default function StartScreen({ onStart, onBackHome, onCancel = onBackHome
       targetScore: matchMode === "targetScore" ? ruleNumber : undefined,
       initialPoints: matchMode === "startingPoints" ? ruleNumber : undefined,
       turnDirection: DEFAULT_DIRECTION,
-      cpuModelId,
+      cpuModelId: cpuModelIds[0] ?? DEFAULT_CPU_MODEL_ID,
+      cpuModelIds: cpuModelIds.slice(0, cpuPlayerCount),
+      showCpuActions,
       daifugoOptions,
     };
   }
@@ -182,6 +188,14 @@ export default function StartScreen({ onStart, onBackHome, onCancel = onBackHome
   function toggleVisibility() {
     if (!canSelectPublic) return;
     setVisibility((current) => (current === "public" ? "private" : "public"));
+  }
+
+  function updateCpuModel(cpuIndex: number, modelId: CpuModelId) {
+    setCpuModelIds((current) => current.map((item, index) => (index === cpuIndex ? modelId : item)));
+  }
+
+  function setCpuModelId(modelId: CpuModelId) {
+    setCpuModelIds((current) => current.map(() => modelId));
   }
 
   return (
@@ -252,7 +266,32 @@ export default function StartScreen({ onStart, onBackHome, onCancel = onBackHome
           </div>
         </div>
 
-        {import.meta.env.DEV && cpuPlayerCount > 0 && (
+        {cpuPlayerCount > 0 && (
+          <div className="field cpu-model-field">
+            <span>CPU設定</span>
+            <div className="cpu-model-grid">
+              {Array.from({ length: cpuPlayerCount }, (_, cpuIndex) => (
+                <div className="cpu-model-row" key={`cpu-${cpuIndex}`}>
+                  <strong>プレイヤー{humanPlayerCount + cpuIndex + 1}</strong>
+                  <div className="cpu-model-options">
+                    {(Object.keys(cpuModelDisplayNames) as CpuModelId[]).map((modelId) => (
+                      <button
+                        type="button"
+                        className={cpuModelIds[cpuIndex] === modelId ? "selected" : ""}
+                        onClick={() => updateCpuModel(cpuIndex, modelId)}
+                        key={modelId}
+                      >
+                        {cpuModelDisplayNames[modelId]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {false && import.meta.env.DEV && cpuPlayerCount > 0 && (
           <div className="field cpu-model-dev-field">
             <span>DEV CPUモデル</span>
             <div className="segmented">
@@ -267,6 +306,24 @@ export default function StartScreen({ onStart, onBackHome, onCancel = onBackHome
                 </button>
               ))}
             </div>
+          </div>
+        )}
+
+        {cpuPlayerCount > 0 && (
+          <div className="field cpu-action-visibility-field">
+            <span>CPUの手札・操作を表示</span>
+            <button
+              type="button"
+              className={`visibility-switch ${showCpuActions ? "is-public" : "is-private"}`}
+              role="switch"
+              aria-checked={showCpuActions}
+              onClick={() => setShowCpuActions((current) => !current)}
+            >
+              <span className="visibility-switch-track" aria-hidden="true">
+                <span className="visibility-switch-knob" />
+              </span>
+              <span className="visibility-switch-label">{showCpuActions ? "ON" : "OFF"}</span>
+            </button>
           </div>
         )}
 

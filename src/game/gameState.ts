@@ -21,8 +21,10 @@ export function createInitialGame(
   humanPlayerCount = playerCount,
   cpuModelId: CpuModelId = "standard",
   daifugoOptions: DaifugoOptions = createDefaultDaifugoOptions(),
+  cpuModelIds: CpuModelId[] = [],
+  showCpuActions = true,
 ): GameState {
-  return dealCards(shuffleDeck(createDeck()), playerCount, direction, humanPlayerCount, cpuModelId, daifugoOptions);
+  return dealCards(shuffleDeck(createDeck()), playerCount, direction, humanPlayerCount, cpuModelId, daifugoOptions, cpuModelIds, showCpuActions);
 }
 
 function replacePlayer(players: Player[], index: number, nextPlayer: Player): Player[] {
@@ -315,7 +317,16 @@ function applyDaifugoEffect(state: GameState): GameState {
 }
 
 export type GameAction =
-  | { type: "start"; playerCount: number; direction: Direction; humanPlayerCount?: number; cpuModelId?: CpuModelId; daifugoOptions?: DaifugoOptions }
+  | {
+      type: "start";
+      playerCount: number;
+      direction: Direction;
+      humanPlayerCount?: number;
+      cpuModelId?: CpuModelId;
+      cpuModelIds?: CpuModelId[];
+      daifugoOptions?: DaifugoOptions;
+      showCpuActions?: boolean;
+    }
   | { type: "confirmHandoff" }
   | { type: "answerRon"; takeRon: boolean }
   | { type: "answerDaifugoEffect"; activate: boolean }
@@ -352,6 +363,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         action.humanPlayerCount ?? action.playerCount,
         action.cpuModelId ?? "standard",
         action.daifugoOptions ?? createDefaultDaifugoOptions(),
+        action.cpuModelIds ?? [],
+        action.showCpuActions ?? true,
       );
 
     case "restart":
@@ -372,6 +385,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         result: null,
         pendingRonResult: null,
         declaredReachThisTurn: false,
+        showCpuActions: true,
         message: "",
       };
 

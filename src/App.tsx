@@ -34,6 +34,7 @@ const initialState: GameState = {
   result: null,
   pendingRonResult: null,
   declaredReachThisTurn: false,
+  showCpuActions: true,
   message: "",
 };
 
@@ -85,6 +86,8 @@ export default function App() {
         roomSettings?.humanPlayers ?? playerCount,
         roomSettings?.cpuModelId,
         roomSettings?.daifugoOptions,
+        roomSettings?.cpuModelIds,
+        roomSettings?.showCpuActions,
       );
       setMatchState(nextMatch);
       setState(nextMatch.gameState);
@@ -95,6 +98,8 @@ export default function App() {
         roomSettings?.humanPlayers ?? playerCount,
         roomSettings?.cpuModelId,
         roomSettings?.daifugoOptions,
+        roomSettings?.cpuModelIds,
+        roomSettings?.showCpuActions,
       );
       setMatchState(null);
       setState(nextState);
@@ -142,6 +147,8 @@ export default function App() {
       playerCount,
       humanPlayerCount: playerCount,
       cpuModelId: "standard",
+      cpuModelIds: debugState.players.filter((player) => player.isCpu).map((player) => player.cpuModelId ?? "standard"),
+      showCpuActions: debugState.showCpuActions,
       direction: debugState.direction,
       daifugoOptions: debugState.daifugoOptions,
       cumulativeScores: matchMode === "rounds" ? normalRoundScores : matchMode === "targetScore" ? roundScores : Array.from({ length: playerCount }, () => 0),
@@ -180,6 +187,8 @@ export default function App() {
       playerCount,
       humanPlayerCount: playerCount,
       cpuModelId: "standard",
+      cpuModelIds: debugState.players.filter((player) => player.isCpu).map((player) => player.cpuModelId ?? "standard"),
+      showCpuActions: debugState.showCpuActions,
       direction: debugState.direction,
       daifugoOptions: debugState.daifugoOptions,
       cumulativeScores: matchMode === "startingPoints" ? Array.from({ length: playerCount }, () => 0) : standingsValues,
@@ -437,6 +446,7 @@ function createDebugDaifugoState(caseName: DebugDaifugoCase): GameState {
     winner: null,
     result: null,
     pendingRonResult: null,
+    showCpuActions: true,
     declaredReachThisTurn: false,
     message: "DEV大富豪確認用の状態です。",
   };

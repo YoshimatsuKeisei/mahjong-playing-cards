@@ -82,6 +82,7 @@ export function createDoubleRonResultFixture(): GameState {
       ],
     },
     pendingRonResult: null,
+    showCpuActions: true,
     declaredReachThisTurn: false,
     message: "Wロン結果確認用",
   };
@@ -122,6 +123,7 @@ export function createSingleRonResultFixture(): GameState {
       discarderIndex: 1,
     },
     pendingRonResult: null,
+    showCpuActions: true,
     declaredReachThisTurn: false,
     message: "ロン結果確認用",
   };
@@ -161,6 +163,7 @@ export function createStartingPointsTsumoResultFixture(): GameState {
       discarderIndex: null,
     },
     pendingRonResult: null,
+    showCpuActions: true,
     declaredReachThisTurn: false,
     message: "持ち点制ツモ結果確認用",
   };

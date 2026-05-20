@@ -75,6 +75,7 @@ function stateForDiscard(effectCard: Card, options = daifugoOptions()): GameStat
     winner: null,
     result: null,
     pendingRonResult: null,
+    showCpuActions: true,
     declaredReachThisTurn: false,
     message: "",
   };

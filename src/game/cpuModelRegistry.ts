@@ -12,6 +12,16 @@ export const cpuModels: Record<CpuModelId, CpuModel> = {
   tactical: tacticalCpuModel,
 };
 
+export const cpuModelDisplayNames: Record<CpuModelId, string> = {
+  easy: "junior-CPU",
+  standard: "standard-CPU",
+  tactical: "pro-CPU",
+};
+
 export function getCpuModel(cpuModelId: CpuModelId | undefined): CpuModel {
   return cpuModels[cpuModelId ?? DEFAULT_CPU_MODEL_ID] ?? standardCpuModel;
+}
+
+export function getCpuModelDisplayName(cpuModelId: CpuModelId | undefined): string {
+  return cpuModelDisplayNames[cpuModelId ?? DEFAULT_CPU_MODEL_ID] ?? cpuModelDisplayNames.standard;
 }

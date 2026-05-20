@@ -732,17 +732,16 @@ button:disabled {
 
 .daifugo-effect-grid {
   display: grid;
-  grid-template-columns: repeat(3, max-content);
-  justify-content: start;
-  gap: 0.14rem 1rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.28rem 0.7rem;
 }
 
 .daifugo-effect-toggle {
   display: inline-grid;
-  grid-template-columns: max-content 38px;
+  grid-template-columns: minmax(0, 1fr) 48px;
   align-items: center;
-  gap: 0.28rem;
-  min-height: 32px;
+  gap: 0.5rem;
+  min-height: 38px;
   border: 0;
   border-radius: 0;
   background: transparent;
@@ -772,21 +771,21 @@ button:disabled {
   align-items: center;
   gap: 0.24rem;
   min-width: 0;
-  font-size: 0.82rem;
+  font-size: 0.92rem;
   line-height: 1.1;
 }
 
 .daifugo-effect-copy b {
   display: inline-grid;
-  flex: 0 0 1.35rem;
+  flex: 0 0 1.55rem;
   place-items: center;
-  min-width: 1.35rem;
-  height: 1.25rem;
+  min-width: 1.55rem;
+  height: 1.42rem;
   border: 1px solid rgba(255, 224, 154, 0.38);
   border-radius: 5px;
   background: rgba(3, 14, 10, 0.42);
   color: #fff8dc;
-  font-size: 0.72rem;
+  font-size: 0.78rem;
 }
 
 .daifugo-effect-grid small {
@@ -797,9 +796,9 @@ button:disabled {
 
 .mini-switch {
   position: relative;
-  flex: 0 0 38px;
-  width: 38px;
-  height: 21px;
+  flex: 0 0 48px;
+  width: 48px;
+  height: 26px;
   border: 1px solid rgba(255, 245, 200, 0.13);
   border-radius: 999px;
   background: rgba(8, 24, 20, 0.86);
@@ -810,8 +809,8 @@ button:disabled {
   position: absolute;
   top: 3px;
   left: 3px;
-  width: 13px;
-  height: 13px;
+  width: 18px;
+  height: 18px;
   border-radius: 999px;
   background: linear-gradient(180deg, #a8b1a9, #5d6961);
   transition: transform 0.18s ease;
@@ -823,7 +822,60 @@ button:disabled {
 
 .daifugo-effect-toggle.selected .mini-switch-knob {
   background: linear-gradient(180deg, #fff3be, #d6a540);
-  transform: translateX(17px);
+  transform: translateX(22px);
+}
+
+.cpu-model-field,
+.cpu-action-visibility-field {
+  display: grid;
+  gap: 0.42rem;
+}
+
+.cpu-action-visibility-field {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.cpu-model-grid {
+  display: grid;
+  gap: 0.38rem;
+}
+
+.cpu-model-row {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.cpu-model-row strong {
+  color: #fff8dc;
+  font-size: 0.86rem;
+}
+
+.cpu-model-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.42rem;
+}
+
+.cpu-model-options button {
+  min-height: 38px;
+  border-color: rgba(149, 178, 158, 0.2);
+  background:
+    linear-gradient(180deg, rgba(255, 253, 247, 0.075), rgba(255, 253, 247, 0.02)),
+    linear-gradient(180deg, rgba(23, 66, 48, 0.72), rgba(7, 34, 27, 0.74));
+  color: #dfe9e1;
+  padding: 0.45rem 0.55rem;
+  font-size: 0.82rem;
+}
+
+.cpu-model-options button.selected {
+  border-color: #ffe09a;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255, 232, 166, 0.2), transparent 46%),
+    linear-gradient(180deg, rgba(178, 121, 31, 0.98), rgba(95, 83, 34, 0.98) 42%, rgba(28, 86, 61, 0.96));
+  color: #fff8dc;
 }
 
 .composition-grid button {
@@ -4647,8 +4699,13 @@ h2 {
   }
 
   .daifugo-effect-grid {
-    grid-template-columns: repeat(2, max-content);
-    gap: 0.14rem 0.9rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.22rem 0.55rem;
+  }
+
+  .cpu-model-row {
+    grid-template-columns: 1fr;
+    gap: 0.28rem;
   }
 
   .match-type-grid button {

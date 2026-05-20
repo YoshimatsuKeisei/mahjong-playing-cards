@@ -30,6 +30,12 @@ describe("deck and game state card counts", () => {
     expect(state.players.map((player) => player.cpuModelId)).toEqual([undefined, undefined, "tactical", "tactical", "tactical"]);
   });
 
+  it("assigns individual CPU models to each CPU player", () => {
+    const state = dealCards(createDeck(), 5, "clockwise", 1, "standard", undefined, ["easy", "tactical", "standard", "easy"]);
+
+    expect(state.players.map((player) => player.cpuModelId)).toEqual([undefined, "easy", "tactical", "standard", "easy"]);
+  });
+
   it.each([
     { playerCount: 3, sequence: [0, 1, 2, 0] },
     { playerCount: 4, sequence: [0, 1, 2, 3, 0] },
