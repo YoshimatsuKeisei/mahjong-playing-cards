@@ -5,7 +5,14 @@ export type Phase = "setup" | "handoff" | "draw" | "discard" | "reachConfirm" | 
 export type WinType = "tsumo" | "ron" | "deckout";
 export type MatchMode = "rounds" | "targetScore" | "startingPoints";
 export type CpuModelId = "easy" | "standard" | "tactical";
-export type DaifugoEffectId = "fiveSkip" | "eightExtraTurn" | "nineReverse" | "tenSwapDraw" | "jackBack";
+export type DaifugoEffectId =
+  | "fiveSkip"
+  | "sevenExchange"
+  | "eightExtraTurn"
+  | "nineReverse"
+  | "tenSwapDraw"
+  | "jackBack"
+  | "queenNumberVanish";
 
 export interface DaifugoOptions {
   enabled: boolean;
@@ -42,6 +49,27 @@ export type PendingDaifugoEffect =
       kind: "effectDraw";
       effect: "eightExtraTurn" | "tenSwapDraw";
       playerIndex: number;
+      continue: PendingDaifugoContinue;
+    }
+  | {
+      kind: "sevenExchange";
+      effect: "sevenExchange";
+      playerIndex: number;
+      targetPlayerIndex: number;
+      selections: Record<number, string>;
+      continue: PendingDaifugoContinue;
+    }
+  | {
+      kind: "queenSelect";
+      effect: "queenNumberVanish";
+      playerIndex: number;
+      continue: PendingDaifugoContinue;
+    }
+  | {
+      kind: "queenWinConfirm";
+      effect: "queenNumberVanish";
+      playerIndex: number;
+      winningResult: WinningResult;
       continue: PendingDaifugoContinue;
     };
 

@@ -5,6 +5,7 @@ import {
   canDeclareReachAfterDraw,
   checkWinningHandWithOpenMelds,
   findCallMeldOptions,
+  findPossibleMelds,
   findWinningDiscardsAfterDraw,
 } from "./rules";
 import { calculateCardLoss, calculateRonScore, calculateTsumoScore } from "./scoring";
@@ -202,10 +203,12 @@ function reverseDirection(direction: Direction): Direction {
 function getDaifugoEffectForCard(card: Card, options: DaifugoOptions): DaifugoEffectId | null {
   if (!options.enabled) return null;
   if (card.rank === 5 && options.effects.fiveSkip) return "fiveSkip";
+  if (card.rank === 7 && options.effects.sevenExchange) return "sevenExchange";
   if (card.rank === 8 && options.effects.eightExtraTurn) return "eightExtraTurn";
   if (card.rank === 9 && options.effects.nineReverse) return "nineReverse";
   if (card.rank === 10 && options.effects.tenSwapDraw) return "tenSwapDraw";
   if (card.rank === 11 && options.effects.jackBack) return "jackBack";
+  if (card.rank === 12 && options.effects.queenNumberVanish) return "queenNumberVanish";
   return null;
 }
 
@@ -223,6 +226,8 @@ function createPendingDaifugoEffect(state: GameState, discardCard: Card, continu
 }
 
 function getDaifugoConfirmMessage(effect: DaifugoEffectId): string {
+  if (effect === "sevenExchange") return "7の効果：次のプレイヤーとカードを1枚交換しますか？";
+  if (effect === "queenNumberVanish") return "Qの効果：指定した数字を手札と山札から消しますか？";
   switch (effect) {
     case "fiveSkip":
       return "5の効果：次のプレイヤーをスキップしますか？";
@@ -237,6 +242,179 @@ function getDaifugoConfirmMessage(effect: DaifugoEffectId): string {
     default:
       return "カード効果を発動しますか？";
   }
+}
+
+function formatRank(rank: number): string {
+  if (rank === 1) return "A";
+  if (rank === 11) return "J";
+  if (rank === 12) return "Q";
+  if (rank === 13) return "K";
+  return String(rank);
+}
+
+function uniqueCards(cards: Card[]): Card[] {
+  const seen = new Set<string>();
+  return cards.filter((card) => {
+    if (seen.has(card.id)) return false;
+    seen.add(card.id);
+    return true;
+  });
+}
+
+export function getSevenExchangeCandidateCards(player: Player, allowAnyCard = false): Card[] {
+  if (allowAnyCard) return player.hand;
+
+  const meldCandidates = findPossibleMelds(player.hand);
+  if (meldCandidates.length > 0) {
+    return uniqueCards(meldCandidates.slice(0, 2).flatMap((meld) => meld.slice(0, 2)));
+  }
+
+  const cardsByRank = new Map<number, Card[]>();
+  for (const card of player.hand) {
+    cardsByRank.set(card.rank, [...(cardsByRank.get(card.rank) ?? []), card]);
+  }
+  const pairCards = [...cardsByRank.values()].filter((cards) => cards.length >= 2).flat();
+  return pairCards.length >= 4 ? pairCards : player.hand;
+}
+
+function chooseCpuSevenExchangeCard(player: Player, candidates: Card[], isJBackActive: boolean): Card | null {
+  if (candidates.length === 0) return null;
+  if (player.cpuModelId === "easy") return candidates[0];
+  return [...candidates].sort((a, b) => calculateCardLoss(a, isJBackActive) - calculateCardLoss(b, isJBackActive))[0] ?? candidates[0];
+}
+
+function fillCpuSevenExchangeSelections(state: GameState, pending: Extract<NonNullable<GameState["pendingDaifugoEffect"]>, { kind: "sevenExchange" }>) {
+  const selections = { ...pending.selections };
+  for (const playerIndex of [pending.playerIndex, pending.targetPlayerIndex]) {
+    const player = state.players[playerIndex];
+    if (!player?.isCpu || selections[playerIndex]) continue;
+    const candidates = getSevenExchangeCandidateCards(player, playerIndex === pending.playerIndex);
+    const selected = chooseCpuSevenExchangeCard(player, candidates, state.isJBackActive);
+    if (selected) selections[playerIndex] = selected.id;
+  }
+  return selections;
+}
+
+function resolveSevenExchange(state: GameState, pending: Extract<NonNullable<GameState["pendingDaifugoEffect"]>, { kind: "sevenExchange" }>): GameState {
+  const giver = state.players[pending.playerIndex];
+  const target = state.players[pending.targetPlayerIndex];
+  const giverCardId = pending.selections[pending.playerIndex];
+  const targetCardId = pending.selections[pending.targetPlayerIndex];
+  const giverCard = giver?.hand.find((card) => card.id === giverCardId);
+  const targetCard = target?.hand.find((card) => card.id === targetCardId);
+  if (!giver || !target || !giverCard || !targetCard) return state;
+
+  const nextGiver: Player = {
+    ...giver,
+    hand: sortCards([...giver.hand.filter((card) => card.id !== giverCard.id), targetCard]),
+  };
+  const nextTarget: Player = {
+    ...target,
+    hand: sortCards([...target.hand.filter((card) => card.id !== targetCard.id), giverCard]),
+  };
+  const players = replacePlayer(replacePlayer(state.players, pending.playerIndex, nextGiver), pending.targetPlayerIndex, nextTarget);
+  return continueAfterDaifugo(
+    { ...state, players, pendingDaifugoEffect: null },
+    { ...pending.continue, shouldConfirmReach: false, message: `${giver.name}と${target.name}が互いにカードを渡しました。` },
+    players,
+  );
+}
+
+function resolveSevenExchangeIfReady(state: GameState): GameState {
+  const pending = state.pendingDaifugoEffect;
+  if (!pending || pending.kind !== "sevenExchange") return state;
+  const selections = fillCpuSevenExchangeSelections(state, pending);
+  const nextPending = { ...pending, selections };
+  const nextState: GameState = { ...state, pendingDaifugoEffect: nextPending };
+  if (selections[pending.playerIndex] && selections[pending.targetPlayerIndex]) {
+    return resolveSevenExchange(nextState, nextPending);
+  }
+  const waiting = [pending.playerIndex, pending.targetPlayerIndex]
+    .filter((index) => !selections[index])
+    .map((index) => state.players[index]?.name)
+    .filter(Boolean)
+    .join("、");
+  return {
+    ...nextState,
+    message: waiting
+      ? `${waiting}が相手に渡すカードを選択しています。`
+      : `${state.players[pending.playerIndex].name}と${state.players[pending.targetPlayerIndex].name}が相手に渡すカードを選択しています。`,
+  };
+}
+
+export function chooseCpuQueenRank(state: GameState, playerIndex: number): number {
+  const ownIds = new Set(state.players[playerIndex]?.hand.map((card) => card.id) ?? []);
+  const counts = new Map<number, number>();
+  for (const player of state.players) {
+    for (const card of player.hand) {
+      counts.set(card.rank, (counts.get(card.rank) ?? 0) + (ownIds.has(card.id) ? -1 : 1));
+    }
+  }
+  for (const card of state.deck) {
+    counts.set(card.rank, (counts.get(card.rank) ?? 0) + 1);
+  }
+  return Array.from({ length: 13 }, (_, index) => index + 1).sort((a, b) => (counts.get(b) ?? 0) - (counts.get(a) ?? 0))[0] ?? 12;
+}
+
+function resolveQueenNumberVanish(state: GameState, rank: number): GameState {
+  const pending = state.pendingDaifugoEffect;
+  if (!pending || pending.kind !== "queenSelect") return state;
+
+  let deck = state.deck.filter((card) => card.rank !== rank);
+  const removedFromDeck = state.deck.length - deck.length;
+  const discardSummaries: string[] = [];
+  const drawSummaries: string[] = [];
+
+  const players = state.players.map((player) => {
+    const removedCards = player.hand.filter((card) => card.rank === rank);
+    if (removedCards.length === 0) return player;
+
+    const drawnCards = deck.slice(0, removedCards.length);
+    deck = deck.slice(drawnCards.length);
+    discardSummaries.push(`${player.name}が${formatRank(rank)}を${removedCards.length}枚捨てました`);
+    if (drawnCards.length > 0) drawSummaries.push(`${player.name}が山札から${drawnCards.length}枚引きました`);
+    return {
+      ...player,
+      hand: sortCards([...player.hand.filter((card) => card.rank !== rank), ...drawnCards]),
+      discardPile: [...player.discardPile, ...removedCards],
+    };
+  });
+
+  const baseMessage = [
+    `${state.players[pending.playerIndex].name}がQの効果で${formatRank(rank)}を指定しました。`,
+    `山札から${formatRank(rank)}を${removedFromDeck}枚除外しました。`,
+    discardSummaries.join("、") || `${formatRank(rank)}を持つプレイヤーはいませんでした。`,
+    drawSummaries.join("、"),
+  ].filter(Boolean).join(" ");
+
+  const user = players[pending.playerIndex];
+  const winningResult = checkWinningHandWithOpenMelds(user.hand, user.openMelds, state.isJBackActive);
+  const nextState: GameState = {
+    ...state,
+    players,
+    deck,
+    pendingDaifugoEffect: null,
+    drawnCard: null,
+    drawnFrom: null,
+    message: baseMessage,
+  };
+
+  if (winningResult.canWin) {
+    return {
+      ...nextState,
+      players: replacePlayer(players, pending.playerIndex, { ...user, winningResult }),
+      pendingDaifugoEffect: {
+        kind: "queenWinConfirm",
+        effect: "queenNumberVanish",
+        playerIndex: pending.playerIndex,
+        winningResult,
+        continue: { ...pending.continue, shouldConfirmReach: false, message: baseMessage },
+      },
+      message: `${baseMessage} 上がりますか？`,
+    };
+  }
+
+  return continueAfterDaifugo(nextState, { ...pending.continue, shouldConfirmReach: false, message: baseMessage }, players);
 }
 
 function drawOneForPlayer(state: GameState, playerIndex: number): { state: GameState; drawnCard: Card | null } {
@@ -277,6 +455,22 @@ function applyDaifugoEffect(state: GameState): GameState {
     return advanceToNextDraw({ ...state, pendingDaifugoEffect: null }, state.players, skippedIndex, "5の効果で次のプレイヤーをスキップしました。");
   }
 
+  if (pending.effect === "sevenExchange") {
+    const targetPlayerIndex = getNextPlayerIndex(state.currentPlayerIndex, state.players.length, state.direction);
+    return resolveSevenExchangeIfReady({
+      ...state,
+      pendingDaifugoEffect: {
+        kind: "sevenExchange",
+        effect: "sevenExchange",
+        playerIndex: state.currentPlayerIndex,
+        targetPlayerIndex,
+        selections: {},
+        continue: pending.continue,
+      },
+      message: `${state.players[state.currentPlayerIndex].name}と${state.players[targetPlayerIndex].name}が相手に渡すカードを選択しています。`,
+    });
+  }
+
   if (pending.effect === "nineReverse") {
     return continueAfterDaifugo({ ...state, direction: reverseDirection(state.direction) }, pending.continue);
   }
@@ -313,6 +507,19 @@ function applyDaifugoEffect(state: GameState): GameState {
     };
   }
 
+  if (pending.effect === "queenNumberVanish") {
+    return {
+      ...state,
+      pendingDaifugoEffect: {
+        kind: "queenSelect",
+        effect: "queenNumberVanish",
+        playerIndex: state.currentPlayerIndex,
+        continue: pending.continue,
+      },
+      message: "Qの効果で消す数字を選んでください。",
+    };
+  }
+
   return state;
 }
 
@@ -332,6 +539,9 @@ export type GameAction =
   | { type: "answerDaifugoEffect"; activate: boolean }
   | { type: "drawForDaifugoEffect" }
   | { type: "discardForDaifugoEffect"; cardId: string }
+  | { type: "selectSevenExchangeCard"; playerIndex: number; cardId: string }
+  | { type: "selectQueenVanishRank"; rank: number }
+  | { type: "answerQueenWin"; takeWin: boolean }
   | { type: "drawFromDeck" }
   | { type: "takeDiscard"; ownerIndex: number; meld?: Card[] }
   | { type: "declareReach" }
@@ -347,6 +557,9 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     action.type !== "answerDaifugoEffect" &&
     action.type !== "drawForDaifugoEffect" &&
     action.type !== "discardForDaifugoEffect" &&
+    action.type !== "selectSevenExchangeCard" &&
+    action.type !== "selectQueenVanishRank" &&
+    action.type !== "answerQueenWin" &&
     action.type !== "declareReach" &&
     action.type !== "answerReachAfterDiscard" &&
     action.type !== "winWithDiscard" &&
@@ -525,6 +738,47 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       }
 
       return advanceToNextDraw({ ...state, players, pendingDaifugoEffect: null }, players, state.currentPlayerIndex);
+    }
+
+    case "selectSevenExchangeCard": {
+      const pending = state.pendingDaifugoEffect;
+      if (!pending || pending.kind !== "sevenExchange") return state;
+      if (action.playerIndex !== pending.playerIndex && action.playerIndex !== pending.targetPlayerIndex) return state;
+      const player = state.players[action.playerIndex];
+      const candidates = getSevenExchangeCandidateCards(player, action.playerIndex === pending.playerIndex);
+      if (!candidates.some((card) => card.id === action.cardId)) return state;
+      return resolveSevenExchangeIfReady({
+        ...state,
+        pendingDaifugoEffect: {
+          ...pending,
+          selections: {
+            ...pending.selections,
+            [action.playerIndex]: action.cardId,
+          },
+        },
+      });
+    }
+
+    case "selectQueenVanishRank": {
+      if (!state.pendingDaifugoEffect || state.pendingDaifugoEffect.kind !== "queenSelect") return state;
+      if (action.rank < 1 || action.rank > 13) return state;
+      return resolveQueenNumberVanish(state, action.rank);
+    }
+
+    case "answerQueenWin": {
+      const pending = state.pendingDaifugoEffect;
+      if (!pending || pending.kind !== "queenWinConfirm") return state;
+      if (action.takeWin) {
+        return makeWinningState(
+          { ...state, pendingDaifugoEffect: null, currentPlayerIndex: pending.playerIndex, drawnFrom: "deck" },
+          state.players,
+          pending.winningResult,
+        );
+      }
+      return continueAfterDaifugo(
+        { ...state, pendingDaifugoEffect: null, currentPlayerIndex: pending.playerIndex },
+        { ...pending.continue, shouldConfirmReach: false },
+      );
     }
 
     case "drawFromDeck": {
