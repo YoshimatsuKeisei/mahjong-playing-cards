@@ -78,7 +78,7 @@ function findReachRonResults(
 
   players.forEach((player, winnerIndex) => {
     if (winnerIndex === discarderIndex || !player.isReach) return;
-    const options = findWinningDiscardsAfterDraw([...player.hand, discardCard], discardCard.id, player.openMelds);
+    const options = findWinningDiscardsAfterDraw([...player.hand, discardCard], discardCard.id, player.openMelds, isJBackActive);
     const option = options[0];
     if (!option) return;
 
@@ -126,13 +126,13 @@ function makeReachRonResult(state: GameState, discarderIndex: number): { result:
 
 function deckoutResult(state: GameState, players: Player[]): GameState {
   const losses = players.map((candidate) => {
-    const fallback = checkWinningHandWithOpenMelds(candidate.hand, candidate.openMelds);
+    const fallback = checkWinningHandWithOpenMelds(candidate.hand, candidate.openMelds, state.isJBackActive);
     return fallback.keyCard
       ? calculateCardLoss(fallback.keyCard, state.isJBackActive)
       : Math.min(...candidate.hand.map((card) => calculateCardLoss(card, state.isJBackActive)));
   });
   const winnerIndex = losses.indexOf(Math.min(...losses));
-  const deckoutWinningResult = checkWinningHandWithOpenMelds(players[winnerIndex].hand, players[winnerIndex].openMelds);
+  const deckoutWinningResult = checkWinningHandWithOpenMelds(players[winnerIndex].hand, players[winnerIndex].openMelds, state.isJBackActive);
   const withWinnerResult = replacePlayer(players, winnerIndex, {
     ...players[winnerIndex],
     winningResult: deckoutWinningResult.canWin
@@ -209,6 +209,8 @@ function getDaifugoEffectForCard(card: Card, options: DaifugoOptions): DaifugoEf
 
 function createPendingDaifugoEffect(state: GameState, discardCard: Card, continueState: PendingDaifugoContinue) {
   const effect = getDaifugoEffectForCard(discardCard, state.daifugoOptions);
+  const player = state.players[state.currentPlayerIndex];
+  if (effect === "tenSwapDraw" && player?.isReach) return null;
   if (!effect) return null;
   return {
     kind: "confirm" as const,
@@ -442,7 +444,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       }
 
       const player = drawn.state.players[state.currentPlayerIndex];
-      const winningResult = checkWinningHandWithOpenMelds(player.hand, player.openMelds);
+      const winningResult = checkWinningHandWithOpenMelds(player.hand, player.openMelds, drawn.state.isJBackActive);
       if (winningResult.canWin) {
         const nextPlayer = { ...player, winningResult };
         const players = replacePlayer(drawn.state.players, state.currentPlayerIndex, nextPlayer);
@@ -462,9 +464,12 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const player = state.players[state.currentPlayerIndex];
       const discardCard = player.hand.find((card) => card.id === action.cardId);
       if (!discardCard) return state;
+      if (pending.effect === "eightExtraTurn" && player.isReach && !state.declaredReachThisTurn && discardCard.id !== state.drawnCard?.id) {
+        return state;
+      }
 
       const handAfterDiscard = sortCards(player.hand.filter((card) => card.id !== discardCard.id));
-      const winningResult = checkWinningHandWithOpenMelds(handAfterDiscard, player.openMelds);
+      const winningResult = checkWinningHandWithOpenMelds(handAfterDiscard, player.openMelds, state.isJBackActive);
       const nextPlayer: Player = {
         ...player,
         hand: handAfterDiscard,
@@ -611,7 +616,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const discardCard = player.hand.find((card) => card.id === action.discardCardId);
       if (!discardCard) return state;
 
-      const options = findWinningDiscardsAfterDraw(player.hand, state.drawnCard.id, player.openMelds);
+      const options = findWinningDiscardsAfterDraw(player.hand, state.drawnCard.id, player.openMelds, state.isJBackActive);
       const option = options.find((item) => item.discardCard.id === discardCard.id);
       if (!option) return state;
 
@@ -648,7 +653,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         state.drawnFrom === "deck" && canDeclareReachAfterDraw(player.hand, player.hasCalled, player.isReach);
 
       const handAfterDiscard = sortCards(player.hand.filter((card) => card.id !== discardCard.id));
-      const winningResult = checkWinningHandWithOpenMelds(handAfterDiscard, player.openMelds);
+      const winningResult = checkWinningHandWithOpenMelds(handAfterDiscard, player.openMelds, state.isJBackActive);
       const nextPlayer: Player = {
         ...player,
         hand: handAfterDiscard,
@@ -718,7 +723,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       if (state.phase !== "discard" || !state.drawnCard) return state;
       const player = state.players[state.currentPlayerIndex];
       if (!player.isReach || state.declaredReachThisTurn) return state;
-      const options = findWinningDiscardsAfterDraw(player.hand, state.drawnCard.id, player.openMelds);
+      const options = findWinningDiscardsAfterDraw(player.hand, state.drawnCard.id, player.openMelds, state.isJBackActive);
       if (options.length > 0) return state;
 
       const nextPlayer: Player = {
@@ -757,7 +762,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 export function getReachWinningOptions(state: GameState) {
   const player = state.players[state.currentPlayerIndex];
   if (!player?.isReach || !state.drawnCard) return [];
-  return findWinningDiscardsAfterDraw(player.hand, state.drawnCard.id, player.openMelds);
+  return findWinningDiscardsAfterDraw(player.hand, state.drawnCard.id, player.openMelds, state.isJBackActive);
 }
 
 export function getAvailableDiscardSources(state: GameState): number[] {

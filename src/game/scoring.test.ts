@@ -95,7 +95,9 @@ describe("scoring", () => {
 
   it("reverses card loss during J-back scoring", () => {
     expect(calculateCardLoss(card("low", 3))).toBe(3);
-    expect(calculateCardLoss(card("low", 3), true)).toBe(10);
+    expect(calculateCardLoss(card("low", 3), true)).toBe(11);
+    expect(calculateCardLoss(card("six", 6), true)).toBe(8);
+    expect(calculateCardLoss(card("nine", 9), true)).toBe(5);
     expect(calculateCardLoss(card("king", 13), true)).toBe(1);
   });
 
@@ -107,7 +109,7 @@ describe("scoring", () => {
     };
     const players = [player("winner"), player("discarder", [card("d-3", 3)])];
 
-    expect(calculateRonScore(players, 0, 1, winningResult, true).winnerScore).toBe(900);
+    expect(calculateRonScore(players, 0, 1, winningResult, true).winnerScore).toBe(1000);
   });
 
   it("returns raw per-player round scores for target-score ron results", () => {

@@ -93,17 +93,18 @@ const DEFAULT_DAIFUGO_OPTIONS: DaifugoOptions = {
 
 const DAIFUGO_EFFECT_LABELS: Array<{
   key: keyof DaifugoOptions["effects"];
+  shortLabel: string;
   label: string;
   disabled?: boolean;
   note?: string;
 }> = [
-  { key: "fiveSkip", label: "5: スキップ" },
-  { key: "sevenExchange", label: "7: カード交換", disabled: true, note: "後日実装" },
-  { key: "eightExtraTurn", label: "8: 追加ターン / Jバック解除" },
-  { key: "nineReverse", label: "9: 逆回り" },
-  { key: "tenSwapDraw", label: "10: 捨てて引く" },
-  { key: "jackBack", label: "J: Jバック" },
-  { key: "queenNumberVanish", label: "Q: 任意数字全消去", disabled: true, note: "後日実装" },
+  { key: "fiveSkip", shortLabel: "5", label: "スキップ" },
+  { key: "sevenExchange", shortLabel: "7", label: "カード交換", disabled: true, note: "後日実装" },
+  { key: "eightExtraTurn", shortLabel: "8", label: "追加ターン" },
+  { key: "nineReverse", shortLabel: "9", label: "逆回り" },
+  { key: "tenSwapDraw", shortLabel: "10", label: "捨てて引く" },
+  { key: "jackBack", shortLabel: "J", label: "Jバック" },
+  { key: "queenNumberVanish", shortLabel: "Q", label: "数字全消去", disabled: true, note: "後日実装" },
 ];
 
 export default function StartScreen({ onStart, onBackHome, onCancel = onBackHome }: StartScreenProps) {
@@ -335,13 +336,22 @@ export default function StartScreen({ onStart, onBackHome, onCancel = onBackHome
               {DAIFUGO_EFFECT_LABELS.map((effect) => (
                 <button
                   type="button"
-                  className={daifugoOptions.effects[effect.key] ? "selected" : ""}
+                  className={`daifugo-effect-toggle ${daifugoOptions.effects[effect.key] ? "selected" : ""}`}
+                  aria-pressed={daifugoOptions.effects[effect.key]}
                   disabled={effect.disabled}
                   onClick={() => toggleDaifugoEffect(effect.key)}
                   key={effect.key}
                 >
-                  <strong>{effect.label}</strong>
-                  {effect.note && <small>{effect.note}</small>}
+                  <span className="daifugo-effect-copy">
+                    <strong>
+                      <b>{effect.shortLabel}</b>
+                      {effect.label}
+                    </strong>
+                    {effect.note && <small>{effect.note}</small>}
+                  </span>
+                  <span className="mini-switch" aria-hidden="true">
+                    <span className="mini-switch-knob" />
+                  </span>
                 </button>
               ))}
             </div>

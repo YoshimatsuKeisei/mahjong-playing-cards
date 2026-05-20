@@ -13,7 +13,7 @@ export function standardChooseCpuWinningDiscard(context: CpuDecisionContext): Ca
 
   const options = player.isReach
     ? getReachWinningOptions(state)
-    : findWinningDiscardsAfterDraw(player.hand, state.drawnCard.id, player.openMelds);
+    : findWinningDiscardsAfterDraw(player.hand, state.drawnCard.id, player.openMelds, state.isJBackActive);
   return options[0]?.discardCard ?? null;
 }
 

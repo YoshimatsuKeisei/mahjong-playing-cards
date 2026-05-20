@@ -14,7 +14,7 @@ import { advanceRound, canAdvanceRound, createMatchState, syncMatchGameState } f
 import { calculatePointDeductions, calculateRawRoundScores } from "./game/scoring";
 import { createDefaultDaifugoOptions } from "./game/deck";
 import { createDoubleRonResultFixture, createSingleRonResultFixture, createStartingPointsTsumoResultFixture } from "./game/resultFixtures";
-import type { GameState, MatchMode, MatchState, ProfileData } from "./types";
+import type { Card, GameState, MatchMode, MatchState, Player, ProfileData } from "./types";
 import type { HomeMenuTarget } from "./components/HomeMenu";
 
 const initialState: GameState = {
@@ -40,6 +40,7 @@ const initialState: GameState = {
 type AppScreen = "home" | "roomSelect" | "roomList" | "newGame" | "play" | "manual" | "moreGame" | "settings" | "profile" | "result";
 type DebugResultKind = "ron" | "tsumo" | "doubleRon";
 type DebugStandingsCase = "roundsNoRankChange" | "roundsRankChange" | "targetNoRankChange" | "pointsLoss";
+type DebugDaifugoCase = "jBack" | "eightTsumo" | "eightReach" | "tenTsumo" | "tenReach" | "reachTenBlocked" | "reachEight";
 
 export default function App() {
   const [state, setState] = useState<GameState>(initialState);
@@ -190,6 +191,13 @@ export default function App() {
     setScreen("result");
   }
 
+  function showDebugDaifugo(caseName: DebugDaifugoCase) {
+    const debugState = createDebugDaifugoState(caseName);
+    setMatchState(null);
+    setState(debugState);
+    setScreen("play");
+  }
+
   if (screen === "home") {
     return (
       <HomeScreen
@@ -211,6 +219,13 @@ export default function App() {
                 { label: "DEV: 成績UI / 局数制 / 順位変動あり", onClick: () => showDebugStandings("roundsRankChange") },
                 { label: "DEV: 成績UI / 目標点制 / 順位変動なし", onClick: () => showDebugStandings("targetNoRankChange") },
                 { label: "DEV: 成績UI / 持ち点制 / 減少あり", onClick: () => showDebugStandings("pointsLoss") },
+                { label: "DEV: JバックON確認", onClick: () => showDebugDaifugo("jBack") },
+                { label: "DEV: 8効果ツモ確認", onClick: () => showDebugDaifugo("eightTsumo") },
+                { label: "DEV: 8効果リーチ確認", onClick: () => showDebugDaifugo("eightReach") },
+                { label: "DEV: 10効果ツモ確認", onClick: () => showDebugDaifugo("tenTsumo") },
+                { label: "DEV: 10効果リーチ確認", onClick: () => showDebugDaifugo("tenReach") },
+                { label: "DEV: リーチ中10禁止確認", onClick: () => showDebugDaifugo("reachTenBlocked") },
+                { label: "DEV: リーチ中8確認", onClick: () => showDebugDaifugo("reachEight") },
               ]
             : undefined
         }
@@ -319,6 +334,112 @@ function calculatePreviousStandings(matchState: MatchState, state: GameState) {
   const roundScores =
     matchState.matchMode === "rounds" ? calculateDebugRoundScores(state, matchState.playerCount) : calculateRawRoundScores(state.result, matchState.playerCount);
   return matchState.cumulativeScores.map((score, index) => Math.max(0, score - (roundScores[index] ?? 0)));
+}
+
+function debugCard(id: string, rank: number, suit: Card["suit"] = "S"): Card {
+  return { id, rank, suit };
+}
+
+function debugPlayer(index: number, hand: Card[], isReach = false): Player {
+  return {
+    id: `debug-player-${index}`,
+    name: `プレイヤー${index}`,
+    type: "human",
+    isCpu: false,
+    hand,
+    discardPile: [],
+    openMelds: [],
+    hasCalled: false,
+    isReach,
+  };
+}
+
+function createDebugDaifugoOptions() {
+  return {
+    enabled: true,
+    effects: {
+      fiveSkip: true,
+      sevenExchange: false,
+      eightExtraTurn: true,
+      nineReverse: true,
+      tenSwapDraw: true,
+      jackBack: true,
+      queenNumberVanish: false,
+    },
+  };
+}
+
+function createDebugDaifugoState(caseName: DebugDaifugoCase): GameState {
+  const isJBackCase = caseName === "jBack";
+  const effectCard = caseName.startsWith("ten") || caseName === "reachTenBlocked" ? debugCard("effect-10", 10, "S") : debugCard("effect-8", 8, "S");
+  const baseHand = [
+    effectCard,
+    debugCard("r1", 1, "S"),
+    debugCard("r2", 2, "S"),
+    debugCard("r3", 3, "S"),
+    debugCard("r4", 4, "S"),
+    debugCard("r5", 5, "S"),
+    debugCard("loose-a", 9, "D"),
+    debugCard("loose-b", 10, "H"),
+    debugCard("loose-c", 11, "H"),
+    debugCard("loose-d", 12, "H"),
+    debugCard("junk", 13, "H"),
+  ];
+  const jBackHand = [
+    debugCard("r1", 1, "S"),
+    debugCard("r2", 2, "S"),
+    debugCard("r3", 3, "S"),
+    debugCard("r4", 4, "S"),
+    debugCard("r5", 5, "S"),
+    debugCard("r6", 6, "S"),
+    debugCard("loose-a", 9, "D"),
+    debugCard("loose-b", 10, "H"),
+    debugCard("loose-c", 11, "H"),
+    debugCard("loose-d", 12, "H"),
+    debugCard("junk", 13, "H"),
+  ];
+  const tsumoHand = [
+    effectCard,
+    debugCard("t1s", 1, "S"),
+    debugCard("t1h", 1, "H"),
+    debugCard("t1d", 1, "D"),
+    debugCard("t2s", 2, "S"),
+    debugCard("t2h", 2, "H"),
+    debugCard("t2d", 2, "D"),
+    debugCard("t3s", 3, "S"),
+    debugCard("t3h", 3, "H"),
+    debugCard("key", 13, "C"),
+    debugCard("junk", 12, "D"),
+  ];
+  const isTsumoCase = caseName === "eightTsumo" || caseName === "tenTsumo";
+  const isReachCase = caseName === "reachTenBlocked" || caseName === "reachEight";
+  const players = [
+    debugPlayer(1, isJBackCase ? jBackHand : isTsumoCase ? tsumoHand : baseHand, isReachCase),
+    debugPlayer(2, isJBackCase ? [debugCard("p2-6", 6)] : [debugCard("p2-1", 1), debugCard("p2-5", 5)]),
+    debugPlayer(3, isJBackCase ? [debugCard("p3-6", 6)] : [debugCard("p3-1", 1), debugCard("p3-5", 5)]),
+  ];
+
+  return {
+    players,
+    deck: isTsumoCase
+      ? [debugCard("t3d", 3, "D"), debugCard("deck-pad", 6, "C")]
+      : [debugCard("r6", 6, "S"), debugCard("deck-pad", 7, "C")],
+    currentPlayerIndex: 0,
+    direction: "clockwise",
+    daifugoOptions: createDebugDaifugoOptions(),
+    pendingDaifugoEffect: null,
+    isJBackActive: caseName === "jBack",
+    phase: "discard",
+    drawnCard: isJBackCase ? jBackHand.find((card) => card.id === "r6") ?? null : effectCard,
+    drawnFrom: "deck",
+    lastDiscarderIndex: null,
+    takenDiscardOwnerIndex: null,
+    winner: null,
+    result: null,
+    pendingRonResult: null,
+    declaredReachThisTurn: false,
+    message: "DEV大富豪確認用の状態です。",
+  };
 }
 
 function calculateDebugRoundScores(state: GameState, playerCount: number) {

@@ -3,7 +3,7 @@ import { analyzeHandForWin, findPossibleMelds, getCardPenalty } from "./rules";
 
 export function calculateCardLoss(card: Card, isJBackActive = false): number {
   if (!isJBackActive) return getCardPenalty(card);
-  return getCardPenalty({ ...card, rank: 14 - card.rank });
+  return 14 - card.rank;
 }
 
 export function calculateScoreFromLosses(loserLoss: number, winnerLoss: number): number {
