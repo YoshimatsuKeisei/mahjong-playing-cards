@@ -1,9 +1,10 @@
-import type { Card, CpuModelId, DaifugoEffectId, DaifugoOptions, Direction, GameResult, GameState, PendingDaifugoContinue, Player, RonResult } from "../types";
+import type { Card, CpuModelId, DaifugoEffectEvent, DaifugoEffectId, DaifugoOptions, Direction, GameResult, GameState, PendingDaifugoContinue, Player, RonResult } from "../types";
 import { createDeck, createDefaultDaifugoOptions, dealCards, shuffleDeck, sortCards } from "./deck";
 import {
   canDeclareReach,
   canDeclareReachAfterDraw,
   checkWinningHandWithOpenMelds,
+  countMaxMelds,
   findCallMeldOptions,
   findPossibleMelds,
   findWinningDiscardsAfterDraw,
@@ -261,6 +262,31 @@ function uniqueCards(cards: Card[]): Card[] {
   });
 }
 
+function canMaintainReach(player: Player): boolean {
+  return !player.hasCalled && player.hand.length === 10 && countMaxMelds(player.hand) >= 2;
+}
+
+function releaseInvalidReachPlayers(players: Player[]): { players: Player[]; releasedPlayerIndexes: number[] } {
+  const releasedPlayerIndexes: number[] = [];
+  const nextPlayers = players.map((player, playerIndex) => {
+    if (!player.isReach || canMaintainReach(player)) return player;
+    releasedPlayerIndexes.push(playerIndex);
+    return { ...player, isReach: false };
+  });
+  return { players: nextPlayers, releasedPlayerIndexes };
+}
+
+function appendReachReleaseMessage(message: string, players: Player[], releasedPlayerIndexes: number[]): string {
+  if (releasedPlayerIndexes.length === 0) return message;
+  const releasedNames = releasedPlayerIndexes.map((index) => players[index]?.name).filter(Boolean).join("、");
+  return `${message} ${releasedNames}のリーチが解除されました。`;
+}
+
+function makeDaifugoEventId(kind: DaifugoEffectEvent["kind"], state: GameState): string {
+  const discardCount = state.players.reduce((total, player) => total + player.discardPile.length, 0);
+  return `${kind}-${state.currentPlayerIndex}-${state.deck.length}-${discardCount}`;
+}
+
 export function getSevenExchangeCandidateCards(player: Player, allowAnyCard = false): Card[] {
   if (allowAnyCard) return player.hand;
 
@@ -312,10 +338,27 @@ function resolveSevenExchange(state: GameState, pending: Extract<NonNullable<Gam
     ...target,
     hand: sortCards([...target.hand.filter((card) => card.id !== targetCard.id), giverCard]),
   };
-  const players = replacePlayer(replacePlayer(state.players, pending.playerIndex, nextGiver), pending.targetPlayerIndex, nextTarget);
+  const exchangedPlayers = replacePlayer(replacePlayer(state.players, pending.playerIndex, nextGiver), pending.targetPlayerIndex, nextTarget);
+  const { players, releasedPlayerIndexes } = releaseInvalidReachPlayers(exchangedPlayers);
+  const message = appendReachReleaseMessage(`${giver.name}と${target.name}が互いにカードを渡しました。`, players, releasedPlayerIndexes);
   return continueAfterDaifugo(
-    { ...state, players, pendingDaifugoEffect: null },
-    { ...pending.continue, shouldConfirmReach: false, message: `${giver.name}と${target.name}が互いにカードを渡しました。` },
+    {
+      ...state,
+      players,
+      pendingDaifugoEffect: null,
+      daifugoEffectEvent: {
+        id: makeDaifugoEventId("sevenExchange", state),
+        kind: "sevenExchange",
+        actorIndex: pending.playerIndex,
+        targetPlayerIndex: pending.targetPlayerIndex,
+        exchangedCards: [
+          { playerIndex: pending.playerIndex, receivedCard: targetCard },
+          { playerIndex: pending.targetPlayerIndex, receivedCard: giverCard },
+        ],
+        reachReleasedPlayerIndexes: releasedPlayerIndexes,
+      },
+    },
+    { ...pending.continue, shouldConfirmReach: false, message },
     players,
   );
 }
@@ -360,17 +403,22 @@ function resolveQueenNumberVanish(state: GameState, rank: number): GameState {
   const pending = state.pendingDaifugoEffect;
   if (!pending || pending.kind !== "queenSelect") return state;
 
+  const beforeDeckCount = state.deck.length;
   let deck = state.deck.filter((card) => card.rank !== rank);
   const removedFromDeck = state.deck.length - deck.length;
   const discardSummaries: string[] = [];
   const drawSummaries: string[] = [];
+  const queenDiscardResults: NonNullable<DaifugoEffectEvent["queenDiscardResults"]> = [];
+  let refillDrawCount = 0;
 
-  const players = state.players.map((player) => {
+  const playersBeforeReachCheck = state.players.map((player, playerIndex) => {
     const removedCards = player.hand.filter((card) => card.rank === rank);
     if (removedCards.length === 0) return player;
 
     const drawnCards = deck.slice(0, removedCards.length);
     deck = deck.slice(drawnCards.length);
+    refillDrawCount += drawnCards.length;
+    queenDiscardResults.push({ playerIndex, discardedCards: removedCards, drawnCards });
     discardSummaries.push(`${player.name}が${formatRank(rank)}を${removedCards.length}枚捨てました`);
     if (drawnCards.length > 0) drawSummaries.push(`${player.name}が山札から${drawnCards.length}枚引きました`);
     return {
@@ -379,13 +427,31 @@ function resolveQueenNumberVanish(state: GameState, rank: number): GameState {
       discardPile: [...player.discardPile, ...removedCards],
     };
   });
+  const { players, releasedPlayerIndexes } = releaseInvalidReachPlayers(playersBeforeReachCheck);
+  const afterDeckCount = deck.length;
+  const expectedAfterDeckCount = beforeDeckCount - removedFromDeck - refillDrawCount;
+  const queenDeckAudit = {
+    beforeDeckCount,
+    removedFromDeckCount: removedFromDeck,
+    refillDrawCount,
+    afterDeckCount,
+    expectedAfterDeckCount,
+    rank,
+  };
+
+  console.info("[Q effect deck audit]", queenDeckAudit);
+  if (expectedAfterDeckCount !== afterDeckCount) {
+    console.warn("[Q effect deck mismatch]", queenDeckAudit);
+  }
 
   const baseMessage = [
     `${state.players[pending.playerIndex].name}がQの効果で${formatRank(rank)}を指定しました。`,
     `山札から${formatRank(rank)}を${removedFromDeck}枚除外しました。`,
     discardSummaries.join("、") || `${formatRank(rank)}を持つプレイヤーはいませんでした。`,
     drawSummaries.join("、"),
+    `山札: ${beforeDeckCount} → ${afterDeckCount}（内訳: 除外${removedFromDeck}枚 + 補充ドロー${refillDrawCount}枚）`,
   ].filter(Boolean).join(" ");
+  const message = appendReachReleaseMessage(baseMessage, players, releasedPlayerIndexes);
 
   const user = players[pending.playerIndex];
   const winningResult = checkWinningHandWithOpenMelds(user.hand, user.openMelds, state.isJBackActive);
@@ -396,7 +462,16 @@ function resolveQueenNumberVanish(state: GameState, rank: number): GameState {
     pendingDaifugoEffect: null,
     drawnCard: null,
     drawnFrom: null,
-    message: baseMessage,
+    daifugoEffectEvent: {
+      id: makeDaifugoEventId("queenNumberVanish", state),
+      kind: "queenNumberVanish",
+      actorIndex: pending.playerIndex,
+      rank,
+      queenDiscardResults,
+      queenDeckAudit,
+      reachReleasedPlayerIndexes: releasedPlayerIndexes,
+    },
+    message,
   };
 
   if (winningResult.canWin) {
@@ -408,13 +483,13 @@ function resolveQueenNumberVanish(state: GameState, rank: number): GameState {
         effect: "queenNumberVanish",
         playerIndex: pending.playerIndex,
         winningResult,
-        continue: { ...pending.continue, shouldConfirmReach: false, message: baseMessage },
+        continue: { ...pending.continue, shouldConfirmReach: false, message },
       },
-      message: `${baseMessage} 上がりますか？`,
+      message: `${message} 上がりますか？`,
     };
   }
 
-  return continueAfterDaifugo(nextState, { ...pending.continue, shouldConfirmReach: false, message: baseMessage }, players);
+  return continueAfterDaifugo(nextState, { ...pending.continue, shouldConfirmReach: false, message }, players);
 }
 
 function drawOneForPlayer(state: GameState, playerIndex: number): { state: GameState; drawnCard: Card | null } {

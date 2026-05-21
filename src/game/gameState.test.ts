@@ -114,6 +114,7 @@ describe("daifugo game state", () => {
     expect(resolved.pendingDaifugoEffect).toBeNull();
     expect(resolved.players[0].hand.some((item) => item.id === "p2-1")).toBe(true);
     expect(resolved.players[1].hand.some((item) => item.id === "a-1")).toBe(true);
+    expect(resolved.daifugoEffectEvent?.kind).toBe("sevenExchange");
   });
 
   it("removes the selected rank from hands and deck using the Q effect", () => {
@@ -126,6 +127,39 @@ describe("daifugo game state", () => {
     expect(resolved.deck.some((item) => item.rank === 7)).toBe(false);
     expect(resolved.players[0].discardPile.some((item) => item.id === "a-7")).toBe(true);
     expect(resolved.players[0].hand.some((item) => item.id === "deck-1")).toBe(true);
+    expect(resolved.daifugoEffectEvent?.kind).toBe("queenNumberVanish");
+    expect(resolved.daifugoEffectEvent?.queenDeckAudit).toMatchObject({
+      beforeDeckCount: 3,
+      removedFromDeckCount: 1,
+      refillDrawCount: 1,
+      afterDeckCount: 1,
+      expectedAfterDeckCount: 1,
+    });
+  });
+
+  it("releases reach after 7 exchange when the hand no longer satisfies reach", () => {
+    const base = stateForDiscard(card("seven", 7), daifugoOptions({ sevenExchange: true }));
+    const selecting: GameState = {
+      ...base,
+      players: [
+        { ...base.players[0], isReach: true, hand: [card("a-2", 2), card("b-2", 2), card("a-4", 4), card("b-4", 4), card("a-6", 6), card("a-8", 8), card("a-9", 9), card("a-10", 10), card("a-11", 11), card("a-13", 13)] },
+        { ...base.players[1], hand: [card("p2-1", 1)] },
+        base.players[2],
+      ],
+      pendingDaifugoEffect: {
+        kind: "sevenExchange",
+        effect: "sevenExchange",
+        playerIndex: 0,
+        targetPlayerIndex: 1,
+        selections: {},
+        continue: { shouldConfirmReach: false },
+      },
+    };
+    const selectedByUser = gameReducer(selecting, { type: "selectSevenExchangeCard", playerIndex: 0, cardId: "a-2" });
+    const resolved = gameReducer(selectedByUser, { type: "selectSevenExchangeCard", playerIndex: 1, cardId: "p2-1" });
+
+    expect(resolved.players[0].isReach).toBe(false);
+    expect(resolved.daifugoEffectEvent?.reachReleasedPlayerIndexes).toEqual([0]);
   });
 
   it("reverses direction with the 9 effect and applies 5 skip in that direction", () => {
