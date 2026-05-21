@@ -37,7 +37,8 @@ type DaifugoAnimationStep = {
   message: string;
   cards: Card[];
   side: "center" | "cpu";
-  variant: "discard" | "draw" | "exchange";
+  variant: "notice" | "discard" | "draw" | "exchange";
+  phase?: "reveal" | "insert";
 };
 
 const queenRankOptions = Array.from({ length: 13 }, (_, index) => index + 1);
@@ -123,6 +124,7 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
   const [reachSplashCall, setReachSplashCall] = useState("リーチ!!");
   const [visibleDaifugoEventId, setVisibleDaifugoEventId] = useState<string | null>(null);
   const [daifugoEventStepIndex, setDaifugoEventStepIndex] = useState(0);
+  const [daifugoDrawPhase, setDaifugoDrawPhase] = useState<"reveal" | "insert">("reveal");
   const [ronCountdown, setRonCountdown] = useState(3);
   const [cpuActionInProgress, setCpuActionInProgress] = useState(false);
   const sceneRef = useRef<HTMLElement | null>(null);
@@ -157,7 +159,11 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
   const visibleDaifugoEvent =
     state.daifugoEffectEvent && state.daifugoEffectEvent.id === visibleDaifugoEventId ? state.daifugoEffectEvent : null;
   const daifugoAnimationSteps = visibleDaifugoEvent ? buildDaifugoAnimationSteps(visibleDaifugoEvent, state) : [];
-  const daifugoAnimationStep = daifugoAnimationSteps[daifugoEventStepIndex] ?? null;
+  const rawDaifugoAnimationStep = daifugoAnimationSteps[daifugoEventStepIndex] ?? null;
+  const daifugoAnimationStep =
+    rawDaifugoAnimationStep && (rawDaifugoAnimationStep.variant === "draw" || rawDaifugoAnimationStep.variant === "exchange")
+      ? { ...rawDaifugoAnimationStep, phase: daifugoDrawPhase }
+      : rawDaifugoAnimationStep;
   const isDaifugoEventPlaying = Boolean(daifugoAnimationStep);
   const sevenSelectionPlayerIndex =
     pendingDaifugoEffect?.kind === "sevenExchange"
@@ -177,6 +183,10 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
     (currentPlayer?.isCpu ? (humanPlayerIndex >= 0 ? humanPlayerIndex : state.currentPlayerIndex) : state.currentPlayerIndex);
   const handPlayer = state.players[handPlayerIndex] ?? currentPlayer;
   const handDrawnCardId = handPlayerIndex === state.currentPlayerIndex ? state.drawnCard?.id ?? null : null;
+  const hiddenDaifugoIncomingIds =
+    visibleDaifugoEvent && isDaifugoEventPlaying ? getDaifugoIncomingCardIdsForPlayer(visibleDaifugoEvent, handPlayerIndex) : new Set<string>();
+  const displayedHandCards =
+    hiddenDaifugoIncomingIds.size > 0 ? handPlayer.hand.filter((card) => !hiddenDaifugoIncomingIds.has(card.id)) : handPlayer.hand;
   const isSevenHandSelection = sevenSelectionPlayerIndex !== null && handPlayerIndex === sevenSelectionPlayerIndex;
   const shouldShowActionPanel =
     !shouldHideCpuDetails ||
@@ -386,13 +396,26 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
       return;
     }
     setDaifugoEventStepIndex(0);
+    setDaifugoDrawPhase("reveal");
     setVisibleDaifugoEventId(state.daifugoEffectEvent.id);
   }, [state.daifugoEffectEvent?.id]);
 
   useEffect(() => {
     if (!visibleDaifugoEvent || !daifugoAnimationStep) return;
+    setDaifugoDrawPhase("reveal");
+    if (daifugoAnimationStep.variant === "draw" || daifugoAnimationStep.variant === "exchange") {
+      const insertTimeoutId = window.setTimeout(() => setDaifugoDrawPhase("insert"), 1550);
+      return () => window.clearTimeout(insertTimeoutId);
+    }
+  }, [visibleDaifugoEvent?.id, daifugoEventStepIndex]);
+
+  useEffect(() => {
+    if (!visibleDaifugoEvent || !daifugoAnimationStep) return;
     const timeoutId = window.setTimeout(() => {
       setDaifugoEventStepIndex((index) => {
+        if ((daifugoAnimationStep.variant === "draw" || daifugoAnimationStep.variant === "exchange") && daifugoAnimationStep.phase !== "insert") {
+          return index;
+        }
         const nextIndex = index + 1;
         if (nextIndex >= daifugoAnimationSteps.length) {
           setVisibleDaifugoEventId(null);
@@ -400,7 +423,7 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
         }
         return nextIndex;
       });
-    }, daifugoAnimationStep.variant === "discard" ? 2300 : 1900);
+    }, getDaifugoStepDuration(daifugoAnimationStep));
 
     return () => {
       window.clearTimeout(timeoutId);
@@ -637,7 +660,7 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
             <strong>{cpuDisplayNames.get(state.currentPlayerIndex) ?? currentPlayer.name}</strong>
             <em>{getPlayerStatus(currentPlayer)}</em>
           </div>
-          <div className="toolbar-action">{getActionText(state)}</div>
+          <div className="toolbar-action">{daifugoAnimationStep?.message ?? getActionText(state)}</div>
           <div className="toolbar-deck">
             <span>山札</span>
             <strong>{state.deck.length}</strong>
@@ -680,7 +703,7 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
           </div>
         )}
 
-        {daifugoAnimationStep && (
+        {daifugoAnimationStep && daifugoAnimationStep.cards.length > 0 && (
           <section className={`daifugo-event-overlay ${daifugoAnimationStep.side === "cpu" ? "cpu-side" : "center-side"}`} role="status" aria-live="polite">
             <DaifugoAnimationStage step={daifugoAnimationStep} />
           </section>
@@ -1097,7 +1120,7 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
         <section className="hand-section">
           <HandView
             key={handPlayer.id}
-            cards={handPlayer.hand}
+            cards={displayedHandCards}
             drawnCardId={handDrawnCardId}
             selectedCardId={selectedDiscardId}
             discardingCardId={discardingCardId}
@@ -1127,6 +1150,204 @@ interface PlayerHistoryPopoverProps {
 }
 
 function buildDaifugoAnimationSteps(event: NonNullable<GameState["daifugoEffectEvent"]>, state: GameState): DaifugoAnimationStep[] {
+  const actor = state.players[event.actorIndex];
+
+  if (event.kind === "sevenExchange") {
+    const target = event.targetPlayerIndex !== undefined ? state.players[event.targetPlayerIndex] : null;
+    return (event.exchangedCards ?? [])
+      .filter(({ playerIndex }) => !state.players[playerIndex]?.isCpu || state.showCpuActions)
+      .map(({ playerIndex, receivedCard }) => {
+        const player = state.players[playerIndex];
+        const exchangeLine =
+          playerIndex === event.actorIndex
+            ? `${actor?.name ?? "プレイヤー"}が${target?.name ?? "相手"}とカードを交換しました`
+            : `${actor?.name ?? "プレイヤー"}とカードを交換しました`;
+        return {
+          id: `${event.id}-receive-${playerIndex}`,
+          title: "7 カード交換",
+          message: `${exchangeLine} / ${formatCard(receivedCard)} を受け取りました`,
+          cards: [receivedCard],
+          side: player?.isCpu ? "cpu" : "center",
+          variant: "exchange",
+        };
+      });
+  }
+
+  const rank = event.rank ? formatRankLabel(event.rank) : "?";
+  const results = event.queenDiscardResults ?? [];
+  const humanDiscardCards = results.flatMap((result) => {
+    const player = state.players[result.playerIndex];
+    return player?.isCpu ? [] : result.discardedCards;
+  });
+  const cpuDiscardCards = state.showCpuActions
+    ? results.flatMap((result) => {
+        const player = state.players[result.playerIndex];
+        return player?.isCpu ? result.discardedCards : [];
+      })
+    : [];
+  const humanDrawCards = results.flatMap((result) => {
+    const player = state.players[result.playerIndex];
+    return player?.isCpu ? [] : result.drawnCards;
+  });
+  const cpuDrawCards = state.showCpuActions
+    ? results.flatMap((result) => {
+        const player = state.players[result.playerIndex];
+        return player?.isCpu ? result.drawnCards : [];
+      })
+    : [];
+
+  const steps: DaifugoAnimationStep[] = [
+    {
+      id: `${event.id}-notice`,
+      title: "Q 効果",
+      message: `Q効果発動により、${rank}が捨てられます`,
+      cards: [],
+      side: "center",
+      variant: "notice",
+    },
+    {
+      id: `${event.id}-discard`,
+      title: `Q 効果: ${rank}`,
+      message: summarizeQueenResults(results, state, rank, "discard") || `${rank}を持つプレイヤーはいませんでした`,
+      cards: humanDiscardCards,
+      side: "center",
+      variant: "discard",
+    },
+    {
+      id: `${event.id}-discard-cpu`,
+      title: `Q 効果: ${rank}`,
+      message: summarizeQueenResults(results, state, rank, "discard") || `${rank}を持つプレイヤーはいませんでした`,
+      cards: cpuDiscardCards,
+      side: "cpu",
+      variant: "discard",
+    },
+    {
+      id: `${event.id}-draw`,
+      title: "山札から引きました",
+      message: summarizeQueenResults(results, state, rank, "draw") || "補充ドローはありません",
+      cards: humanDrawCards,
+      side: "center",
+      variant: "draw",
+    },
+    {
+      id: `${event.id}-draw-cpu`,
+      title: "山札から引きました",
+      message: summarizeQueenResults(results, state, rank, "draw") || "補充ドローはありません",
+      cards: cpuDrawCards,
+      side: "cpu",
+      variant: "draw",
+    },
+  ];
+  return steps.filter((step) => step.variant === "notice" || step.cards.length > 0);
+}
+
+function summarizeQueenResults(
+  results: NonNullable<NonNullable<GameState["daifugoEffectEvent"]>["queenDiscardResults"]>,
+  state: GameState,
+  rank: string,
+  kind: "discard" | "draw",
+) {
+  return results
+    .map((result) => {
+      const player = state.players[result.playerIndex];
+      const count = kind === "discard" ? result.discardedCards.length : result.drawnCards.length;
+      if (count <= 0) return "";
+      return kind === "discard" ? `${player?.name ?? "プレイヤー"}が${rank}を${count}枚捨てました` : `${player?.name ?? "プレイヤー"}が山札から${count}枚引きました`;
+    })
+    .filter(Boolean)
+    .join(" / ");
+}
+
+function getDaifugoIncomingCardIdsForPlayer(event: NonNullable<GameState["daifugoEffectEvent"]>, playerIndex: number) {
+  const ids = new Set<string>();
+  if (event.kind === "sevenExchange") {
+    for (const exchange of event.exchangedCards ?? []) {
+      if (exchange.playerIndex === playerIndex) {
+        ids.add(exchange.receivedCard.id);
+      }
+    }
+    return ids;
+  }
+
+  for (const result of event.queenDiscardResults ?? []) {
+    if (result.playerIndex === playerIndex) {
+      for (const card of result.drawnCards) {
+        ids.add(card.id);
+      }
+    }
+  }
+  return ids;
+}
+
+function getDaifugoStepDuration(step: DaifugoAnimationStep) {
+  if (step.variant === "notice") return 650;
+  if (step.variant === "discard") return step.cards.length > 0 ? 1750 : 650;
+  if (step.variant === "draw" || step.variant === "exchange") return step.phase === "insert" ? 650 : 1550;
+  return step.cards.length > 0 ? 650 : 650;
+}
+
+function buildDaifugoAnimationStepsOld(event: NonNullable<GameState["daifugoEffectEvent"]>, state: GameState): DaifugoAnimationStep[] {
+  const actor = state.players[event.actorIndex];
+
+  if (event.kind === "sevenExchange") {
+    const target = event.targetPlayerIndex !== undefined ? state.players[event.targetPlayerIndex] : null;
+    return (event.exchangedCards ?? [])
+      .filter(({ playerIndex }) => !state.players[playerIndex]?.isCpu || state.showCpuActions)
+      .map(({ playerIndex, receivedCard }) => {
+        const player = state.players[playerIndex];
+        const exchangeLine =
+          playerIndex === event.actorIndex
+            ? `${actor?.name ?? "プレイヤー"}が${target?.name ?? "相手"}とカードを交換しました`
+            : `${actor?.name ?? "プレイヤー"}とカードを交換しました`;
+        return {
+          id: `${event.id}-receive-${playerIndex}`,
+          title: "7 カード交換",
+          message: `${exchangeLine} / ${formatCard(receivedCard)} を受け取りました`,
+          cards: [receivedCard],
+          side: player?.isCpu ? "cpu" : "center",
+          variant: "exchange",
+        };
+      });
+  }
+
+  const rank = event.rank ? formatRankLabel(event.rank) : "?";
+  const discardSteps: DaifugoAnimationStep[] = [];
+  const drawSteps: DaifugoAnimationStep[] = [];
+  for (const result of event.queenDiscardResults ?? []) {
+    const player = state.players[result.playerIndex];
+    if (player?.isCpu && !state.showCpuActions) {
+      continue;
+    }
+    const discardCount = result.discardedCards.length;
+    discardSteps.push({
+      id: `${event.id}-discard-${result.playerIndex}`,
+      title: `Q 効果: ${rank}`,
+      message:
+        result.playerIndex === event.actorIndex
+          ? `Q効果により、${rank}を${discardCount}枚捨てます`
+          : player?.isCpu
+            ? `${player.name}が${rank}を${discardCount}枚捨てました`
+            : `${actor?.name ?? "プレイヤー"}のQ効果により、あなたの${rank}が${discardCount}枚捨てさせられます`,
+      cards: result.discardedCards,
+      side: player?.isCpu ? "cpu" : "center",
+      variant: "discard",
+    });
+    if (result.drawnCards.length > 0) {
+      const drawCount = result.drawnCards.length;
+      drawSteps.push({
+        id: `${event.id}-draw-${result.playerIndex}`,
+        title: "山札から引きました",
+        message: player?.isCpu ? `${player.name}が山札から${drawCount}枚引きました` : `山札から${drawCount}枚引きました`,
+        cards: result.drawnCards,
+        side: player?.isCpu ? "cpu" : "center",
+        variant: "draw",
+      });
+    }
+  }
+  return [...discardSteps, ...drawSteps];
+}
+
+function buildDaifugoAnimationStepsLegacy(event: NonNullable<GameState["daifugoEffectEvent"]>, state: GameState): DaifugoAnimationStep[] {
   if (event.kind === "sevenExchange") {
     return (event.exchangedCards ?? [])
       .filter(({ playerIndex }) => !state.players[playerIndex]?.isCpu || state.showCpuActions)
@@ -1174,10 +1395,17 @@ function buildDaifugoAnimationSteps(event: NonNullable<GameState["daifugoEffectE
 }
 
 function DaifugoAnimationStage({ step }: { step: DaifugoAnimationStep }) {
+  const stageClass =
+    step.variant === "discard"
+      ? "q-bomb-discard-preview"
+      : step.phase === "insert"
+        ? "movingDrawnCardToHand"
+        : "revealingDrawnCard";
+
   return (
-    <div className={`daifugo-animation-stage ${step.variant}`}>
+    <div className={`card-animation daifugo-animation-stage ${stageClass}`}>
       <strong>{step.title}</strong>
-      <p>{step.message}</p>
+      <span className="card-animation-label daifugo-stage-label">{step.message}</span>
       {step.cards.length > 0 && (
         <div className="daifugo-animation-cards">
           {step.cards.map((card) => (
@@ -1351,7 +1579,13 @@ function PlayerHistoryPopover({ player, showMelds }: PlayerHistoryPopoverProps) 
         ) : (
           <div className="history-card-grid" aria-label={`${player.name}の過去の捨て札`}>
             {player.discardPile.map((card) => (
-              <PlayingCard card={card} compact key={card.id} />
+              <span
+                className={card.discardedByEffect === "queenNumberVanish" ? "history-q-effect-card" : ""}
+                title={card.discardedByEffect === "queenNumberVanish" ? "Q効果で破棄" : undefined}
+                key={card.id}
+              >
+                <PlayingCard card={card} compact />
+              </span>
             ))}
           </div>
         )}

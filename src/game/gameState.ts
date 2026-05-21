@@ -292,7 +292,7 @@ export function getSevenExchangeCandidateCards(player: Player, allowAnyCard = fa
 
   const meldCandidates = findPossibleMelds(player.hand);
   if (meldCandidates.length > 0) {
-    return uniqueCards(meldCandidates.slice(0, 2).flatMap((meld) => meld.slice(0, 2)));
+    return uniqueCards(meldCandidates.flat());
   }
 
   const cardsByRank = new Map<number, Card[]>();
@@ -414,17 +414,18 @@ function resolveQueenNumberVanish(state: GameState, rank: number): GameState {
   const playersBeforeReachCheck = state.players.map((player, playerIndex) => {
     const removedCards = player.hand.filter((card) => card.rank === rank);
     if (removedCards.length === 0) return player;
+    const queenDiscardedCards = removedCards.map((card) => ({ ...card, discardedByEffect: "queenNumberVanish" as const }));
 
     const drawnCards = deck.slice(0, removedCards.length);
     deck = deck.slice(drawnCards.length);
     refillDrawCount += drawnCards.length;
-    queenDiscardResults.push({ playerIndex, discardedCards: removedCards, drawnCards });
+    queenDiscardResults.push({ playerIndex, discardedCards: queenDiscardedCards, drawnCards });
     discardSummaries.push(`${player.name}が${formatRank(rank)}を${removedCards.length}枚捨てました`);
     if (drawnCards.length > 0) drawSummaries.push(`${player.name}が山札から${drawnCards.length}枚引きました`);
     return {
       ...player,
       hand: sortCards([...player.hand.filter((card) => card.rank !== rank), ...drawnCards]),
-      discardPile: [...player.discardPile, ...removedCards],
+      discardPile: [...player.discardPile, ...queenDiscardedCards],
     };
   });
   const { players, releasedPlayerIndexes } = releaseInvalidReachPlayers(playersBeforeReachCheck);

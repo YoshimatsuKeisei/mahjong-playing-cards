@@ -77,6 +77,7 @@ export interface Card {
   id: string;
   suit: Suit;
   rank: number;
+  discardedByEffect?: "queenNumberVanish";
 }
 
 export interface Player {
