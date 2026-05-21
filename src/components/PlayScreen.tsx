@@ -670,7 +670,8 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
           </div>
           {state.daifugoOptions.enabled && (
             <div className={`daifugo-status ${state.isJBackActive ? "active" : ""}`}>
-              {state.isJBackActive ? "Jバック中" : state.direction === "clockwise" ? "通常順" : "逆回り"}
+              <span className="daifugo-status-direction">{state.direction === "clockwise" ? "通常順" : "逆回り"}</span>
+              {state.isJBackActive && <span className="daifugo-status-jback">Jバック中</span>}
             </div>
           )}
         </header>
@@ -826,10 +827,15 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
         {showTableCardLayer &&
           state.players.map((player, index) => {
             const visibleDiscardPile = getVisibleDiscardPile(player.discardPile, hiddenQueenDiscardIdsByPlayer.get(index));
+            const measuredPosition = measuredHistoryPositions[index];
             return visibleDiscardPile.length > 0 ? (
               <div
                 className={`history-hover-anchor table-history-anchor table-history-anchor--${getAreaName(getSeat(playerCount, index))}`}
-                style={measuredHistoryPositions[index] ?? getHistoryAnchorStyle(playerCount, index)}
+                style={{
+                  ...(measuredPosition ?? getHistoryAnchorStyle(playerCount, index)),
+                  opacity: measuredPosition ? undefined : 0,
+                  pointerEvents: measuredPosition ? undefined : "none",
+                }}
                 key={`${player.id}-table-history-hover`}
               >
                 <button type="button" className="history-hover-marker" aria-label={`${player.name}\u306e\u6368\u3066\u672d\u5c65\u6b74\u3092\u78ba\u8a8d`}>
@@ -1159,6 +1165,19 @@ function buildDaifugoAnimationSteps(event: NonNullable<GameState["daifugoEffectE
 
   if (event.kind === "sevenExchange") {
     const target = event.targetPlayerIndex !== undefined ? state.players[event.targetPlayerIndex] : null;
+    const visibleExchanges = (event.exchangedCards ?? []).filter(({ playerIndex }) => !state.players[playerIndex]?.isCpu);
+    if (visibleExchanges.length === 0) return [];
+    return [
+      {
+        id: `${event.id}-receive`,
+        title: "7 カード交換",
+        message: `${actor?.name ?? "プレイヤー"}と${target?.name ?? "相手"}がカードを交換しました`,
+        stageMessage: visibleExchanges.some(({ playerIndex }) => !state.players[playerIndex]?.isCpu) ? "カードを受け取りました" : undefined,
+        cards: visibleExchanges.map(({ receivedCard }) => receivedCard),
+        side: "center",
+        variant: "exchange",
+      },
+    ];
     return (event.exchangedCards ?? [])
       .filter(({ playerIndex }) => !state.players[playerIndex]?.isCpu || state.showCpuActions)
       .map(({ playerIndex, receivedCard }) => {
@@ -1201,8 +1220,8 @@ function buildDaifugoAnimationSteps(event: NonNullable<GameState["daifugoEffectE
         return player?.isCpu ? result.drawnCards : [];
       })
     : [];
-  const visibleDiscardCards = [...humanDiscardCards, ...cpuDiscardCards];
-  const visibleDrawCards = [...humanDrawCards, ...cpuDrawCards];
+  const visibleDiscardCards = humanDiscardCards;
+  const visibleDrawCards = humanDrawCards;
   const hasQueenDiscards = results.some((result) => result.discardedCards.length > 0);
 
   const steps: DaifugoAnimationStep[] = [
@@ -1435,13 +1454,15 @@ function DaifugoAnimationStage({ step }: { step: DaifugoAnimationStep }) {
     <div className={`card-animation daifugo-animation-stage ${stageClass}`}>
       <strong>{step.title}</strong>
       {step.stageMessage && <span className="card-animation-label daifugo-stage-label">{step.stageMessage}</span>}
-      {step.cards.length > 0 && (
+      {step.cards.length === 1 ? (
+        <PlayingCard card={step.cards[0]} />
+      ) : step.cards.length > 0 ? (
         <div className="daifugo-animation-cards">
           {step.cards.map((card) => (
             <PlayingCard card={card} key={card.id} />
           ))}
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
