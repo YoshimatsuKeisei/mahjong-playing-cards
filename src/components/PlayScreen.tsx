@@ -35,9 +35,10 @@ type DaifugoAnimationStep = {
   id: string;
   title: string;
   message: string;
+  stageMessage?: string;
   cards: Card[];
   side: "center" | "cpu";
-  variant: "notice" | "discard" | "draw" | "exchange";
+  variant: "notice" | "discard" | "settle" | "draw" | "exchange";
   phase?: "reveal" | "insert";
 };
 
@@ -187,6 +188,8 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
     visibleDaifugoEvent && isDaifugoEventPlaying ? getDaifugoIncomingCardIdsForPlayer(visibleDaifugoEvent, handPlayerIndex) : new Set<string>();
   const displayedHandCards =
     hiddenDaifugoIncomingIds.size > 0 ? handPlayer.hand.filter((card) => !hiddenDaifugoIncomingIds.has(card.id)) : handPlayer.hand;
+  const hiddenQueenDiscardIdsByPlayer =
+    visibleDaifugoEvent && isDaifugoEventPlaying ? getHiddenQueenDiscardIdsByPlayer(visibleDaifugoEvent, daifugoAnimationStep) : new Map<number, Set<string>>();
   const isSevenHandSelection = sevenSelectionPlayerIndex !== null && handPlayerIndex === sevenSelectionPlayerIndex;
   const shouldShowActionPanel =
     !shouldHideCpuDetails ||
@@ -821,8 +824,9 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
           ))}
 
         {showTableCardLayer &&
-          state.players.map((player, index) =>
-            player.discardPile.length > 0 ? (
+          state.players.map((player, index) => {
+            const visibleDiscardPile = getVisibleDiscardPile(player.discardPile, hiddenQueenDiscardIdsByPlayer.get(index));
+            return visibleDiscardPile.length > 0 ? (
               <div
                 className={`history-hover-anchor table-history-anchor table-history-anchor--${getAreaName(getSeat(playerCount, index))}`}
                 style={measuredHistoryPositions[index] ?? getHistoryAnchorStyle(playerCount, index)}
@@ -833,19 +837,20 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
                 </button>
                 <PlayerHistoryPopover player={player} showMelds={false} />
               </div>
-            ) : null,
-          )}
+            ) : null;
+          })}
 
         {showTableCardLayer && (
           <div className="table-card-layer" aria-label="捨て札と公開役">
             {state.players.map((player, index) => {
               const area = getAreaName(getSeat(playerCount, index));
+              const visibleDiscardPile = getVisibleDiscardPile(player.discardPile, hiddenQueenDiscardIdsByPlayer.get(index));
               if (area === "self") {
                 return (
                   <div className="self-table-zone" key={`${player.id}-field`}>
                     <div className="self-discard-column">
-                      <DiscardPile cards={player.discardPile} area={area} highlightLatest={discardHighlights.get(index) ?? null} />
-                      {player.discardPile.length > 0 && (
+                      <DiscardPile cards={visibleDiscardPile} area={area} highlightLatest={discardHighlights.get(index) ?? null} />
+                      {visibleDiscardPile.length > 0 && (
                         <span
                           className="discard-first-card-anchor"
                           ref={(node) => {
@@ -871,8 +876,8 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
                   <div className={`opponent-field opponent-field--${area}`} key={`${player.id}-field`}>
                     <div className="opponent-card-group">
                       <div className={`opponent-discard-stack history-hover-zone--${area}`}>
-                        <DiscardPile cards={player.discardPile} area={area} highlightLatest={discardHighlights.get(index) ?? null} />
-                        {player.discardPile.length > 0 && (
+                        <DiscardPile cards={visibleDiscardPile} area={area} highlightLatest={discardHighlights.get(index) ?? null} />
+                        {visibleDiscardPile.length > 0 && (
                           <span
                             className="discard-first-card-anchor"
                             ref={(node) => {
@@ -897,8 +902,8 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
               return (
                 <div className={`card-field card-field--${area}`} key={`${player.id}-field`}>
                   <div className={`history-hover-zone--${area}`}>
-                    <DiscardPile cards={player.discardPile} area={area} highlightLatest={discardHighlights.get(index) ?? null} />
-                    {player.discardPile.length > 0 && (
+                    <DiscardPile cards={visibleDiscardPile} area={area} highlightLatest={discardHighlights.get(index) ?? null} />
+                    {visibleDiscardPile.length > 0 && (
                       <span
                         className="discard-first-card-anchor"
                         ref={(node) => {
@@ -1166,6 +1171,7 @@ function buildDaifugoAnimationSteps(event: NonNullable<GameState["daifugoEffectE
           id: `${event.id}-receive-${playerIndex}`,
           title: "7 カード交換",
           message: `${exchangeLine} / ${formatCard(receivedCard)} を受け取りました`,
+          stageMessage: player?.isCpu ? undefined : "カードを受け取りました",
           cards: [receivedCard],
           side: player?.isCpu ? "cpu" : "center",
           variant: "exchange",
@@ -1195,6 +1201,9 @@ function buildDaifugoAnimationSteps(event: NonNullable<GameState["daifugoEffectE
         return player?.isCpu ? result.drawnCards : [];
       })
     : [];
+  const visibleDiscardCards = [...humanDiscardCards, ...cpuDiscardCards];
+  const visibleDrawCards = [...humanDrawCards, ...cpuDrawCards];
+  const hasQueenDiscards = results.some((result) => result.discardedCards.length > 0);
 
   const steps: DaifugoAnimationStep[] = [
     {
@@ -1209,23 +1218,25 @@ function buildDaifugoAnimationSteps(event: NonNullable<GameState["daifugoEffectE
       id: `${event.id}-discard`,
       title: `Q 効果: ${rank}`,
       message: summarizeQueenResults(results, state, rank, "discard") || `${rank}を持つプレイヤーはいませんでした`,
-      cards: humanDiscardCards,
+      stageMessage: humanDiscardCards.length > 0 ? `${rank}を捨てます` : undefined,
+      cards: visibleDiscardCards,
       side: "center",
       variant: "discard",
     },
     {
-      id: `${event.id}-discard-cpu`,
+      id: `${event.id}-settle`,
       title: `Q 効果: ${rank}`,
       message: summarizeQueenResults(results, state, rank, "discard") || `${rank}を持つプレイヤーはいませんでした`,
-      cards: cpuDiscardCards,
-      side: "cpu",
-      variant: "discard",
+      cards: [],
+      side: "center",
+      variant: "settle",
     },
     {
       id: `${event.id}-draw`,
       title: "山札から引きました",
       message: summarizeQueenResults(results, state, rank, "draw") || "補充ドローはありません",
-      cards: humanDrawCards,
+      stageMessage: humanDrawCards.length > 0 ? "山札から新しいカードを引きました" : undefined,
+      cards: visibleDrawCards,
       side: "center",
       variant: "draw",
     },
@@ -1233,12 +1244,12 @@ function buildDaifugoAnimationSteps(event: NonNullable<GameState["daifugoEffectE
       id: `${event.id}-draw-cpu`,
       title: "山札から引きました",
       message: summarizeQueenResults(results, state, rank, "draw") || "補充ドローはありません",
-      cards: cpuDrawCards,
+      cards: [],
       side: "cpu",
       variant: "draw",
     },
   ];
-  return steps.filter((step) => step.variant === "notice" || step.cards.length > 0);
+  return steps.filter((step) => step.variant === "notice" || (step.variant === "settle" ? hasQueenDiscards : step.cards.length > 0));
 }
 
 function summarizeQueenResults(
@@ -1279,9 +1290,27 @@ function getDaifugoIncomingCardIdsForPlayer(event: NonNullable<GameState["daifug
   return ids;
 }
 
+function getHiddenQueenDiscardIdsByPlayer(event: NonNullable<GameState["daifugoEffectEvent"]>, step: DaifugoAnimationStep | null) {
+  const hiddenIds = new Map<number, Set<string>>();
+  if (event.kind !== "queenNumberVanish" || !step || (step.variant !== "notice" && step.variant !== "discard")) {
+    return hiddenIds;
+  }
+
+  for (const result of event.queenDiscardResults ?? []) {
+    hiddenIds.set(result.playerIndex, new Set(result.discardedCards.map((card) => card.id)));
+  }
+  return hiddenIds;
+}
+
+function getVisibleDiscardPile(cards: Card[], hiddenIds?: Set<string>) {
+  if (!hiddenIds || hiddenIds.size === 0) return cards;
+  return cards.filter((card) => !hiddenIds.has(card.id));
+}
+
 function getDaifugoStepDuration(step: DaifugoAnimationStep) {
   if (step.variant === "notice") return 650;
   if (step.variant === "discard") return step.cards.length > 0 ? 1750 : 650;
+  if (step.variant === "settle") return 360;
   if (step.variant === "draw" || step.variant === "exchange") return step.phase === "insert" ? 650 : 1550;
   return step.cards.length > 0 ? 650 : 650;
 }
@@ -1405,7 +1434,7 @@ function DaifugoAnimationStage({ step }: { step: DaifugoAnimationStep }) {
   return (
     <div className={`card-animation daifugo-animation-stage ${stageClass}`}>
       <strong>{step.title}</strong>
-      <span className="card-animation-label daifugo-stage-label">{step.message}</span>
+      {step.stageMessage && <span className="card-animation-label daifugo-stage-label">{step.stageMessage}</span>}
       {step.cards.length > 0 && (
         <div className="daifugo-animation-cards">
           {step.cards.map((card) => (
