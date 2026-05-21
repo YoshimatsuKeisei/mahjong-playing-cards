@@ -115,6 +115,32 @@ export interface RonResult {
   score: ScoreResult;
 }
 
+export interface DaifugoEffectEvent {
+  id: string;
+  kind: "sevenExchange" | "queenNumberVanish";
+  actorIndex: number;
+  targetPlayerIndex?: number;
+  rank?: number;
+  exchangedCards?: Array<{
+    playerIndex: number;
+    receivedCard: Card;
+  }>;
+  queenDiscardResults?: Array<{
+    playerIndex: number;
+    discardedCards: Card[];
+    drawnCards: Card[];
+  }>;
+  queenDeckAudit?: {
+    beforeDeckCount: number;
+    removedFromDeckCount: number;
+    refillDrawCount: number;
+    afterDeckCount: number;
+    expectedAfterDeckCount: number;
+    rank: number;
+  };
+  reachReleasedPlayerIndexes?: number[];
+}
+
 export interface GameResult {
   winnerIndex: number;
   winType: WinType;
@@ -153,6 +179,7 @@ export interface GameState {
   winner: number | null;
   result: GameResult | null;
   pendingRonResult: GameResult | null;
+  daifugoEffectEvent?: DaifugoEffectEvent | null;
   declaredReachThisTurn: boolean;
   message: string;
   showCpuActions: boolean;

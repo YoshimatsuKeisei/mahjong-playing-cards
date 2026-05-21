@@ -8,6 +8,7 @@ interface HandViewProps {
   drawnCardId?: string | null;
   selectedCardId?: string | null;
   discardingCardId?: string | null;
+  selectableCardIds?: string[] | null;
   disabled?: boolean;
   onCardClick?: (card: Card) => void;
 }
@@ -17,11 +18,13 @@ export default function HandView({
   drawnCardId,
   selectedCardId,
   discardingCardId,
+  selectableCardIds,
   disabled = false,
   onCardClick,
 }: HandViewProps) {
   const sortedCards = sortCardsForHand(getUniqueCardsById(cards));
   const meldCardIds = getMeldCardIds(sortedCards);
+  const selectableSet = selectableCardIds ? new Set(selectableCardIds) : null;
   const center = (sortedCards.length - 1) / 2;
 
   return (
@@ -35,11 +38,12 @@ export default function HandView({
             meldCardIds.has(card.id) ? "meld-highlight-card" : "",
             selectedCardId === card.id ? "selected-card" : "",
             discardingCardId === card.id ? "discarding-card" : "",
+            selectableSet && !selectableSet.has(card.id) ? "unselectable-card" : "",
           ]
             .filter(Boolean)
             .join(" ")}
           key={card.id}
-          disabled={disabled}
+          disabled={disabled || (selectableSet !== null && !selectableSet.has(card.id))}
           style={getHandCardStyle(index, center)}
           aria-label={`discard ${formatSuit(card.suit)}${formatRank(card.rank)}`}
           onClick={() => onCardClick?.(card)}
