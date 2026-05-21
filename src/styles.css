@@ -2977,10 +2977,19 @@ h2 {
 }
 
 .daifugo-animation-cards {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(3, max-content);
   justify-content: center;
+  justify-items: center;
   gap: 0.45rem;
+}
+
+.daifugo-animation-cards:has(.playing-card:first-child:last-child) {
+  grid-template-columns: max-content;
+}
+
+.daifugo-animation-cards:has(.playing-card:nth-child(2):last-child) {
+  grid-template-columns: repeat(2, max-content);
 }
 
 .daifugo-animation-cards .playing-card {
