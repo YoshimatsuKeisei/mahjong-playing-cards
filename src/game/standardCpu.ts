@@ -2,6 +2,11 @@ import type { Card } from "../types";
 import { getAvailableDiscardSources, getCallOptionsForSource, getReachWinningOptions } from "./gameState";
 import { findWinningDiscardsAfterDraw, getCardPenalty } from "./rules";
 import type { CpuCallChoice, CpuDecisionContext, CpuModel } from "./cpuTypes";
+import {
+  chooseStandardDaifugoCard,
+  chooseStandardDaifugoEffectActivation,
+  chooseStandardQueenRank,
+} from "./daifugoCpu";
 
 export function standardShouldCpuWin(context: CpuDecisionContext): boolean {
   return standardChooseCpuWinningDiscard(context) !== null;
@@ -78,4 +83,8 @@ export const standardCpuModel: CpuModel = {
   shouldCall: standardShouldCpuCall,
   chooseDrawSource: standardChooseCpuDrawSource,
   chooseDiscardCard: standardChooseCpuDiscardCard,
+  chooseDaifugoEffectActivation: chooseStandardDaifugoEffectActivation,
+  chooseDaifugoSevenExchangeCard: (context, candidates) => chooseStandardDaifugoCard(context, candidates),
+  chooseQueenVanishRank: chooseStandardQueenRank,
+  chooseDaifugoExtraDiscard: (context, _effect, candidates) => chooseStandardDaifugoCard(context, candidates),
 };

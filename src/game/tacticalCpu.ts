@@ -9,6 +9,11 @@ import {
   standardChooseCpuWinningDiscard,
   standardShouldCpuWin,
 } from "./standardCpu";
+import {
+  chooseStandardDaifugoCard,
+  chooseStandardDaifugoEffectActivation,
+  chooseStandardQueenRank,
+} from "./daifugoCpu";
 
 interface TacticalScoreBreakdown {
   card: Card;
@@ -248,6 +253,10 @@ export const tacticalCpuModel: CpuModel = {
   shouldCall: tacticalShouldCpuCall,
   chooseDrawSource: tacticalChooseCpuDrawSource,
   chooseDiscardCard: tacticalChooseCpuDiscardCard,
+  chooseDaifugoEffectActivation: chooseStandardDaifugoEffectActivation,
+  chooseDaifugoSevenExchangeCard: (context, candidates) => chooseStandardDaifugoCard(context, candidates),
+  chooseQueenVanishRank: chooseStandardQueenRank,
+  chooseDaifugoExtraDiscard: (context, _effect, candidates) => chooseStandardDaifugoCard(context, candidates),
   getDiscardDebugInfo: getTacticalDiscardDebugInfo,
   describeDiscardChoice: describeTacticalDiscardChoice,
   describeCallSkip: describeTacticalCallSkip,

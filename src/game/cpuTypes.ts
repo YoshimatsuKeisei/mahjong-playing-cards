@@ -1,5 +1,8 @@
-import type { Card, CpuModelId, GameState } from "../types";
+import type { Card, CpuModelId, DaifugoEffectId, GameState } from "../types";
 import type { GameAction } from "./gameState";
+
+export type DaifugoExchangeRole = "initiator" | "target";
+export type DaifugoExtraDiscardEffect = "eightExtraTurn" | "tenSwapDraw";
 
 export interface CpuDecisionContext {
   state: GameState;
@@ -22,7 +25,10 @@ export interface CpuModel {
   chooseDrawSource(context: CpuDecisionContext): GameAction;
   chooseDiscardCard(context: CpuDecisionContext): Card | null;
   chooseReachDeclaration?(context: CpuDecisionContext): boolean;
-  chooseDaifugoEffectActivation?(context: CpuDecisionContext): boolean;
+  chooseDaifugoEffectActivation?(context: CpuDecisionContext, effect?: DaifugoEffectId): boolean;
+  chooseDaifugoSevenExchangeCard?(context: CpuDecisionContext, candidates: Card[], role: DaifugoExchangeRole): Card | null;
+  chooseQueenVanishRank?(context: CpuDecisionContext, candidates: number[]): number | null;
+  chooseDaifugoExtraDiscard?(context: CpuDecisionContext, effect: DaifugoExtraDiscardEffect, candidates: Card[]): Card | null;
   getDiscardDebugInfo?(context: CpuDecisionContext): string | null;
   describeDiscardChoice?(context: CpuDecisionContext, card: Card): string | null;
   describeCallSkip?(context: CpuDecisionContext): string | null;

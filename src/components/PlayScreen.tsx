@@ -8,6 +8,7 @@ import {
   CPU_THINK_DELAY_MS,
   getCpuModel,
 } from "../game/cpu";
+import { getCpuDiscardCandidates } from "../game/standardCpu";
 import { getCpuModelDisplayName } from "../game/cpuModelRegistry";
 import {
   getAvailableDiscardSources,
@@ -267,7 +268,7 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
     if (state.pendingDaifugoEffect?.kind === "confirm") {
       scheduleCpuAction(
         () => {
-          const activate = cpuModel.chooseDaifugoEffectActivation?.(cpuContext) ?? true;
+          const activate = cpuModel.chooseDaifugoEffectActivation?.(cpuContext, state.pendingDaifugoEffect?.effect) ?? true;
           if (activate && state.pendingDaifugoEffect?.effect === "sevenExchange") {
             showReachSplash(currentPlayer.name, "カード交換!!");
           }
@@ -282,7 +283,14 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
     }
 
     if (state.pendingDaifugoEffect?.kind === "queenSelect") {
-      scheduleCpuAction(() => dispatch({ type: "selectQueenVanishRank", rank: chooseCpuQueenRank(state, state.currentPlayerIndex) }), CPU_DECISION_DELAY_MS);
+      scheduleCpuAction(
+        () =>
+          dispatch({
+            type: "selectQueenVanishRank",
+            rank: cpuModel.chooseQueenVanishRank?.(cpuContext, queenRankOptions) ?? chooseCpuQueenRank(state, state.currentPlayerIndex),
+          }),
+        CPU_DECISION_DELAY_MS,
+      );
       return;
     }
 
@@ -305,7 +313,10 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
       const discardCard =
         state.pendingDaifugoEffect.effect === "eightExtraTurn" && currentPlayer.isReach && !state.declaredReachThisTurn
           ? state.drawnCard
-          : cpuModel.chooseDiscardCard(cpuContext) ?? currentPlayer.hand[0] ?? null;
+          : cpuModel.chooseDaifugoExtraDiscard?.(cpuContext, state.pendingDaifugoEffect.effect, getCpuDiscardCandidates(cpuContext)) ??
+            cpuModel.chooseDiscardCard(cpuContext) ??
+            currentPlayer.hand[0] ??
+            null;
       if (discardCard) {
         scheduleCpuAction(() => dispatch({ type: "discardForDaifugoEffect", cardId: discardCard.id }), CPU_DISCARD_DELAY_MS);
         return;

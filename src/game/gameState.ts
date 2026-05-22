@@ -10,6 +10,7 @@ import {
   findWinningDiscardsAfterDraw,
 } from "./rules";
 import { calculateCardLoss, calculateRonScore, calculateTsumoScore } from "./scoring";
+import { chooseDaifugoSevenExchangeCardForModel } from "./daifugoCpu";
 
 export function getNextPlayerIndex(currentIndex: number, playerCount: number, direction: Direction): number {
   return direction === "clockwise"
@@ -303,19 +304,18 @@ export function getSevenExchangeCandidateCards(player: Player, allowAnyCard = fa
   return pairCards.length >= 4 ? pairCards : player.hand;
 }
 
-function chooseCpuSevenExchangeCard(player: Player, candidates: Card[], isJBackActive: boolean): Card | null {
-  if (candidates.length === 0) return null;
-  if (player.cpuModelId === "easy") return candidates[0];
-  return [...candidates].sort((a, b) => calculateCardLoss(a, isJBackActive) - calculateCardLoss(b, isJBackActive))[0] ?? candidates[0];
-}
-
 function fillCpuSevenExchangeSelections(state: GameState, pending: Extract<NonNullable<GameState["pendingDaifugoEffect"]>, { kind: "sevenExchange" }>) {
   const selections = { ...pending.selections };
   for (const playerIndex of [pending.playerIndex, pending.targetPlayerIndex]) {
     const player = state.players[playerIndex];
     if (!player?.isCpu || selections[playerIndex]) continue;
     const candidates = getSevenExchangeCandidateCards(player, playerIndex === pending.playerIndex);
-    const selected = chooseCpuSevenExchangeCard(player, candidates, state.isJBackActive);
+    const selected = chooseDaifugoSevenExchangeCardForModel(
+      player.cpuModelId,
+      { state, currentPlayer: player, currentPlayerIndex: playerIndex },
+      candidates,
+      playerIndex === pending.playerIndex ? "initiator" : "target",
+    );
     if (selected) selections[playerIndex] = selected.id;
   }
   return selections;
