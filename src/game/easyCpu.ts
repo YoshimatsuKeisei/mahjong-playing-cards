@@ -7,10 +7,14 @@ import {
   standardChooseCpuWinningDiscard,
   standardShouldCpuWin,
 } from "./standardCpu";
+import {
+  chooseJuniorDaifugoCard,
+  chooseJuniorDaifugoEffectActivation,
+  chooseJuniorQueenRank,
+} from "./daifugoCpu";
 
 const EASY_CALL_CHANCE = 0.35;
 const EASY_REACH_CHANCE = 0.5;
-const EASY_DAIFUGO_EFFECT_CHANCE = 0.25;
 
 export function easyChooseCpuCall(context: CpuDecisionContext): CpuCallChoice | null {
   const standardCall = standardChooseCpuCall(context);
@@ -58,7 +62,7 @@ export function easyChooseReachDeclaration(): boolean {
 }
 
 export function easyChooseDaifugoEffectActivation(): boolean {
-  return Math.random() < EASY_DAIFUGO_EFFECT_CHANCE;
+  return chooseJuniorDaifugoEffectActivation();
 }
 
 function getProtectedMeldCardIds(cards: Card[]): Set<string> {
@@ -101,4 +105,7 @@ export const easyCpuModel: CpuModel = {
   chooseDiscardCard: easyChooseCpuDiscardCard,
   chooseReachDeclaration: easyChooseReachDeclaration,
   chooseDaifugoEffectActivation: easyChooseDaifugoEffectActivation,
+  chooseDaifugoSevenExchangeCard: (context, candidates) => chooseJuniorDaifugoCard(candidates, context.currentPlayer.hand),
+  chooseQueenVanishRank: chooseJuniorQueenRank,
+  chooseDaifugoExtraDiscard: (context, _effect, candidates) => chooseJuniorDaifugoCard(candidates, context.currentPlayer.hand),
 };

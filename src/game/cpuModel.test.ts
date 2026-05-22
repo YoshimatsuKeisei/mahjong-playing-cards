@@ -70,6 +70,40 @@ describe("CPU models", () => {
     expect(easyChooseDaifugoEffectActivation()).toBe(false);
   });
 
+  it("standard and tactical CPUs explicitly activate available daifugo effects", () => {
+    const gameState = state([player(1, []), player(2, [card("5s", 5, "S")]), player(3, [])]);
+    const context = createCpuDecisionContext(gameState)!;
+
+    expect(cpuModels.standard.chooseDaifugoEffectActivation?.(context, "fiveSkip")).toBe(true);
+    expect(cpuModels.tactical.chooseDaifugoEffectActivation?.(context, "queenNumberVanish")).toBe(true);
+  });
+
+  it("easy daifugo card choice prefers loose cards before pairs or meld cards", () => {
+    const hand = [card("3s", 3, "S"), card("3h", 3, "H"), card("3d", 3, "D"), card("9c", 9, "C"), card("12d", 12, "D")];
+    const gameState = state([player(1, []), player(2, hand), player(3, [])]);
+    const context = createCpuDecisionContext(gameState)!;
+
+    vi.spyOn(Math, "random").mockReturnValue(0);
+    expect(cpuModels.easy.chooseDaifugoSevenExchangeCard?.(context, hand, "initiator")?.id).toBe("9c");
+  });
+
+  it("standard daifugo card choice uses the standard discard value within legal candidates", () => {
+    const hand = [card("3s", 3, "S"), card("3h", 3, "H"), card("3d", 3, "D"), card("9c", 9, "C"), card("13h", 13, "H")];
+    const gameState = state([player(1, []), player(2, hand), player(3, [])]);
+    const context = createCpuDecisionContext(gameState)!;
+
+    expect(cpuModels.standard.chooseDaifugoSevenExchangeCard?.(context, [hand[0], hand[4]], "target")?.id).toBe("13h");
+    expect(cpuModels.standard.chooseDaifugoExtraDiscard?.(context, "tenSwapDraw", [hand[0], hand[4]])?.id).toBe("13h");
+  });
+
+  it("standard queen choice avoids ranks that are part of completed melds when possible", () => {
+    const hand = [card("13s", 13, "S"), card("13h", 13, "H"), card("13d", 13, "D"), card("5c", 5, "C")];
+    const gameState = state([player(1, []), player(2, hand), player(3, [])]);
+    const context = createCpuDecisionContext(gameState)!;
+
+    expect(cpuModels.standard.chooseQueenVanishRank?.(context, [13, 5])).toBe(5);
+  });
+
   it("easy CPU calls only sometimes when a call improves meld count", () => {
     const gameState = state([
       player(1, [], [card("discard-7d", 7, "D")]),
