@@ -128,6 +128,7 @@ describe("daifugo game state", () => {
     expect(resolved.players[0].discardPile.some((item) => item.id === "a-7")).toBe(true);
     expect(resolved.players[0].hand.some((item) => item.id === "deck-1")).toBe(true);
     expect(resolved.daifugoEffectEvent?.kind).toBe("queenNumberVanish");
+    expect(resolved.queenVanishedRanks).toEqual([7]);
     expect(resolved.daifugoEffectEvent?.queenDeckAudit).toMatchObject({
       beforeDeckCount: 3,
       removedFromDeckCount: 1,
@@ -135,6 +136,23 @@ describe("daifugo game state", () => {
       afterDeckCount: 1,
       expectedAfterDeckCount: 1,
     });
+  });
+
+  it("ignores a Q rank that has already been vanished", () => {
+    const base = stateForDiscard(card("queen", 12), daifugoOptions({ queenNumberVanish: true }));
+    const selecting: GameState = {
+      ...base,
+      queenVanishedRanks: [7],
+      pendingDaifugoEffect: {
+        kind: "queenSelect",
+        effect: "queenNumberVanish",
+        playerIndex: 0,
+        continue: { shouldConfirmReach: false },
+      },
+    };
+    const resolved = gameReducer(selecting, { type: "selectQueenVanishRank", rank: 7 });
+
+    expect(resolved).toBe(selecting);
   });
 
   it("releases reach after 7 exchange when the hand no longer satisfies reach", () => {

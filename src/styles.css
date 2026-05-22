@@ -3523,9 +3523,9 @@ h2 {
 .reach-splash-band {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(190px, 34vw) minmax(0, 1fr);
+  grid-template-columns: minmax(170px, 28vw) minmax(0, 1fr);
   align-items: center;
-  width: min(92vw, 920px);
+  width: min(96vw, 1120px);
   min-height: clamp(180px, 38vh, 390px);
   border-block: 2px solid rgba(223, 181, 77, 0.82);
   background:
@@ -3571,9 +3571,10 @@ h2 {
 .reach-splash-copy strong {
   display: grid;
   gap: 0.24em;
-  width: min(58vw, 680px);
+  width: min(68vw, 860px);
+  max-width: 100%;
   color: #fff8dc;
-  font-size: clamp(2rem, 5vw, 4.8rem);
+  font-size: clamp(2rem, 4.6vw, 4.6rem);
   line-height: 1.02;
   word-break: keep-all;
   overflow-wrap: normal;
@@ -3591,11 +3592,14 @@ h2 {
 .reach-splash-copy .reach-splash-player,
 .reach-splash-copy .reach-splash-call {
   width: auto;
+  max-width: 100%;
   border: 0;
   background: transparent;
   color: inherit;
   padding: 0;
   font-size: inherit;
+  overflow: hidden;
+  text-overflow: ellipsis;
   line-height: inherit;
   white-space: nowrap;
 }
@@ -3613,7 +3617,7 @@ h2 {
 }
 
 .ron-check-panel {
-  width: min(92vw, 620px);
+  width: min(96vw, 780px);
   border: 1px solid rgba(242, 193, 78, 0.74);
   border-radius: 8px;
   background:
@@ -3631,8 +3635,10 @@ h2 {
 }
 
 .ron-check-panel h1 {
+  max-width: 100%;
   margin-bottom: 0.8rem;
   font-size: clamp(1.8rem, 5vw, 3.6rem);
+  overflow-wrap: anywhere;
 }
 
 .ron-check-card {
@@ -5070,10 +5076,11 @@ h2 {
   }
 
   .reach-splash-copy strong {
+    width: 100%;
     font-size: clamp(1.85rem, 10vw, 3rem);
   }
 
   .ron-check-panel {
-    width: min(94vw, 420px);
+    width: min(96vw, 520px);
   }
 }

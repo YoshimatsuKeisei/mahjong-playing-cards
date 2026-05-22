@@ -91,6 +91,7 @@ export function dealCards(
     winner: null,
     result: null,
     pendingRonResult: null,
+    queenVanishedRanks: [],
     showCpuActions,
     declaredReachThisTurn: false,
     message: "カードを1枚取ってください。",

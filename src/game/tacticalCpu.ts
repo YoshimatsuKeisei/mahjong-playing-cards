@@ -7,6 +7,7 @@ import {
   scoreStandardDiscardCandidate,
   standardChooseCpuCall,
   standardChooseCpuWinningDiscard,
+  standardChooseReachDeclaration,
   standardShouldCpuWin,
 } from "./standardCpu";
 import {
@@ -253,6 +254,7 @@ export const tacticalCpuModel: CpuModel = {
   shouldCall: tacticalShouldCpuCall,
   chooseDrawSource: tacticalChooseCpuDrawSource,
   chooseDiscardCard: tacticalChooseCpuDiscardCard,
+  chooseReachDeclaration: standardChooseReachDeclaration,
   chooseDaifugoEffectActivation: chooseStandardDaifugoEffectActivation,
   chooseDaifugoSevenExchangeCard: (context, candidates) => chooseStandardDaifugoCard(context, candidates),
   chooseQueenVanishRank: chooseStandardQueenRank,

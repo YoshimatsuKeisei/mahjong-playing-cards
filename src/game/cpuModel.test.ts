@@ -78,6 +78,17 @@ describe("CPU models", () => {
     expect(cpuModels.tactical.chooseDaifugoEffectActivation?.(context, "queenNumberVanish")).toBe(true);
   });
 
+  it("standard and tactical CPUs declare reach when the reducer has confirmed it is legal", () => {
+    const gameState = {
+      ...state([player(1, []), player(2, [card("5s", 5, "S")]), player(3, [])]),
+      phase: "reachConfirm" as const,
+    };
+    const context = createCpuDecisionContext(gameState)!;
+
+    expect(cpuModels.standard.chooseReachDeclaration?.(context)).toBe(true);
+    expect(cpuModels.tactical.chooseReachDeclaration?.(context)).toBe(true);
+  });
+
   it("easy daifugo card choice prefers loose cards before pairs or meld cards", () => {
     const hand = [card("3s", 3, "S"), card("3h", 3, "H"), card("3d", 3, "D"), card("9c", 9, "C"), card("12d", 12, "D")];
     const gameState = state([player(1, []), player(2, hand), player(3, [])]);
