@@ -42,13 +42,44 @@ function formatCpuCard(card: Card): string {
   return `${card.rank}${card.suit}`;
 }
 
+function logWinDebug(
+  state: GameState,
+  winType: GameResult["winType"],
+  winnerIndex: number,
+  discarderIndex: number | null,
+  actionSource: string,
+) {
+  if (winType !== "ron" && winType !== "tsumo") return;
+  const currentPlayer = state.players[state.currentPlayerIndex];
+  const winner = state.players[winnerIndex];
+  const discardOwner = discarderIndex !== null ? state.players[discarderIndex] : null;
+  const viewer = state.players.find((player) => !player.isCpu) ?? state.players[0] ?? null;
+  const lastDiscard = discardOwner ? topDiscard(discardOwner) : null;
+  console.info("[win debug]", {
+    currentPlayerId: currentPlayer?.id,
+    winnerId: winner?.id,
+    loserId: discarderIndex !== null ? discardOwner?.id : null,
+    discardOwnerId: discardOwner?.id ?? null,
+    winningType: winType,
+    viewerPlayerId: viewer?.id ?? null,
+    currentTurnIndex: state.currentPlayerIndex,
+    winnerIndex,
+    discardOwnerIndex: discarderIndex,
+    direction: state.direction,
+    lastDiscard: lastDiscard ? formatCpuCard(lastDiscard) : null,
+    actionSource,
+  });
+}
+
 function makeResult(
   state: GameState,
   winnerIndex: number,
   winType: GameResult["winType"],
   winningResult = state.players[winnerIndex].winningResult!,
   discarderIndex: number | null = null,
+  actionSource = "makeResult",
 ): GameResult {
+  logWinDebug(state, winType, winnerIndex, discarderIndex, actionSource);
   const score =
     winType === "ron" && discarderIndex !== null
       ? calculateRonScore(state.players, winnerIndex, discarderIndex, winningResult, state.isJBackActive)
@@ -115,6 +146,7 @@ function makeReachRonResult(state: GameState, discarderIndex: number): { result:
     score,
   }));
   const first = ronResults[0];
+  logWinDebug(state, "ron", first.winnerIndex, discarderIndex, "reachRonCheck");
 
   return {
     players,
@@ -386,6 +418,7 @@ function resolveSevenExchangeIfReady(state: GameState): GameState {
 }
 
 export function chooseCpuQueenRank(state: GameState, playerIndex: number): number {
+  const vanishedRanks = new Set(state.queenVanishedRanks ?? []);
   const ownIds = new Set(state.players[playerIndex]?.hand.map((card) => card.id) ?? []);
   const counts = new Map<number, number>();
   for (const player of state.players) {
@@ -396,12 +429,15 @@ export function chooseCpuQueenRank(state: GameState, playerIndex: number): numbe
   for (const card of state.deck) {
     counts.set(card.rank, (counts.get(card.rank) ?? 0) + 1);
   }
-  return Array.from({ length: 13 }, (_, index) => index + 1).sort((a, b) => (counts.get(b) ?? 0) - (counts.get(a) ?? 0))[0] ?? 12;
+  return Array.from({ length: 13 }, (_, index) => index + 1)
+    .filter((rank) => !vanishedRanks.has(rank))
+    .sort((a, b) => (counts.get(b) ?? 0) - (counts.get(a) ?? 0))[0] ?? 12;
 }
 
 function resolveQueenNumberVanish(state: GameState, rank: number): GameState {
   const pending = state.pendingDaifugoEffect;
   if (!pending || pending.kind !== "queenSelect") return state;
+  if ((state.queenVanishedRanks ?? []).includes(rank)) return state;
 
   const beforeDeckCount = state.deck.length;
   let deck = state.deck.filter((card) => card.rank !== rank);
@@ -463,6 +499,7 @@ function resolveQueenNumberVanish(state: GameState, rank: number): GameState {
     pendingDaifugoEffect: null,
     drawnCard: null,
     drawnFrom: null,
+    queenVanishedRanks: [...new Set([...(state.queenVanishedRanks ?? []), rank])],
     daifugoEffectEvent: {
       id: makeDaifugoEventId("queenNumberVanish", state),
       kind: "queenNumberVanish",
@@ -509,6 +546,7 @@ function makeWinningState(state: GameState, players: Player[], winningResult = p
     state.drawnFrom === "discard" ? "ron" : "tsumo",
     winningResult,
     state.drawnFrom === "discard" ? state.takenDiscardOwnerIndex : null,
+    "normalWinWithDiscard",
   );
   return {
     ...state,
@@ -673,6 +711,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         winner: null,
         result: null,
         pendingRonResult: null,
+        queenVanishedRanks: [],
         declaredReachThisTurn: false,
         showCpuActions: true,
         message: "",
@@ -981,6 +1020,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         state.drawnFrom === "discard" ? "ron" : "tsumo",
         option.winningResult,
         state.drawnFrom === "discard" ? state.takenDiscardOwnerIndex : null,
+        "winWithDiscard",
       );
 
       return { ...nextState, phase: "result", winner: state.currentPlayerIndex, result, pendingRonResult: null, pendingDaifugoEffect: null };
@@ -1014,6 +1054,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           state.drawnFrom === "discard" ? "ron" : "tsumo",
           winningResult,
           state.drawnFrom === "discard" ? state.takenDiscardOwnerIndex : null,
+          "normalDiscard",
         );
         return {
           ...nextState,

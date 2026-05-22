@@ -181,6 +181,7 @@ export interface GameState {
   result: GameResult | null;
   pendingRonResult: GameResult | null;
   daifugoEffectEvent?: DaifugoEffectEvent | null;
+  queenVanishedRanks?: number[];
   declaredReachThisTurn: boolean;
   message: string;
   showCpuActions: boolean;

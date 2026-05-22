@@ -55,6 +55,11 @@ export function standardChooseCpuDiscardCard(context: CpuDecisionContext): Card 
   return [...legalCards].sort((a, b) => scoreStandardDiscardCandidate(b, legalCards) - scoreStandardDiscardCandidate(a, legalCards) || a.id.localeCompare(b.id))[0];
 }
 
+export function standardChooseReachDeclaration(context: CpuDecisionContext): boolean {
+  const { currentPlayer: player, state } = context;
+  return state.phase === "reachConfirm" && !player.hasCalled && !player.isReach;
+}
+
 export function getCpuDiscardCandidates(context: CpuDecisionContext): Card[] {
   const { currentPlayer: player, state } = context;
   if (player.isReach && !state.declaredReachThisTurn) {
@@ -83,6 +88,7 @@ export const standardCpuModel: CpuModel = {
   shouldCall: standardShouldCpuCall,
   chooseDrawSource: standardChooseCpuDrawSource,
   chooseDiscardCard: standardChooseCpuDiscardCard,
+  chooseReachDeclaration: standardChooseReachDeclaration,
   chooseDaifugoEffectActivation: chooseStandardDaifugoEffectActivation,
   chooseDaifugoSevenExchangeCard: (context, candidates) => chooseStandardDaifugoCard(context, candidates),
   chooseQueenVanishRank: chooseStandardQueenRank,

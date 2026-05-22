@@ -140,6 +140,7 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
   const isCpuTurn = currentPlayer?.isCpu === true && state.phase !== "result";
   const shouldHideCpuDetails = !state.showCpuActions && isCpuTurn;
   const pendingDaifugoEffect = state.pendingDaifugoEffect;
+  const availableQueenRankOptions = queenRankOptions.filter((rank) => !(state.queenVanishedRanks ?? []).includes(rank));
   const isDaifugoConfirm = pendingDaifugoEffect?.kind === "confirm";
   const isDaifugoExtraDiscard = pendingDaifugoEffect?.kind === "extraDiscard";
   const isDaifugoEffectDraw = pendingDaifugoEffect?.kind === "effectDraw";
@@ -287,7 +288,7 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
         () =>
           dispatch({
             type: "selectQueenVanishRank",
-            rank: cpuModel.chooseQueenVanishRank?.(cpuContext, queenRankOptions) ?? chooseCpuQueenRank(state, state.currentPlayerIndex),
+            rank: cpuModel.chooseQueenVanishRank?.(cpuContext, availableQueenRankOptions) ?? chooseCpuQueenRank(state, state.currentPlayerIndex),
           }),
         CPU_DECISION_DELAY_MS,
       );
@@ -1012,7 +1013,7 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
             <div className="daifugo-effect-panel queen-effect-panel">
               <strong>Qの効果：消す数字を選んでください。</strong>
               <div className="rank-choice-grid">
-                {queenRankOptions.map((rank) => (
+                {availableQueenRankOptions.map((rank) => (
                   <button
                     type="button"
                     className="rank-choice-button"

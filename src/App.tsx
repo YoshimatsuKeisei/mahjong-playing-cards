@@ -368,12 +368,12 @@ function createDebugDaifugoOptions() {
     enabled: true,
     effects: {
       fiveSkip: true,
-      sevenExchange: false,
+      sevenExchange: true,
       eightExtraTurn: true,
       nineReverse: true,
       tenSwapDraw: true,
       jackBack: true,
-      queenNumberVanish: false,
+      queenNumberVanish: true,
     },
   };
 }
