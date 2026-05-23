@@ -24,6 +24,7 @@ export function calculateRawTsumoScoreFromLosses(playerLosses: number[], winnerI
 }
 
 export function calculateRawWinnerScore(result: GameResult): number {
+  if (result.winType === "deckout") return 0;
   const winnerLoss = result.score.playerLosses[result.winnerIndex] ?? 0;
 
   if (result.winType === "ron" && result.discarderIndex !== null) {
@@ -36,6 +37,7 @@ export function calculateRawWinnerScore(result: GameResult): number {
 
 export function calculateRawRoundScores(result: GameResult, playerCount: number): number[] {
   const scores = Array.from({ length: playerCount }, () => 0);
+  if (result.winType === "deckout") return scores;
 
   if (result.winType === "ron" && result.discarderIndex !== null) {
     const ronResults = result.ronResults ?? [
@@ -61,6 +63,7 @@ export function calculateRawRoundScores(result: GameResult, playerCount: number)
 
 export function calculatePointDeductions(result: GameResult, playerCount: number): number[] {
   const deductions = Array.from({ length: playerCount }, () => 0);
+  if (result.winType === "deckout") return deductions;
 
   if (result.winType === "ron" && result.discarderIndex !== null) {
     const ronResults = result.ronResults ?? [

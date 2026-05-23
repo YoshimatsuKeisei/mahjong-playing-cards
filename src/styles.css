@@ -2928,7 +2928,22 @@ h2 {
 }
 
 .rank-choice-grid {
-  grid-template-columns: repeat(13, minmax(42px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.42rem;
+}
+
+.rank-choice-button {
+  min-width: 44px;
+  flex: 0 0 auto;
+}
+
+.rank-choice-button:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+  filter: grayscale(0.35);
 }
 
 .daifugo-status {

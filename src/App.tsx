@@ -41,7 +41,22 @@ const initialState: GameState = {
 type AppScreen = "home" | "roomSelect" | "roomList" | "newGame" | "play" | "manual" | "moreGame" | "settings" | "profile" | "result";
 type DebugResultKind = "ron" | "tsumo" | "doubleRon";
 type DebugStandingsCase = "roundsNoRankChange" | "roundsRankChange" | "targetNoRankChange" | "pointsLoss";
-type DebugDaifugoCase = "jBack" | "eightTsumo" | "eightReach" | "tenTsumo" | "tenReach" | "reachTenBlocked" | "reachEight";
+type DebugDaifugoCase =
+  | "jBack"
+  | "eightTsumo"
+  | "eightReach"
+  | "tenTsumo"
+  | "tenReach"
+  | "reachTenBlocked"
+  | "reachEight"
+  | "queenReachRelease"
+  | "queenReachContinue"
+  | "sevenReachRecheck"
+  | "queenSparseChoices"
+  | "queenRefillBlocked"
+  | "queenNoChoices"
+  | "emptyDeckDraw"
+  | "queenEndsWithEmptyDeck";
 
 export default function App() {
   const [state, setState] = useState<GameState>(initialState);
