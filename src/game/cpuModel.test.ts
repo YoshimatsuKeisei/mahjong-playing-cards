@@ -5,6 +5,8 @@ import { createCpuDecisionContext } from "./cpuTypes";
 import { easyChooseCpuCall, easyChooseCpuDiscardCard, easyChooseDaifugoEffectActivation, easyChooseReachDeclaration } from "./easyCpu";
 import { getTacticalDiscardScores, tacticalChooseCpuCall, tacticalChooseCpuDiscardCard } from "./tacticalCpu";
 import { createDefaultDaifugoOptions } from "./deck";
+import { chooseCpuQueenRank } from "./gameState";
+import { standardChooseCpuDiscardCard } from "./standardCpu";
 
 function card(id: string, rank: number, suit: Card["suit"] = "S"): Card {
   return { id, rank, suit };
@@ -89,6 +91,30 @@ describe("CPU models", () => {
     expect(cpuModels.tactical.chooseReachDeclaration?.(context)).toBe(true);
   });
 
+  it("standard CPU does not declare reach after calling", () => {
+    const gameState = {
+      ...state([player(1, []), player(2, [card("5s", 5, "S")], [], [[card("m-3s", 3), card("m-3h", 3, "H"), card("m-3d", 3, "D")]]), player(3, [])]),
+      phase: "reachConfirm" as const,
+    };
+    const context = createCpuDecisionContext(gameState)!;
+
+    expect(cpuModels.standard.chooseReachDeclaration?.(context)).toBe(false);
+  });
+
+  it("CPU queen rank fallback excludes ranks already vanished by Q", () => {
+    const gameState = {
+      ...state([
+        player(1, [card("other-5s", 5, "S")]),
+        player(2, [card("cpu-13s", 13, "S")]),
+        player(3, [card("other-13h", 13, "H"), card("other-13d", 13, "D")]),
+      ]),
+      queenVanishedRanks: [13],
+      deck: [card("deck-13c", 13, "C"), card("deck-5c", 5, "C")],
+    };
+
+    expect(chooseCpuQueenRank(gameState, 1)).not.toBe(13);
+  });
+
   it("easy daifugo card choice prefers loose cards before pairs or meld cards", () => {
     const hand = [card("3s", 3, "S"), card("3h", 3, "H"), card("3d", 3, "D"), card("9c", 9, "C"), card("12d", 12, "D")];
     const gameState = state([player(1, []), player(2, hand), player(3, [])]);
@@ -113,6 +139,17 @@ describe("CPU models", () => {
     const context = createCpuDecisionContext(gameState)!;
 
     expect(cpuModels.standard.chooseQueenVanishRank?.(context, [13, 5])).toBe(5);
+  });
+
+  it("keeps standard discard choice stable when daifugo rules are disabled", () => {
+    const gameState = {
+      ...state([player(1, []), player(2, [card("3s", 3, "S"), card("3h", 3, "H"), card("3d", 3, "D"), card("13h", 13, "H")]), player(3, [])]),
+      phase: "discard" as const,
+      daifugoOptions: { ...createDefaultDaifugoOptions(), enabled: false },
+    };
+    const context = createCpuDecisionContext(gameState)!;
+
+    expect(standardChooseCpuDiscardCard(context)?.id).toBe("13h");
   });
 
   it("easy CPU calls only sometimes when a call improves meld count", () => {

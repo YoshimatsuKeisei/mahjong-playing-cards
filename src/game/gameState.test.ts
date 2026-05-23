@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Card, DaifugoOptions, GameState, Player } from "../types";
 import { createDefaultDaifugoOptions } from "./deck";
-import { gameReducer } from "./gameState";
+import { gameReducer, getSevenExchangeCandidateCards } from "./gameState";
 
 function card(id: string, rank: number, suit: Card["suit"] = "S"): Card {
   return { id, rank, suit };
@@ -155,6 +155,20 @@ describe("daifugo game state", () => {
     expect(resolved).toBe(selecting);
   });
 
+  it("includes all cards from unpublished three-card and four-card melds as 7 exchange candidates", () => {
+    const threeCardPlayer = player(2, [card("3s", 3, "S"), card("3h", 3, "H"), card("3d", 3, "D"), card("9c", 9, "C")]);
+    const fourCardPlayer = player(2, [card("5s", 5, "S"), card("5h", 5, "H"), card("5d", 5, "D"), card("5c", 5, "C"), card("9c", 9, "C")]);
+
+    expect(getSevenExchangeCandidateCards(threeCardPlayer).map((item) => item.id).sort()).toEqual(["3d", "3h", "3s"]);
+    expect(getSevenExchangeCandidateCards(fourCardPlayer).map((item) => item.id).sort()).toEqual(["5c", "5d", "5h", "5s"]);
+  });
+
+  it("prefers pair cards for 7 exchange when there is no unpublished completed meld", () => {
+    const target = player(2, [card("2s", 2, "S"), card("2h", 2, "H"), card("6d", 6, "D"), card("6c", 6, "C"), card("9c", 9, "C")]);
+
+    expect(getSevenExchangeCandidateCards(target).map((item) => item.id).sort()).toEqual(["2h", "2s", "6c", "6d"]);
+  });
+
   it("releases reach after 7 exchange when the hand no longer satisfies reach", () => {
     const base = stateForDiscard(card("seven", 7), daifugoOptions({ sevenExchange: true }));
     const selecting: GameState = {
@@ -178,6 +192,84 @@ describe("daifugo game state", () => {
 
     expect(resolved.players[0].isReach).toBe(false);
     expect(resolved.daifugoEffectEvent?.reachReleasedPlayerIndexes).toEqual([0]);
+  });
+
+  it("releases reach from the 7 exchange target when the exchanged card breaks reach", () => {
+    const base = stateForDiscard(card("seven", 7), daifugoOptions({ sevenExchange: true }));
+    const selecting: GameState = {
+      ...base,
+      players: [
+        { ...base.players[0], hand: [card("give-a", 1)] },
+        {
+          ...base.players[1],
+          isReach: true,
+          hand: [
+            card("a-2", 2, "S"),
+            card("b-2", 2, "H"),
+            card("c-2", 2, "D"),
+            card("a-4", 4, "S"),
+            card("b-4", 4, "H"),
+            card("c-4", 4, "D"),
+            card("a-7", 7, "S"),
+            card("a-9", 9, "H"),
+            card("a-11", 11, "D"),
+            card("a-13", 13, "C"),
+          ],
+        },
+        base.players[2],
+      ],
+      pendingDaifugoEffect: {
+        kind: "sevenExchange",
+        effect: "sevenExchange",
+        playerIndex: 0,
+        targetPlayerIndex: 1,
+        selections: {},
+        continue: { shouldConfirmReach: false },
+      },
+    };
+    const selectedByUser = gameReducer(selecting, { type: "selectSevenExchangeCard", playerIndex: 0, cardId: "give-a" });
+    const resolved = gameReducer(selectedByUser, { type: "selectSevenExchangeCard", playerIndex: 1, cardId: "a-2" });
+
+    expect(resolved.players[1].isReach).toBe(false);
+    expect(resolved.daifugoEffectEvent?.reachReleasedPlayerIndexes).toEqual([1]);
+  });
+
+  it("releases reach after Q changes a reached hand and refill does not restore reach", () => {
+    const base = stateForDiscard(card("queen", 12), daifugoOptions({ queenNumberVanish: true }));
+    const selecting: GameState = {
+      ...base,
+      players: [
+        base.players[0],
+        {
+          ...base.players[1],
+          isReach: true,
+          hand: [
+            card("2s", 2, "S"),
+            card("2h", 2, "H"),
+            card("2d", 2, "D"),
+            card("4s", 4, "S"),
+            card("4h", 4, "H"),
+            card("4d", 4, "D"),
+            card("7s", 7, "S"),
+            card("8h", 8, "H"),
+            card("10d", 10, "D"),
+            card("13c", 13, "C"),
+          ],
+        },
+        base.players[2],
+      ],
+      deck: [card("deck-11s", 11, "S"), card("deck-1h", 1, "H"), card("deck-6c", 6, "C")],
+      pendingDaifugoEffect: {
+        kind: "queenSelect",
+        effect: "queenNumberVanish",
+        playerIndex: 0,
+        continue: { shouldConfirmReach: false },
+      },
+    };
+    const resolved = gameReducer(selecting, { type: "selectQueenVanishRank", rank: 2 });
+
+    expect(resolved.players[1].isReach).toBe(false);
+    expect(resolved.daifugoEffectEvent?.reachReleasedPlayerIndexes).toEqual([1]);
   });
 
   it("reverses direction with the 9 effect and applies 5 skip in that direction", () => {

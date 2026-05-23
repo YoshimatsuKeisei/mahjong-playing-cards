@@ -112,6 +112,17 @@ describe("scoring", () => {
     expect(calculateRonScore(players, 0, 1, winningResult, true).winnerScore).toBe(1000);
   });
 
+  it("uses reversed losses for J-back tsumo scoring", () => {
+    const winningResult: WinningResult = {
+      canWin: true,
+      melds: [],
+      keyCard: card("winner-loss", 13),
+    };
+    const players = [player("winner"), player("loser-a", [card("a-9", 9)]), player("loser-b", [card("b-6", 6)])];
+
+    expect(calculateTsumoScore(players, 0, winningResult, true).winnerScore).toBe(600);
+  });
+
   it("returns raw per-player round scores for target-score ron results", () => {
     expect(
       calculateRawRoundScores(
