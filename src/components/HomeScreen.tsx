@@ -35,12 +35,15 @@ export default function HomeScreen({ entryMode, onNavigate, debugResultActions =
       </section>
       <section className={`home-menu-shell ${entryMode === "return" ? "entering" : ""} ${exiting ? "exiting" : ""}`}>
         <HomeMenu disabled={exiting} onSelect={handleSelect} />
-        {import.meta.env.DEV &&
-          debugResultActions.map((action) => (
-            <button type="button" className="debug-result-button" disabled={exiting} onClick={action.onClick} key={action.label}>
-              {action.label}
-            </button>
-          ))}
+        {import.meta.env.DEV && debugResultActions.length > 0 && (
+          <div className="debug-result-panel" aria-label="DEV確認メニュー">
+            {debugResultActions.map((action) => (
+              <button type="button" className="debug-result-button" disabled={exiting} onClick={action.onClick} key={action.label}>
+                {action.label}
+              </button>
+            ))}
+          </div>
+        )}
       </section>
     </main>
   );

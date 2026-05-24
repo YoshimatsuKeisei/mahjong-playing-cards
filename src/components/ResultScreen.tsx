@@ -58,12 +58,12 @@ export default function ResultScreen({
   const nextRound = currentRound + 1;
   const canShowNextRound = Boolean(onNextRound && (totalRounds === undefined || currentRound < totalRounds));
   const canShowStandings = Boolean(currentStandings && canShowNextRound);
-  const winTypeLabel = result.winType === "tsumo" ? "繝・Δ" : result.winType === "ron" ? "繝ｭ繝ｳ" : "螻ｱ譛ｭ蛻・ｌ";
+  const winTypeLabel = result.winType === "tsumo" ? "ツモ" : result.winType === "ron" ? "ロン" : "流局";
   const winnerTitle = isDeckout
-    ? "Deck out: no winner"
+    ? "流局"
     : ronResults.length > 1
-      ? `${ronResults.map((item) => state.players[item.winnerIndex].name).join("繝ｻ")}縺ｮ蜍晏茜`
-      : `${state.players[result.winnerIndex].name}縺ｮ蜍晏茜`;
+      ? `${ronResults.map((item) => state.players[item.winnerIndex].name).join("・")}の勝利`
+      : `${state.players[result.winnerIndex].name}の勝利`;
 
   useEffect(() => {
     setIsStandingsOpen(false);
@@ -83,19 +83,20 @@ export default function ResultScreen({
   return (
     <main className="screen result-screen">
       <section className="result-panel result-board">
-        <div className="result-round-title">{currentRound}蝗樊姶</div>
+        <div className="result-round-title">{currentRound}回戦</div>
         <h1 className="result-board-title result-pop-item" style={{ animationDelay: "0s" }}>
-          蜷・・繝ｬ繧､繝､繝ｼ縺ｮ螟ｱ轤ｹ
+          各プレイヤーの失点
         </h1>
 
         <div className="player-result-list">
           {state.players.map((player, index) => {
             const breakdown = buildPlayerBreakdown(state, result, player, index);
             const label = getResultLabel(result, index);
+            const rowTone = getResultRowTone(result, index);
 
             return (
               <section
-                className={`player-result-row result-pop-item ${label === "蜍晁・ ? "winner" : label === "謨苓・ ? "loser" : "normal"}`}
+                className={`player-result-row result-pop-item ${rowTone}`}
                 style={{ animationDelay: `${0.4 + index * 0.4}s` }}
                 key={player.id}
               >
@@ -110,12 +111,12 @@ export default function ResultScreen({
                 </div>
 
                 <div className="player-result-cards">
-                  <div className="result-hand-breakdown" aria-label={`${player.name}縺ｮ謇区惆蜀・ｨｳ`}>
+                  <div className="result-hand-breakdown" aria-label={`${player.name}の手札内訳`}>
                     <div className="result-meld-column">
-                      <span>縺ｧ縺阪◆蠖ｹ</span>
+                      <span>できた役</span>
                       <div className="result-meld-groups">
                         {breakdown.melds.length === 0 ? (
-                          <em>縺ｪ縺・/em>
+                          <em>なし</em>
                         ) : (
                           breakdown.melds.map((meld, meldIndex) => (
                             <div className="result-card-group" key={`${player.id}-meld-${meldIndex}-${meld.map((card) => card.id).join("-")}`}>
@@ -129,10 +130,10 @@ export default function ResultScreen({
                     </div>
 
                     <div className="result-rest-column">
-                      <span>菴吶ｊ譛ｭ</span>
+                      <span>余り札</span>
                       <div className="result-card-group">
                         {breakdown.remainder.length === 0 ? (
-                          <em>縺ｪ縺・/em>
+                          <em>なし</em>
                         ) : (
                           sortCardsForDisplay(breakdown.remainder).map((card) => <PlayingCard card={card} compact key={card.id} />)
                         )}
@@ -142,7 +143,7 @@ export default function ResultScreen({
                 </div>
 
                 <div className="player-result-score">
-                  <span>螟ｱ轤ｹ</span>
+                  <span>失点</span>
                   <strong>{getDisplayPlayerLoss(result, index)}</strong>
                 </div>
               </section>
@@ -156,8 +157,8 @@ export default function ResultScreen({
             {displayMode !== "startingPoints" && <FormulaExpression parts={buildScoreFormulaPartsForMode(state, result, displayMode)} />}
           </div>
           <div className="score-final">
-            <span>{displayMode === "startingPoints" ? "謖√■轤ｹ" : "蠕礼せ"}</span>
-            <strong>{getDisplayFinalScore(result, state.players.length, displayMode)}轤ｹ</strong>
+            <span>{displayMode === "startingPoints" ? "持ち点" : "得点"}</span>
+            <strong>{getDisplayFinalScore(result, state.players.length, displayMode)}点</strong>
           </div>
           {ronResults.length > 1 && displayMode !== "startingPoints" && (
             <div className="formula-breakdown">
@@ -182,17 +183,17 @@ export default function ResultScreen({
         </section>
 
         <section className="result-winner-call result-pop-item" style={{ animationDelay: `${0.8 + state.players.length * 0.4}s` }}>
-          <p className="eyebrow">邨先棡</p>
+          <p className="eyebrow">結果</p>
           <div className="result-winner-line">
             <h1>
               <span className="result-trophy" aria-hidden="true">
-                醇
+                🏆
               </span>
               {winnerTitle}
             </h1>
             {canShowStandings && (
               <button type="button" className="standings-toggle-button" onClick={() => setIsStandingsOpen(true)}>
-                迴ｾ譎らせ縺ｮ謌千ｸｾ
+                現時点の成績
               </button>
             )}
           </div>
@@ -211,13 +212,15 @@ export default function ResultScreen({
         <div className="result-actions result-pop-item" style={{ animationDelay: `${1.8 + state.players.length * 0.4}s` }}>
           {canShowNextRound && (
             <button type="button" className="primary-button next-round-button" onClick={onNextRound}>
-              {nextRound}蝗樊姶縺ｫ騾ｲ繧
+              {nextRound}回戦に進む
             </button>
           )}
           <button type="button" className="primary-button" onClick={onRestart}>
-            繧・ａ繧・          </button>
+            やめる
+          </button>
           <button type="button" onClick={onBackHome}>
-            繝帙・繝逕ｻ髱｢縺ｫ謌ｻ繧・          </button>
+            ホーム画面に戻る
+          </button>
         </div>
       </section>
     </main>
@@ -254,10 +257,19 @@ function singleRonResult(result: NonNullable<GameState["result"]>): RonResult {
 function getResultLabel(result: GameResult, playerIndex: number) {
   if (result.winType === "deckout") return "";
   const isWinner = result.ronResults?.some((item) => item.winnerIndex === playerIndex) ?? result.winnerIndex === playerIndex;
-  if (isWinner) return "蜍晁・;
-  if (result.winType === "ron") return result.discarderIndex === playerIndex ? "謨苓・ : "";
-  if (result.winType === "tsumo") return result.winnerIndex === playerIndex ? "蜍晁・ : "謨苓・;
+  if (isWinner) return "勝者";
+  if (result.winType === "ron") return result.discarderIndex === playerIndex ? "敗者" : "";
+  if (result.winType === "tsumo") return result.winnerIndex === playerIndex ? "勝者" : "敗者";
   return "";
+}
+
+function getResultRowTone(result: GameResult, playerIndex: number) {
+  if (result.winType === "deckout") return "normal";
+  const isWinner = result.ronResults?.some((item) => item.winnerIndex === playerIndex) ?? result.winnerIndex === playerIndex;
+  if (isWinner) return "winner";
+  if (result.winType === "ron") return result.discarderIndex === playerIndex ? "loser" : "normal";
+  if (result.winType === "tsumo") return result.winnerIndex === playerIndex ? "winner" : "loser";
+  return "normal";
 }
 
 function getDisplayPlayerLoss(result: GameResult, playerIndex: number) {
@@ -373,9 +385,9 @@ function buildScoreFormulaPartsForMode(state: GameState, result: GameResult, mod
     const discarderLoss = result.score.playerLosses[result.discarderIndex] ?? 0;
     return [
       { value: "(" },
-      { value: String(discarderLoss), label: `${state.players[result.discarderIndex].name}縺ｮ螟ｱ轤ｹ` },
+      { value: String(discarderLoss), label: `${state.players[result.discarderIndex].name}の失点` },
       { value: "-" },
-      { value: String(winnerLoss), label: `${state.players[result.winnerIndex].name}縺ｮ螟ｱ轤ｹ` },
+      { value: String(winnerLoss), label: `${state.players[result.winnerIndex].name}の失点` },
       { value: ")=" },
       { value: String(calculateRawScoreFromLosses(discarderLoss, winnerLoss)) },
     ];
@@ -386,12 +398,12 @@ function buildScoreFormulaPartsForMode(state: GameState, result: GameResult, mod
   const score = calculateRawTsumoScoreFromLosses(result.score.playerLosses, result.winnerIndex);
   return [
     { value: "((" },
-    ...buildLossSumParts(loserLosses, "謨苓・),
+    ...buildLossSumParts(loserLosses, "敗者"),
     { value: ")" },
-    { value: "ﾃｷ" },
-    { value: String(divisor), label: "謨苓・ｺｺ謨ｰ" },
+    { value: "÷" },
+    { value: String(divisor), label: "敗者数" },
     { value: "-" },
-    { value: String(winnerLoss), label: `${state.players[result.winnerIndex].name}縺ｮ螟ｱ轤ｹ` },
+    { value: String(winnerLoss), label: `${state.players[result.winnerIndex].name}の失点` },
     { value: ")=" },
     { value: String(score) },
   ];
@@ -411,15 +423,15 @@ function buildStartingPointDeductionRows(state: GameState, result: GameResult): 
       const deduction = calculateRawScoreFromLosses(discarderLoss, winnerAverageLoss);
       return [
         {
-          playerName: "蜍晁・ｹｳ蝮・,
+          playerName: "勝者平均",
           parts: [
             { value: "((" },
-            ...buildLossSumParts(winnerLosses, "蜍晁・),
+            ...buildLossSumParts(winnerLosses, "勝者"),
             { value: ")" },
-            { value: "ﾃｷ" },
-            { value: String(winnerLosses.length), label: "蜍晁・ｺｺ謨ｰ" },
+            { value: "÷" },
+            { value: String(winnerLosses.length), label: "勝者数" },
             { value: "-" },
-            { value: String(discarderLoss), label: `${discarderName}縺ｮ螟ｱ轤ｹ` },
+            { value: String(discarderLoss), label: `${discarderName}の失点` },
             { value: ")=" },
             { value: deduction > 0 ? `-${deduction}` : "0" },
           ],
@@ -435,9 +447,9 @@ function buildStartingPointDeductionRows(state: GameState, result: GameResult): 
         playerName: discarderName,
         parts: [
           { value: "(" },
-          { value: String(winnerLoss), label: `${state.players[winnerIndex].name}縺ｮ螟ｱ轤ｹ` },
+          { value: String(winnerLoss), label: `${state.players[winnerIndex].name}の失点` },
           { value: "-" },
-          { value: String(discarderLoss), label: `${discarderName}縺ｮ螟ｱ轤ｹ` },
+          { value: String(discarderLoss), label: `${discarderName}の失点` },
           { value: ")=" },
           { value: deduction > 0 ? `-${deduction}` : "0" },
         ],
@@ -452,16 +464,16 @@ function buildStartingPointDeductionRows(state: GameState, result: GameResult): 
   const deduction = calculateRawScoreFromLosses(loserAverageLoss, winnerLoss);
   return [
     {
-      playerName: "謨苓・ｹｳ蝮・,
+      playerName: "敗者平均",
       parts: [
         { value: "(" },
-        { value: String(winnerLoss), label: `${winnerName}縺ｮ螟ｱ轤ｹ` },
+        { value: String(winnerLoss), label: `${winnerName}の失点` },
         { value: "-" },
         { value: "(" },
-        ...buildLossSumParts(loserLosses, "謨苓・),
+        ...buildLossSumParts(loserLosses, "敗者"),
         { value: ")" },
-        { value: "ﾃｷ" },
-        { value: String(loserLosses.length), label: "謨苓・ｺｺ謨ｰ" },
+        { value: "÷" },
+        { value: String(loserLosses.length), label: "敗者数" },
         { value: ")=" },
         { value: deduction > 0 ? `-${deduction}` : "0" },
       ],
@@ -488,7 +500,7 @@ function calculateStartingPointDisplayDeduction(result: GameResult, playerCount:
 function buildLossSumParts(losses: number[], labelPrefix: string): FormulaPart[] {
   return losses.flatMap((loss, index) => [
     ...(index > 0 ? [{ value: "+" }] : []),
-    { value: String(loss), label: `${labelPrefix}${index + 1}縺ｮ螟ｱ轤ｹ` },
+    { value: String(loss), label: `${labelPrefix}${index + 1}の失点` },
   ]);
 }
 
@@ -499,10 +511,10 @@ function buildScoreFormulaParts(state: GameState, result: GameResult): FormulaPa
     const discarderLoss = result.score.playerLosses[result.discarderIndex] ?? 0;
     return [
       { value: "(" },
-      { value: String(discarderLoss), label: `${state.players[result.discarderIndex].name}縺ｮ螟ｱ轤ｹ` },
+      { value: String(discarderLoss), label: `${state.players[result.discarderIndex].name}の失点` },
       { value: "-" },
-      { value: String(winnerLoss), label: `${state.players[result.winnerIndex].name}縺ｮ螟ｱ轤ｹ` },
-      { value: ")ﾃ・00=" },
+      { value: String(winnerLoss), label: `${state.players[result.winnerIndex].name}の失点` },
+      { value: ")×100=" },
       { value: String(result.score.winnerScore) },
     ];
   }
@@ -511,13 +523,13 @@ function buildScoreFormulaParts(state: GameState, result: GameResult): FormulaPa
   const divisor = Math.max(1, loserLosses.length);
   return [
     { value: "((" },
-    ...buildLossSumParts(loserLosses, "謨苓・),
+    ...buildLossSumParts(loserLosses, "敗者"),
     { value: ")" },
-    { value: "ﾃｷ" },
-    { value: String(divisor), label: "莠ｺ謨ｰ-1" },
+    { value: "÷" },
+    { value: String(divisor), label: "人数-1" },
     { value: "-" },
-    { value: String(winnerLoss), label: `${state.players[result.winnerIndex].name}縺ｮ螟ｱ轤ｹ` },
-    { value: ")ﾃ・00=" },
+    { value: String(winnerLoss), label: `${state.players[result.winnerIndex].name}の失点` },
+    { value: ")×100=" },
     { value: String(result.score.winnerScore) },
   ];
 }

@@ -290,7 +290,7 @@ describe("daifugo game state", () => {
     const selecting: GameState = {
       ...base,
       players: [
-        base.players[0],
+        { ...base.players[0], hand: [card("queen", 12)] },
         {
           ...base.players[1],
           isReach: true,
@@ -299,11 +299,11 @@ describe("daifugo game state", () => {
             card("2h", 2, "H"),
             card("2d", 2, "D"),
             card("4s", 4, "S"),
-            card("4h", 4, "H"),
-            card("4d", 4, "D"),
-            card("6s", 6, "S"),
-            card("6h", 6, "H"),
-            card("6d", 6, "D"),
+            card("5h", 5, "H"),
+            card("7d", 7, "D"),
+            card("8s", 8, "S"),
+            card("9h", 9, "H"),
+            card("10d", 10, "D"),
             card("13c", 13, "C"),
           ],
         },
@@ -338,9 +338,9 @@ describe("daifugo game state", () => {
             card("4s", 4, "S"),
             card("4h", 4, "H"),
             card("4d", 4, "D"),
-            card("7s", 7, "S"),
-            card("8h", 8, "H"),
-            card("10d", 10, "D"),
+            card("6s", 6, "S"),
+            card("6h", 6, "H"),
+            card("6d", 6, "D"),
             card("13c", 13, "C"),
           ],
         },
@@ -355,7 +355,7 @@ describe("daifugo game state", () => {
         continue: { shouldConfirmReach: false },
       },
     };
-    const resolved = gameReducer(selecting, { type: "selectQueenVanishRank", rank: 7 });
+    const resolved = gameReducer(selecting, { type: "selectQueenVanishRank", rank: 13 });
     const released = gameReducer(resolved, { type: "answerReachContinue", keepReach: false });
 
     expect(resolved.pendingDaifugoEffect?.kind).toBe("reachContinueConfirm");
@@ -379,9 +379,9 @@ describe("daifugo game state", () => {
             card("4s", 4, "S"),
             card("4h", 4, "H"),
             card("4d", 4, "D"),
-            card("7s", 7, "S"),
-            card("8h", 8, "H"),
-            card("10d", 10, "D"),
+            card("6s", 6, "S"),
+            card("6h", 6, "H"),
+            card("6d", 6, "D"),
             card("13c", 13, "C"),
           ],
         },

@@ -24,6 +24,7 @@ const initialState: GameState = {
   direction: "clockwise",
   daifugoOptions: createDefaultDaifugoOptions(),
   pendingDaifugoEffect: null,
+  queenVanishedRanks: [],
   isJBackActive: false,
   phase: "setup",
   drawnCard: null,
@@ -250,6 +251,14 @@ export default function App() {
                 { label: "DEV: 10効果リーチ確認", onClick: () => showDebugDaifugo("tenReach") },
                 { label: "DEV: リーチ中10禁止確認", onClick: () => showDebugDaifugo("reachTenBlocked") },
                 { label: "DEV: リーチ中8確認", onClick: () => showDebugDaifugo("reachEight") },
+                { label: "DEV: Q後リーチ解除", onClick: () => showDebugDaifugo("queenReachRelease") },
+                { label: "DEV: Q後リーチ継続確認", onClick: () => showDebugDaifugo("queenReachContinue") },
+                { label: "DEV: 7交換後リーチ再判定", onClick: () => showDebugDaifugo("sevenReachRecheck") },
+                { label: "DEV: Q候補中央寄せ", onClick: () => showDebugDaifugo("queenSparseChoices") },
+                { label: "DEV: Q補充不能ランク", onClick: () => showDebugDaifugo("queenRefillBlocked") },
+                { label: "DEV: Q候補0件不発", onClick: () => showDebugDaifugo("queenNoChoices") },
+                { label: "DEV: 山札0枚流局", onClick: () => showDebugDaifugo("emptyDeckDraw") },
+                { label: "DEV: Q後山札0枚境界", onClick: () => showDebugDaifugo("queenEndsWithEmptyDeck") },
               ]
             : undefined
         }
@@ -364,6 +373,11 @@ function debugCard(id: string, rank: number, suit: Card["suit"] = "S"): Card {
   return { id, rank, suit };
 }
 
+function debugDeck(count: number, prefix: string, ranks: number[] = [1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]): Card[] {
+  const suits: Card["suit"][] = ["S", "H", "D", "C"];
+  return Array.from({ length: count }, (_, index) => debugCard(`${prefix}-${index}`, ranks[index % ranks.length], suits[index % suits.length]));
+}
+
 function debugPlayer(index: number, hand: Card[], isReach = false): Player {
   return {
     id: `debug-player-${index}`,
@@ -443,6 +457,155 @@ function createDebugDaifugoState(caseName: DebugDaifugoCase): GameState {
     debugPlayer(3, isJBackCase ? [debugCard("p3-6", 6)] : [debugCard("p3-1", 1), debugCard("p3-5", 5)]),
   ];
 
+  const makeState = (overrides: Partial<GameState>): GameState => ({
+    players,
+    deck: [],
+    currentPlayerIndex: 0,
+    direction: "clockwise",
+    daifugoOptions: createDebugDaifugoOptions(),
+    pendingDaifugoEffect: null,
+    queenVanishedRanks: [],
+    isJBackActive: caseName === "jBack",
+    phase: "discard",
+    drawnCard: null,
+    drawnFrom: null,
+    lastDiscarderIndex: null,
+    takenDiscardOwnerIndex: null,
+    winner: null,
+    result: null,
+    pendingRonResult: null,
+    showCpuActions: true,
+    declaredReachThisTurn: false,
+    message: "DEV大富豪確認用の状態です。",
+    ...overrides,
+  });
+
+  if (caseName === "queenReachRelease") {
+    const reachHand = [
+      debugCard("qr-2s", 2, "S"),
+      debugCard("qr-2h", 2, "H"),
+      debugCard("qr-2d", 2, "D"),
+      debugCard("qr-3s", 3, "S"),
+      debugCard("qr-3h", 3, "H"),
+      debugCard("qr-3d", 3, "D"),
+      debugCard("qr-4s", 4, "S"),
+      debugCard("qr-5s", 5, "S"),
+      debugCard("qr-6s", 6, "S"),
+      debugCard("qr-q", 12, "S"),
+    ];
+    return makeState({
+      players: [debugPlayer(1, reachHand, true), players[1], players[2]],
+      deck: debugDeck(24, "qr-refill", [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]),
+      pendingDaifugoEffect: { kind: "queenSelect", effect: "queenNumberVanish", playerIndex: 0, continue: { shouldConfirmReach: false } },
+      phase: "handoff",
+      message: "DEV: Qでリーチ解除されるケースです。",
+    });
+  }
+
+  if (caseName === "queenReachContinue") {
+    const reachHand = [
+      debugCard("qc-2s", 2, "S"),
+      debugCard("qc-2h", 2, "H"),
+      debugCard("qc-2d", 2, "D"),
+      debugCard("qc-3s", 3, "S"),
+      debugCard("qc-3h", 3, "H"),
+      debugCard("qc-3d", 3, "D"),
+      debugCard("qc-4s", 4, "S"),
+      debugCard("qc-5s", 5, "S"),
+      debugCard("qc-6s", 6, "S"),
+      debugCard("qc-k", 13, "S"),
+    ];
+    return makeState({
+      players: [debugPlayer(1, reachHand, true), players[1], players[2]],
+      deck: debugDeck(24, "qc-refill", [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]),
+      pendingDaifugoEffect: { kind: "queenSelect", effect: "queenNumberVanish", playerIndex: 0, continue: { shouldConfirmReach: false } },
+      phase: "handoff",
+      message: "DEV: Q後もリーチ可能なため継続確認が出るケースです。",
+    });
+  }
+
+  if (caseName === "sevenReachRecheck") {
+    const actorHand = [debugCard("s7-7", 7, "S"), debugCard("s7-give", 9, "S"), debugCard("s7-junk", 10, "S")];
+    const targetReachHand = [
+      debugCard("s7-2s", 2, "S"),
+      debugCard("s7-2h", 2, "H"),
+      debugCard("s7-2d", 2, "D"),
+      debugCard("s7-3s", 3, "S"),
+      debugCard("s7-3h", 3, "H"),
+      debugCard("s7-3d", 3, "D"),
+      debugCard("s7-4s", 4, "S"),
+      debugCard("s7-5s", 5, "S"),
+      debugCard("s7-6s", 6, "S"),
+      debugCard("s7-8s", 8, "S"),
+    ];
+    return makeState({
+      players: [debugPlayer(1, actorHand), debugPlayer(2, targetReachHand, true), players[2]],
+      pendingDaifugoEffect: {
+        kind: "sevenExchange",
+        effect: "sevenExchange",
+        playerIndex: 0,
+        targetPlayerIndex: 1,
+        selections: {},
+        continue: { shouldConfirmReach: false },
+      },
+      phase: "handoff",
+      message: "DEV: 7交換でリーチ再判定するケースです。",
+    });
+  }
+
+  if (caseName === "queenSparseChoices") {
+    return makeState({
+      pendingDaifugoEffect: { kind: "queenSelect", effect: "queenNumberVanish", playerIndex: 0, continue: { shouldConfirmReach: false } },
+      phase: "handoff",
+      queenVanishedRanks: [2, 3, 6, 8, 9, 11],
+      deck: [debugCard("qs-4", 4, "S"), debugCard("qs-5", 5, "S"), debugCard("qs-7", 7, "S"), debugCard("qs-10", 10, "S")],
+      message: "DEV: Q候補が減った時の中央寄せ確認です。",
+    });
+  }
+
+  if (caseName === "queenRefillBlocked") {
+    return makeState({
+      players: [
+        debugPlayer(1, [debugCard("qb-5s", 5, "S"), debugCard("qb-5h", 5, "H"), debugCard("qb-6s", 6, "S")]),
+        players[1],
+        players[2],
+      ],
+      deck: [debugCard("qb-5d", 5, "D"), debugCard("qb-8s", 8, "S"), debugCard("qb-9s", 9, "S")],
+      pendingDaifugoEffect: { kind: "queenSelect", effect: "queenNumberVanish", playerIndex: 0, continue: { shouldConfirmReach: false } },
+      phase: "handoff",
+      message: "DEV: Q補充不能ランクの無効表示確認です。",
+    });
+  }
+
+  if (caseName === "queenNoChoices") {
+    return makeState({
+      players: [debugPlayer(1, [debugCard("qn-5s", 5, "S"), debugCard("qn-5h", 5, "H")]), players[1], players[2]],
+      deck: [debugCard("qn-5d", 5, "D")],
+      pendingDaifugoEffect: { kind: "confirm", effect: "queenNumberVanish", playerIndex: 0, continue: { shouldConfirmReach: false } },
+      queenVanishedRanks: [1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 12, 13],
+      phase: "handoff",
+      message: "DEV: Q候補0件時の不発確認です。",
+    });
+  }
+
+  if (caseName === "emptyDeckDraw") {
+    return makeState({
+      deck: [],
+      phase: "draw",
+      message: "DEV: 山札0枚で通常ドローすると流局します。",
+    });
+  }
+
+  if (caseName === "queenEndsWithEmptyDeck") {
+    return makeState({
+      players: [debugPlayer(1, [debugCard("qe-5s", 5, "S"), debugCard("qe-6s", 6, "S")]), players[1], players[2]],
+      deck: [debugCard("qe-5d", 5, "D"), debugCard("qe-refill", 8, "S")],
+      pendingDaifugoEffect: { kind: "queenSelect", effect: "queenNumberVanish", playerIndex: 0, continue: { shouldConfirmReach: false } },
+      phase: "handoff",
+      message: "DEV: Q完了後に山札が0枚になる境界ケースです。",
+    });
+  }
+
   return {
     players,
     deck: isTsumoCase
@@ -452,6 +615,7 @@ function createDebugDaifugoState(caseName: DebugDaifugoCase): GameState {
     direction: "clockwise",
     daifugoOptions: createDebugDaifugoOptions(),
     pendingDaifugoEffect: null,
+    queenVanishedRanks: [],
     isJBackActive: caseName === "jBack",
     phase: "discard",
     drawnCard: isJBackCase ? jBackHand.find((card) => card.id === "r6") ?? null : effectCard,
@@ -470,6 +634,7 @@ function createDebugDaifugoState(caseName: DebugDaifugoCase): GameState {
 function calculateDebugRoundScores(state: GameState, playerCount: number) {
   const scores = Array.from({ length: playerCount }, () => 0);
   if (!state.result) return scores;
+  if (state.result.winType === "deckout") return scores;
 
   if (state.result.winType === "ron" && state.result.ronResults) {
     for (const ronResult of state.result.ronResults) {
