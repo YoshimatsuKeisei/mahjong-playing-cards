@@ -501,6 +501,11 @@ function debugPlayer(index: number, hand: Card[], isReach = false, isCpu = false
   };
 }
 
+function debugHand(prefix: string, ranks: number[] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 13]): Card[] {
+  const suits: Card["suit"][] = ["S", "H", "D", "C"];
+  return ranks.map((rank, index) => debugCard(`${prefix}-${index}`, rank, suits[index % suits.length]));
+}
+
 function createDebugDaifugoOptions() {
   return {
     enabled: true,
@@ -603,6 +608,11 @@ function createDebugDaifugoState(caseName: DebugDaifugoCase): GameState {
 
   if (caseName === "jackSelect" || caseName === "jackInspect3" || caseName === "jBackStart" || caseName === "jBackToggleOff") {
     return makeState({
+      players: [
+        players[0],
+        debugPlayer(2, debugHand("j3-p2")),
+        debugPlayer(3, debugHand("j3-p3", [2, 3, 4, 5, 6, 7, 8, 9, 10, 12])),
+      ],
       isJBackActive: caseName === "jBackToggleOff",
       deck: [debugCard("j-dev-draw", 4, "C"), debugCard("j-dev-pad", 8, "D")],
       drawnCard: effectCard,
@@ -615,10 +625,10 @@ function createDebugDaifugoState(caseName: DebugDaifugoCase): GameState {
     return makeState({
       players: [
         players[0],
-        players[1],
-        players[2],
-        debugPlayer(4, [debugCard("p4-a", 4), debugCard("p4-b", 8, "H")]),
-        debugPlayer(5, [debugCard("p5-a", 12), debugCard("p5-b", 13, "D")]),
+        debugPlayer(2, debugHand("j5-p2")),
+        debugPlayer(3, debugHand("j5-p3", [2, 3, 4, 5, 6, 7, 8, 9, 10, 12])),
+        debugPlayer(4, debugHand("j5-p4", [1, 3, 5, 7, 9, 11, 12, 13, 4, 6])),
+        debugPlayer(5, debugHand("j5-p5", [1, 2, 4, 6, 8, 10, 11, 12, 13, 5])),
       ],
       deck: [debugCard("j5-dev-draw", 4, "C"), debugCard("j5-dev-pad", 8, "D")],
       drawnCard: effectCard,

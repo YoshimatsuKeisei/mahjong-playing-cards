@@ -2912,6 +2912,12 @@ h2 {
   transform: translateX(-50%);
 }
 
+.action-panel.jack-inspect-action-panel {
+  width: min(96vw, 1080px);
+  border-radius: 64px;
+  padding-inline: clamp(0.7rem, 1.8vw, 1.25rem);
+}
+
 .action-panel > button,
 .discard-source button,
 .reach-win-options button {
@@ -3010,10 +3016,12 @@ h2 {
 
 .jack-inspect-card-grid {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   justify-content: center;
-  gap: 0.28rem;
-  max-width: min(720px, 100%);
+  gap: 0.42rem;
+  width: max-content;
+  max-width: none;
+  perspective: 900px;
 }
 
 .jack-inspect-card-button {
@@ -3024,11 +3032,38 @@ h2 {
 }
 
 .jack-inspect-card-button:disabled {
+  border-color: transparent;
+  background: transparent;
+  color: inherit;
   cursor: default;
+  opacity: 1;
+}
+
+.jack-inspect-card-button:disabled .playing-card,
+.jack-inspect-card-button:disabled .playing-card * {
+  opacity: 1;
+}
+
+.jack-inspect-card-button:disabled .playing-card.black,
+.jack-inspect-card-button:disabled .playing-card.black * {
+  color: #17211c;
+  -webkit-text-fill-color: #17211c;
+}
+
+.jack-inspect-card-button:disabled .playing-card.red,
+.jack-inspect-card-button:disabled .playing-card.red * {
+  color: #b51d2f;
+  -webkit-text-fill-color: #b51d2f;
 }
 
 .jack-inspect-card-button.revealed {
   filter: drop-shadow(0 0 14px rgba(240, 199, 104, 0.5));
+}
+
+.jack-inspect-card-button.revealed .playing-card {
+  animation: jack-inspect-card-reveal 1.18s ease-out both;
+  backface-visibility: hidden;
+  transform-style: preserve-3d;
 }
 
 .jack-inspect-revealed {
@@ -4034,6 +4069,21 @@ h2 {
   100% {
     opacity: 1;
     transform: translate(-50%, -50%) scale(1.06);
+  }
+}
+
+@keyframes jack-inspect-card-reveal {
+  0% {
+    opacity: 1;
+    transform: scale(0.85) rotateY(72deg);
+  }
+  55% {
+    opacity: 1;
+    transform: scale(1.16) rotateY(0deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
   }
 }
 

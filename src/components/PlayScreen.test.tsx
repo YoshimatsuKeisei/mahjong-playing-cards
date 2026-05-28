@@ -70,6 +70,58 @@ describe("PlayScreen round display", () => {
     expect(dispatch).toHaveBeenCalledWith({ type: "selectJackSpecialEffect", effect: "inspectHands" });
   });
 
+  it("shows a full-size shuffled ten-card row for J information browsing", () => {
+    const randomSpy = vi.spyOn(Math, "random").mockReturnValue(0);
+    const state: GameState = {
+      ...createInitialGame(3, "clockwise"),
+      phase: "handoff",
+      pendingDaifugoEffect: {
+        kind: "jackInspect",
+        effect: "jackBack",
+        playerIndex: 0,
+        targetPlayerIndexes: [1, 2],
+        currentTargetOffset: 0,
+        revealedCardIds: {},
+        continue: { shouldConfirmReach: false },
+      },
+    };
+    const naturalOrder = state.players[1].hand.map((card) => card.id);
+    const { container } = render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} />);
+    const grid = container.querySelector(".jack-inspect-card-grid");
+    const panel = container.querySelector(".action-panel");
+    const buttons = Array.from(grid?.querySelectorAll(".jack-inspect-card-button") ?? []);
+
+    expect(panel).toHaveClass("jack-inspect-action-panel");
+    expect(buttons).toHaveLength(10);
+    expect(grid?.querySelector(".playing-card.compact")).not.toBeInTheDocument();
+    expect(buttons.map((button) => button.getAttribute("data-card-id"))).not.toEqual(naturalOrder);
+    randomSpy.mockRestore();
+  });
+
+  it("marks the selected J information card for the draw-style reveal animation", () => {
+    const baseState = createInitialGame(3, "clockwise");
+    const revealedCardId = baseState.players[1].hand[0].id;
+    const state: GameState = {
+      ...baseState,
+      phase: "handoff",
+      pendingDaifugoEffect: {
+        kind: "jackInspect",
+        effect: "jackBack",
+        playerIndex: 0,
+        targetPlayerIndexes: [1, 2],
+        currentTargetOffset: 0,
+        revealedCardIds: { 1: revealedCardId },
+        continue: { shouldConfirmReach: false },
+      },
+    };
+
+    const { container } = render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} />);
+    const revealedButton = container.querySelector(`[data-card-id="${revealedCardId}"]`);
+
+    expect(revealedButton).toHaveClass("revealed");
+    expect(revealedButton?.querySelector(".playing-card.compact")).not.toBeInTheDocument();
+  });
+
   it("updates the round display after advancing to the next round", () => {
     const { rerender } = render(<PlayScreen state={createInitialGame(4, "clockwise")} dispatch={vi.fn()} currentRound={1} />);
 

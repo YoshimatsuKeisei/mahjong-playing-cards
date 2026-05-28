@@ -136,6 +136,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
   const cpuTimeoutsRef = useRef<number[]>([]);
   const lastCpuActionKeyRef = useRef<string | null>(null);
   const reachSplashTimeoutRef = useRef<number | null>(null);
+  const jackInspectOrderRef = useRef(new Map<string, string[]>());
   const isAnimating = animationPhase !== "idle";
   const isCpuTurn = currentPlayer?.isCpu === true && state.phase !== "result";
   const shouldHideCpuDetails = !state.showCpuActions && isCpuTurn;
@@ -215,6 +216,22 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
     (pendingDaifugoEffect?.kind === "jackSelect" && !state.players[pendingDaifugoEffect.playerIndex]?.isCpu) ||
     (pendingDaifugoEffect?.kind === "jackInspect" && !state.players[pendingDaifugoEffect.playerIndex]?.isCpu) ||
     (pendingDaifugoEffect?.kind === "reachContinueConfirm" && !state.players[pendingDaifugoEffect.playerIndex]?.isCpu);
+
+  function getJackInspectDisplayCards(cards: Card[], actorIndex: number, targetPlayerIndex: number) {
+    const key = `${actorIndex}:${targetPlayerIndex}:${cards.map((card) => card.id).join("|")}`;
+    let orderedIds = jackInspectOrderRef.current.get(key);
+    if (!orderedIds) {
+      const shuffled = [...cards];
+      for (let index = shuffled.length - 1; index > 0; index -= 1) {
+        const swapIndex = Math.floor(Math.random() * (index + 1));
+        [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
+      }
+      orderedIds = shuffled.map((card) => card.id);
+      jackInspectOrderRef.current.set(key, orderedIds);
+    }
+    const cardById = new Map(cards.map((card) => [card.id, card]));
+    return orderedIds.map((cardId) => cardById.get(cardId)).filter((card): card is Card => Boolean(card));
+  }
 
   useEffect(() => {
     return () => {
@@ -967,7 +984,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
           </div>
         )}
         {shouldShowActionPanel && (
-        <section className="action-panel">
+        <section className={`action-panel ${isJackInspect ? "jack-inspect-action-panel" : ""}`}>
           {isDaifugoConfirm && (
             <div className="daifugo-effect-panel">
               <strong>{getDaifugoEffectText(pendingDaifugoEffect.effect)}</strong>
@@ -1091,18 +1108,19 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
                   {pendingDaifugoEffect.currentTargetOffset + 1} / {pendingDaifugoEffect.targetPlayerIndexes.length}
                 </span>
                 <div className="jack-inspect-card-grid">
-                  {targetPlayer.hand.map((card) => {
+                  {getJackInspectDisplayCards(targetPlayer.hand, pendingDaifugoEffect.playerIndex, targetPlayerIndex).map((card) => {
                     const isRevealed = card.id === revealedCardId;
                     return (
                       <button
                         type="button"
                         className={`jack-inspect-card-button ${isRevealed ? "revealed" : ""}`}
                         key={card.id}
+                        data-card-id={card.id}
                         disabled={Boolean(revealedCardId) || isAnimating || cpuActionInProgress}
                         aria-label={`${targetPlayer.name}の手札カード`}
                         onClick={() => dispatch({ type: "inspectJackCard", targetPlayerIndex, cardId: card.id })}
                       >
-                        <PlayingCard card={isRevealed ? card : null} isBack={!isRevealed} compact />
+                        <PlayingCard card={isRevealed ? card : null} isBack={!isRevealed} />
                       </button>
                     );
                   })}
