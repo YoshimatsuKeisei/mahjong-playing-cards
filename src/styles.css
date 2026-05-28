@@ -1883,6 +1883,26 @@ h2 {
   animation: toolbar-slide-out 0.34s ease-in both;
 }
 
+.play-exit-button {
+  position: absolute;
+  top: clamp(0.8rem, 2.2vh, 1.3rem);
+  right: clamp(0.9rem, 2.4vw, 1.8rem);
+  z-index: var(--z-action-nav);
+  min-height: 34px;
+  border: 1px solid rgba(214, 165, 64, 0.5);
+  border-radius: 999px;
+  background: rgba(8, 28, 20, 0.72);
+  color: #fff8dc;
+  padding: 0.35rem 0.9rem;
+  font-size: 0.86rem;
+  font-weight: 900;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.24);
+}
+
+.play-exit-button:hover {
+  background: rgba(22, 91, 66, 0.84);
+}
+
 .toolbar-player,
 .toolbar-deck {
   display: grid;
@@ -3782,6 +3802,49 @@ h2 {
 .ron-check-actions button {
   min-width: 110px;
   min-height: 42px;
+}
+
+.exit-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.48);
+  padding: 1rem;
+}
+
+.exit-confirm-dialog {
+  width: min(92vw, 440px);
+  border: 1px solid rgba(214, 165, 64, 0.56);
+  border-radius: 10px;
+  background: rgba(8, 23, 17, 0.96);
+  color: #fffdf7;
+  padding: 1.3rem;
+  text-align: center;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.38);
+}
+
+.exit-confirm-dialog h2 {
+  margin: 0;
+  color: #fff8dc;
+  font-size: 1.22rem;
+}
+
+.exit-confirm-dialog p {
+  margin: 0.75rem 0 0;
+  color: rgba(255, 253, 247, 0.86);
+}
+
+.exit-confirm-actions {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.exit-confirm-actions button {
+  min-width: 96px;
 }
 
 @keyframes draw-from-deck {

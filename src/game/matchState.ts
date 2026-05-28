@@ -45,6 +45,16 @@ export function canAdvanceRound(matchState: MatchState | null): boolean {
   return false;
 }
 
+export function createInterruptedFinalMatchState(matchState: MatchState): MatchState {
+  const completedRoundCount = matchState.history.length;
+  return {
+    ...matchState,
+    totalRounds: matchState.matchMode === "rounds" ? completedRoundCount : matchState.totalRounds,
+    currentRound: completedRoundCount,
+    scoredRound: completedRoundCount > 0 ? completedRoundCount : null,
+  };
+}
+
 export function advanceRound(matchState: MatchState): MatchState {
   if (!canAdvanceRound(matchState)) return matchState;
 

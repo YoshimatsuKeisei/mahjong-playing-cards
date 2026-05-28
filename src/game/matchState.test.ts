@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { MatchState } from "../types";
-import { advanceRound, canAdvanceRound, createMatchState, hasPlayerBust, syncMatchGameState } from "./matchState";
+import { advanceRound, canAdvanceRound, createInterruptedFinalMatchState, createMatchState, hasPlayerBust, syncMatchGameState } from "./matchState";
 import { createDoubleRonResultFixture, createStartingPointsTsumoResultFixture } from "./resultFixtures";
 
 describe("rounds match state", () => {
@@ -81,6 +81,37 @@ describe("rounds match state", () => {
     expect(counted.history).toHaveLength(1);
     expect(counted.history[0].loserIndexes).toEqual([1]);
     expect(counted.history[0].playerLosses).toEqual([7, 28, 5]);
+  });
+
+  it("builds an interrupted final state from completed rounds only", () => {
+    const resultState = createDoubleRonResultFixture();
+    let matchState = createMatchState("rounds", 3, "clockwise", 10);
+
+    for (let round = 1; round <= 4; round += 1) {
+      matchState = syncMatchGameState(matchState, resultState)!;
+      if (round < 4) {
+        matchState = advanceRound(matchState);
+      }
+    }
+
+    const inProgressMatch: MatchState = {
+      ...matchState,
+      currentRound: 5,
+      gameState: {
+        ...matchState.gameState,
+        phase: "discard",
+        result: null,
+        winner: null,
+      },
+    };
+
+    const interrupted = createInterruptedFinalMatchState(inProgressMatch);
+
+    expect(interrupted.totalRounds).toBe(4);
+    expect(interrupted.currentRound).toBe(4);
+    expect(interrupted.scoredRound).toBe(4);
+    expect(interrupted.history).toHaveLength(4);
+    expect(interrupted.cumulativeScores).toEqual(matchState.cumulativeScores);
   });
 
   it("initializes a target-score match and starts at round 1", () => {

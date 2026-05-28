@@ -10,7 +10,7 @@ import PlayScreen from "./components/PlayScreen";
 import ResultScreen from "./components/ResultScreen";
 import FinalResultScreen from "./components/FinalResultScreen";
 import { createInitialGame, gameReducer, type GameAction } from "./game/gameState";
-import { advanceRound, canAdvanceRound, createMatchState, syncMatchGameState } from "./game/matchState";
+import { advanceRound, canAdvanceRound, createInterruptedFinalMatchState, createMatchState, syncMatchGameState } from "./game/matchState";
 import { calculatePointDeductions, calculateRawRoundScores } from "./game/scoring";
 import { createDefaultDaifugoOptions } from "./game/deck";
 import { createDoubleRonResultFixture, createSingleRonResultFixture, createStartingPointsTsumoResultFixture } from "./game/resultFixtures";
@@ -40,6 +40,7 @@ const initialState: GameState = {
 };
 
 type AppScreen = "home" | "roomSelect" | "roomList" | "newGame" | "play" | "manual" | "moreGame" | "settings" | "profile" | "result";
+type ExitConfirmKind = "summary" | "home" | null;
 type DebugResultKind = "ron" | "tsumo" | "doubleRon";
 type DebugStandingsCase = "roundsNoRankChange" | "roundsRankChange" | "targetNoRankChange" | "pointsLoss";
 type DebugDaifugoCase =
@@ -63,6 +64,8 @@ export default function App() {
   const [state, setState] = useState<GameState>(initialState);
   const [matchState, setMatchState] = useState<MatchState | null>(null);
   const [screen, setScreen] = useState<AppScreen>("home");
+  const [exitConfirmKind, setExitConfirmKind] = useState<ExitConfirmKind>(null);
+  const [interruptedFinalMatchState, setInterruptedFinalMatchState] = useState<MatchState | null>(null);
   const [homeEntryMode, setHomeEntryMode] = useState<"initial" | "return">("initial");
   const [profile, setProfile] = useState<ProfileData>({
     userName: "Guest Player",
@@ -71,6 +74,8 @@ export default function App() {
   });
 
   function returnToHome() {
+    setInterruptedFinalMatchState(null);
+    setExitConfirmKind(null);
     setHomeEntryMode("return");
     setScreen("home");
   }
@@ -92,6 +97,8 @@ export default function App() {
   }
 
   function startGame(playerCount: number, direction: GameState["direction"], matchMode: MatchMode, ruleValue: number, roomSettings?: RoomCreateSettings) {
+    setInterruptedFinalMatchState(null);
+    setExitConfirmKind(null);
     if (matchMode === "rounds" || matchMode === "targetScore" || matchMode === "startingPoints") {
       const nextMatch = createMatchState(
         matchMode,
@@ -125,14 +132,51 @@ export default function App() {
 
   function restartToNewGame() {
     setMatchState(null);
+    setInterruptedFinalMatchState(null);
+    setExitConfirmKind(null);
     setState(gameReducer(state, { type: "restart" }));
     setScreen("newGame");
+  }
+
+  function requestSummaryExit() {
+    setExitConfirmKind("summary");
+  }
+
+  function requestHomeExit() {
+    setExitConfirmKind("home");
+  }
+
+  function cancelExitConfirm() {
+    setExitConfirmKind(null);
+  }
+
+  function confirmExit() {
+    if (exitConfirmKind === "summary") {
+      if (matchState) {
+        setInterruptedFinalMatchState(createInterruptedFinalMatchState(matchState));
+        setExitConfirmKind(null);
+        setScreen("result");
+        return;
+      }
+      restartToNewGame();
+      return;
+    }
+
+    if (exitConfirmKind === "home") {
+      setMatchState(null);
+      setInterruptedFinalMatchState(null);
+      setExitConfirmKind(null);
+      setState(initialState);
+      setHomeEntryMode("return");
+      setScreen("home");
+    }
   }
 
   function advanceToNextRound() {
     setMatchState((currentMatch) => {
       if (!currentMatch || !canAdvanceRound(currentMatch)) return currentMatch;
       const nextMatch = advanceRound(currentMatch);
+      setInterruptedFinalMatchState(null);
       setState(nextMatch.gameState);
       setScreen("play");
       return nextMatch;
@@ -225,6 +269,7 @@ export default function App() {
 
   if (screen === "home") {
     return (
+      <>
       <HomeScreen
         entryMode={homeEntryMode}
         onNavigate={handleHomeNavigate}
@@ -263,6 +308,8 @@ export default function App() {
             : undefined
         }
       />
+      {exitConfirmKind && <ExitConfirmDialog kind={exitConfirmKind} onCancel={cancelExitConfirm} onConfirm={confirmExit} />}
+      </>
     );
   }
 
@@ -295,18 +342,39 @@ export default function App() {
   }
 
   if (state.phase === "result" && state.result) {
+    if (interruptedFinalMatchState) {
+      return (
+        <>
+          <FinalResultScreen
+            matchState={interruptedFinalMatchState}
+            players={interruptedFinalMatchState.gameState.players}
+            onJoinAnotherMatch={() => {
+              setInterruptedFinalMatchState(null);
+              setScreen("roomSelect");
+            }}
+            onBackHome={returnToHome}
+          />
+          {exitConfirmKind && <ExitConfirmDialog kind={exitConfirmKind} onCancel={cancelExitConfirm} onConfirm={confirmExit} />}
+        </>
+      );
+    }
+
     if (matchState && !canAdvanceRound(matchState)) {
       return (
+        <>
         <FinalResultScreen
           matchState={matchState}
           players={state.players}
           onJoinAnotherMatch={() => setScreen("roomSelect")}
           onBackHome={returnToHome}
         />
+        {exitConfirmKind && <ExitConfirmDialog kind={exitConfirmKind} onCancel={cancelExitConfirm} onConfirm={confirmExit} />}
+        </>
       );
     }
 
     return (
+      <>
       <ResultScreen
         state={state}
         currentRound={
@@ -335,13 +403,16 @@ export default function App() {
               }
             : undefined
         }
-        onRestart={restartToNewGame}
+        onRestart={requestSummaryExit}
         onBackHome={returnToHome}
       />
+      {exitConfirmKind && <ExitConfirmDialog kind={exitConfirmKind} onCancel={cancelExitConfirm} onConfirm={confirmExit} />}
+      </>
     );
   }
 
   return (
+    <>
     <PlayScreen
       state={state}
       dispatch={dispatch}
@@ -350,7 +421,30 @@ export default function App() {
           ? matchState.currentRound
           : undefined
       }
+      onExitToHome={requestHomeExit}
     />
+    {exitConfirmKind && <ExitConfirmDialog kind={exitConfirmKind} onCancel={cancelExitConfirm} onConfirm={confirmExit} />}
+    </>
+  );
+}
+
+function ExitConfirmDialog({ kind, onCancel, onConfirm }: { kind: Exclude<ExitConfirmKind, null>; onCancel: () => void; onConfirm: () => void }) {
+  const isSummaryExit = kind === "summary";
+  return (
+    <div className="exit-confirm-overlay" role="dialog" aria-modal="true" aria-labelledby="exit-confirm-title">
+      <div className="exit-confirm-dialog">
+        <h2 id="exit-confirm-title">{isSummaryExit ? "この試合を終了しますか？" : "試合を終了してホーム画面に戻りますか？"}</h2>
+        <p>{isSummaryExit ? "現在までに完了した局の結果を集計して表示します。" : "現在の試合結果は表示されません。"}</p>
+        <div className="exit-confirm-actions">
+          <button type="button" className="primary-button" onClick={onConfirm}>
+            はい
+          </button>
+          <button type="button" onClick={onCancel}>
+            いいえ
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 

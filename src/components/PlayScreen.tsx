@@ -30,6 +30,7 @@ interface PlayScreenProps {
   state: GameState;
   dispatch: Dispatch<GameAction>;
   currentRound?: number;
+  onExitToHome?: () => void;
 }
 
 type AnimationPhase = "idle" | "drawingFromDeck" | "revealingDrawnCard" | "movingDrawnCardToHand" | "discardingCard";
@@ -104,7 +105,7 @@ const measuredAnchorLayouts: Record<number, Array<{ left: string; top: string; w
   ],
 };
 
-export default function PlayScreen({ state, dispatch, currentRound }: PlayScreenProps) {
+export default function PlayScreen({ state, dispatch, currentRound, onExitToHome }: PlayScreenProps) {
   const currentPlayer = state.players[state.currentPlayerIndex];
   const reachOptions = getReachWinningOptions(state);
   const discardSources = getAvailableDiscardSources(state);
@@ -698,6 +699,11 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
             </div>
           )}
         </header>
+        {onExitToHome && (
+          <button type="button" className="play-exit-button" onClick={onExitToHome}>
+            退出
+          </button>
+        )}
 
         <div className="table-shape">
           <div className={`deck-stack ${state.deck.length === 0 ? "empty-deck" : ""}`} aria-label={`山札 ${state.deck.length}枚`}>
