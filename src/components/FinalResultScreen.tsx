@@ -298,5 +298,5 @@ function getPrimaryRuleLabel(matchMode: MatchMode) {
 function getPrimaryRuleValue(matchState: MatchState, endedRound: number) {
   if (matchState.matchMode === "targetScore") return `${matchState.targetScore}点 / ${endedRound}回戦`;
   if (matchState.matchMode === "startingPoints") return `${matchState.startingPoints}点 / ${endedRound}回戦`;
-  return `${matchState.totalRounds}回戦`;
+  return `${endedRound}回戦`;
 }

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Card, DaifugoOptions, GameState, Player } from "../types";
 import { createDefaultDaifugoOptions } from "./deck";
-import { gameReducer, getSevenExchangeCandidateCards } from "./gameState";
+import { gameReducer, getQueenVanishRankOptions, getSevenExchangeCandidateCards } from "./gameState";
 
 function card(id: string, rank: number, suit: Card["suit"] = "S"): Card {
   return { id, rank, suit };
@@ -155,6 +155,57 @@ describe("daifugo game state", () => {
     expect(resolved).toBe(selecting);
   });
 
+  it("marks Q ranks unavailable when the post-vanish deck cannot refill hands", () => {
+    const base = stateForDiscard(card("queen", 12), daifugoOptions({ queenNumberVanish: true }));
+    const state: GameState = {
+      ...base,
+      players: [
+        { ...base.players[0], hand: [card("5s", 5), card("5h", 5, "H"), card("9s", 9)] },
+        { ...base.players[1], hand: [] },
+        { ...base.players[2], hand: [] },
+      ],
+      deck: [card("deck-5", 5), card("deck-9", 9)],
+    };
+
+    const options = getQueenVanishRankOptions(state);
+    const five = options.find((option) => option.rank === 5);
+    const nine = options.find((option) => option.rank === 9);
+
+    expect(five).toMatchObject({
+      removedFromDeck: 1,
+      replenishmentRequired: 2,
+      availableAfterVanish: 1,
+      selectable: false,
+    });
+    expect(nine?.selectable).toBe(true);
+  });
+
+  it("fizzles Q safely when every remaining rank lacks refill cards", () => {
+    const base = stateForDiscard(card("queen", 12), daifugoOptions({ queenNumberVanish: true }));
+    const pending: GameState = {
+      ...base,
+      queenVanishedRanks: [1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13],
+      deck: [],
+      players: [{ ...base.players[0], hand: [card("2s", 2)] }, base.players[1], base.players[2]],
+    };
+    const confirmed = gameReducer(
+      {
+        ...pending,
+        pendingDaifugoEffect: {
+          kind: "confirm",
+          effect: "queenNumberVanish",
+          playerIndex: 0,
+          continue: { shouldConfirmReach: false },
+        },
+      },
+      { type: "answerDaifugoEffect", activate: true },
+    );
+
+    expect(confirmed.pendingDaifugoEffect).toBeNull();
+    expect(confirmed.phase).toBe("handoff");
+    expect(confirmed.message).toContain("Q効果は発動できませんでした");
+  });
+
   it("includes all cards from unpublished three-card and four-card melds as 7 exchange candidates", () => {
     const threeCardPlayer = player(2, [card("3s", 3, "S"), card("3h", 3, "H"), card("3d", 3, "D"), card("9c", 9, "C")]);
     const fourCardPlayer = player(2, [card("5s", 5, "S"), card("5h", 5, "H"), card("5d", 5, "D"), card("5c", 5, "C"), card("9c", 9, "C")]);
@@ -239,7 +290,7 @@ describe("daifugo game state", () => {
     const selecting: GameState = {
       ...base,
       players: [
-        base.players[0],
+        { ...base.players[0], hand: [card("queen", 12)] },
         {
           ...base.players[1],
           isReach: true,
@@ -248,10 +299,10 @@ describe("daifugo game state", () => {
             card("2h", 2, "H"),
             card("2d", 2, "D"),
             card("4s", 4, "S"),
-            card("4h", 4, "H"),
-            card("4d", 4, "D"),
-            card("7s", 7, "S"),
-            card("8h", 8, "H"),
+            card("5h", 5, "H"),
+            card("7d", 7, "D"),
+            card("8s", 8, "S"),
+            card("9h", 9, "H"),
             card("10d", 10, "D"),
             card("13c", 13, "C"),
           ],
@@ -270,6 +321,86 @@ describe("daifugo game state", () => {
 
     expect(resolved.players[1].isReach).toBe(false);
     expect(resolved.daifugoEffectEvent?.reachReleasedPlayerIndexes).toEqual([1]);
+  });
+
+  it("asks a human player whether to keep reach after Q changes the hand but reach remains valid", () => {
+    const base = stateForDiscard(card("queen", 12), daifugoOptions({ queenNumberVanish: true }));
+    const selecting: GameState = {
+      ...base,
+      players: [
+        {
+          ...base.players[0],
+          isReach: true,
+          hand: [
+            card("2s", 2, "S"),
+            card("2h", 2, "H"),
+            card("2d", 2, "D"),
+            card("4s", 4, "S"),
+            card("4h", 4, "H"),
+            card("4d", 4, "D"),
+            card("6s", 6, "S"),
+            card("6h", 6, "H"),
+            card("6d", 6, "D"),
+            card("13c", 13, "C"),
+          ],
+        },
+        base.players[1],
+        base.players[2],
+      ],
+      deck: [card("deck-11s", 11, "S"), card("deck-1h", 1, "H")],
+      pendingDaifugoEffect: {
+        kind: "queenSelect",
+        effect: "queenNumberVanish",
+        playerIndex: 1,
+        continue: { shouldConfirmReach: false },
+      },
+    };
+    const resolved = gameReducer(selecting, { type: "selectQueenVanishRank", rank: 13 });
+    const released = gameReducer(resolved, { type: "answerReachContinue", keepReach: false });
+
+    expect(resolved.pendingDaifugoEffect?.kind).toBe("reachContinueConfirm");
+    expect(resolved.players[0].isReach).toBe(true);
+    expect(released.players[0].isReach).toBe(false);
+  });
+
+  it("asks a human player whether to keep reach after 7 exchange changes a still-valid reach hand", () => {
+    const base = stateForDiscard(card("seven", 7), daifugoOptions({ sevenExchange: true }));
+    const selecting: GameState = {
+      ...base,
+      players: [
+        { ...base.players[0], hand: [card("give-a", 1)] },
+        {
+          ...base.players[1],
+          isReach: true,
+          hand: [
+            card("2s", 2, "S"),
+            card("2h", 2, "H"),
+            card("2d", 2, "D"),
+            card("4s", 4, "S"),
+            card("4h", 4, "H"),
+            card("4d", 4, "D"),
+            card("6s", 6, "S"),
+            card("6h", 6, "H"),
+            card("6d", 6, "D"),
+            card("13c", 13, "C"),
+          ],
+        },
+        base.players[2],
+      ],
+      pendingDaifugoEffect: {
+        kind: "sevenExchange",
+        effect: "sevenExchange",
+        playerIndex: 0,
+        targetPlayerIndex: 1,
+        selections: {},
+        continue: { shouldConfirmReach: false },
+      },
+    };
+    const selectedByActor = gameReducer(selecting, { type: "selectSevenExchangeCard", playerIndex: 0, cardId: "give-a" });
+    const resolved = gameReducer(selectedByActor, { type: "selectSevenExchangeCard", playerIndex: 1, cardId: "2s" });
+
+    expect(resolved.pendingDaifugoEffect?.kind).toBe("reachContinueConfirm");
+    expect(resolved.players[1].isReach).toBe(true);
   });
 
   it("reverses direction with the 9 effect and applies 5 skip in that direction", () => {
@@ -442,6 +573,46 @@ describe("daifugo game state", () => {
     const attemptedDraw = gameReducer(pending, { type: "drawFromDeck" });
 
     expect(attemptedDraw).toBe(pending);
+  });
+
+  it("ends the round as a draw with no score movement when a deck draw is required at zero cards", () => {
+    const state: GameState = {
+      ...stateForDiscard(card("junk", 13)),
+      phase: "draw",
+      deck: [],
+      drawnCard: null,
+      drawnFrom: null,
+    };
+    const resolved = gameReducer(state, { type: "drawFromDeck" });
+
+    expect(resolved.phase).toBe("result");
+    expect(resolved.winner).toBeNull();
+    expect(resolved.result?.winType).toBe("deckout");
+    expect(resolved.result?.score.winnerScore).toBe(0);
+    expect(resolved.result?.score.playerLosses).toEqual([0, 0, 0]);
+  });
+
+  it("lets a legal Q effect finish at exactly zero deck cards and deckouts on the next draw request", () => {
+    const base = stateForDiscard(card("queen", 12), daifugoOptions({ queenNumberVanish: true }));
+    const selecting: GameState = {
+      ...base,
+      players: [{ ...base.players[0], hand: [card("5s", 5), card("9h", 9), card("10d", 10)] }, base.players[1], base.players[2]],
+      deck: [card("deck-5", 5), card("refill-a", 6)],
+      pendingDaifugoEffect: {
+        kind: "queenSelect",
+        effect: "queenNumberVanish",
+        playerIndex: 0,
+        continue: { shouldConfirmReach: false },
+      },
+    };
+
+    const resolved = gameReducer(selecting, { type: "selectQueenVanishRank", rank: 5 });
+    const nextDraw = gameReducer(gameReducer(resolved, { type: "confirmHandoff" }), { type: "drawFromDeck" });
+
+    expect(resolved.phase).toBe("handoff");
+    expect(resolved.deck).toHaveLength(0);
+    expect(resolved.result).toBeNull();
+    expect(nextDraw.result?.winType).toBe("deckout");
   });
 
   it("does not activate the 10 effect while the player is in reach", () => {

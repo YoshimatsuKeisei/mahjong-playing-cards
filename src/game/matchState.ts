@@ -45,6 +45,16 @@ export function canAdvanceRound(matchState: MatchState | null): boolean {
   return false;
 }
 
+export function createInterruptedFinalMatchState(matchState: MatchState): MatchState {
+  const completedRoundCount = matchState.history.length;
+  return {
+    ...matchState,
+    totalRounds: matchState.matchMode === "rounds" ? completedRoundCount : matchState.totalRounds,
+    currentRound: completedRoundCount,
+    scoredRound: completedRoundCount > 0 ? completedRoundCount : null,
+  };
+}
+
 export function advanceRound(matchState: MatchState): MatchState {
   if (!canAdvanceRound(matchState)) return matchState;
 
@@ -122,6 +132,7 @@ export function hasPlayerBust(matchState: MatchState): boolean {
 function calculateRoundScores(result: GameState["result"], playerCount: number): number[] {
   const scores = Array.from({ length: playerCount }, () => 0);
   if (!result) return scores;
+  if (result.winType === "deckout") return scores;
 
   if (result.winType === "ron" && result.ronResults) {
     for (const ronResult of result.ronResults) {
@@ -165,6 +176,7 @@ function getDisplayedPlayerLosses(result: GameResult, playerCount: number): numb
 }
 
 export function getResultLoserIndexes(result: GameResult, playerCount: number): number[] {
+  if (result.winType === "deckout") return [];
   if (result.winType === "ron" && result.discarderIndex !== null) {
     return [result.discarderIndex];
   }

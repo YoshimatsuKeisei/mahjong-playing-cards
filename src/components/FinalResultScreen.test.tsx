@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { createMatchState, syncMatchGameState } from "../game/matchState";
+import { advanceRound, createInterruptedFinalMatchState, createMatchState, syncMatchGameState } from "../game/matchState";
 import { createDoubleRonResultFixture, createSingleRonResultFixture, createStartingPointsTsumoResultFixture } from "../game/resultFixtures";
 import FinalResultScreen, { buildFinalResultModel } from "./FinalResultScreen";
 
@@ -48,6 +48,30 @@ describe("FinalResultScreen", () => {
     expect(player2.loserCount).toBe(1);
     expect(player2.lossEfficiency).toBe(28);
     expect(player3.totalLoss).toBe(5);
+  });
+
+  it("uses completed rounds as the displayed total for interrupted round matches", () => {
+    const resultState = createDoubleRonResultFixture();
+    let match = createMatchState("rounds", 3, "clockwise", 10, "途中退出テスト");
+
+    for (let round = 1; round <= 4; round += 1) {
+      match = syncMatchGameState(match, resultState)!;
+      if (round < 4) {
+        match = advanceRound(match);
+      }
+    }
+
+    render(
+      <FinalResultScreen
+        matchState={createInterruptedFinalMatchState({ ...match, currentRound: 5 })}
+        players={resultState.players}
+        onJoinAnotherMatch={vi.fn()}
+        onBackHome={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("4回戦")).toBeInTheDocument();
+    expect(screen.queryByText("10回戦")).not.toBeInTheDocument();
   });
 
   it("aggregates tsumo wins and uses em dash when a player was never a loser", () => {

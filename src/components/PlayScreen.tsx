@@ -16,6 +16,7 @@ import {
   getReachWinningOptions,
   getSevenExchangeCandidateCards,
   chooseCpuQueenRank,
+  getQueenVanishRankOptions,
   type GameAction,
 } from "../game/gameState";
 import type { Card, GameState } from "../types";
@@ -29,6 +30,7 @@ interface PlayScreenProps {
   state: GameState;
   dispatch: Dispatch<GameAction>;
   currentRound?: number;
+  onExitToHome?: () => void;
 }
 
 type AnimationPhase = "idle" | "drawingFromDeck" | "revealingDrawnCard" | "movingDrawnCardToHand" | "discardingCard";
@@ -42,8 +44,6 @@ type DaifugoAnimationStep = {
   variant: "notice" | "discard" | "settle" | "draw" | "exchange";
   phase?: "reveal" | "insert";
 };
-
-const queenRankOptions = Array.from({ length: 13 }, (_, index) => index + 1);
 
 const reachVisualSrc = new URL("../../黒ローブ男.png", import.meta.url).href;
 
@@ -105,7 +105,7 @@ const measuredAnchorLayouts: Record<number, Array<{ left: string; top: string; w
   ],
 };
 
-export default function PlayScreen({ state, dispatch, currentRound }: PlayScreenProps) {
+export default function PlayScreen({ state, dispatch, currentRound, onExitToHome }: PlayScreenProps) {
   const currentPlayer = state.players[state.currentPlayerIndex];
   const reachOptions = getReachWinningOptions(state);
   const discardSources = getAvailableDiscardSources(state);
@@ -140,20 +140,30 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
   const isCpuTurn = currentPlayer?.isCpu === true && state.phase !== "result";
   const shouldHideCpuDetails = !state.showCpuActions && isCpuTurn;
   const pendingDaifugoEffect = state.pendingDaifugoEffect;
-  const availableQueenRankOptions = queenRankOptions.filter((rank) => !(state.queenVanishedRanks ?? []).includes(rank));
+  const queenRankChoices = getQueenVanishRankOptions(state);
+  const availableQueenRankOptions = queenRankChoices.filter((option) => option.selectable).map((option) => option.rank);
   const isDaifugoConfirm = pendingDaifugoEffect?.kind === "confirm";
   const isDaifugoExtraDiscard = pendingDaifugoEffect?.kind === "extraDiscard";
   const isDaifugoEffectDraw = pendingDaifugoEffect?.kind === "effectDraw";
   const isSevenExchange = pendingDaifugoEffect?.kind === "sevenExchange";
   const isQueenSelect = pendingDaifugoEffect?.kind === "queenSelect";
   const isQueenWinConfirm = pendingDaifugoEffect?.kind === "queenWinConfirm";
+  const isReachContinueConfirm = pendingDaifugoEffect?.kind === "reachContinueConfirm";
   const mustDiscardDrawnForReachDaifugo =
     isDaifugoExtraDiscard &&
     pendingDaifugoEffect.effect === "eightExtraTurn" &&
     currentPlayer.isReach &&
     !state.declaredReachThisTurn;
   const controlsDisabled =
-    isAnimating || isCpuTurn || cpuActionInProgress || isDaifugoConfirm || isDaifugoEffectDraw || isSevenExchange || isQueenSelect || isQueenWinConfirm;
+    isAnimating ||
+    isCpuTurn ||
+    cpuActionInProgress ||
+    isDaifugoConfirm ||
+    isDaifugoEffectDraw ||
+    isSevenExchange ||
+    isQueenSelect ||
+    isQueenWinConfirm ||
+    isReachContinueConfirm;
   const pendingRonResult = state.pendingRonResult;
   const ronDiscarderIndex = pendingRonResult?.discarderIndex ?? null;
   const ronDiscarder = ronDiscarderIndex !== null ? state.players[ronDiscarderIndex] : null;
@@ -197,7 +207,8 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
     !shouldHideCpuDetails ||
     sevenSelectionPlayerIndex !== null ||
     (pendingDaifugoEffect?.kind === "queenSelect" && !state.players[pendingDaifugoEffect.playerIndex]?.isCpu) ||
-    (pendingDaifugoEffect?.kind === "queenWinConfirm" && !state.players[pendingDaifugoEffect.playerIndex]?.isCpu);
+    (pendingDaifugoEffect?.kind === "queenWinConfirm" && !state.players[pendingDaifugoEffect.playerIndex]?.isCpu) ||
+    (pendingDaifugoEffect?.kind === "reachContinueConfirm" && !state.players[pendingDaifugoEffect.playerIndex]?.isCpu);
 
   useEffect(() => {
     return () => {
@@ -393,6 +404,7 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
   useEffect(() => {
     if (state.phase === "handoff") {
       if (state.daifugoEffectEvent && isDaifugoEventPlaying) return;
+      if (state.pendingDaifugoEffect) return;
       const timeoutId = window.setTimeout(() => {
         dispatch({ type: "confirmHandoff" });
       }, 3000);
@@ -401,7 +413,7 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
         window.clearTimeout(timeoutId);
       };
     }
-  }, [state.phase, state.daifugoEffectEvent?.id, isDaifugoEventPlaying, dispatch]);
+  }, [state.phase, state.daifugoEffectEvent?.id, state.pendingDaifugoEffect, isDaifugoEventPlaying, dispatch]);
 
   useEffect(() => {
     if (!state.daifugoEffectEvent) return;
@@ -687,6 +699,11 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
             </div>
           )}
         </header>
+        {onExitToHome && (
+          <button type="button" className="play-exit-button" onClick={onExitToHome}>
+            退出
+          </button>
+        )}
 
         <div className="table-shape">
           <div className={`deck-stack ${state.deck.length === 0 ? "empty-deck" : ""}`} aria-label={`山札 ${state.deck.length}枚`}>
@@ -1013,17 +1030,41 @@ export default function PlayScreen({ state, dispatch, currentRound }: PlayScreen
             <div className="daifugo-effect-panel queen-effect-panel">
               <strong>Qの効果：消す数字を選んでください。</strong>
               <div className="rank-choice-grid">
-                {availableQueenRankOptions.map((rank) => (
+                {queenRankChoices.map((option) => (
                   <button
                     type="button"
                     className="rank-choice-button"
-                    key={rank}
-                    disabled={isAnimating || cpuActionInProgress}
-                    onClick={() => dispatch({ type: "selectQueenVanishRank", rank })}
+                    key={option.rank}
+                    disabled={isAnimating || cpuActionInProgress || !option.selectable}
+                    title={option.disabledReason}
+                    onClick={() => dispatch({ type: "selectQueenVanishRank", rank: option.rank })}
                   >
-                    {formatRankLabel(rank)}
+                    {formatRankLabel(option.rank)}
                   </button>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {isReachContinueConfirm && !state.players[pendingDaifugoEffect.playerIndex]?.isCpu && (
+            <div className="daifugo-effect-panel reach-continue-panel">
+              <strong>{pendingDaifugoEffect.message}</strong>
+              <div className="daifugo-effect-actions">
+                <button
+                  type="button"
+                  className="primary-button"
+                  disabled={isAnimating || cpuActionInProgress}
+                  onClick={() => dispatch({ type: "answerReachContinue", keepReach: true })}
+                >
+                  リーチを継続する
+                </button>
+                <button
+                  type="button"
+                  disabled={isAnimating || cpuActionInProgress}
+                  onClick={() => dispatch({ type: "answerReachContinue", keepReach: false })}
+                >
+                  通常状態に戻る
+                </button>
               </div>
             </div>
           )}
@@ -1779,6 +1820,7 @@ function getActionText(state: GameState) {
   if (state.pendingDaifugoEffect?.kind === "sevenExchange") return state.message;
   if (state.pendingDaifugoEffect?.kind === "queenSelect") return "Qの効果で消す数字を選んでいます。";
   if (state.pendingDaifugoEffect?.kind === "queenWinConfirm") return "Qの効果後の上がりを確認しています。";
+  if (state.pendingDaifugoEffect?.kind === "reachContinueConfirm") return state.pendingDaifugoEffect.message;
   if (state.pendingDaifugoEffect?.kind === "confirm") return getDaifugoEffectText(state.pendingDaifugoEffect.effect);
   if (state.pendingDaifugoEffect?.kind === "extraDiscard") {
     return state.pendingDaifugoEffect.effect === "eightExtraTurn"

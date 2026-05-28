@@ -71,6 +71,12 @@ export type PendingDaifugoEffect =
       playerIndex: number;
       winningResult: WinningResult;
       continue: PendingDaifugoContinue;
+    }
+  | {
+      kind: "reachContinueConfirm";
+      effect: "sevenExchange" | "queenNumberVanish";
+      playerIndex: number;
+      message: string;
     };
 
 export interface Card {

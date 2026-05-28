@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { createInitialGame } from "../game/gameState";
 import type { Card, GameState } from "../types";
@@ -29,6 +30,19 @@ describe("PlayScreen round display", () => {
     render(<PlayScreen state={createInitialGame(4, "clockwise")} dispatch={vi.fn()} currentRound={1} />);
 
     expect(screen.getByText("- 1回戦 -")).toBeInTheDocument();
+  });
+
+  it("renders the direct home exit action only when provided", async () => {
+    const user = userEvent.setup();
+    const onExitToHome = vi.fn();
+    const { rerender } = render(<PlayScreen state={createInitialGame(4, "clockwise")} dispatch={vi.fn()} currentRound={1} />);
+
+    expect(screen.queryByRole("button", { name: "退出" })).not.toBeInTheDocument();
+
+    rerender(<PlayScreen state={createInitialGame(4, "clockwise")} dispatch={vi.fn()} currentRound={1} onExitToHome={onExitToHome} />);
+    await user.click(screen.getByRole("button", { name: "退出" }));
+
+    expect(onExitToHome).toHaveBeenCalledTimes(1);
   });
 
   it("updates the round display after advancing to the next round", () => {

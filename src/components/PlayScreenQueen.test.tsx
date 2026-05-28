@@ -22,4 +22,37 @@ describe("PlayScreen queen effect choices", () => {
     expect(rankChoices).not.toContain("K");
     expect(rankChoices).toContain("Q");
   });
+
+  it("centers available Q choices and disables ranks that cannot be refilled", () => {
+    const state: GameState = {
+      ...createInitialGame(3, "clockwise"),
+      deck: [{ id: "deck-5", rank: 5, suit: "S" }],
+      players: [
+        {
+          ...createInitialGame(3, "clockwise").players[0],
+          hand: [
+            { id: "5s", rank: 5, suit: "S" },
+            { id: "5h", rank: 5, suit: "H" },
+          ],
+        },
+        createInitialGame(3, "clockwise").players[1],
+        createInitialGame(3, "clockwise").players[2],
+      ],
+      queenVanishedRanks: [13, 12],
+      pendingDaifugoEffect: {
+        kind: "queenSelect",
+        effect: "queenNumberVanish",
+        playerIndex: 0,
+        continue: { shouldConfirmReach: false },
+      },
+    };
+    const { container } = render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} />);
+    const grid = container.querySelector<HTMLElement>(".rank-choice-grid");
+    const fiveButton = [...container.querySelectorAll<HTMLButtonElement>(".rank-choice-button")].find((button) => button.textContent === "5");
+    const kingButton = [...container.querySelectorAll<HTMLButtonElement>(".rank-choice-button")].find((button) => button.textContent === "K");
+
+    expect(grid).toBeTruthy();
+    expect(fiveButton?.disabled).toBe(true);
+    expect(kingButton).toBeUndefined();
+  });
 });

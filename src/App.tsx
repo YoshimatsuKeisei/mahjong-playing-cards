@@ -10,7 +10,7 @@ import PlayScreen from "./components/PlayScreen";
 import ResultScreen from "./components/ResultScreen";
 import FinalResultScreen from "./components/FinalResultScreen";
 import { createInitialGame, gameReducer, type GameAction } from "./game/gameState";
-import { advanceRound, canAdvanceRound, createMatchState, syncMatchGameState } from "./game/matchState";
+import { advanceRound, canAdvanceRound, createInterruptedFinalMatchState, createMatchState, syncMatchGameState } from "./game/matchState";
 import { calculatePointDeductions, calculateRawRoundScores } from "./game/scoring";
 import { createDefaultDaifugoOptions } from "./game/deck";
 import { createDoubleRonResultFixture, createSingleRonResultFixture, createStartingPointsTsumoResultFixture } from "./game/resultFixtures";
@@ -24,6 +24,7 @@ const initialState: GameState = {
   direction: "clockwise",
   daifugoOptions: createDefaultDaifugoOptions(),
   pendingDaifugoEffect: null,
+  queenVanishedRanks: [],
   isJBackActive: false,
   phase: "setup",
   drawnCard: null,
@@ -39,14 +40,32 @@ const initialState: GameState = {
 };
 
 type AppScreen = "home" | "roomSelect" | "roomList" | "newGame" | "play" | "manual" | "moreGame" | "settings" | "profile" | "result";
+type ExitConfirmKind = "summary" | "home" | null;
 type DebugResultKind = "ron" | "tsumo" | "doubleRon";
 type DebugStandingsCase = "roundsNoRankChange" | "roundsRankChange" | "targetNoRankChange" | "pointsLoss";
-type DebugDaifugoCase = "jBack" | "eightTsumo" | "eightReach" | "tenTsumo" | "tenReach" | "reachTenBlocked" | "reachEight";
+type DebugDaifugoCase =
+  | "jBack"
+  | "eightTsumo"
+  | "eightReach"
+  | "tenTsumo"
+  | "tenReach"
+  | "reachTenBlocked"
+  | "reachEight"
+  | "queenReachRelease"
+  | "queenReachContinue"
+  | "sevenReachRecheck"
+  | "queenSparseChoices"
+  | "queenRefillBlocked"
+  | "queenNoChoices"
+  | "emptyDeckDraw"
+  | "queenEndsWithEmptyDeck";
 
 export default function App() {
   const [state, setState] = useState<GameState>(initialState);
   const [matchState, setMatchState] = useState<MatchState | null>(null);
   const [screen, setScreen] = useState<AppScreen>("home");
+  const [exitConfirmKind, setExitConfirmKind] = useState<ExitConfirmKind>(null);
+  const [interruptedFinalMatchState, setInterruptedFinalMatchState] = useState<MatchState | null>(null);
   const [homeEntryMode, setHomeEntryMode] = useState<"initial" | "return">("initial");
   const [profile, setProfile] = useState<ProfileData>({
     userName: "Guest Player",
@@ -55,6 +74,8 @@ export default function App() {
   });
 
   function returnToHome() {
+    setInterruptedFinalMatchState(null);
+    setExitConfirmKind(null);
     setHomeEntryMode("return");
     setScreen("home");
   }
@@ -76,6 +97,8 @@ export default function App() {
   }
 
   function startGame(playerCount: number, direction: GameState["direction"], matchMode: MatchMode, ruleValue: number, roomSettings?: RoomCreateSettings) {
+    setInterruptedFinalMatchState(null);
+    setExitConfirmKind(null);
     if (matchMode === "rounds" || matchMode === "targetScore" || matchMode === "startingPoints") {
       const nextMatch = createMatchState(
         matchMode,
@@ -109,14 +132,51 @@ export default function App() {
 
   function restartToNewGame() {
     setMatchState(null);
+    setInterruptedFinalMatchState(null);
+    setExitConfirmKind(null);
     setState(gameReducer(state, { type: "restart" }));
     setScreen("newGame");
+  }
+
+  function requestSummaryExit() {
+    setExitConfirmKind("summary");
+  }
+
+  function requestHomeExit() {
+    setExitConfirmKind("home");
+  }
+
+  function cancelExitConfirm() {
+    setExitConfirmKind(null);
+  }
+
+  function confirmExit() {
+    if (exitConfirmKind === "summary") {
+      if (matchState) {
+        setInterruptedFinalMatchState(createInterruptedFinalMatchState(matchState));
+        setExitConfirmKind(null);
+        setScreen("result");
+        return;
+      }
+      restartToNewGame();
+      return;
+    }
+
+    if (exitConfirmKind === "home") {
+      setMatchState(null);
+      setInterruptedFinalMatchState(null);
+      setExitConfirmKind(null);
+      setState(initialState);
+      setHomeEntryMode("return");
+      setScreen("home");
+    }
   }
 
   function advanceToNextRound() {
     setMatchState((currentMatch) => {
       if (!currentMatch || !canAdvanceRound(currentMatch)) return currentMatch;
       const nextMatch = advanceRound(currentMatch);
+      setInterruptedFinalMatchState(null);
       setState(nextMatch.gameState);
       setScreen("play");
       return nextMatch;
@@ -209,6 +269,7 @@ export default function App() {
 
   if (screen === "home") {
     return (
+      <>
       <HomeScreen
         entryMode={homeEntryMode}
         onNavigate={handleHomeNavigate}
@@ -235,10 +296,20 @@ export default function App() {
                 { label: "DEV: 10効果リーチ確認", onClick: () => showDebugDaifugo("tenReach") },
                 { label: "DEV: リーチ中10禁止確認", onClick: () => showDebugDaifugo("reachTenBlocked") },
                 { label: "DEV: リーチ中8確認", onClick: () => showDebugDaifugo("reachEight") },
+                { label: "DEV: Q後リーチ解除", onClick: () => showDebugDaifugo("queenReachRelease") },
+                { label: "DEV: Q後リーチ継続確認", onClick: () => showDebugDaifugo("queenReachContinue") },
+                { label: "DEV: 7交換後リーチ再判定", onClick: () => showDebugDaifugo("sevenReachRecheck") },
+                { label: "DEV: Q候補中央寄せ", onClick: () => showDebugDaifugo("queenSparseChoices") },
+                { label: "DEV: Q補充不能ランク", onClick: () => showDebugDaifugo("queenRefillBlocked") },
+                { label: "DEV: Q候補0件不発", onClick: () => showDebugDaifugo("queenNoChoices") },
+                { label: "DEV: 山札0枚流局", onClick: () => showDebugDaifugo("emptyDeckDraw") },
+                { label: "DEV: Q後山札0枚境界", onClick: () => showDebugDaifugo("queenEndsWithEmptyDeck") },
               ]
             : undefined
         }
       />
+      {exitConfirmKind && <ExitConfirmDialog kind={exitConfirmKind} onCancel={cancelExitConfirm} onConfirm={confirmExit} />}
+      </>
     );
   }
 
@@ -271,18 +342,39 @@ export default function App() {
   }
 
   if (state.phase === "result" && state.result) {
+    if (interruptedFinalMatchState) {
+      return (
+        <>
+          <FinalResultScreen
+            matchState={interruptedFinalMatchState}
+            players={interruptedFinalMatchState.gameState.players}
+            onJoinAnotherMatch={() => {
+              setInterruptedFinalMatchState(null);
+              setScreen("roomSelect");
+            }}
+            onBackHome={returnToHome}
+          />
+          {exitConfirmKind && <ExitConfirmDialog kind={exitConfirmKind} onCancel={cancelExitConfirm} onConfirm={confirmExit} />}
+        </>
+      );
+    }
+
     if (matchState && !canAdvanceRound(matchState)) {
       return (
+        <>
         <FinalResultScreen
           matchState={matchState}
           players={state.players}
           onJoinAnotherMatch={() => setScreen("roomSelect")}
           onBackHome={returnToHome}
         />
+        {exitConfirmKind && <ExitConfirmDialog kind={exitConfirmKind} onCancel={cancelExitConfirm} onConfirm={confirmExit} />}
+        </>
       );
     }
 
     return (
+      <>
       <ResultScreen
         state={state}
         currentRound={
@@ -311,13 +403,16 @@ export default function App() {
               }
             : undefined
         }
-        onRestart={restartToNewGame}
+        onRestart={requestSummaryExit}
         onBackHome={returnToHome}
       />
+      {exitConfirmKind && <ExitConfirmDialog kind={exitConfirmKind} onCancel={cancelExitConfirm} onConfirm={confirmExit} />}
+      </>
     );
   }
 
   return (
+    <>
     <PlayScreen
       state={state}
       dispatch={dispatch}
@@ -326,7 +421,30 @@ export default function App() {
           ? matchState.currentRound
           : undefined
       }
+      onExitToHome={requestHomeExit}
     />
+    {exitConfirmKind && <ExitConfirmDialog kind={exitConfirmKind} onCancel={cancelExitConfirm} onConfirm={confirmExit} />}
+    </>
+  );
+}
+
+function ExitConfirmDialog({ kind, onCancel, onConfirm }: { kind: Exclude<ExitConfirmKind, null>; onCancel: () => void; onConfirm: () => void }) {
+  const isSummaryExit = kind === "summary";
+  return (
+    <div className="exit-confirm-overlay" role="dialog" aria-modal="true" aria-labelledby="exit-confirm-title">
+      <div className="exit-confirm-dialog">
+        <h2 id="exit-confirm-title">{isSummaryExit ? "この試合を終了しますか？" : "試合を終了してホーム画面に戻りますか？"}</h2>
+        <p>{isSummaryExit ? "現在までに完了した局の結果を集計して表示します。" : "現在の試合結果は表示されません。"}</p>
+        <div className="exit-confirm-actions">
+          <button type="button" className="primary-button" onClick={onConfirm}>
+            はい
+          </button>
+          <button type="button" onClick={onCancel}>
+            いいえ
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -347,6 +465,11 @@ function calculatePreviousStandings(matchState: MatchState, state: GameState) {
 
 function debugCard(id: string, rank: number, suit: Card["suit"] = "S"): Card {
   return { id, rank, suit };
+}
+
+function debugDeck(count: number, prefix: string, ranks: number[] = [1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]): Card[] {
+  const suits: Card["suit"][] = ["S", "H", "D", "C"];
+  return Array.from({ length: count }, (_, index) => debugCard(`${prefix}-${index}`, ranks[index % ranks.length], suits[index % suits.length]));
 }
 
 function debugPlayer(index: number, hand: Card[], isReach = false): Player {
@@ -428,6 +551,155 @@ function createDebugDaifugoState(caseName: DebugDaifugoCase): GameState {
     debugPlayer(3, isJBackCase ? [debugCard("p3-6", 6)] : [debugCard("p3-1", 1), debugCard("p3-5", 5)]),
   ];
 
+  const makeState = (overrides: Partial<GameState>): GameState => ({
+    players,
+    deck: [],
+    currentPlayerIndex: 0,
+    direction: "clockwise",
+    daifugoOptions: createDebugDaifugoOptions(),
+    pendingDaifugoEffect: null,
+    queenVanishedRanks: [],
+    isJBackActive: caseName === "jBack",
+    phase: "discard",
+    drawnCard: null,
+    drawnFrom: null,
+    lastDiscarderIndex: null,
+    takenDiscardOwnerIndex: null,
+    winner: null,
+    result: null,
+    pendingRonResult: null,
+    showCpuActions: true,
+    declaredReachThisTurn: false,
+    message: "DEV大富豪確認用の状態です。",
+    ...overrides,
+  });
+
+  if (caseName === "queenReachRelease") {
+    const reachHand = [
+      debugCard("qr-2s", 2, "S"),
+      debugCard("qr-2h", 2, "H"),
+      debugCard("qr-2d", 2, "D"),
+      debugCard("qr-3s", 3, "S"),
+      debugCard("qr-3h", 3, "H"),
+      debugCard("qr-3d", 3, "D"),
+      debugCard("qr-4s", 4, "S"),
+      debugCard("qr-5s", 5, "S"),
+      debugCard("qr-6s", 6, "S"),
+      debugCard("qr-q", 12, "S"),
+    ];
+    return makeState({
+      players: [debugPlayer(1, reachHand, true), players[1], players[2]],
+      deck: debugDeck(24, "qr-refill", [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]),
+      pendingDaifugoEffect: { kind: "queenSelect", effect: "queenNumberVanish", playerIndex: 0, continue: { shouldConfirmReach: false } },
+      phase: "handoff",
+      message: "DEV: Qでリーチ解除されるケースです。",
+    });
+  }
+
+  if (caseName === "queenReachContinue") {
+    const reachHand = [
+      debugCard("qc-2s", 2, "S"),
+      debugCard("qc-2h", 2, "H"),
+      debugCard("qc-2d", 2, "D"),
+      debugCard("qc-3s", 3, "S"),
+      debugCard("qc-3h", 3, "H"),
+      debugCard("qc-3d", 3, "D"),
+      debugCard("qc-4s", 4, "S"),
+      debugCard("qc-5s", 5, "S"),
+      debugCard("qc-6s", 6, "S"),
+      debugCard("qc-k", 13, "S"),
+    ];
+    return makeState({
+      players: [debugPlayer(1, reachHand, true), players[1], players[2]],
+      deck: debugDeck(24, "qc-refill", [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]),
+      pendingDaifugoEffect: { kind: "queenSelect", effect: "queenNumberVanish", playerIndex: 0, continue: { shouldConfirmReach: false } },
+      phase: "handoff",
+      message: "DEV: Q後もリーチ可能なため継続確認が出るケースです。",
+    });
+  }
+
+  if (caseName === "sevenReachRecheck") {
+    const actorHand = [debugCard("s7-7", 7, "S"), debugCard("s7-give", 9, "S"), debugCard("s7-junk", 10, "S")];
+    const targetReachHand = [
+      debugCard("s7-2s", 2, "S"),
+      debugCard("s7-2h", 2, "H"),
+      debugCard("s7-2d", 2, "D"),
+      debugCard("s7-3s", 3, "S"),
+      debugCard("s7-3h", 3, "H"),
+      debugCard("s7-3d", 3, "D"),
+      debugCard("s7-4s", 4, "S"),
+      debugCard("s7-5s", 5, "S"),
+      debugCard("s7-6s", 6, "S"),
+      debugCard("s7-8s", 8, "S"),
+    ];
+    return makeState({
+      players: [debugPlayer(1, actorHand), debugPlayer(2, targetReachHand, true), players[2]],
+      pendingDaifugoEffect: {
+        kind: "sevenExchange",
+        effect: "sevenExchange",
+        playerIndex: 0,
+        targetPlayerIndex: 1,
+        selections: {},
+        continue: { shouldConfirmReach: false },
+      },
+      phase: "handoff",
+      message: "DEV: 7交換でリーチ再判定するケースです。",
+    });
+  }
+
+  if (caseName === "queenSparseChoices") {
+    return makeState({
+      pendingDaifugoEffect: { kind: "queenSelect", effect: "queenNumberVanish", playerIndex: 0, continue: { shouldConfirmReach: false } },
+      phase: "handoff",
+      queenVanishedRanks: [2, 3, 6, 8, 9, 11],
+      deck: [debugCard("qs-4", 4, "S"), debugCard("qs-5", 5, "S"), debugCard("qs-7", 7, "S"), debugCard("qs-10", 10, "S")],
+      message: "DEV: Q候補が減った時の中央寄せ確認です。",
+    });
+  }
+
+  if (caseName === "queenRefillBlocked") {
+    return makeState({
+      players: [
+        debugPlayer(1, [debugCard("qb-5s", 5, "S"), debugCard("qb-5h", 5, "H"), debugCard("qb-6s", 6, "S")]),
+        players[1],
+        players[2],
+      ],
+      deck: [debugCard("qb-5d", 5, "D"), debugCard("qb-8s", 8, "S"), debugCard("qb-9s", 9, "S")],
+      pendingDaifugoEffect: { kind: "queenSelect", effect: "queenNumberVanish", playerIndex: 0, continue: { shouldConfirmReach: false } },
+      phase: "handoff",
+      message: "DEV: Q補充不能ランクの無効表示確認です。",
+    });
+  }
+
+  if (caseName === "queenNoChoices") {
+    return makeState({
+      players: [debugPlayer(1, [debugCard("qn-5s", 5, "S"), debugCard("qn-5h", 5, "H")]), players[1], players[2]],
+      deck: [debugCard("qn-5d", 5, "D")],
+      pendingDaifugoEffect: { kind: "confirm", effect: "queenNumberVanish", playerIndex: 0, continue: { shouldConfirmReach: false } },
+      queenVanishedRanks: [1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 12, 13],
+      phase: "handoff",
+      message: "DEV: Q候補0件時の不発確認です。",
+    });
+  }
+
+  if (caseName === "emptyDeckDraw") {
+    return makeState({
+      deck: [],
+      phase: "draw",
+      message: "DEV: 山札0枚で通常ドローすると流局します。",
+    });
+  }
+
+  if (caseName === "queenEndsWithEmptyDeck") {
+    return makeState({
+      players: [debugPlayer(1, [debugCard("qe-5s", 5, "S"), debugCard("qe-6s", 6, "S")]), players[1], players[2]],
+      deck: [debugCard("qe-5d", 5, "D"), debugCard("qe-refill", 8, "S")],
+      pendingDaifugoEffect: { kind: "queenSelect", effect: "queenNumberVanish", playerIndex: 0, continue: { shouldConfirmReach: false } },
+      phase: "handoff",
+      message: "DEV: Q完了後に山札が0枚になる境界ケースです。",
+    });
+  }
+
   return {
     players,
     deck: isTsumoCase
@@ -437,6 +709,7 @@ function createDebugDaifugoState(caseName: DebugDaifugoCase): GameState {
     direction: "clockwise",
     daifugoOptions: createDebugDaifugoOptions(),
     pendingDaifugoEffect: null,
+    queenVanishedRanks: [],
     isJBackActive: caseName === "jBack",
     phase: "discard",
     drawnCard: isJBackCase ? jBackHand.find((card) => card.id === "r6") ?? null : effectCard,
@@ -455,6 +728,7 @@ function createDebugDaifugoState(caseName: DebugDaifugoCase): GameState {
 function calculateDebugRoundScores(state: GameState, playerCount: number) {
   const scores = Array.from({ length: playerCount }, () => 0);
   if (!state.result) return scores;
+  if (state.result.winType === "deckout") return scores;
 
   if (state.result.winType === "ron" && state.result.ronResults) {
     for (const ronResult of state.result.ronResults) {
