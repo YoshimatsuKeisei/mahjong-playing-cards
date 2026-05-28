@@ -1,4 +1,17 @@
-import type { Card, CpuModelId, DaifugoEffectEvent, DaifugoEffectId, DaifugoOptions, Direction, GameResult, GameState, PendingDaifugoContinue, Player, RonResult } from "../types";
+import type {
+  Card,
+  CpuModelId,
+  DaifugoEffectEvent,
+  DaifugoEffectId,
+  DaifugoOptions,
+  Direction,
+  GameResult,
+  GameState,
+  JackSpecialEffectId,
+  PendingDaifugoContinue,
+  Player,
+  RonResult,
+} from "../types";
 import { createDeck, createDefaultDaifugoOptions, dealCards, shuffleDeck, sortCards } from "./deck";
 import {
   canDeclareReach,
@@ -270,13 +283,13 @@ function getDaifugoConfirmMessage(effect: DaifugoEffectId): string {
     case "fiveSkip":
       return "5の効果：次のプレイヤーをスキップしますか？";
     case "eightExtraTurn":
-      return "8の効果：追加ターンを行い、Jバックを解除しますか？";
+      return "8の効果：追加ターンを行いますか？";
     case "nineReverse":
       return "9の効果：手番方向を逆にしますか？";
     case "tenSwapDraw":
       return "10の効果：追加で1枚捨てて山札から1枚引きますか？";
     case "jackBack":
-      return "Jの効果：Jバックを発動/解除しますか？";
+      return "Jの効果：J特殊効果を使用しますか？";
     default:
       return "カード効果を発動しますか？";
   }
@@ -722,6 +735,59 @@ function makeWinningState(state: GameState, players: Player[], winningResult = p
   };
 }
 
+function getJackInspectTargetPlayerIndexes(state: GameState, playerIndex: number): number[] {
+  return state.players.map((_, index) => index).filter((index) => index !== playerIndex);
+}
+
+function resolveJackBackEffect(state: GameState, playerIndex: number, continueState: PendingDaifugoContinue): GameState {
+  const nextIsJBackActive = !state.isJBackActive;
+  const playerName = state.players[playerIndex]?.name ?? "プレイヤー";
+  const message = nextIsJBackActive
+    ? `${playerName}がJバックを発動しました。失点計算が逆転します。`
+    : `${playerName}がJバックを解除しました。失点計算が通常に戻ります。`;
+  return continueAfterDaifugo(
+    {
+      ...state,
+      isJBackActive: nextIsJBackActive,
+      pendingDaifugoEffect: null,
+    },
+    { ...continueState, shouldConfirmReach: false, message },
+  );
+}
+
+function startJackInspectEffect(state: GameState, playerIndex: number, continueState: PendingDaifugoContinue): GameState {
+  const targetPlayerIndexes = getJackInspectTargetPlayerIndexes(state, playerIndex);
+  const playerName = state.players[playerIndex]?.name ?? "プレイヤー";
+  if (targetPlayerIndexes.length === 0) {
+    return continueAfterDaifugo(
+      { ...state, pendingDaifugoEffect: null },
+      { ...continueState, shouldConfirmReach: false, message: `${playerName}が情報閲覧を完了しました。` },
+    );
+  }
+  return {
+    ...state,
+    pendingDaifugoEffect: {
+      kind: "jackInspect",
+      effect: "jackBack",
+      playerIndex,
+      targetPlayerIndexes,
+      currentTargetOffset: 0,
+      revealedCardIds: {},
+      continue: continueState,
+    },
+    message: `${playerName}がJ効果で相手の手札を確認しています。`,
+  };
+}
+
+function resolveJackSpecialEffect(state: GameState, effect: JackSpecialEffectId): GameState {
+  const pending = state.pendingDaifugoEffect;
+  if (!pending || pending.kind !== "jackSelect") return state;
+  if (effect === "jBack") {
+    return resolveJackBackEffect(state, pending.playerIndex, pending.continue);
+  }
+  return startJackInspectEffect(state, pending.playerIndex, pending.continue);
+}
+
 function applyDaifugoEffect(state: GameState): GameState {
   const pending = state.pendingDaifugoEffect;
   if (!pending || pending.kind !== "confirm" || pending.playerIndex !== state.currentPlayerIndex) return state;
@@ -752,14 +818,25 @@ function applyDaifugoEffect(state: GameState): GameState {
   }
 
   if (pending.effect === "jackBack") {
-    return continueAfterDaifugo({ ...state, isJBackActive: !state.isJBackActive }, pending.continue);
+    if (state.players[state.currentPlayerIndex]?.isCpu) {
+      return resolveJackBackEffect(state, state.currentPlayerIndex, pending.continue);
+    }
+    return {
+      ...state,
+      pendingDaifugoEffect: {
+        kind: "jackSelect",
+        effect: "jackBack",
+        playerIndex: state.currentPlayerIndex,
+        continue: pending.continue,
+      },
+      message: `${state.players[state.currentPlayerIndex].name}がJ特殊効果を発動しました。効果を選択しています。`,
+    };
   }
 
   if (pending.effect === "eightExtraTurn") {
-    if (state.deck.length === 0) return deckoutResult({ ...state, pendingDaifugoEffect: null, isJBackActive: false }, state.players);
+    if (state.deck.length === 0) return deckoutResult({ ...state, pendingDaifugoEffect: null }, state.players);
     return {
       ...state,
-      isJBackActive: false,
       pendingDaifugoEffect: {
         kind: "effectDraw",
         effect: "eightExtraTurn",
@@ -824,6 +901,9 @@ export type GameAction =
   | { type: "selectSevenExchangeCard"; playerIndex: number; cardId: string }
   | { type: "selectQueenVanishRank"; rank: number }
   | { type: "answerQueenWin"; takeWin: boolean }
+  | { type: "selectJackSpecialEffect"; effect: JackSpecialEffectId }
+  | { type: "inspectJackCard"; targetPlayerIndex: number; cardId: string }
+  | { type: "confirmJackInspectCard" }
   | { type: "answerReachContinue"; keepReach: boolean }
   | { type: "drawFromDeck" }
   | { type: "takeDiscard"; ownerIndex: number; meld?: Card[] }
@@ -843,6 +923,9 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     action.type !== "selectSevenExchangeCard" &&
     action.type !== "selectQueenVanishRank" &&
     action.type !== "answerQueenWin" &&
+    action.type !== "selectJackSpecialEffect" &&
+    action.type !== "inspectJackCard" &&
+    action.type !== "confirmJackInspectCard" &&
     action.type !== "answerReachContinue" &&
     action.type !== "declareReach" &&
     action.type !== "answerReachAfterDiscard" &&
@@ -1064,6 +1147,53 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         { ...state, pendingDaifugoEffect: null, currentPlayerIndex: pending.playerIndex },
         { ...pending.continue, shouldConfirmReach: false },
       );
+    }
+
+    case "selectJackSpecialEffect": {
+      return resolveJackSpecialEffect(state, action.effect);
+    }
+
+    case "inspectJackCard": {
+      const pending = state.pendingDaifugoEffect;
+      if (!pending || pending.kind !== "jackInspect") return state;
+      const targetPlayerIndex = pending.targetPlayerIndexes[pending.currentTargetOffset];
+      if (targetPlayerIndex !== action.targetPlayerIndex) return state;
+      const target = state.players[targetPlayerIndex];
+      if (!target?.hand.some((card) => card.id === action.cardId)) return state;
+      if (pending.revealedCardIds[targetPlayerIndex]) return state;
+      return {
+        ...state,
+        pendingDaifugoEffect: {
+          ...pending,
+          revealedCardIds: {
+            ...pending.revealedCardIds,
+            [targetPlayerIndex]: action.cardId,
+          },
+        },
+      };
+    }
+
+    case "confirmJackInspectCard": {
+      const pending = state.pendingDaifugoEffect;
+      if (!pending || pending.kind !== "jackInspect") return state;
+      const targetPlayerIndex = pending.targetPlayerIndexes[pending.currentTargetOffset];
+      if (targetPlayerIndex === undefined || !pending.revealedCardIds[targetPlayerIndex]) return state;
+      const nextOffset = pending.currentTargetOffset + 1;
+      const playerName = state.players[pending.playerIndex]?.name ?? "プレイヤー";
+      if (nextOffset >= pending.targetPlayerIndexes.length) {
+        return continueAfterDaifugo(
+          { ...state, pendingDaifugoEffect: null },
+          { ...pending.continue, shouldConfirmReach: false, message: `${playerName}が情報閲覧を完了しました。` },
+        );
+      }
+      return {
+        ...state,
+        pendingDaifugoEffect: {
+          ...pending,
+          currentTargetOffset: nextOffset,
+        },
+        message: `${playerName}がJ効果で相手の手札を確認しています。`,
+      };
     }
 
     case "answerReachContinue": {

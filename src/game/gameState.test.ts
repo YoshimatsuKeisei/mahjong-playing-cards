@@ -420,16 +420,98 @@ describe("daifugo game state", () => {
     expect(next.currentPlayerIndex).toBe(1);
   });
 
-  it("toggles J-back and clears it with the 8 effect", () => {
+  it("shows a J special effect choice before toggling J-back", () => {
     const jackPending = gameReducer(stateForDiscard(card("jack", 11)), { type: "discard", cardId: "jack" });
-    const jBack = gameReducer(jackPending, { type: "answerDaifugoEffect", activate: true });
+    const choosing = gameReducer(jackPending, { type: "answerDaifugoEffect", activate: true });
+
+    expect(choosing.pendingDaifugoEffect?.kind).toBe("jackSelect");
+    expect(choosing.isJBackActive).toBe(false);
+
+    const jBack = gameReducer(choosing, { type: "selectJackSpecialEffect", effect: "jBack" });
     expect(jBack.isJBackActive).toBe(true);
+    expect(jBack.pendingDaifugoEffect).toBeNull();
+  });
+
+  it("J-back is toggled only by choosing J-back and is no longer cleared by the 8 effect", () => {
+    const jackPending = gameReducer({ ...stateForDiscard(card("jack", 11)), isJBackActive: true }, { type: "discard", cardId: "jack" });
+    const choosing = gameReducer(jackPending, { type: "answerDaifugoEffect", activate: true });
+    const normal = gameReducer(choosing, { type: "selectJackSpecialEffect", effect: "jBack" });
+    expect(normal.isJBackActive).toBe(false);
 
     const eightPending = gameReducer({ ...stateForDiscard(card("eight", 8)), isJBackActive: true }, { type: "discard", cardId: "eight" });
     const drawPending = gameReducer(eightPending, { type: "answerDaifugoEffect", activate: true });
-    expect(drawPending.isJBackActive).toBe(false);
+    expect(drawPending.isJBackActive).toBe(true);
     expect(drawPending.pendingDaifugoEffect?.kind).toBe("effectDraw");
     expect(drawPending.currentPlayerIndex).toBe(0);
+  });
+
+  it("does not change J-back when J special effect is declined or information browsing is selected", () => {
+    const jackPending = gameReducer(stateForDiscard(card("jack", 11)), { type: "discard", cardId: "jack" });
+    const declined = gameReducer(jackPending, { type: "answerDaifugoEffect", activate: false });
+    expect(declined.isJBackActive).toBe(false);
+
+    const choosing = gameReducer(jackPending, { type: "answerDaifugoEffect", activate: true });
+    const inspecting = gameReducer(choosing, { type: "selectJackSpecialEffect", effect: "inspectHands" });
+    expect(inspecting.isJBackActive).toBe(false);
+    expect(inspecting.pendingDaifugoEffect?.kind).toBe("jackInspect");
+  });
+
+  it("information browsing targets every opponent once and does not alter card state", () => {
+    const choosing = gameReducer(gameReducer(stateForDiscard(card("jack", 11)), { type: "discard", cardId: "jack" }), {
+      type: "answerDaifugoEffect",
+      activate: true,
+    });
+    const beforeInspect = gameReducer(choosing, { type: "selectJackSpecialEffect", effect: "inspectHands" });
+    const originalHands = beforeInspect.players.map((candidate) => candidate.hand.map((item) => item.id));
+    const originalDeckIds = beforeInspect.deck.map((item) => item.id);
+    expect(beforeInspect.pendingDaifugoEffect?.kind).toBe("jackInspect");
+    if (beforeInspect.pendingDaifugoEffect?.kind !== "jackInspect") throw new Error("Expected jackInspect");
+    expect(beforeInspect.pendingDaifugoEffect.targetPlayerIndexes).toEqual([1, 2]);
+
+    const firstTarget = beforeInspect.pendingDaifugoEffect.targetPlayerIndexes[0];
+    const afterFirstReveal = gameReducer(beforeInspect, {
+      type: "inspectJackCard",
+      targetPlayerIndex: firstTarget,
+      cardId: beforeInspect.players[firstTarget].hand[0].id,
+    });
+    const blockedSecondReveal = gameReducer(afterFirstReveal, {
+      type: "inspectJackCard",
+      targetPlayerIndex: firstTarget,
+      cardId: beforeInspect.players[firstTarget].hand[1]?.id ?? beforeInspect.players[firstTarget].hand[0].id,
+    });
+    expect(blockedSecondReveal).toBe(afterFirstReveal);
+
+    const secondStep = gameReducer(afterFirstReveal, { type: "confirmJackInspectCard" });
+    expect(secondStep.pendingDaifugoEffect?.kind).toBe("jackInspect");
+    if (secondStep.pendingDaifugoEffect?.kind !== "jackInspect") throw new Error("Expected second jackInspect step");
+    const secondTarget = secondStep.pendingDaifugoEffect.targetPlayerIndexes[secondStep.pendingDaifugoEffect.currentTargetOffset];
+    const afterSecondReveal = gameReducer(secondStep, {
+      type: "inspectJackCard",
+      targetPlayerIndex: secondTarget,
+      cardId: secondStep.players[secondTarget].hand[0].id,
+    });
+    const resolved = gameReducer(afterSecondReveal, { type: "confirmJackInspectCard" });
+
+    expect(resolved.pendingDaifugoEffect).toBeNull();
+    expect(resolved.players.map((candidate) => candidate.hand.map((item) => item.id))).toEqual(originalHands);
+    expect(resolved.deck.map((item) => item.id)).toEqual(originalDeckIds);
+    expect(resolved.isJBackActive).toBe(false);
+    expect(resolved.direction).toBe(beforeInspect.direction);
+    expect(resolved.queenVanishedRanks).toEqual(beforeInspect.queenVanishedRanks);
+  });
+
+  it("CPU J activation temporarily chooses J-back instead of information browsing", () => {
+    const cpuState = {
+      ...stateForDiscard(card("jack", 11)),
+      players: stateForDiscard(card("jack", 11)).players.map((candidate, index) =>
+        index === 0 ? { ...candidate, isCpu: true, type: "cpu" as const, cpuModelId: "standard" as const } : candidate,
+      ),
+    };
+    const jackPending = gameReducer(cpuState, { type: "discard", cardId: "jack" });
+    const resolved = gameReducer(jackPending, { type: "answerDaifugoEffect", activate: true });
+
+    expect(resolved.pendingDaifugoEffect).toBeNull();
+    expect(resolved.isJBackActive).toBe(true);
   });
 
   it("resolves 8 extra discard without chaining another daifugo effect", () => {

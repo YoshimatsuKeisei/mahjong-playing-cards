@@ -148,6 +148,8 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
   const isSevenExchange = pendingDaifugoEffect?.kind === "sevenExchange";
   const isQueenSelect = pendingDaifugoEffect?.kind === "queenSelect";
   const isQueenWinConfirm = pendingDaifugoEffect?.kind === "queenWinConfirm";
+  const isJackSelect = pendingDaifugoEffect?.kind === "jackSelect";
+  const isJackInspect = pendingDaifugoEffect?.kind === "jackInspect";
   const isReachContinueConfirm = pendingDaifugoEffect?.kind === "reachContinueConfirm";
   const mustDiscardDrawnForReachDaifugo =
     isDaifugoExtraDiscard &&
@@ -163,6 +165,8 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
     isSevenExchange ||
     isQueenSelect ||
     isQueenWinConfirm ||
+    isJackSelect ||
+    isJackInspect ||
     isReachContinueConfirm;
   const pendingRonResult = state.pendingRonResult;
   const ronDiscarderIndex = pendingRonResult?.discarderIndex ?? null;
@@ -208,6 +212,8 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
     sevenSelectionPlayerIndex !== null ||
     (pendingDaifugoEffect?.kind === "queenSelect" && !state.players[pendingDaifugoEffect.playerIndex]?.isCpu) ||
     (pendingDaifugoEffect?.kind === "queenWinConfirm" && !state.players[pendingDaifugoEffect.playerIndex]?.isCpu) ||
+    (pendingDaifugoEffect?.kind === "jackSelect" && !state.players[pendingDaifugoEffect.playerIndex]?.isCpu) ||
+    (pendingDaifugoEffect?.kind === "jackInspect" && !state.players[pendingDaifugoEffect.playerIndex]?.isCpu) ||
     (pendingDaifugoEffect?.kind === "reachContinueConfirm" && !state.players[pendingDaifugoEffect.playerIndex]?.isCpu);
 
   useEffect(() => {
@@ -1046,6 +1052,74 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
             </div>
           )}
 
+          {isJackSelect && pendingDaifugoEffect.playerIndex === state.currentPlayerIndex && !currentPlayer.isCpu && (
+            <div className="daifugo-effect-panel jack-effect-panel">
+              <strong>J特殊効果を選択してください</strong>
+              <div className="jack-effect-choice-list">
+                <button
+                  type="button"
+                  className="jack-effect-choice"
+                  disabled={isAnimating || cpuActionInProgress}
+                  onClick={() => dispatch({ type: "selectJackSpecialEffect", effect: "inspectHands" })}
+                >
+                  <span>情報閲覧</span>
+                  <small>各対戦相手の手札を1枚ずつ確認します</small>
+                </button>
+                <button
+                  type="button"
+                  className="jack-effect-choice"
+                  disabled={isAnimating || cpuActionInProgress}
+                  onClick={() => dispatch({ type: "selectJackSpecialEffect", effect: "jBack" })}
+                >
+                  <span>Jバック</span>
+                  <small>{state.isJBackActive ? "失点計算を通常に戻します" : "失点計算の大小を反転します"}</small>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {isJackInspect && pendingDaifugoEffect.playerIndex === state.currentPlayerIndex && !currentPlayer.isCpu && (() => {
+            const targetPlayerIndex = pendingDaifugoEffect.targetPlayerIndexes[pendingDaifugoEffect.currentTargetOffset];
+            const targetPlayer = targetPlayerIndex !== undefined ? state.players[targetPlayerIndex] : null;
+            const revealedCardId = targetPlayerIndex !== undefined ? pendingDaifugoEffect.revealedCardIds[targetPlayerIndex] : undefined;
+            const revealedCard = targetPlayer?.hand.find((card) => card.id === revealedCardId) ?? null;
+            if (!targetPlayer || targetPlayerIndex === undefined) return null;
+            return (
+              <div className="daifugo-effect-panel jack-inspect-panel">
+                <strong>{targetPlayer.name}の手札から確認するカードを1枚選んでください</strong>
+                <span className="hint">
+                  {pendingDaifugoEffect.currentTargetOffset + 1} / {pendingDaifugoEffect.targetPlayerIndexes.length}
+                </span>
+                <div className="jack-inspect-card-grid">
+                  {targetPlayer.hand.map((card) => {
+                    const isRevealed = card.id === revealedCardId;
+                    return (
+                      <button
+                        type="button"
+                        className={`jack-inspect-card-button ${isRevealed ? "revealed" : ""}`}
+                        key={card.id}
+                        disabled={Boolean(revealedCardId) || isAnimating || cpuActionInProgress}
+                        aria-label={`${targetPlayer.name}の手札カード`}
+                        onClick={() => dispatch({ type: "inspectJackCard", targetPlayerIndex, cardId: card.id })}
+                      >
+                        <PlayingCard card={isRevealed ? card : null} isBack={!isRevealed} compact />
+                      </button>
+                    );
+                  })}
+                </div>
+                {revealedCard && <p className="jack-inspect-revealed">確認したカード: {formatCard(revealedCard)}</p>}
+                <button
+                  type="button"
+                  className="primary-button"
+                  disabled={!revealedCard || isAnimating || cpuActionInProgress}
+                  onClick={() => dispatch({ type: "confirmJackInspectCard" })}
+                >
+                  確認しました
+                </button>
+              </div>
+            );
+          })()}
+
           {isReachContinueConfirm && !state.players[pendingDaifugoEffect.playerIndex]?.isCpu && (
             <div className="daifugo-effect-panel reach-continue-panel">
               <strong>{pendingDaifugoEffect.message}</strong>
@@ -1820,6 +1894,8 @@ function getActionText(state: GameState) {
   if (state.pendingDaifugoEffect?.kind === "sevenExchange") return state.message;
   if (state.pendingDaifugoEffect?.kind === "queenSelect") return "Qの効果で消す数字を選んでいます。";
   if (state.pendingDaifugoEffect?.kind === "queenWinConfirm") return "Qの効果後の上がりを確認しています。";
+  if (state.pendingDaifugoEffect?.kind === "jackSelect") return "J特殊効果を選択しています。";
+  if (state.pendingDaifugoEffect?.kind === "jackInspect") return "J効果で相手の手札を確認しています。";
   if (state.pendingDaifugoEffect?.kind === "reachContinueConfirm") return state.pendingDaifugoEffect.message;
   if (state.pendingDaifugoEffect?.kind === "confirm") return getDaifugoEffectText(state.pendingDaifugoEffect.effect);
   if (state.pendingDaifugoEffect?.kind === "extraDiscard") {
@@ -1851,10 +1927,10 @@ function getDaifugoEffectText(effect: NonNullable<GameState["pendingDaifugoEffec
   if (effect === "sevenExchange") return "7の効果：次のプレイヤーとカードを1枚交換しますか？";
   if (effect === "queenNumberVanish") return "Qの効果：指定した数字を手札と山札から消しますか？";
   if (effect === "fiveSkip") return "5の効果：次のプレイヤーをスキップしますか？";
-  if (effect === "eightExtraTurn") return "8の効果：追加ターンを行い、Jバックを解除しますか？";
+  if (effect === "eightExtraTurn") return "8の効果：追加ターンを行いますか？";
   if (effect === "nineReverse") return "9の効果：手番方向を逆にしますか？";
   if (effect === "tenSwapDraw") return "10の効果：追加で1枚捨てて山札から1枚引きますか？";
-  if (effect === "jackBack") return "Jの効果：Jバックを発動/解除しますか？";
+  if (effect === "jackBack") return "Jの効果：J特殊効果を使用しますか？";
   return "カード効果を発動しますか？";
 }
 

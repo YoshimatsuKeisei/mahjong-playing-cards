@@ -45,6 +45,31 @@ describe("PlayScreen round display", () => {
     expect(onExitToHome).toHaveBeenCalledTimes(1);
   });
 
+  it("shows only the phase-one J special effect choices", async () => {
+    const user = userEvent.setup();
+    const dispatch = vi.fn();
+    const state: GameState = {
+      ...createInitialGame(3, "clockwise"),
+      phase: "handoff",
+      pendingDaifugoEffect: {
+        kind: "jackSelect",
+        effect: "jackBack",
+        playerIndex: 0,
+        continue: { shouldConfirmReach: false },
+      },
+    };
+
+    render(<PlayScreen state={state} dispatch={dispatch} currentRound={1} />);
+
+    expect(screen.getByText("J特殊効果を選択してください")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /情報閲覧/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Jバック/ })).toBeInTheDocument();
+    expect(screen.queryByText(/強化/)).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /情報閲覧/ }));
+    expect(dispatch).toHaveBeenCalledWith({ type: "selectJackSpecialEffect", effect: "inspectHands" });
+  });
+
   it("updates the round display after advancing to the next round", () => {
     const { rerender } = render(<PlayScreen state={createInitialGame(4, "clockwise")} dispatch={vi.fn()} currentRound={1} />);
 
