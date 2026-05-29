@@ -251,6 +251,25 @@ function reverseDirection(direction: Direction): Direction {
   return direction === "clockwise" ? "counterclockwise" : "clockwise";
 }
 
+function getPreviousPlayerIndex(currentIndex: number, playerCount: number, direction: Direction): number {
+  return getNextPlayerIndex(currentIndex, playerCount, reverseDirection(direction));
+}
+
+export function getEnhancedFiveTurnOptions(state: GameState, playerIndex: number) {
+  const orderedPlayerIndexes: number[] = [];
+  let cursor = playerIndex;
+  for (let count = 1; count < state.players.length; count += 1) {
+    cursor = getNextPlayerIndex(cursor, state.players.length, state.direction);
+    orderedPlayerIndexes.push(cursor);
+  }
+
+  return orderedPlayerIndexes.map((targetPlayerIndex, orderIndex) => ({
+    playerIndex: targetPlayerIndex,
+    skippedPlayerIndexes: orderedPlayerIndexes.slice(0, orderIndex),
+    selectable: orderIndex > 0,
+  }));
+}
+
 function getDaifugoEffectForCard(card: Card, options: DaifugoOptions): DaifugoEffectId | null {
   if (!options.enabled) return null;
   if (card.rank === 5 && options.effects.fiveSkip) return "fiveSkip";
@@ -469,6 +488,34 @@ function consumeJEnhancementRightAfterSeven(players: Player[], playerIndex: numb
   const player = players[playerIndex];
   if (!player?.hasJEnhancementRight) return players;
   return replacePlayer(players, playerIndex, { ...player, hasJEnhancementRight: false });
+}
+
+function consumeJEnhancementRight(players: Player[], playerIndex: number): Player[] {
+  const player = players[playerIndex];
+  if (!player?.hasJEnhancementRight) return players;
+  return replacePlayer(players, playerIndex, { ...player, hasJEnhancementRight: false });
+}
+
+function resolveNormalFiveSkip(state: GameState, continueState?: PendingDaifugoContinue): GameState {
+  const skippedIndex = getNextPlayerIndex(state.currentPlayerIndex, state.players.length, state.direction);
+  return advanceToNextDraw(
+    { ...state, pendingDaifugoEffect: null },
+    state.players,
+    skippedIndex,
+    continueState?.message ?? "5 effect skipped the next player.",
+  );
+}
+
+function resolveEnhancedFiveSkip(state: GameState, playerIndex: number, targetPlayerIndex: number): GameState {
+  const option = getEnhancedFiveTurnOptions(state, playerIndex).find((candidate) => candidate.playerIndex === targetPlayerIndex);
+  if (!option?.selectable) return state;
+  const player = state.players[playerIndex];
+  if (!player?.hasJEnhancementRight || player.isCpu) return state;
+  const players = consumeJEnhancementRight(state.players, playerIndex);
+  const previousIndex = getPreviousPlayerIndex(targetPlayerIndex, state.players.length, state.direction);
+  const skippedNames = option.skippedPlayerIndexes.map((skippedIndex) => state.players[skippedIndex].name).join(", ");
+  const message = `${player.name} used enhanced 5. Skipped ${skippedNames}; next turn is ${state.players[targetPlayerIndex].name}.`;
+  return advanceToNextDraw({ ...state, players, pendingDaifugoEffect: null }, players, previousIndex, message);
 }
 
 function startSevenExchange(
@@ -854,6 +901,20 @@ function applyDaifugoEffect(state: GameState): GameState {
   if (!pending || pending.kind !== "confirm" || pending.playerIndex !== state.currentPlayerIndex) return state;
 
   if (pending.effect === "fiveSkip") {
+    const currentPlayer = state.players[state.currentPlayerIndex];
+    if (currentPlayer?.hasJEnhancementRight && !currentPlayer.isCpu) {
+      return {
+        ...state,
+        pendingDaifugoEffect: {
+          kind: "fiveEnhancementConfirm",
+          effect: "fiveSkip",
+          playerIndex: state.currentPlayerIndex,
+          continue: pending.continue,
+        },
+        message: `${currentPlayer.name} can use J enhancement for the 5 effect.`,
+      };
+    }
+    return resolveNormalFiveSkip(state, pending.continue);
     const skippedIndex = getNextPlayerIndex(state.currentPlayerIndex, state.players.length, state.direction);
     return advanceToNextDraw({ ...state, pendingDaifugoEffect: null }, state.players, skippedIndex, "5の効果で次のプレイヤーをスキップしました。");
   }
@@ -961,6 +1022,9 @@ export type GameAction =
   | { type: "answerSevenEnhancement"; useEnhancement: boolean }
   | { type: "selectEnhancedSevenTarget"; targetPlayerIndex: number }
   | { type: "confirmEnhancedSevenTarget" }
+  | { type: "answerFiveEnhancement"; useEnhancement: boolean }
+  | { type: "selectEnhancedFiveTarget"; targetPlayerIndex: number }
+  | { type: "confirmEnhancedFiveTarget" }
   | { type: "drawForDaifugoEffect" }
   | { type: "discardForDaifugoEffect"; cardId: string }
   | { type: "selectSevenExchangeCard"; playerIndex: number; cardId: string }
@@ -986,6 +1050,9 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     action.type !== "answerSevenEnhancement" &&
     action.type !== "selectEnhancedSevenTarget" &&
     action.type !== "confirmEnhancedSevenTarget" &&
+    action.type !== "answerFiveEnhancement" &&
+    action.type !== "selectEnhancedFiveTarget" &&
+    action.type !== "confirmEnhancedFiveTarget" &&
     action.type !== "drawForDaifugoEffect" &&
     action.type !== "discardForDaifugoEffect" &&
     action.type !== "selectSevenExchangeCard" &&
@@ -1131,6 +1198,50 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const player = state.players[pending.playerIndex];
       if (!player?.hasJEnhancementRight || player.isCpu) return state;
       return startSevenExchange(state, pending.playerIndex, targetPlayerIndex, pending.continue, true);
+    }
+
+    case "answerFiveEnhancement": {
+      const pending = state.pendingDaifugoEffect;
+      if (!pending || pending.kind !== "fiveEnhancementConfirm") return state;
+      const player = state.players[pending.playerIndex];
+      if (!player?.hasJEnhancementRight || player.isCpu) return state;
+      if (!action.useEnhancement) {
+        return resolveNormalFiveSkip(state, pending.continue);
+      }
+      return {
+        ...state,
+        pendingDaifugoEffect: {
+          kind: "fiveEnhancedTargetSelect",
+          effect: "fiveSkip",
+          playerIndex: pending.playerIndex,
+          continue: pending.continue,
+        },
+        message: `${player.name} is choosing the next turn target for enhanced 5.`,
+      };
+    }
+
+    case "selectEnhancedFiveTarget": {
+      const pending = state.pendingDaifugoEffect;
+      if (!pending || pending.kind !== "fiveEnhancedTargetSelect") return state;
+      const player = state.players[pending.playerIndex];
+      if (!player?.hasJEnhancementRight || player.isCpu) return state;
+      const option = getEnhancedFiveTurnOptions(state, pending.playerIndex).find((candidate) => candidate.playerIndex === action.targetPlayerIndex);
+      if (!option?.selectable) return state;
+      return {
+        ...state,
+        pendingDaifugoEffect: {
+          ...pending,
+          selectedTargetPlayerIndex: action.targetPlayerIndex,
+        },
+      };
+    }
+
+    case "confirmEnhancedFiveTarget": {
+      const pending = state.pendingDaifugoEffect;
+      if (!pending || pending.kind !== "fiveEnhancedTargetSelect") return state;
+      const targetPlayerIndex = pending.selectedTargetPlayerIndex;
+      if (targetPlayerIndex === undefined || !state.players[targetPlayerIndex]) return state;
+      return resolveEnhancedFiveSkip(state, pending.playerIndex, targetPlayerIndex);
     }
 
     case "drawForDaifugoEffect": {

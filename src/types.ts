@@ -75,6 +75,19 @@ export type PendingDaifugoEffect =
       continue: PendingDaifugoContinue;
     }
   | {
+      kind: "fiveEnhancementConfirm";
+      effect: "fiveSkip";
+      playerIndex: number;
+      continue: PendingDaifugoContinue;
+    }
+  | {
+      kind: "fiveEnhancedTargetSelect";
+      effect: "fiveSkip";
+      playerIndex: number;
+      selectedTargetPlayerIndex?: number;
+      continue: PendingDaifugoContinue;
+    }
+  | {
       kind: "queenSelect";
       effect: "queenNumberVanish";
       playerIndex: number;

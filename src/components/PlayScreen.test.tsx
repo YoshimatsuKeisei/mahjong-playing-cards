@@ -157,6 +157,56 @@ describe("PlayScreen round display", () => {
     expect(dispatch).toHaveBeenCalledWith({ type: "selectEnhancedSevenTarget", targetPlayerIndex: 3 });
   });
 
+  it("shows enhanced 5 confirmation for a human holder", async () => {
+    const user = userEvent.setup();
+    const dispatch = vi.fn();
+    const baseState = createInitialGame(3, "clockwise");
+    const state: GameState = {
+      ...baseState,
+      phase: "handoff",
+      pendingDaifugoEffect: {
+        kind: "fiveEnhancementConfirm",
+        effect: "fiveSkip",
+        playerIndex: 0,
+        continue: { shouldConfirmReach: false },
+      },
+      players: baseState.players.map((player, index) => (index === 0 ? { ...player, hasJEnhancementRight: true } : player)),
+    };
+
+    render(<PlayScreen state={state} dispatch={dispatch} currentRound={1} />);
+
+    expect(screen.getByText("J強化を使用しますか？")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "はい" }));
+    expect(dispatch).toHaveBeenCalledWith({ type: "answerFiveEnhancement", useEnhancement: true });
+  });
+
+  it("shows enhanced 5 target options with immediate next disabled", async () => {
+    const user = userEvent.setup();
+    const dispatch = vi.fn();
+    const baseState = createInitialGame(5, "clockwise");
+    const state: GameState = {
+      ...baseState,
+      phase: "handoff",
+      pendingDaifugoEffect: {
+        kind: "fiveEnhancedTargetSelect",
+        effect: "fiveSkip",
+        playerIndex: 0,
+        continue: { shouldConfirmReach: false },
+      },
+      players: baseState.players.map((player, index) => (index === 0 ? { ...player, hasJEnhancementRight: true } : player)),
+    };
+
+    render(<PlayScreen state={state} dispatch={dispatch} currentRound={1} />);
+
+    expect(screen.getByText("次の手番を渡すプレイヤーを選択してください")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: baseState.players[0].name })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: baseState.players[1].name })).toBeDisabled();
+    expect(screen.getByRole("button", { name: baseState.players[2].name })).not.toBeDisabled();
+
+    await user.click(screen.getByRole("button", { name: baseState.players[3].name }));
+    expect(dispatch).toHaveBeenCalledWith({ type: "selectEnhancedFiveTarget", targetPlayerIndex: 3 });
+  });
+
   it("shows a full-size shuffled ten-card row for J information browsing", () => {
     const randomSpy = vi.spyOn(Math, "random").mockReturnValue(0);
     const state: GameState = {

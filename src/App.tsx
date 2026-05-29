@@ -56,6 +56,8 @@ type DebugDaifugoCase =
   | "jEnhancementDuplicate"
   | "jEnhancementFiveSeven"
   | "jEnhancedSeven"
+  | "jEnhancedFive"
+  | "jEnhancedFiveReverse"
   | "eightTsumo"
   | "eightReach"
   | "tenTsumo"
@@ -320,6 +322,8 @@ export default function App() {
                 { label: "DEV: J強化権重複防止", onClick: () => showDebugDaifugo("jEnhancementDuplicate") },
                 { label: "DEV: J強化権保持中5/7", onClick: () => showDebugDaifugo("jEnhancementFiveSeven") },
                 { label: "DEV: 強化7確認", onClick: () => showDebugDaifugo("jEnhancedSeven") },
+                { label: "DEV: 強化5確認", onClick: () => showDebugDaifugo("jEnhancedFive") },
+                { label: "DEV: 強化5逆回り確認", onClick: () => showDebugDaifugo("jEnhancedFiveReverse") },
                 { label: "DEV: J情報閲覧3人戦", onClick: () => showDebugDaifugo("jackInspect3") },
                 { label: "DEV: J情報閲覧5人戦", onClick: () => showDebugDaifugo("jackInspect5") },
                 { label: "DEV: Jバック開始", onClick: () => showDebugDaifugo("jBackStart") },
@@ -532,6 +536,7 @@ function createDebugDaifugoOptions() {
 function createDebugDaifugoState(caseName: DebugDaifugoCase): GameState {
   const isJBackCase = caseName === "jBack";
   const isEnhancedSevenCase = caseName === "jEnhancedSeven";
+  const isEnhancedFiveCase = caseName === "jEnhancedFive" || caseName === "jEnhancedFiveReverse";
   const isJackCase =
     caseName === "jackSelect" ||
     caseName === "jEnhancementAcquire" ||
@@ -545,6 +550,8 @@ function createDebugDaifugoState(caseName: DebugDaifugoCase): GameState {
   const isEightKeepCase = caseName === "eightKeepsJBack";
   const effectCard = isEnhancedSevenCase
     ? debugCard("effect-7", 7, "S")
+    : isEnhancedFiveCase
+      ? debugCard("effect-5", 5, "S")
     : isJackCase
       ? debugCard("effect-j", 11, "S")
     : caseName.startsWith("ten") || caseName === "reachTenBlocked"
@@ -657,6 +664,23 @@ function createDebugDaifugoState(caseName: DebugDaifugoCase): GameState {
       drawnCard: effectCard,
       drawnFrom: "deck",
       message: "DEV: J強化権を持った状態で7を使用できます。",
+    });
+  }
+
+  if (caseName === "jEnhancedFive" || caseName === "jEnhancedFiveReverse") {
+    return makeState({
+      players: [
+        { ...players[0], hasJEnhancementRight: true },
+        debugPlayer(2, debugHand("j5-skip-p2")),
+        debugPlayer(3, debugHand("j5-skip-p3", [2, 2, 2, 5, 6, 7, 8, 9, 10, 13])),
+        debugPlayer(4, debugHand("j5-skip-p4", [3, 3, 3, 4, 5, 6, 8, 10, 12, 13])),
+        debugPlayer(5, debugHand("j5-skip-p5", [1, 4, 4, 6, 7, 9, 10, 11, 12, 13])),
+      ],
+      direction: caseName === "jEnhancedFiveReverse" ? "counterclockwise" : "clockwise",
+      deck: [debugCard("j5-skip-dev-draw", 4, "C"), debugCard("j5-skip-dev-pad", 8, "D")],
+      drawnCard: effectCard,
+      drawnFrom: "deck",
+      message: "DEV: J強化権を持った状態で5を使用できます。",
     });
   }
 

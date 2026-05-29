@@ -3062,6 +3062,26 @@ h2 {
   box-shadow: 0 0 0 2px rgba(255, 126, 106, 0.28);
 }
 
+.five-enhancement-panel {
+  flex-direction: column;
+}
+
+.enhanced-five-target-button:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+}
+
+.enhanced-five-target-button.skip-target {
+  border-color: rgba(255, 126, 106, 0.95);
+  background: linear-gradient(180deg, rgba(134, 43, 39, 0.96), rgba(82, 24, 28, 0.96));
+}
+
+.enhanced-five-target-button.next-target {
+  border-color: rgba(101, 190, 255, 0.96);
+  background: linear-gradient(180deg, rgba(35, 98, 148, 0.96), rgba(17, 61, 108, 0.96));
+  box-shadow: 0 0 0 2px rgba(101, 190, 255, 0.28);
+}
+
 .jack-inspect-card-grid {
   display: flex;
   flex-wrap: nowrap;

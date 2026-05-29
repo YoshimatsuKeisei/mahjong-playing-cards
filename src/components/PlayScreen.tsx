@@ -13,6 +13,7 @@ import { getCpuModelDisplayName } from "../game/cpuModelRegistry";
 import {
   getAvailableDiscardSources,
   getCallOptionsForSource,
+  getEnhancedFiveTurnOptions,
   getReachWinningOptions,
   getSevenExchangeCandidateCards,
   chooseCpuQueenRank,
@@ -149,6 +150,8 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
   const isSevenExchange = pendingDaifugoEffect?.kind === "sevenExchange";
   const isSevenEnhancementConfirm = pendingDaifugoEffect?.kind === "sevenEnhancementConfirm";
   const isSevenEnhancedTargetSelect = pendingDaifugoEffect?.kind === "sevenEnhancedTargetSelect";
+  const isFiveEnhancementConfirm = pendingDaifugoEffect?.kind === "fiveEnhancementConfirm";
+  const isFiveEnhancedTargetSelect = pendingDaifugoEffect?.kind === "fiveEnhancedTargetSelect";
   const isQueenSelect = pendingDaifugoEffect?.kind === "queenSelect";
   const isQueenWinConfirm = pendingDaifugoEffect?.kind === "queenWinConfirm";
   const isJackSelect = pendingDaifugoEffect?.kind === "jackSelect";
@@ -168,6 +171,8 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
     isSevenExchange ||
     isSevenEnhancementConfirm ||
     isSevenEnhancedTargetSelect ||
+    isFiveEnhancementConfirm ||
+    isFiveEnhancedTargetSelect ||
     isQueenSelect ||
     isQueenWinConfirm ||
     isJackSelect ||
@@ -203,6 +208,12 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
     pendingDaifugoEffect?.kind === "sevenEnhancedTargetSelect"
       ? state.players.map((_, playerIndex) => playerIndex).filter((playerIndex) => playerIndex !== pendingDaifugoEffect.playerIndex)
       : [];
+  const enhancedFiveTurnOptions =
+    pendingDaifugoEffect?.kind === "fiveEnhancedTargetSelect" ? getEnhancedFiveTurnOptions(state, pendingDaifugoEffect.playerIndex) : [];
+  const selectedEnhancedFiveOption =
+    pendingDaifugoEffect?.kind === "fiveEnhancedTargetSelect" && pendingDaifugoEffect.selectedTargetPlayerIndex !== undefined
+      ? enhancedFiveTurnOptions.find((option) => option.playerIndex === pendingDaifugoEffect.selectedTargetPlayerIndex)
+      : null;
   const humanPlayerIndex = state.players.findIndex((player) => !player.isCpu);
   const handPlayerIndex =
     sevenSelectionPlayerIndex ??
@@ -221,6 +232,8 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
     sevenSelectionPlayerIndex !== null ||
     (pendingDaifugoEffect?.kind === "sevenEnhancementConfirm" && !state.players[pendingDaifugoEffect.playerIndex]?.isCpu) ||
     (pendingDaifugoEffect?.kind === "sevenEnhancedTargetSelect" && !state.players[pendingDaifugoEffect.playerIndex]?.isCpu) ||
+    (pendingDaifugoEffect?.kind === "fiveEnhancementConfirm" && !state.players[pendingDaifugoEffect.playerIndex]?.isCpu) ||
+    (pendingDaifugoEffect?.kind === "fiveEnhancedTargetSelect" && !state.players[pendingDaifugoEffect.playerIndex]?.isCpu) ||
     (pendingDaifugoEffect?.kind === "queenSelect" && !state.players[pendingDaifugoEffect.playerIndex]?.isCpu) ||
     (pendingDaifugoEffect?.kind === "queenWinConfirm" && !state.players[pendingDaifugoEffect.playerIndex]?.isCpu) ||
     (pendingDaifugoEffect?.kind === "jackSelect" && !state.players[pendingDaifugoEffect.playerIndex]?.isCpu) ||
@@ -1040,6 +1053,75 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
                 onClick={handleDaifugoExtraDiscard}
               >
                 {mustDiscardDrawnForReachDaifugo ? "引いたカードを捨てる" : "効果で捨てる"}
+              </button>
+            </div>
+          )}
+
+          {isFiveEnhancementConfirm && pendingDaifugoEffect.playerIndex === state.currentPlayerIndex && !currentPlayer.isCpu && (
+            <div className="daifugo-effect-panel seven-enhancement-panel">
+              <strong>J強化を使用しますか？</strong>
+              <span className="hint">次に手番を渡す相手を選び、途中のプレイヤーをスキップできます。</span>
+              <div className="daifugo-effect-actions">
+                <button
+                  type="button"
+                  className="primary-button"
+                  disabled={isAnimating || cpuActionInProgress}
+                  onClick={() => dispatch({ type: "answerFiveEnhancement", useEnhancement: true })}
+                >
+                  はい
+                </button>
+                <button
+                  type="button"
+                  disabled={isAnimating || cpuActionInProgress}
+                  onClick={() => dispatch({ type: "answerFiveEnhancement", useEnhancement: false })}
+                >
+                  いいえ
+                </button>
+              </div>
+            </div>
+          )}
+
+          {isFiveEnhancedTargetSelect && pendingDaifugoEffect.playerIndex === state.currentPlayerIndex && !currentPlayer.isCpu && (
+            <div className="daifugo-effect-panel five-enhancement-panel">
+              <strong>次の手番を渡すプレイヤーを選択してください</strong>
+              <span className="hint">選択したプレイヤーまでの間にいる相手をスキップします。</span>
+              <span className="hint">{state.direction === "clockwise" ? "通常順" : "逆回り"}</span>
+              <div className="enhanced-seven-target-grid enhanced-five-target-grid">
+                {enhancedFiveTurnOptions.map((option) => {
+                  const player = state.players[option.playerIndex];
+                  const isSelected = pendingDaifugoEffect.selectedTargetPlayerIndex === option.playerIndex;
+                  const isSkipped = selectedEnhancedFiveOption?.skippedPlayerIndexes.includes(option.playerIndex) ?? false;
+                  return (
+                    <button
+                      type="button"
+                      className={`enhanced-seven-target-button enhanced-five-target-button ${isSelected ? "next-target" : ""} ${
+                        isSkipped ? "skip-target" : ""
+                      }`}
+                      key={player.id}
+                      disabled={!option.selectable || isAnimating || cpuActionInProgress}
+                      title={!option.selectable ? "スキップ対象がいないため選択できません" : undefined}
+                      onClick={() => dispatch({ type: "selectEnhancedFiveTarget", targetPlayerIndex: option.playerIndex })}
+                    >
+                      {player.name}
+                    </button>
+                  );
+                })}
+              </div>
+              {selectedEnhancedFiveOption && (
+                <span className="hint">
+                  {selectedEnhancedFiveOption.skippedPlayerIndexes.length > 0
+                    ? `${selectedEnhancedFiveOption.skippedPlayerIndexes.map((playerIndex) => state.players[playerIndex].name).join("、")}をスキップし、`
+                    : ""}
+                  次の手番を{state.players[selectedEnhancedFiveOption.playerIndex].name}へ渡します。
+                </span>
+              )}
+              <button
+                type="button"
+                className="primary-button"
+                disabled={pendingDaifugoEffect.selectedTargetPlayerIndex === undefined || isAnimating || cpuActionInProgress}
+                onClick={() => dispatch({ type: "confirmEnhancedFiveTarget" })}
+              >
+                この内容でスキップ
               </button>
             </div>
           )}
