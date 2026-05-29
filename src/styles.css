@@ -2933,8 +2933,16 @@ h2 {
 }
 
 .action-panel.enhanced-target-action-panel {
-  bottom: clamp(7.2rem, 17vh, 10rem);
-  width: min(92vw, 780px);
+  /* J強化対象選択UIの手動調整ポイント:
+     bottom = パネル全体のY座標 / width = 透明背景板の横幅 /
+     table/core = 円形テーブル領域と実画像のサイズ */
+  --enhanced-target-panel-bottom: clamp(7.2rem, 17vh, 10rem);
+  --enhanced-target-panel-width: min(72vw, 640px);
+  --enhanced-target-table-width: min(60vw, 520px);
+  --enhanced-target-table-height: clamp(190px, 28vh, 246px);
+  --enhanced-target-core-width: min(36vw, 246px);
+  bottom: var(--enhanced-target-panel-bottom);
+  width: var(--enhanced-target-panel-width);
   border: 1px solid rgba(230, 230, 230, 0.14);
   border-radius: 56px;
   background: rgba(30, 32, 33, 0.62);
@@ -2946,8 +2954,10 @@ h2 {
 }
 
 .action-panel.enhanced-target-action-panel--3 {
-  bottom: clamp(11.5rem, 31vh, 16.5rem);
-  width: min(88vw, 720px);
+  /* 3人戦だけ手札と重なりやすいので、ここでY座標と背景板幅を調整する */
+  --enhanced-target-panel-bottom: clamp(12.2rem, 50vh, 40rem);
+  --enhanced-target-panel-width: min(64vw, 560px);
+  padding-block: clamp(0.52rem, 1.25vw, 0.72rem);
 }
 
 .action-panel > button,
@@ -3102,8 +3112,8 @@ h2 {
 
 .enhanced-target-table {
   position: relative;
-  width: min(78vw, 640px);
-  height: clamp(220px, 33vh, 300px);
+  width: var(--enhanced-target-table-width, min(64vw, 540px));
+  height: var(--enhanced-target-table-height, clamp(190px, 28vh, 246px));
   margin: 0.1rem auto 0.2rem;
   isolation: isolate;
 }
@@ -3115,24 +3125,25 @@ h2 {
   z-index: 0;
   display: grid;
   place-items: center;
-  width: min(36vw, 250px);
+  width: var(--enhanced-target-core-width, min(36vw, 246px));
   aspect-ratio: 1;
   overflow: hidden;
   border-radius: 50%;
   box-shadow:
-    0 20px 46px rgba(0, 0, 0, 0.34),
-    0 0 0 1px rgba(255, 235, 170, 0.12);
-  clip-path: circle(49% at 50% 50%);
+    0 22px 48px rgba(0, 0, 0, 0.36),
+    0 0 0 1px rgba(255, 235, 170, 0.18),
+    inset 0 0 18px rgba(255, 214, 138, 0.08);
+  clip-path: circle(50% at 50% 50%);
   transform: translate(-50%, -50%);
 }
 
 .enhanced-target-table-image {
   display: block;
-  width: 112%;
-  height: 112%;
+  width: 103%;
+  height: 103%;
   object-fit: cover;
-  transform: translateY(0.2%) scale(1.02);
-  filter: saturate(0.92) contrast(1.04) brightness(0.9);
+  transform: translateY(0.1%);
+  filter: saturate(1.06) contrast(1.12) brightness(1.04);
 }
 
 .enhanced-target-direction {
@@ -3256,6 +3267,23 @@ h2 {
 .enhanced-target-seat--3-3 {
   top: 23%;
   left: 75%;
+}
+
+.action-panel.enhanced-target-action-panel--3 .enhanced-target-seat--3-1 {
+  top: 84%;
+}
+
+.action-panel.enhanced-target-action-panel--3 .five-enhancement-panel {
+  position: relative;
+}
+
+.action-panel.enhanced-target-action-panel--3 .five-enhancement-panel > .primary-button {
+  position: absolute;
+  right: max(1.1rem, calc(50% - 250px));
+  bottom: clamp(1.2rem, 3.2vh, 2rem);
+  z-index: 5;
+  min-height: 42px;
+  white-space: nowrap;
 }
 
 .enhanced-target-seat--4-2 {
@@ -5534,12 +5562,13 @@ h2 {
   }
 
   .action-panel.enhanced-target-action-panel {
-    bottom: clamp(8rem, 20vh, 11rem);
+    --enhanced-target-panel-bottom: clamp(8rem, 20vh, 11rem);
     border-radius: 34px;
   }
 
   .action-panel.enhanced-target-action-panel--3 {
-    bottom: clamp(11rem, 30vh, 15rem);
+    --enhanced-target-panel-bottom: clamp(11.6rem, 31vh, 19rem);
+    --enhanced-target-panel-width: min(84vw, 540px);
   }
 
   .reach-splash-band {

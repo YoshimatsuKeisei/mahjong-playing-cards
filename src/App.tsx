@@ -56,7 +56,9 @@ type DebugDaifugoCase =
   | "jEnhancementDuplicate"
   | "jEnhancementFiveSeven"
   | "jEnhancedSeven"
+  | "jEnhancedSeven3"
   | "jEnhancedFive"
+  | "jEnhancedFive3"
   | "jEnhancedFiveReverse"
   | "eightTsumo"
   | "eightReach"
@@ -321,8 +323,10 @@ export default function App() {
                 { label: "DEV: J強化権取得", onClick: () => showDebugDaifugo("jEnhancementAcquire") },
                 { label: "DEV: J強化権重複防止", onClick: () => showDebugDaifugo("jEnhancementDuplicate") },
                 { label: "DEV: J強化権保持中5/7", onClick: () => showDebugDaifugo("jEnhancementFiveSeven") },
-                { label: "DEV: 強化7確認", onClick: () => showDebugDaifugo("jEnhancedSeven") },
-                { label: "DEV: 強化5確認", onClick: () => showDebugDaifugo("jEnhancedFive") },
+                { label: "DEV: 強化7確認 / 5人戦", onClick: () => showDebugDaifugo("jEnhancedSeven") },
+                { label: "DEV: 強化7確認 / 3人戦", onClick: () => showDebugDaifugo("jEnhancedSeven3") },
+                { label: "DEV: 強化5確認 / 5人戦", onClick: () => showDebugDaifugo("jEnhancedFive") },
+                { label: "DEV: 強化5確認 / 3人戦", onClick: () => showDebugDaifugo("jEnhancedFive3") },
                 { label: "DEV: 強化5逆回り確認", onClick: () => showDebugDaifugo("jEnhancedFiveReverse") },
                 { label: "DEV: J情報閲覧3人戦", onClick: () => showDebugDaifugo("jackInspect3") },
                 { label: "DEV: J情報閲覧5人戦", onClick: () => showDebugDaifugo("jackInspect5") },
@@ -535,8 +539,8 @@ function createDebugDaifugoOptions() {
 
 function createDebugDaifugoState(caseName: DebugDaifugoCase): GameState {
   const isJBackCase = caseName === "jBack";
-  const isEnhancedSevenCase = caseName === "jEnhancedSeven";
-  const isEnhancedFiveCase = caseName === "jEnhancedFive" || caseName === "jEnhancedFiveReverse";
+  const isEnhancedSevenCase = caseName === "jEnhancedSeven" || caseName === "jEnhancedSeven3";
+  const isEnhancedFiveCase = caseName === "jEnhancedFive" || caseName === "jEnhancedFive3" || caseName === "jEnhancedFiveReverse";
   const isJackCase =
     caseName === "jackSelect" ||
     caseName === "jEnhancementAcquire" ||
@@ -652,14 +656,24 @@ function createDebugDaifugoState(caseName: DebugDaifugoCase): GameState {
     });
   }
 
-  if (caseName === "jEnhancedSeven") {
+  if (caseName === "jEnhancedSeven" || caseName === "jEnhancedSeven3") {
+    const enhancedSevenPlayers =
+      caseName === "jEnhancedSeven3"
+        ? [
+            { ...players[0], hasJEnhancementRight: true },
+            debugPlayer(2, debugHand("j7-3p-p2")),
+            debugPlayer(3, debugHand("j7-3p-p3", [2, 2, 2, 5, 6, 7, 8, 9, 10, 13])),
+          ]
+        : [
+            { ...players[0], hasJEnhancementRight: true },
+            debugPlayer(2, debugHand("j7-p2")),
+            debugPlayer(3, debugHand("j7-p3", [2, 2, 2, 5, 6, 7, 8, 9, 10, 13])),
+            debugPlayer(4, debugHand("j7-p4", [3, 3, 3, 4, 5, 6, 8, 10, 12, 13])),
+            debugPlayer(5, debugHand("j7-p5", [1, 4, 4, 6, 7, 9, 10, 11, 12, 13])),
+          ];
+
     return makeState({
-      players: [
-        { ...players[0], hasJEnhancementRight: true },
-        debugPlayer(2, debugHand("j7-p2")),
-        debugPlayer(3, debugHand("j7-p3", [2, 2, 2, 5, 6, 7, 8, 9, 10, 13])),
-        debugPlayer(4, debugHand("j7-p4", [3, 3, 3, 4, 5, 6, 8, 10, 12, 13])),
-      ],
+      players: enhancedSevenPlayers,
       deck: [debugCard("j7-dev-draw", 4, "C"), debugCard("j7-dev-pad", 8, "D")],
       drawnCard: effectCard,
       drawnFrom: "deck",
@@ -667,15 +681,24 @@ function createDebugDaifugoState(caseName: DebugDaifugoCase): GameState {
     });
   }
 
-  if (caseName === "jEnhancedFive" || caseName === "jEnhancedFiveReverse") {
+  if (caseName === "jEnhancedFive" || caseName === "jEnhancedFive3" || caseName === "jEnhancedFiveReverse") {
+    const enhancedFivePlayers =
+      caseName === "jEnhancedFive3"
+        ? [
+            { ...players[0], hasJEnhancementRight: true },
+            debugPlayer(2, debugHand("j5-3p-p2")),
+            debugPlayer(3, debugHand("j5-3p-p3", [2, 2, 2, 5, 6, 7, 8, 9, 10, 13])),
+          ]
+        : [
+            { ...players[0], hasJEnhancementRight: true },
+            debugPlayer(2, debugHand("j5-skip-p2")),
+            debugPlayer(3, debugHand("j5-skip-p3", [2, 2, 2, 5, 6, 7, 8, 9, 10, 13])),
+            debugPlayer(4, debugHand("j5-skip-p4", [3, 3, 3, 4, 5, 6, 8, 10, 12, 13])),
+            debugPlayer(5, debugHand("j5-skip-p5", [1, 4, 4, 6, 7, 9, 10, 11, 12, 13])),
+          ];
+
     return makeState({
-      players: [
-        { ...players[0], hasJEnhancementRight: true },
-        debugPlayer(2, debugHand("j5-skip-p2")),
-        debugPlayer(3, debugHand("j5-skip-p3", [2, 2, 2, 5, 6, 7, 8, 9, 10, 13])),
-        debugPlayer(4, debugHand("j5-skip-p4", [3, 3, 3, 4, 5, 6, 8, 10, 12, 13])),
-        debugPlayer(5, debugHand("j5-skip-p5", [1, 4, 4, 6, 7, 9, 10, 11, 12, 13])),
-      ],
+      players: enhancedFivePlayers,
       direction: caseName === "jEnhancedFiveReverse" ? "counterclockwise" : "clockwise",
       deck: [debugCard("j5-skip-dev-draw", 4, "C"), debugCard("j5-skip-dev-pad", 8, "D")],
       drawnCard: effectCard,
