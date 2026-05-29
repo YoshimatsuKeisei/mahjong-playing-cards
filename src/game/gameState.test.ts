@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Card, DaifugoOptions, GameState, Player } from "../types";
 import { createDefaultDaifugoOptions } from "./deck";
-import { gameReducer, getQueenVanishRankOptions, getSevenExchangeCandidateCards } from "./gameState";
+import { gameReducer, getEnhancedFiveTurnOptions, getQueenVanishRankOptions, getSevenExchangeCandidateCards } from "./gameState";
 
 function card(id: string, rank: number, suit: Card["suit"] = "S"): Card {
   return { id, rank, suit };
@@ -81,6 +81,20 @@ function stateForDiscard(effectCard: Card, options = daifugoOptions()): GameStat
   };
 }
 
+function stateForFivePlayerDiscard(effectCard: Card, direction: GameState["direction"] = "clockwise", options = daifugoOptions()): GameState {
+  return {
+    ...stateForDiscard(effectCard, options),
+    players: [
+      player(1, handWith(effectCard)),
+      player(2, [card("p2-1", 1)]),
+      player(3, [card("p3-1", 1)]),
+      player(4, [card("p4-1", 1)]),
+      player(5, [card("p5-1", 1)]),
+    ],
+    direction,
+  };
+}
+
 describe("daifugo game state", () => {
   it("does not create an effect confirmation when daifugo is disabled", () => {
     const state = gameReducer(stateForDiscard(card("five", 5), daifugoOptions({}, false)), { type: "discard", cardId: "five" });
@@ -115,6 +129,185 @@ describe("daifugo game state", () => {
     expect(resolved.players[0].hand.some((item) => item.id === "p2-1")).toBe(true);
     expect(resolved.players[1].hand.some((item) => item.id === "a-1")).toBe(true);
     expect(resolved.daifugoEffectEvent?.kind).toBe("sevenExchange");
+  });
+
+  it("shows J enhancement confirmation only when a human 7 user has the right", () => {
+    const withoutRight = gameReducer(stateForDiscard(card("seven", 7), daifugoOptions({ sevenExchange: true })), {
+      type: "discard",
+      cardId: "seven",
+    });
+    const normal = gameReducer(withoutRight, { type: "answerDaifugoEffect", activate: true });
+    expect(normal.pendingDaifugoEffect?.kind).toBe("sevenExchange");
+
+    const withRightBase = stateForDiscard(card("seven", 7), daifugoOptions({ sevenExchange: true }));
+    const withRight = gameReducer(
+      {
+        ...withRightBase,
+        players: withRightBase.players.map((candidate, index) => (index === 0 ? { ...candidate, hasJEnhancementRight: true } : candidate)),
+      },
+      { type: "discard", cardId: "seven" },
+    );
+    const confirming = gameReducer(withRight, { type: "answerDaifugoEffect", activate: true });
+    expect(confirming.pendingDaifugoEffect?.kind).toBe("sevenEnhancementConfirm");
+    expect(confirming.players[0].hasJEnhancementRight).toBe(true);
+  });
+
+  it("keeps the enhancement right when declining enhanced 7 and starts normal 7", () => {
+    const base = stateForDiscard(card("seven", 7), daifugoOptions({ sevenExchange: true }));
+    const pending = gameReducer(
+      { ...base, players: base.players.map((candidate, index) => (index === 0 ? { ...candidate, hasJEnhancementRight: true } : candidate)) },
+      { type: "discard", cardId: "seven" },
+    );
+    const confirming = gameReducer(pending, { type: "answerDaifugoEffect", activate: true });
+    const normal = gameReducer(confirming, { type: "answerSevenEnhancement", useEnhancement: false });
+
+    expect(normal.pendingDaifugoEffect).toMatchObject({
+      kind: "sevenExchange",
+      playerIndex: 0,
+      targetPlayerIndex: 1,
+    });
+    expect(normal.players[0].hasJEnhancementRight).toBe(true);
+  });
+
+  it("selects any opponent for enhanced 7 and consumes the right only after exchange completion", () => {
+    const base = stateForDiscard(card("seven", 7), daifugoOptions({ sevenExchange: true }));
+    const pending = gameReducer(
+      { ...base, players: base.players.map((candidate, index) => (index === 0 ? { ...candidate, hasJEnhancementRight: true } : candidate)) },
+      { type: "discard", cardId: "seven" },
+    );
+    const confirming = gameReducer(pending, { type: "answerDaifugoEffect", activate: true });
+    const choosingTarget = gameReducer(confirming, { type: "answerSevenEnhancement", useEnhancement: true });
+    expect(choosingTarget.pendingDaifugoEffect?.kind).toBe("sevenEnhancedTargetSelect");
+    expect(choosingTarget.players[0].hasJEnhancementRight).toBe(true);
+
+    const selectedTarget = gameReducer(choosingTarget, { type: "selectEnhancedSevenTarget", targetPlayerIndex: 2 });
+    expect(selectedTarget.pendingDaifugoEffect).toMatchObject({ kind: "sevenEnhancedTargetSelect", selectedTargetPlayerIndex: 2 });
+    expect(selectedTarget.players[0].hasJEnhancementRight).toBe(true);
+
+    const exchange = gameReducer(selectedTarget, { type: "confirmEnhancedSevenTarget" });
+    expect(exchange.pendingDaifugoEffect).toMatchObject({
+      kind: "sevenExchange",
+      playerIndex: 0,
+      targetPlayerIndex: 2,
+      consumeJEnhancementRightOnComplete: true,
+    });
+    expect(exchange.players[0].hasJEnhancementRight).toBe(true);
+
+    const selectedByUser = gameReducer(exchange, { type: "selectSevenExchangeCard", playerIndex: 0, cardId: "a-1" });
+    const resolved = gameReducer(selectedByUser, { type: "selectSevenExchangeCard", playerIndex: 2, cardId: "p3-1" });
+    expect(resolved.pendingDaifugoEffect).toBeNull();
+    expect(resolved.players[0].hand.some((item) => item.id === "p3-1")).toBe(true);
+    expect(resolved.players[2].hand.some((item) => item.id === "a-1")).toBe(true);
+    expect(resolved.players[0].hasJEnhancementRight).toBe(false);
+    expect(resolved.daifugoEffectEvent).toMatchObject({
+      kind: "sevenExchange",
+      actorIndex: 0,
+      targetPlayerIndex: 2,
+    });
+  });
+
+  it("does not consume the enhancement right when the 7 effect itself is declined", () => {
+    const base = stateForDiscard(card("seven", 7), daifugoOptions({ sevenExchange: true }));
+    const pending = gameReducer(
+      { ...base, players: base.players.map((candidate, index) => (index === 0 ? { ...candidate, hasJEnhancementRight: true } : candidate)) },
+      { type: "discard", cardId: "seven" },
+    );
+    const declined = gameReducer(pending, { type: "answerDaifugoEffect", activate: false });
+
+    expect(declined.pendingDaifugoEffect).toBeNull();
+    expect(declined.players[0].hasJEnhancementRight).toBe(true);
+  });
+
+  it("shows enhanced 5 confirmation only for a human holder and preserves the right when declined", () => {
+    const withoutRight = gameReducer(stateForDiscard(card("five", 5), daifugoOptions({ fiveSkip: true })), { type: "discard", cardId: "five" });
+    const normal = gameReducer(withoutRight, { type: "answerDaifugoEffect", activate: true });
+    expect(normal.pendingDaifugoEffect).toBeNull();
+    expect(normal.lastDiscarderIndex).toBe(1);
+
+    const base = stateForDiscard(card("five", 5), daifugoOptions({ fiveSkip: true }));
+    const withRight = gameReducer(
+      { ...base, players: base.players.map((candidate, index) => (index === 0 ? { ...candidate, hasJEnhancementRight: true } : candidate)) },
+      { type: "discard", cardId: "five" },
+    );
+    const confirming = gameReducer(withRight, { type: "answerDaifugoEffect", activate: true });
+    expect(confirming.pendingDaifugoEffect?.kind).toBe("fiveEnhancementConfirm");
+    expect(confirming.players[0].hasJEnhancementRight).toBe(true);
+
+    const declined = gameReducer(confirming, { type: "answerFiveEnhancement", useEnhancement: false });
+    expect(declined.pendingDaifugoEffect).toBeNull();
+    expect(declined.players[0].hasJEnhancementRight).toBe(true);
+    expect(declined.lastDiscarderIndex).toBe(1);
+  });
+
+  it("calculates enhanced 5 targets in current direction", () => {
+    const clockwise = stateForFivePlayerDiscard(card("five", 5), "clockwise");
+    expect(getEnhancedFiveTurnOptions(clockwise, 0)).toEqual([
+      { playerIndex: 1, skippedPlayerIndexes: [], selectable: false },
+      { playerIndex: 2, skippedPlayerIndexes: [1], selectable: true },
+      { playerIndex: 3, skippedPlayerIndexes: [1, 2], selectable: true },
+      { playerIndex: 4, skippedPlayerIndexes: [1, 2, 3], selectable: true },
+    ]);
+
+    const reversed = stateForFivePlayerDiscard(card("five", 5), "counterclockwise");
+    expect(getEnhancedFiveTurnOptions(reversed, 0)).toEqual([
+      { playerIndex: 4, skippedPlayerIndexes: [], selectable: false },
+      { playerIndex: 3, skippedPlayerIndexes: [4], selectable: true },
+      { playerIndex: 2, skippedPlayerIndexes: [4, 3], selectable: true },
+      { playerIndex: 1, skippedPlayerIndexes: [4, 3, 2], selectable: true },
+    ]);
+  });
+
+  it("uses enhanced 5 to hand off to a selected clockwise target without double skipping", () => {
+    const base = stateForFivePlayerDiscard(card("five", 5), "clockwise", daifugoOptions({ fiveSkip: true }));
+    const pending = gameReducer(
+      { ...base, players: base.players.map((candidate, index) => (index === 0 ? { ...candidate, hasJEnhancementRight: true } : candidate)) },
+      { type: "discard", cardId: "five" },
+    );
+    const confirming = gameReducer(pending, { type: "answerDaifugoEffect", activate: true });
+    const choosingTarget = gameReducer(confirming, { type: "answerFiveEnhancement", useEnhancement: true });
+    expect(choosingTarget.pendingDaifugoEffect?.kind).toBe("fiveEnhancedTargetSelect");
+    expect(choosingTarget.players[0].hasJEnhancementRight).toBe(true);
+
+    const invalidImmediateNext = gameReducer(choosingTarget, { type: "selectEnhancedFiveTarget", targetPlayerIndex: 1 });
+    expect(invalidImmediateNext.pendingDaifugoEffect).toEqual(choosingTarget.pendingDaifugoEffect);
+    expect(invalidImmediateNext.players[0].hasJEnhancementRight).toBe(true);
+
+    const selected = gameReducer(choosingTarget, { type: "selectEnhancedFiveTarget", targetPlayerIndex: 3 });
+    expect(selected.pendingDaifugoEffect).toMatchObject({ kind: "fiveEnhancedTargetSelect", selectedTargetPlayerIndex: 3 });
+    expect(selected.players[0].hasJEnhancementRight).toBe(true);
+
+    const resolved = gameReducer(selected, { type: "confirmEnhancedFiveTarget" });
+    expect(resolved.players[0].hasJEnhancementRight).toBe(false);
+    expect(resolved.lastDiscarderIndex).toBe(2);
+    const next = gameReducer(resolved, { type: "confirmHandoff" });
+    expect(next.currentPlayerIndex).toBe(3);
+  });
+
+  it("uses enhanced 5 in reverse direction and works in three-player games", () => {
+    const reversedBase = stateForFivePlayerDiscard(card("five", 5), "counterclockwise", daifugoOptions({ fiveSkip: true }));
+    const reversedPending = gameReducer(
+      { ...reversedBase, players: reversedBase.players.map((candidate, index) => (index === 0 ? { ...candidate, hasJEnhancementRight: true } : candidate)) },
+      { type: "discard", cardId: "five" },
+    );
+    const reversedConfirming = gameReducer(reversedPending, { type: "answerDaifugoEffect", activate: true });
+    const reversedChoosing = gameReducer(reversedConfirming, { type: "answerFiveEnhancement", useEnhancement: true });
+    const reversedSelected = gameReducer(reversedChoosing, { type: "selectEnhancedFiveTarget", targetPlayerIndex: 2 });
+    const reversedResolved = gameReducer(reversedSelected, { type: "confirmEnhancedFiveTarget" });
+    expect(reversedResolved.lastDiscarderIndex).toBe(3);
+    expect(gameReducer(reversedResolved, { type: "confirmHandoff" }).currentPlayerIndex).toBe(2);
+
+    const threeBase = stateForDiscard(card("five", 5), daifugoOptions({ fiveSkip: true }));
+    const threePending = gameReducer(
+      { ...threeBase, players: threeBase.players.map((candidate, index) => (index === 0 ? { ...candidate, hasJEnhancementRight: true } : candidate)) },
+      { type: "discard", cardId: "five" },
+    );
+    const threeConfirming = gameReducer(threePending, { type: "answerDaifugoEffect", activate: true });
+    const threeChoosing = gameReducer(threeConfirming, { type: "answerFiveEnhancement", useEnhancement: true });
+    expect(getEnhancedFiveTurnOptions(threeChoosing, 0).filter((option) => option.selectable).map((option) => option.playerIndex)).toEqual([2]);
+    const threeSelected = gameReducer(threeChoosing, { type: "selectEnhancedFiveTarget", targetPlayerIndex: 2 });
+    const threeResolved = gameReducer(threeSelected, { type: "confirmEnhancedFiveTarget" });
+    expect(threeResolved.players[0].hasJEnhancementRight).toBe(false);
+    expect(gameReducer(threeResolved, { type: "confirmHandoff" }).currentPlayerIndex).toBe(2);
   });
 
   it("removes the selected rank from hands and deck using the Q effect", () => {
@@ -420,16 +613,171 @@ describe("daifugo game state", () => {
     expect(next.currentPlayerIndex).toBe(1);
   });
 
-  it("toggles J-back and clears it with the 8 effect", () => {
+  it("shows a J special effect choice before toggling J-back", () => {
     const jackPending = gameReducer(stateForDiscard(card("jack", 11)), { type: "discard", cardId: "jack" });
-    const jBack = gameReducer(jackPending, { type: "answerDaifugoEffect", activate: true });
+    const choosing = gameReducer(jackPending, { type: "answerDaifugoEffect", activate: true });
+
+    expect(choosing.pendingDaifugoEffect?.kind).toBe("jackSelect");
+    expect(choosing.isJBackActive).toBe(false);
+
+    const jBack = gameReducer(choosing, { type: "selectJackSpecialEffect", effect: "jBack" });
     expect(jBack.isJBackActive).toBe(true);
+    expect(jBack.pendingDaifugoEffect).toBeNull();
+  });
+
+  it("J-back is toggled only by choosing J-back and is no longer cleared by the 8 effect", () => {
+    const jackPending = gameReducer({ ...stateForDiscard(card("jack", 11)), isJBackActive: true }, { type: "discard", cardId: "jack" });
+    const choosing = gameReducer(jackPending, { type: "answerDaifugoEffect", activate: true });
+    const normal = gameReducer(choosing, { type: "selectJackSpecialEffect", effect: "jBack" });
+    expect(normal.isJBackActive).toBe(false);
 
     const eightPending = gameReducer({ ...stateForDiscard(card("eight", 8)), isJBackActive: true }, { type: "discard", cardId: "eight" });
     const drawPending = gameReducer(eightPending, { type: "answerDaifugoEffect", activate: true });
-    expect(drawPending.isJBackActive).toBe(false);
+    expect(drawPending.isJBackActive).toBe(true);
     expect(drawPending.pendingDaifugoEffect?.kind).toBe("effectDraw");
     expect(drawPending.currentPlayerIndex).toBe(0);
+  });
+
+  it("does not change J-back when J special effect is declined or information browsing is selected", () => {
+    const jackPending = gameReducer(stateForDiscard(card("jack", 11)), { type: "discard", cardId: "jack" });
+    const declined = gameReducer(jackPending, { type: "answerDaifugoEffect", activate: false });
+    expect(declined.isJBackActive).toBe(false);
+
+    const choosing = gameReducer(jackPending, { type: "answerDaifugoEffect", activate: true });
+    const inspecting = gameReducer(choosing, { type: "selectJackSpecialEffect", effect: "inspectHands" });
+    expect(inspecting.isJBackActive).toBe(false);
+    expect(inspecting.pendingDaifugoEffect?.kind).toBe("jackInspect");
+  });
+
+  it("grants a single 5/7 enhancement right without changing unrelated J state", () => {
+    const choosing = gameReducer(gameReducer(stateForDiscard(card("jack", 11)), { type: "discard", cardId: "jack" }), {
+      type: "answerDaifugoEffect",
+      activate: true,
+    });
+    const originalHands = choosing.players.map((candidate) => candidate.hand.map((item) => item.id));
+    const originalDeck = choosing.deck.map((item) => item.id);
+    const originalDiscardPiles = choosing.players.map((candidate) => candidate.discardPile.map((item) => item.id));
+    const resolved = gameReducer(choosing, { type: "selectJackSpecialEffect", effect: "enhanceFiveOrSeven" });
+
+    expect(resolved.players[0].hasJEnhancementRight).toBe(true);
+    expect(resolved.players[1].hasJEnhancementRight).toBeFalsy();
+    expect(resolved.players[2].hasJEnhancementRight).toBeFalsy();
+    expect(resolved.isJBackActive).toBe(false);
+    expect(resolved.pendingDaifugoEffect).toBeNull();
+    expect(resolved.players.map((candidate) => candidate.hand.map((item) => item.id))).toEqual(originalHands);
+    expect(resolved.deck.map((item) => item.id)).toEqual(originalDeck);
+    expect(resolved.players.map((candidate) => candidate.discardPile.map((item) => item.id))).toEqual(originalDiscardPiles);
+    expect(resolved.players.map((candidate) => candidate.isReach)).toEqual(choosing.players.map((candidate) => candidate.isReach));
+    expect(resolved.direction).toBe(choosing.direction);
+    expect(resolved.queenVanishedRanks).toEqual(choosing.queenVanishedRanks);
+  });
+
+  it("does not complete or stack enhancement rights when already held", () => {
+    const choosing = gameReducer(
+      gameReducer(
+        {
+          ...stateForDiscard(card("jack", 11)),
+          players: stateForDiscard(card("jack", 11)).players.map((candidate, index) =>
+            index === 0 ? { ...candidate, hasJEnhancementRight: true } : candidate,
+          ),
+        },
+        { type: "discard", cardId: "jack" },
+      ),
+      { type: "answerDaifugoEffect", activate: true },
+    );
+    const blocked = gameReducer(choosing, { type: "selectJackSpecialEffect", effect: "enhanceFiveOrSeven" });
+
+    expect(blocked).toBe(choosing);
+    expect(blocked.pendingDaifugoEffect?.kind).toBe("jackSelect");
+
+    const inspecting = gameReducer(choosing, { type: "selectJackSpecialEffect", effect: "inspectHands" });
+    expect(inspecting.pendingDaifugoEffect?.kind).toBe("jackInspect");
+  });
+
+  it("offers enhanced 5 while keeping enhanced 7 available", () => {
+    const fivePending = gameReducer(
+      {
+        ...stateForDiscard(card("five", 5), daifugoOptions({ fiveSkip: true, sevenExchange: true })),
+        players: stateForDiscard(card("five", 5)).players.map((candidate, index) =>
+          index === 0 ? { ...candidate, hasJEnhancementRight: true } : candidate,
+        ),
+      },
+      { type: "discard", cardId: "five" },
+    );
+    const fiveResolved = gameReducer(fivePending, { type: "answerDaifugoEffect", activate: true });
+    expect(fiveResolved.players[0].hasJEnhancementRight).toBe(true);
+    expect(fiveResolved.pendingDaifugoEffect?.kind).toBe("fiveEnhancementConfirm");
+
+    const sevenPending = gameReducer(
+      {
+        ...stateForDiscard(card("seven", 7), daifugoOptions({ fiveSkip: true, sevenExchange: true })),
+        players: stateForDiscard(card("seven", 7)).players.map((candidate, index) =>
+          index === 0 ? { ...candidate, hasJEnhancementRight: true } : candidate,
+        ),
+      },
+      { type: "discard", cardId: "seven" },
+    );
+    const sevenResolved = gameReducer(sevenPending, { type: "answerDaifugoEffect", activate: true });
+    expect(sevenResolved.players[0].hasJEnhancementRight).toBe(true);
+    expect(sevenResolved.pendingDaifugoEffect?.kind).toBe("sevenEnhancementConfirm");
+  });
+
+  it("information browsing targets every opponent once and does not alter card state", () => {
+    const choosing = gameReducer(gameReducer(stateForDiscard(card("jack", 11)), { type: "discard", cardId: "jack" }), {
+      type: "answerDaifugoEffect",
+      activate: true,
+    });
+    const beforeInspect = gameReducer(choosing, { type: "selectJackSpecialEffect", effect: "inspectHands" });
+    const originalHands = beforeInspect.players.map((candidate) => candidate.hand.map((item) => item.id));
+    const originalDeckIds = beforeInspect.deck.map((item) => item.id);
+    expect(beforeInspect.pendingDaifugoEffect?.kind).toBe("jackInspect");
+    if (beforeInspect.pendingDaifugoEffect?.kind !== "jackInspect") throw new Error("Expected jackInspect");
+    expect(beforeInspect.pendingDaifugoEffect.targetPlayerIndexes).toEqual([1, 2]);
+
+    const firstTarget = beforeInspect.pendingDaifugoEffect.targetPlayerIndexes[0];
+    const afterFirstReveal = gameReducer(beforeInspect, {
+      type: "inspectJackCard",
+      targetPlayerIndex: firstTarget,
+      cardId: beforeInspect.players[firstTarget].hand[0].id,
+    });
+    const blockedSecondReveal = gameReducer(afterFirstReveal, {
+      type: "inspectJackCard",
+      targetPlayerIndex: firstTarget,
+      cardId: beforeInspect.players[firstTarget].hand[1]?.id ?? beforeInspect.players[firstTarget].hand[0].id,
+    });
+    expect(blockedSecondReveal).toBe(afterFirstReveal);
+
+    const secondStep = gameReducer(afterFirstReveal, { type: "confirmJackInspectCard" });
+    expect(secondStep.pendingDaifugoEffect?.kind).toBe("jackInspect");
+    if (secondStep.pendingDaifugoEffect?.kind !== "jackInspect") throw new Error("Expected second jackInspect step");
+    const secondTarget = secondStep.pendingDaifugoEffect.targetPlayerIndexes[secondStep.pendingDaifugoEffect.currentTargetOffset];
+    const afterSecondReveal = gameReducer(secondStep, {
+      type: "inspectJackCard",
+      targetPlayerIndex: secondTarget,
+      cardId: secondStep.players[secondTarget].hand[0].id,
+    });
+    const resolved = gameReducer(afterSecondReveal, { type: "confirmJackInspectCard" });
+
+    expect(resolved.pendingDaifugoEffect).toBeNull();
+    expect(resolved.players.map((candidate) => candidate.hand.map((item) => item.id))).toEqual(originalHands);
+    expect(resolved.deck.map((item) => item.id)).toEqual(originalDeckIds);
+    expect(resolved.isJBackActive).toBe(false);
+    expect(resolved.direction).toBe(beforeInspect.direction);
+    expect(resolved.queenVanishedRanks).toEqual(beforeInspect.queenVanishedRanks);
+  });
+
+  it("CPU J activation temporarily chooses J-back instead of information browsing", () => {
+    const cpuState = {
+      ...stateForDiscard(card("jack", 11)),
+      players: stateForDiscard(card("jack", 11)).players.map((candidate, index) =>
+        index === 0 ? { ...candidate, isCpu: true, type: "cpu" as const, cpuModelId: "standard" as const } : candidate,
+      ),
+    };
+    const jackPending = gameReducer(cpuState, { type: "discard", cardId: "jack" });
+    const resolved = gameReducer(jackPending, { type: "answerDaifugoEffect", activate: true });
+
+    expect(resolved.pendingDaifugoEffect).toBeNull();
+    expect(resolved.isJBackActive).toBe(true);
   });
 
   it("resolves 8 extra discard without chaining another daifugo effect", () => {

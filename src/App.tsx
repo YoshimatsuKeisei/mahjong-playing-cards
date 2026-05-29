@@ -45,6 +45,19 @@ type DebugResultKind = "ron" | "tsumo" | "doubleRon";
 type DebugStandingsCase = "roundsNoRankChange" | "roundsRankChange" | "targetNoRankChange" | "pointsLoss";
 type DebugDaifugoCase =
   | "jBack"
+  | "jackSelect"
+  | "jackInspect3"
+  | "jackInspect5"
+  | "jBackStart"
+  | "jBackToggleOff"
+  | "eightKeepsJBack"
+  | "cpuJack"
+  | "jEnhancementAcquire"
+  | "jEnhancementDuplicate"
+  | "jEnhancementFiveSeven"
+  | "jEnhancedSeven"
+  | "jEnhancedFive"
+  | "jEnhancedFiveReverse"
   | "eightTsumo"
   | "eightReach"
   | "tenTsumo"
@@ -304,6 +317,19 @@ export default function App() {
                 { label: "DEV: Q候補0件不発", onClick: () => showDebugDaifugo("queenNoChoices") },
                 { label: "DEV: 山札0枚流局", onClick: () => showDebugDaifugo("emptyDeckDraw") },
                 { label: "DEV: Q後山札0枚境界", onClick: () => showDebugDaifugo("queenEndsWithEmptyDeck") },
+                { label: "DEV: J特殊効果選択", onClick: () => showDebugDaifugo("jackSelect") },
+                { label: "DEV: J強化権取得", onClick: () => showDebugDaifugo("jEnhancementAcquire") },
+                { label: "DEV: J強化権重複防止", onClick: () => showDebugDaifugo("jEnhancementDuplicate") },
+                { label: "DEV: J強化権保持中5/7", onClick: () => showDebugDaifugo("jEnhancementFiveSeven") },
+                { label: "DEV: 強化7確認", onClick: () => showDebugDaifugo("jEnhancedSeven") },
+                { label: "DEV: 強化5確認", onClick: () => showDebugDaifugo("jEnhancedFive") },
+                { label: "DEV: 強化5逆回り確認", onClick: () => showDebugDaifugo("jEnhancedFiveReverse") },
+                { label: "DEV: J情報閲覧3人戦", onClick: () => showDebugDaifugo("jackInspect3") },
+                { label: "DEV: J情報閲覧5人戦", onClick: () => showDebugDaifugo("jackInspect5") },
+                { label: "DEV: Jバック開始", onClick: () => showDebugDaifugo("jBackStart") },
+                { label: "DEV: Jバック解除", onClick: () => showDebugDaifugo("jBackToggleOff") },
+                { label: "DEV: 8使用後Jバック維持", onClick: () => showDebugDaifugo("eightKeepsJBack") },
+                { label: "DEV: CPU J暫定処理", onClick: () => showDebugDaifugo("cpuJack") },
               ]
             : undefined
         }
@@ -472,18 +498,24 @@ function debugDeck(count: number, prefix: string, ranks: number[] = [1, 3, 4, 5,
   return Array.from({ length: count }, (_, index) => debugCard(`${prefix}-${index}`, ranks[index % ranks.length], suits[index % suits.length]));
 }
 
-function debugPlayer(index: number, hand: Card[], isReach = false): Player {
+function debugPlayer(index: number, hand: Card[], isReach = false, isCpu = false): Player {
   return {
     id: `debug-player-${index}`,
     name: `プレイヤー${index}`,
-    type: "human",
-    isCpu: false,
+    type: isCpu ? "cpu" : "human",
+    isCpu,
+    cpuModelId: isCpu ? "standard" : undefined,
     hand,
     discardPile: [],
     openMelds: [],
     hasCalled: false,
     isReach,
   };
+}
+
+function debugHand(prefix: string, ranks: number[] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 13]): Card[] {
+  const suits: Card["suit"][] = ["S", "H", "D", "C"];
+  return ranks.map((rank, index) => debugCard(`${prefix}-${index}`, rank, suits[index % suits.length]));
 }
 
 function createDebugDaifugoOptions() {
@@ -503,7 +535,28 @@ function createDebugDaifugoOptions() {
 
 function createDebugDaifugoState(caseName: DebugDaifugoCase): GameState {
   const isJBackCase = caseName === "jBack";
-  const effectCard = caseName.startsWith("ten") || caseName === "reachTenBlocked" ? debugCard("effect-10", 10, "S") : debugCard("effect-8", 8, "S");
+  const isEnhancedSevenCase = caseName === "jEnhancedSeven";
+  const isEnhancedFiveCase = caseName === "jEnhancedFive" || caseName === "jEnhancedFiveReverse";
+  const isJackCase =
+    caseName === "jackSelect" ||
+    caseName === "jEnhancementAcquire" ||
+    caseName === "jEnhancementDuplicate" ||
+    caseName === "jEnhancementFiveSeven" ||
+    caseName === "jackInspect3" ||
+    caseName === "jackInspect5" ||
+    caseName === "jBackStart" ||
+    caseName === "jBackToggleOff" ||
+    caseName === "cpuJack";
+  const isEightKeepCase = caseName === "eightKeepsJBack";
+  const effectCard = isEnhancedSevenCase
+    ? debugCard("effect-7", 7, "S")
+    : isEnhancedFiveCase
+      ? debugCard("effect-5", 5, "S")
+    : isJackCase
+      ? debugCard("effect-j", 11, "S")
+    : caseName.startsWith("ten") || caseName === "reachTenBlocked"
+      ? debugCard("effect-10", 10, "S")
+      : debugCard("effect-8", 8, "S");
   const baseHand = [
     effectCard,
     debugCard("r1", 1, "S"),
@@ -573,6 +626,105 @@ function createDebugDaifugoState(caseName: DebugDaifugoCase): GameState {
     message: "DEV大富豪確認用の状態です。",
     ...overrides,
   });
+
+  if (
+    caseName === "jackSelect" ||
+    caseName === "jEnhancementAcquire" ||
+    caseName === "jEnhancementDuplicate" ||
+    caseName === "jEnhancementFiveSeven" ||
+    caseName === "jackInspect3" ||
+    caseName === "jBackStart" ||
+    caseName === "jBackToggleOff"
+  ) {
+    return makeState({
+      players: [
+        caseName === "jEnhancementDuplicate" || caseName === "jEnhancementFiveSeven"
+          ? { ...players[0], hasJEnhancementRight: true }
+          : players[0],
+        debugPlayer(2, debugHand("j3-p2")),
+        debugPlayer(3, debugHand("j3-p3", [2, 3, 4, 5, 6, 7, 8, 9, 10, 12])),
+      ],
+      isJBackActive: caseName === "jBackToggleOff",
+      deck: [debugCard("j-dev-draw", 4, "C"), debugCard("j-dev-pad", 8, "D")],
+      drawnCard: effectCard,
+      drawnFrom: "deck",
+      message: "DEV: Jを捨ててJ特殊効果を確認できます。",
+    });
+  }
+
+  if (caseName === "jEnhancedSeven") {
+    return makeState({
+      players: [
+        { ...players[0], hasJEnhancementRight: true },
+        debugPlayer(2, debugHand("j7-p2")),
+        debugPlayer(3, debugHand("j7-p3", [2, 2, 2, 5, 6, 7, 8, 9, 10, 13])),
+        debugPlayer(4, debugHand("j7-p4", [3, 3, 3, 4, 5, 6, 8, 10, 12, 13])),
+      ],
+      deck: [debugCard("j7-dev-draw", 4, "C"), debugCard("j7-dev-pad", 8, "D")],
+      drawnCard: effectCard,
+      drawnFrom: "deck",
+      message: "DEV: J強化権を持った状態で7を使用できます。",
+    });
+  }
+
+  if (caseName === "jEnhancedFive" || caseName === "jEnhancedFiveReverse") {
+    return makeState({
+      players: [
+        { ...players[0], hasJEnhancementRight: true },
+        debugPlayer(2, debugHand("j5-skip-p2")),
+        debugPlayer(3, debugHand("j5-skip-p3", [2, 2, 2, 5, 6, 7, 8, 9, 10, 13])),
+        debugPlayer(4, debugHand("j5-skip-p4", [3, 3, 3, 4, 5, 6, 8, 10, 12, 13])),
+        debugPlayer(5, debugHand("j5-skip-p5", [1, 4, 4, 6, 7, 9, 10, 11, 12, 13])),
+      ],
+      direction: caseName === "jEnhancedFiveReverse" ? "counterclockwise" : "clockwise",
+      deck: [debugCard("j5-skip-dev-draw", 4, "C"), debugCard("j5-skip-dev-pad", 8, "D")],
+      drawnCard: effectCard,
+      drawnFrom: "deck",
+      message: "DEV: J強化権を持った状態で5を使用できます。",
+    });
+  }
+
+  if (caseName === "jackInspect5") {
+    return makeState({
+      players: [
+        players[0],
+        debugPlayer(2, debugHand("j5-p2")),
+        debugPlayer(3, debugHand("j5-p3", [2, 3, 4, 5, 6, 7, 8, 9, 10, 12])),
+        debugPlayer(4, debugHand("j5-p4", [1, 3, 5, 7, 9, 11, 12, 13, 4, 6])),
+        debugPlayer(5, debugHand("j5-p5", [1, 2, 4, 6, 8, 10, 11, 12, 13, 5])),
+      ],
+      deck: [debugCard("j5-dev-draw", 4, "C"), debugCard("j5-dev-pad", 8, "D")],
+      drawnCard: effectCard,
+      drawnFrom: "deck",
+      message: "DEV: 5人戦でJ情報閲覧を確認できます。",
+    });
+  }
+
+  if (caseName === "eightKeepsJBack") {
+    return makeState({
+      isJBackActive: true,
+      deck: [debugCard("e8-dev-draw", 4, "C"), debugCard("e8-dev-pad", 8, "D")],
+      drawnCard: effectCard,
+      drawnFrom: "deck",
+      message: "DEV: Jバック中に8を使ってもJバックが維持されます。",
+    });
+  }
+
+  if (caseName === "cpuJack") {
+    const cpuPlayers = [
+      players[0],
+      debugPlayer(2, baseHand, false, true),
+      players[2],
+    ];
+    return makeState({
+      players: cpuPlayers,
+      currentPlayerIndex: 1,
+      deck: [debugCard("cpu-j-dev-draw", 4, "C"), debugCard("cpu-j-dev-pad", 8, "D")],
+      drawnCard: effectCard,
+      drawnFrom: "deck",
+      message: "DEV: CPUがJ効果を発動すると暫定でJバックを選びます。",
+    });
+  }
 
   if (caseName === "queenReachRelease") {
     const reachHand = [

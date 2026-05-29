@@ -45,6 +45,220 @@ describe("PlayScreen round display", () => {
     expect(onExitToHome).toHaveBeenCalledTimes(1);
   });
 
+  it("shows the phase 2-A J special effect choices", async () => {
+    const user = userEvent.setup();
+    const dispatch = vi.fn();
+    const state: GameState = {
+      ...createInitialGame(3, "clockwise"),
+      phase: "handoff",
+      pendingDaifugoEffect: {
+        kind: "jackSelect",
+        effect: "jackBack",
+        playerIndex: 0,
+        continue: { shouldConfirmReach: false },
+      },
+    };
+
+    render(<PlayScreen state={state} dispatch={dispatch} currentRound={1} />);
+
+    expect(screen.getByText("J特殊効果を選択してください")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /情報閲覧/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Jバック/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /5\/7強化権/ })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /情報閲覧/ }));
+    expect(dispatch).toHaveBeenCalledWith({ type: "selectJackSpecialEffect", effect: "inspectHands" });
+  });
+
+  it("disables duplicate J enhancement selection while leaving other J choices available", () => {
+    const state: GameState = {
+      ...createInitialGame(3, "clockwise"),
+      phase: "handoff",
+      pendingDaifugoEffect: {
+        kind: "jackSelect",
+        effect: "jackBack",
+        playerIndex: 0,
+        continue: { shouldConfirmReach: false },
+      },
+      players: createInitialGame(3, "clockwise").players.map((player, index) =>
+        index === 0 ? { ...player, hasJEnhancementRight: true } : player,
+      ),
+    };
+
+    render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} />);
+
+    expect(screen.getByRole("button", { name: /5\/7強化権/ })).toBeDisabled();
+    expect(screen.getByText("すでに強化権を保持しています")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /情報閲覧/ })).not.toBeDisabled();
+    expect(screen.getByRole("button", { name: /Jバック/ })).not.toBeDisabled();
+  });
+
+  it("shows the public J enhancement right badge only for the holder", () => {
+    const baseState = createInitialGame(3, "clockwise");
+    const state: GameState = {
+      ...baseState,
+      players: baseState.players.map((player, index) => (index === 1 ? { ...player, hasJEnhancementRight: true } : player)),
+    };
+
+    render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} />);
+
+    expect(screen.getByText("J強化権あり")).toBeInTheDocument();
+    expect(screen.getAllByText("J強化権あり")).toHaveLength(1);
+  });
+
+  it("shows enhanced 7 confirmation for a human holder", async () => {
+    const user = userEvent.setup();
+    const dispatch = vi.fn();
+    const baseState = createInitialGame(3, "clockwise");
+    const state: GameState = {
+      ...baseState,
+      phase: "handoff",
+      pendingDaifugoEffect: {
+        kind: "sevenEnhancementConfirm",
+        effect: "sevenExchange",
+        playerIndex: 0,
+        continue: { shouldConfirmReach: false },
+      },
+      players: baseState.players.map((player, index) => (index === 0 ? { ...player, hasJEnhancementRight: true } : player)),
+    };
+
+    render(<PlayScreen state={state} dispatch={dispatch} currentRound={1} />);
+
+    expect(screen.getByText("J強化を使用しますか？")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "はい" }));
+    expect(dispatch).toHaveBeenCalledWith({ type: "answerSevenEnhancement", useEnhancement: true });
+  });
+
+  it("shows every opponent and excludes self for enhanced 7 target selection", async () => {
+    const user = userEvent.setup();
+    const dispatch = vi.fn();
+    const baseState = createInitialGame(4, "clockwise");
+    const state: GameState = {
+      ...baseState,
+      phase: "handoff",
+      pendingDaifugoEffect: {
+        kind: "sevenEnhancedTargetSelect",
+        effect: "sevenExchange",
+        playerIndex: 0,
+        continue: { shouldConfirmReach: false },
+      },
+      players: baseState.players.map((player, index) => (index === 0 ? { ...player, hasJEnhancementRight: true } : player)),
+    };
+
+    render(<PlayScreen state={state} dispatch={dispatch} currentRound={1} />);
+
+    expect(screen.getByText("交換相手を選択してください")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "プレイヤー1" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "プレイヤー2" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "プレイヤー3" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "プレイヤー4" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "プレイヤー4" }));
+    expect(dispatch).toHaveBeenCalledWith({ type: "selectEnhancedSevenTarget", targetPlayerIndex: 3 });
+  });
+
+  it("shows enhanced 5 confirmation for a human holder", async () => {
+    const user = userEvent.setup();
+    const dispatch = vi.fn();
+    const baseState = createInitialGame(3, "clockwise");
+    const state: GameState = {
+      ...baseState,
+      phase: "handoff",
+      pendingDaifugoEffect: {
+        kind: "fiveEnhancementConfirm",
+        effect: "fiveSkip",
+        playerIndex: 0,
+        continue: { shouldConfirmReach: false },
+      },
+      players: baseState.players.map((player, index) => (index === 0 ? { ...player, hasJEnhancementRight: true } : player)),
+    };
+
+    render(<PlayScreen state={state} dispatch={dispatch} currentRound={1} />);
+
+    expect(screen.getByText("J強化を使用しますか？")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "はい" }));
+    expect(dispatch).toHaveBeenCalledWith({ type: "answerFiveEnhancement", useEnhancement: true });
+  });
+
+  it("shows enhanced 5 target options with immediate next disabled", async () => {
+    const user = userEvent.setup();
+    const dispatch = vi.fn();
+    const baseState = createInitialGame(5, "clockwise");
+    const state: GameState = {
+      ...baseState,
+      phase: "handoff",
+      pendingDaifugoEffect: {
+        kind: "fiveEnhancedTargetSelect",
+        effect: "fiveSkip",
+        playerIndex: 0,
+        continue: { shouldConfirmReach: false },
+      },
+      players: baseState.players.map((player, index) => (index === 0 ? { ...player, hasJEnhancementRight: true } : player)),
+    };
+
+    render(<PlayScreen state={state} dispatch={dispatch} currentRound={1} />);
+
+    expect(screen.getByText("次の手番を渡すプレイヤーを選択してください")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: baseState.players[0].name })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: baseState.players[1].name })).toBeDisabled();
+    expect(screen.getByRole("button", { name: baseState.players[2].name })).not.toBeDisabled();
+
+    await user.click(screen.getByRole("button", { name: baseState.players[3].name }));
+    expect(dispatch).toHaveBeenCalledWith({ type: "selectEnhancedFiveTarget", targetPlayerIndex: 3 });
+  });
+
+  it("shows a full-size shuffled ten-card row for J information browsing", () => {
+    const randomSpy = vi.spyOn(Math, "random").mockReturnValue(0);
+    const state: GameState = {
+      ...createInitialGame(3, "clockwise"),
+      phase: "handoff",
+      pendingDaifugoEffect: {
+        kind: "jackInspect",
+        effect: "jackBack",
+        playerIndex: 0,
+        targetPlayerIndexes: [1, 2],
+        currentTargetOffset: 0,
+        revealedCardIds: {},
+        continue: { shouldConfirmReach: false },
+      },
+    };
+    const naturalOrder = state.players[1].hand.map((card) => card.id);
+    const { container } = render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} />);
+    const grid = container.querySelector(".jack-inspect-card-grid");
+    const panel = container.querySelector(".action-panel");
+    const buttons = Array.from(grid?.querySelectorAll(".jack-inspect-card-button") ?? []);
+
+    expect(panel).toHaveClass("jack-inspect-action-panel");
+    expect(buttons).toHaveLength(10);
+    expect(grid?.querySelector(".playing-card.compact")).not.toBeInTheDocument();
+    expect(buttons.map((button) => button.getAttribute("data-card-id"))).not.toEqual(naturalOrder);
+    randomSpy.mockRestore();
+  });
+
+  it("marks the selected J information card for the draw-style reveal animation", () => {
+    const baseState = createInitialGame(3, "clockwise");
+    const revealedCardId = baseState.players[1].hand[0].id;
+    const state: GameState = {
+      ...baseState,
+      phase: "handoff",
+      pendingDaifugoEffect: {
+        kind: "jackInspect",
+        effect: "jackBack",
+        playerIndex: 0,
+        targetPlayerIndexes: [1, 2],
+        currentTargetOffset: 0,
+        revealedCardIds: { 1: revealedCardId },
+        continue: { shouldConfirmReach: false },
+      },
+    };
+
+    const { container } = render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} />);
+    const revealedButton = container.querySelector(`[data-card-id="${revealedCardId}"]`);
+
+    expect(revealedButton).toHaveClass("revealed");
+    expect(revealedButton?.querySelector(".playing-card.compact")).not.toBeInTheDocument();
+  });
+
   it("updates the round display after advancing to the next round", () => {
     const { rerender } = render(<PlayScreen state={createInitialGame(4, "clockwise")} dispatch={vi.fn()} currentRound={1} />);
 

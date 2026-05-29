@@ -13,6 +13,7 @@ export type DaifugoEffectId =
   | "tenSwapDraw"
   | "jackBack"
   | "queenNumberVanish";
+export type JackSpecialEffectId = "inspectHands" | "jBack" | "enhanceFiveOrSeven";
 
 export interface DaifugoOptions {
   enabled: boolean;
@@ -58,6 +59,33 @@ export type PendingDaifugoEffect =
       targetPlayerIndex: number;
       selections: Record<number, string>;
       continue: PendingDaifugoContinue;
+      consumeJEnhancementRightOnComplete?: boolean;
+    }
+  | {
+      kind: "sevenEnhancementConfirm";
+      effect: "sevenExchange";
+      playerIndex: number;
+      continue: PendingDaifugoContinue;
+    }
+  | {
+      kind: "sevenEnhancedTargetSelect";
+      effect: "sevenExchange";
+      playerIndex: number;
+      selectedTargetPlayerIndex?: number;
+      continue: PendingDaifugoContinue;
+    }
+  | {
+      kind: "fiveEnhancementConfirm";
+      effect: "fiveSkip";
+      playerIndex: number;
+      continue: PendingDaifugoContinue;
+    }
+  | {
+      kind: "fiveEnhancedTargetSelect";
+      effect: "fiveSkip";
+      playerIndex: number;
+      selectedTargetPlayerIndex?: number;
+      continue: PendingDaifugoContinue;
     }
   | {
       kind: "queenSelect";
@@ -70,6 +98,21 @@ export type PendingDaifugoEffect =
       effect: "queenNumberVanish";
       playerIndex: number;
       winningResult: WinningResult;
+      continue: PendingDaifugoContinue;
+    }
+  | {
+      kind: "jackSelect";
+      effect: "jackBack";
+      playerIndex: number;
+      continue: PendingDaifugoContinue;
+    }
+  | {
+      kind: "jackInspect";
+      effect: "jackBack";
+      playerIndex: number;
+      targetPlayerIndexes: number[];
+      currentTargetOffset: number;
+      revealedCardIds: Record<number, string>;
       continue: PendingDaifugoContinue;
     }
   | {
@@ -97,6 +140,7 @@ export interface Player {
   openMelds: Card[][];
   hasCalled: boolean;
   isReach: boolean;
+  hasJEnhancementRight?: boolean;
   winningResult?: WinningResult;
 }
 

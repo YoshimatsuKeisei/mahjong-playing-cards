@@ -23,6 +23,7 @@ export default function PlayerArea({ player, isCurrent, seat, displayName, style
       <div className="seat-label">
         <strong>{displayName ?? player.name}</strong>
         <span>{getPlayerStatus(player)}</span>
+        {player.hasJEnhancementRight && <span className="j-enhancement-badge">J強化権あり</span>}
       </div>
     </article>
   );

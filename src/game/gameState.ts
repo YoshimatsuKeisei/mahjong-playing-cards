@@ -1,4 +1,17 @@
-import type { Card, CpuModelId, DaifugoEffectEvent, DaifugoEffectId, DaifugoOptions, Direction, GameResult, GameState, PendingDaifugoContinue, Player, RonResult } from "../types";
+import type {
+  Card,
+  CpuModelId,
+  DaifugoEffectEvent,
+  DaifugoEffectId,
+  DaifugoOptions,
+  Direction,
+  GameResult,
+  GameState,
+  JackSpecialEffectId,
+  PendingDaifugoContinue,
+  Player,
+  RonResult,
+} from "../types";
 import { createDeck, createDefaultDaifugoOptions, dealCards, shuffleDeck, sortCards } from "./deck";
 import {
   canDeclareReach,
@@ -238,6 +251,25 @@ function reverseDirection(direction: Direction): Direction {
   return direction === "clockwise" ? "counterclockwise" : "clockwise";
 }
 
+function getPreviousPlayerIndex(currentIndex: number, playerCount: number, direction: Direction): number {
+  return getNextPlayerIndex(currentIndex, playerCount, reverseDirection(direction));
+}
+
+export function getEnhancedFiveTurnOptions(state: GameState, playerIndex: number) {
+  const orderedPlayerIndexes: number[] = [];
+  let cursor = playerIndex;
+  for (let count = 1; count < state.players.length; count += 1) {
+    cursor = getNextPlayerIndex(cursor, state.players.length, state.direction);
+    orderedPlayerIndexes.push(cursor);
+  }
+
+  return orderedPlayerIndexes.map((targetPlayerIndex, orderIndex) => ({
+    playerIndex: targetPlayerIndex,
+    skippedPlayerIndexes: orderedPlayerIndexes.slice(0, orderIndex),
+    selectable: orderIndex > 0,
+  }));
+}
+
 function getDaifugoEffectForCard(card: Card, options: DaifugoOptions): DaifugoEffectId | null {
   if (!options.enabled) return null;
   if (card.rank === 5 && options.effects.fiveSkip) return "fiveSkip";
@@ -270,13 +302,13 @@ function getDaifugoConfirmMessage(effect: DaifugoEffectId): string {
     case "fiveSkip":
       return "5の効果：次のプレイヤーをスキップしますか？";
     case "eightExtraTurn":
-      return "8の効果：追加ターンを行い、Jバックを解除しますか？";
+      return "8の効果：追加ターンを行いますか？";
     case "nineReverse":
       return "9の効果：手番方向を逆にしますか？";
     case "tenSwapDraw":
       return "10の効果：追加で1枚捨てて山札から1枚引きますか？";
     case "jackBack":
-      return "Jの効果：Jバックを発動/解除しますか？";
+      return "Jの効果：J特殊効果を使用しますか？";
     default:
       return "カード効果を発動しますか？";
   }
@@ -451,6 +483,66 @@ function fillCpuSevenExchangeSelections(state: GameState, pending: Extract<NonNu
   return selections;
 }
 
+function consumeJEnhancementRightAfterSeven(players: Player[], playerIndex: number, shouldConsume?: boolean): Player[] {
+  if (!shouldConsume) return players;
+  const player = players[playerIndex];
+  if (!player?.hasJEnhancementRight) return players;
+  return replacePlayer(players, playerIndex, { ...player, hasJEnhancementRight: false });
+}
+
+function consumeJEnhancementRight(players: Player[], playerIndex: number): Player[] {
+  const player = players[playerIndex];
+  if (!player?.hasJEnhancementRight) return players;
+  return replacePlayer(players, playerIndex, { ...player, hasJEnhancementRight: false });
+}
+
+function resolveNormalFiveSkip(state: GameState, continueState?: PendingDaifugoContinue): GameState {
+  const skippedIndex = getNextPlayerIndex(state.currentPlayerIndex, state.players.length, state.direction);
+  return advanceToNextDraw(
+    { ...state, pendingDaifugoEffect: null },
+    state.players,
+    skippedIndex,
+    continueState?.message ?? "5 effect skipped the next player.",
+  );
+}
+
+function resolveEnhancedFiveSkip(state: GameState, playerIndex: number, targetPlayerIndex: number): GameState {
+  const option = getEnhancedFiveTurnOptions(state, playerIndex).find((candidate) => candidate.playerIndex === targetPlayerIndex);
+  if (!option?.selectable) return state;
+  const player = state.players[playerIndex];
+  if (!player?.hasJEnhancementRight || player.isCpu) return state;
+  const players = consumeJEnhancementRight(state.players, playerIndex);
+  const previousIndex = getPreviousPlayerIndex(targetPlayerIndex, state.players.length, state.direction);
+  const skippedNames = option.skippedPlayerIndexes.map((skippedIndex) => state.players[skippedIndex].name).join(", ");
+  const message = `${player.name} used enhanced 5. Skipped ${skippedNames}; next turn is ${state.players[targetPlayerIndex].name}.`;
+  return advanceToNextDraw({ ...state, players, pendingDaifugoEffect: null }, players, previousIndex, message);
+}
+
+function startSevenExchange(
+  state: GameState,
+  playerIndex: number,
+  targetPlayerIndex: number,
+  continueState: PendingDaifugoContinue,
+  consumeJEnhancementRightOnComplete = false,
+): GameState {
+  const message = consumeJEnhancementRightOnComplete
+    ? `${state.players[playerIndex].name}がJ強化を使用し、${state.players[targetPlayerIndex].name}とのカード交換を開始します。`
+    : `${state.players[playerIndex].name}と${state.players[targetPlayerIndex].name}が相手に渡すカードを選択しています。`;
+  return resolveSevenExchangeIfReady({
+    ...state,
+    pendingDaifugoEffect: {
+      kind: "sevenExchange",
+      effect: "sevenExchange",
+      playerIndex,
+      targetPlayerIndex,
+      selections: {},
+      continue: continueState,
+      consumeJEnhancementRightOnComplete,
+    },
+    message,
+  });
+}
+
 function resolveSevenExchange(state: GameState, pending: Extract<NonNullable<GameState["pendingDaifugoEffect"]>, { kind: "sevenExchange" }>): GameState {
   const giver = state.players[pending.playerIndex];
   const target = state.players[pending.targetPlayerIndex];
@@ -468,7 +560,11 @@ function resolveSevenExchange(state: GameState, pending: Extract<NonNullable<Gam
     ...target,
     hand: sortCards([...target.hand.filter((card) => card.id !== targetCard.id), giverCard]),
   };
-  const exchangedPlayers = replacePlayer(replacePlayer(state.players, pending.playerIndex, nextGiver), pending.targetPlayerIndex, nextTarget);
+  const exchangedPlayers = consumeJEnhancementRightAfterSeven(
+    replacePlayer(replacePlayer(state.players, pending.playerIndex, nextGiver), pending.targetPlayerIndex, nextTarget),
+    pending.playerIndex,
+    pending.consumeJEnhancementRightOnComplete,
+  );
   const { players, releasedPlayerIndexes } = releaseInvalidReachPlayers(exchangedPlayers);
   const message = appendReachReleaseMessage(`${giver.name}と${target.name}が互いにカードを渡しました。`, players, releasedPlayerIndexes);
   return continueAfterDaifugo(
@@ -511,7 +607,11 @@ function resolveSevenExchangeWithReachReview(
     ...target,
     hand: sortCards([...target.hand.filter((card) => card.id !== targetCard.id), giverCard]),
   };
-  const exchangedPlayers = replacePlayer(replacePlayer(state.players, pending.playerIndex, nextGiver), pending.targetPlayerIndex, nextTarget);
+  const exchangedPlayers = consumeJEnhancementRightAfterSeven(
+    replacePlayer(replacePlayer(state.players, pending.playerIndex, nextGiver), pending.targetPlayerIndex, nextTarget),
+    pending.playerIndex,
+    pending.consumeJEnhancementRightOnComplete,
+  );
   const reachCheck = recheckReachAfterHandChange(
     state,
     exchangedPlayers,
@@ -722,44 +822,144 @@ function makeWinningState(state: GameState, players: Player[], winningResult = p
   };
 }
 
+function getJackInspectTargetPlayerIndexes(state: GameState, playerIndex: number): number[] {
+  return state.players.map((_, index) => index).filter((index) => index !== playerIndex);
+}
+
+function resolveJackBackEffect(state: GameState, playerIndex: number, continueState: PendingDaifugoContinue): GameState {
+  const nextIsJBackActive = !state.isJBackActive;
+  const playerName = state.players[playerIndex]?.name ?? "プレイヤー";
+  const message = nextIsJBackActive
+    ? `${playerName}がJバックを発動しました。失点計算が逆転します。`
+    : `${playerName}がJバックを解除しました。失点計算が通常に戻ります。`;
+  return continueAfterDaifugo(
+    {
+      ...state,
+      isJBackActive: nextIsJBackActive,
+      pendingDaifugoEffect: null,
+    },
+    { ...continueState, shouldConfirmReach: false, message },
+  );
+}
+
+function startJackInspectEffect(state: GameState, playerIndex: number, continueState: PendingDaifugoContinue): GameState {
+  const targetPlayerIndexes = getJackInspectTargetPlayerIndexes(state, playerIndex);
+  const playerName = state.players[playerIndex]?.name ?? "プレイヤー";
+  if (targetPlayerIndexes.length === 0) {
+    return continueAfterDaifugo(
+      { ...state, pendingDaifugoEffect: null },
+      { ...continueState, shouldConfirmReach: false, message: `${playerName}が情報閲覧を完了しました。` },
+    );
+  }
+  return {
+    ...state,
+    pendingDaifugoEffect: {
+      kind: "jackInspect",
+      effect: "jackBack",
+      playerIndex,
+      targetPlayerIndexes,
+      currentTargetOffset: 0,
+      revealedCardIds: {},
+      continue: continueState,
+    },
+    message: `${playerName}がJ効果で相手の手札を確認しています。`,
+  };
+}
+
+function resolveJackEnhancementRightEffect(state: GameState, playerIndex: number, continueState: PendingDaifugoContinue): GameState {
+  const player = state.players[playerIndex];
+  if (!player || player.hasJEnhancementRight) return state;
+  const players = replacePlayer(state.players, playerIndex, { ...player, hasJEnhancementRight: true });
+  return continueAfterDaifugo(
+    {
+      ...state,
+      players,
+      pendingDaifugoEffect: null,
+    },
+    {
+      ...continueState,
+      shouldConfirmReach: false,
+      message: `${player.name}がJ効果で5/7強化権を獲得しました。`,
+    },
+  );
+}
+
+function resolveJackSpecialEffect(state: GameState, effect: JackSpecialEffectId): GameState {
+  const pending = state.pendingDaifugoEffect;
+  if (!pending || pending.kind !== "jackSelect") return state;
+  if (effect === "jBack") {
+    return resolveJackBackEffect(state, pending.playerIndex, pending.continue);
+  }
+  if (effect === "enhanceFiveOrSeven") {
+    return resolveJackEnhancementRightEffect(state, pending.playerIndex, pending.continue);
+  }
+  return startJackInspectEffect(state, pending.playerIndex, pending.continue);
+}
+
 function applyDaifugoEffect(state: GameState): GameState {
   const pending = state.pendingDaifugoEffect;
   if (!pending || pending.kind !== "confirm" || pending.playerIndex !== state.currentPlayerIndex) return state;
 
   if (pending.effect === "fiveSkip") {
+    const currentPlayer = state.players[state.currentPlayerIndex];
+    if (currentPlayer?.hasJEnhancementRight && !currentPlayer.isCpu) {
+      return {
+        ...state,
+        pendingDaifugoEffect: {
+          kind: "fiveEnhancementConfirm",
+          effect: "fiveSkip",
+          playerIndex: state.currentPlayerIndex,
+          continue: pending.continue,
+        },
+        message: `${currentPlayer.name} can use J enhancement for the 5 effect.`,
+      };
+    }
+    return resolveNormalFiveSkip(state, pending.continue);
     const skippedIndex = getNextPlayerIndex(state.currentPlayerIndex, state.players.length, state.direction);
     return advanceToNextDraw({ ...state, pendingDaifugoEffect: null }, state.players, skippedIndex, "5の効果で次のプレイヤーをスキップしました。");
   }
 
   if (pending.effect === "sevenExchange") {
+    const currentPlayer = state.players[state.currentPlayerIndex];
+    if (currentPlayer?.hasJEnhancementRight && !currentPlayer.isCpu) {
+      return {
+        ...state,
+        pendingDaifugoEffect: {
+          kind: "sevenEnhancementConfirm",
+          effect: "sevenExchange",
+          playerIndex: state.currentPlayerIndex,
+          continue: pending.continue,
+        },
+        message: `${currentPlayer.name}は7の効果でJ強化を使用できます。`,
+      };
+    }
     const targetPlayerIndex = getNextPlayerIndex(state.currentPlayerIndex, state.players.length, state.direction);
-    return resolveSevenExchangeIfReady({
-      ...state,
-      pendingDaifugoEffect: {
-        kind: "sevenExchange",
-        effect: "sevenExchange",
-        playerIndex: state.currentPlayerIndex,
-        targetPlayerIndex,
-        selections: {},
-        continue: pending.continue,
-      },
-      message: `${state.players[state.currentPlayerIndex].name}と${state.players[targetPlayerIndex].name}が相手に渡すカードを選択しています。`,
-    });
+    return startSevenExchange(state, state.currentPlayerIndex, targetPlayerIndex, pending.continue);
   }
-
   if (pending.effect === "nineReverse") {
     return continueAfterDaifugo({ ...state, direction: reverseDirection(state.direction) }, pending.continue);
   }
 
   if (pending.effect === "jackBack") {
-    return continueAfterDaifugo({ ...state, isJBackActive: !state.isJBackActive }, pending.continue);
+    if (state.players[state.currentPlayerIndex]?.isCpu) {
+      return resolveJackBackEffect(state, state.currentPlayerIndex, pending.continue);
+    }
+    return {
+      ...state,
+      pendingDaifugoEffect: {
+        kind: "jackSelect",
+        effect: "jackBack",
+        playerIndex: state.currentPlayerIndex,
+        continue: pending.continue,
+      },
+      message: `${state.players[state.currentPlayerIndex].name}がJ特殊効果を発動しました。効果を選択しています。`,
+    };
   }
 
   if (pending.effect === "eightExtraTurn") {
-    if (state.deck.length === 0) return deckoutResult({ ...state, pendingDaifugoEffect: null, isJBackActive: false }, state.players);
+    if (state.deck.length === 0) return deckoutResult({ ...state, pendingDaifugoEffect: null }, state.players);
     return {
       ...state,
-      isJBackActive: false,
       pendingDaifugoEffect: {
         kind: "effectDraw",
         effect: "eightExtraTurn",
@@ -819,11 +1019,20 @@ export type GameAction =
   | { type: "confirmHandoff" }
   | { type: "answerRon"; takeRon: boolean }
   | { type: "answerDaifugoEffect"; activate: boolean }
+  | { type: "answerSevenEnhancement"; useEnhancement: boolean }
+  | { type: "selectEnhancedSevenTarget"; targetPlayerIndex: number }
+  | { type: "confirmEnhancedSevenTarget" }
+  | { type: "answerFiveEnhancement"; useEnhancement: boolean }
+  | { type: "selectEnhancedFiveTarget"; targetPlayerIndex: number }
+  | { type: "confirmEnhancedFiveTarget" }
   | { type: "drawForDaifugoEffect" }
   | { type: "discardForDaifugoEffect"; cardId: string }
   | { type: "selectSevenExchangeCard"; playerIndex: number; cardId: string }
   | { type: "selectQueenVanishRank"; rank: number }
   | { type: "answerQueenWin"; takeWin: boolean }
+  | { type: "selectJackSpecialEffect"; effect: JackSpecialEffectId }
+  | { type: "inspectJackCard"; targetPlayerIndex: number; cardId: string }
+  | { type: "confirmJackInspectCard" }
   | { type: "answerReachContinue"; keepReach: boolean }
   | { type: "drawFromDeck" }
   | { type: "takeDiscard"; ownerIndex: number; meld?: Card[] }
@@ -838,11 +1047,20 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
   if (
     state.pendingDaifugoEffect &&
     action.type !== "answerDaifugoEffect" &&
+    action.type !== "answerSevenEnhancement" &&
+    action.type !== "selectEnhancedSevenTarget" &&
+    action.type !== "confirmEnhancedSevenTarget" &&
+    action.type !== "answerFiveEnhancement" &&
+    action.type !== "selectEnhancedFiveTarget" &&
+    action.type !== "confirmEnhancedFiveTarget" &&
     action.type !== "drawForDaifugoEffect" &&
     action.type !== "discardForDaifugoEffect" &&
     action.type !== "selectSevenExchangeCard" &&
     action.type !== "selectQueenVanishRank" &&
     action.type !== "answerQueenWin" &&
+    action.type !== "selectJackSpecialEffect" &&
+    action.type !== "inspectJackCard" &&
+    action.type !== "confirmJackInspectCard" &&
     action.type !== "answerReachContinue" &&
     action.type !== "declareReach" &&
     action.type !== "answerReachAfterDiscard" &&
@@ -933,6 +1151,97 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         return continueAfterDaifugo({ ...state, pendingDaifugoEffect: null }, pending.continue);
       }
       return applyDaifugoEffect(state);
+    }
+
+    case "answerSevenEnhancement": {
+      const pending = state.pendingDaifugoEffect;
+      if (!pending || pending.kind !== "sevenEnhancementConfirm") return state;
+      const player = state.players[pending.playerIndex];
+      if (!player?.hasJEnhancementRight || player.isCpu) return state;
+      if (!action.useEnhancement) {
+        const targetPlayerIndex = getNextPlayerIndex(pending.playerIndex, state.players.length, state.direction);
+        return startSevenExchange(state, pending.playerIndex, targetPlayerIndex, pending.continue);
+      }
+      return {
+        ...state,
+        pendingDaifugoEffect: {
+          kind: "sevenEnhancedTargetSelect",
+          effect: "sevenExchange",
+          playerIndex: pending.playerIndex,
+          continue: pending.continue,
+        },
+        message: `${player.name}が強化7の交換相手を選択しています。`,
+      };
+    }
+
+    case "selectEnhancedSevenTarget": {
+      const pending = state.pendingDaifugoEffect;
+      if (!pending || pending.kind !== "sevenEnhancedTargetSelect") return state;
+      if (action.targetPlayerIndex === pending.playerIndex) return state;
+      if (!state.players[action.targetPlayerIndex]) return state;
+      const player = state.players[pending.playerIndex];
+      if (!player?.hasJEnhancementRight || player.isCpu) return state;
+      return {
+        ...state,
+        pendingDaifugoEffect: {
+          ...pending,
+          selectedTargetPlayerIndex: action.targetPlayerIndex,
+        },
+      };
+    }
+
+    case "confirmEnhancedSevenTarget": {
+      const pending = state.pendingDaifugoEffect;
+      if (!pending || pending.kind !== "sevenEnhancedTargetSelect") return state;
+      const targetPlayerIndex = pending.selectedTargetPlayerIndex;
+      if (targetPlayerIndex === undefined || targetPlayerIndex === pending.playerIndex || !state.players[targetPlayerIndex]) return state;
+      const player = state.players[pending.playerIndex];
+      if (!player?.hasJEnhancementRight || player.isCpu) return state;
+      return startSevenExchange(state, pending.playerIndex, targetPlayerIndex, pending.continue, true);
+    }
+
+    case "answerFiveEnhancement": {
+      const pending = state.pendingDaifugoEffect;
+      if (!pending || pending.kind !== "fiveEnhancementConfirm") return state;
+      const player = state.players[pending.playerIndex];
+      if (!player?.hasJEnhancementRight || player.isCpu) return state;
+      if (!action.useEnhancement) {
+        return resolveNormalFiveSkip(state, pending.continue);
+      }
+      return {
+        ...state,
+        pendingDaifugoEffect: {
+          kind: "fiveEnhancedTargetSelect",
+          effect: "fiveSkip",
+          playerIndex: pending.playerIndex,
+          continue: pending.continue,
+        },
+        message: `${player.name} is choosing the next turn target for enhanced 5.`,
+      };
+    }
+
+    case "selectEnhancedFiveTarget": {
+      const pending = state.pendingDaifugoEffect;
+      if (!pending || pending.kind !== "fiveEnhancedTargetSelect") return state;
+      const player = state.players[pending.playerIndex];
+      if (!player?.hasJEnhancementRight || player.isCpu) return state;
+      const option = getEnhancedFiveTurnOptions(state, pending.playerIndex).find((candidate) => candidate.playerIndex === action.targetPlayerIndex);
+      if (!option?.selectable) return state;
+      return {
+        ...state,
+        pendingDaifugoEffect: {
+          ...pending,
+          selectedTargetPlayerIndex: action.targetPlayerIndex,
+        },
+      };
+    }
+
+    case "confirmEnhancedFiveTarget": {
+      const pending = state.pendingDaifugoEffect;
+      if (!pending || pending.kind !== "fiveEnhancedTargetSelect") return state;
+      const targetPlayerIndex = pending.selectedTargetPlayerIndex;
+      if (targetPlayerIndex === undefined || !state.players[targetPlayerIndex]) return state;
+      return resolveEnhancedFiveSkip(state, pending.playerIndex, targetPlayerIndex);
     }
 
     case "drawForDaifugoEffect": {
@@ -1064,6 +1373,53 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         { ...state, pendingDaifugoEffect: null, currentPlayerIndex: pending.playerIndex },
         { ...pending.continue, shouldConfirmReach: false },
       );
+    }
+
+    case "selectJackSpecialEffect": {
+      return resolveJackSpecialEffect(state, action.effect);
+    }
+
+    case "inspectJackCard": {
+      const pending = state.pendingDaifugoEffect;
+      if (!pending || pending.kind !== "jackInspect") return state;
+      const targetPlayerIndex = pending.targetPlayerIndexes[pending.currentTargetOffset];
+      if (targetPlayerIndex !== action.targetPlayerIndex) return state;
+      const target = state.players[targetPlayerIndex];
+      if (!target?.hand.some((card) => card.id === action.cardId)) return state;
+      if (pending.revealedCardIds[targetPlayerIndex]) return state;
+      return {
+        ...state,
+        pendingDaifugoEffect: {
+          ...pending,
+          revealedCardIds: {
+            ...pending.revealedCardIds,
+            [targetPlayerIndex]: action.cardId,
+          },
+        },
+      };
+    }
+
+    case "confirmJackInspectCard": {
+      const pending = state.pendingDaifugoEffect;
+      if (!pending || pending.kind !== "jackInspect") return state;
+      const targetPlayerIndex = pending.targetPlayerIndexes[pending.currentTargetOffset];
+      if (targetPlayerIndex === undefined || !pending.revealedCardIds[targetPlayerIndex]) return state;
+      const nextOffset = pending.currentTargetOffset + 1;
+      const playerName = state.players[pending.playerIndex]?.name ?? "プレイヤー";
+      if (nextOffset >= pending.targetPlayerIndexes.length) {
+        return continueAfterDaifugo(
+          { ...state, pendingDaifugoEffect: null },
+          { ...pending.continue, shouldConfirmReach: false, message: `${playerName}が情報閲覧を完了しました。` },
+        );
+      }
+      return {
+        ...state,
+        pendingDaifugoEffect: {
+          ...pending,
+          currentTargetOffset: nextOffset,
+        },
+        message: `${playerName}がJ効果で相手の手札を確認しています。`,
+      };
     }
 
     case "answerReachContinue": {

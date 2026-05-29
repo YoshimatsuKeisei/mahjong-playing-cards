@@ -60,6 +60,7 @@ export function dealCards(
     openMelds: [],
     hasCalled: false,
     isReach: false,
+    hasJEnhancementRight: false,
   }));
 
   const dealSource = [...deck];
