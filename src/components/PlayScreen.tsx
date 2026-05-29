@@ -76,6 +76,7 @@ function EnhancedTargetTable({
   onSelect,
 }: EnhancedTargetTableProps) {
   const fiveOptionByPlayer = new Map(fiveOptions.map((option) => [option.playerIndex, option]));
+  const activeRouteArrowCount = selectedFiveOption ? selectedFiveOption.skippedPlayerIndexes.length + 1 : 0;
 
   return (
     <div
@@ -86,8 +87,31 @@ function EnhancedTargetTable({
         <img className="enhanced-target-table-image" src={enhancedRoundTableSrc} alt="" data-testid="enhanced-round-table" />
       </div>
       {mode === "five" && (
-        <div className={`enhanced-target-direction ${direction === "clockwise" ? "clockwise" : "counterclockwise"}`}>
-          {direction === "clockwise" ? "通常順" : "逆回り"}
+        <>
+          <div
+            className={`enhanced-target-route ${direction === "clockwise" ? "clockwise" : "counterclockwise"} ${
+              selectedFiveOption ? "route-active" : ""
+            }`}
+            data-testid="enhanced-five-direction-route"
+            aria-hidden="true"
+          >
+            {players.map((player, routeIndex) => (
+              <span
+                className={`enhanced-target-route-arrow enhanced-target-route-arrow--${players.length}-${routeIndex + 1} ${
+                  routeIndex < activeRouteArrowCount ? "active" : ""
+                }`}
+                key={`route-${player.id}`}
+              />
+            ))}
+          </div>
+          <div className={`enhanced-target-direction ${direction === "clockwise" ? "clockwise" : "counterclockwise"}`}>
+            {direction === "clockwise" ? "通常順" : "逆回り"}
+          </div>
+        </>
+      )}
+      {mode === "seven" && selectedTargetIndex !== undefined && (
+        <div className="enhanced-target-exchange-mark" data-testid="enhanced-seven-exchange-mark" aria-hidden="true">
+          ↔
         </div>
       )}
       {players.map((player, playerIndex) => {
@@ -130,8 +154,14 @@ function EnhancedTargetTable({
             title={mode === "five" && !isActor && !isSelectable ? "スキップ対象がいないため選択できません" : undefined}
             onClick={() => onSelect(playerIndex)}
           >
-            <span className="enhanced-target-seat-name">{player.name}</span>
-            <span className="enhanced-target-seat-state">{stateLabel}</span>
+            <span className="enhanced-target-seat-icon" aria-hidden="true">
+              <span className="enhanced-target-seat-person-head" />
+              <span className="enhanced-target-seat-person-body" />
+            </span>
+            <span className="enhanced-target-seat-copy">
+              <span className="enhanced-target-seat-name">{player.name}</span>
+              <span className="enhanced-target-seat-state">{stateLabel}</span>
+            </span>
           </button>
         );
       })}
@@ -1198,7 +1228,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
           )}
 
           {isFiveEnhancedTargetSelect && pendingDaifugoEffect.playerIndex === state.currentPlayerIndex && !currentPlayer.isCpu && (
-            <div className="daifugo-effect-panel five-enhancement-panel">
+            <div className="daifugo-effect-panel enhanced-target-select-panel five-enhancement-panel">
               <strong>次の手番を渡すプレイヤーを選択してください</strong>
               <span className="hint">選択したプレイヤーまでの間にいる相手をスキップします。</span>
               <EnhancedTargetTable
@@ -1256,7 +1286,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
           )}
 
           {isSevenEnhancedTargetSelect && pendingDaifugoEffect.playerIndex === state.currentPlayerIndex && !currentPlayer.isCpu && (
-            <div className="daifugo-effect-panel seven-enhancement-panel">
+            <div className="daifugo-effect-panel enhanced-target-select-panel seven-enhancement-panel">
               <strong>交換相手を選択してください</strong>
               <span className="hint">J強化により、任意の相手とカードを交換できます。</span>
               <EnhancedTargetTable
