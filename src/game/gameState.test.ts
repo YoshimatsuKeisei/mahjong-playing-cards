@@ -176,7 +176,11 @@ describe("daifugo game state", () => {
       { type: "discard", cardId: "seven" },
     );
     const confirming = gameReducer(pending, { type: "answerDaifugoEffect", activate: true });
-    const choosingTarget = gameReducer(confirming, { type: "answerSevenEnhancement", useEnhancement: true });
+    const splashing = gameReducer(confirming, { type: "answerSevenEnhancement", useEnhancement: true });
+    expect(splashing.pendingDaifugoEffect?.kind).toBe("sevenEnhancementSplash");
+    expect(splashing.players[0].hasJEnhancementRight).toBe(true);
+
+    const choosingTarget = gameReducer(splashing, { type: "finishSevenEnhancementSplash" });
     expect(choosingTarget.pendingDaifugoEffect?.kind).toBe("sevenEnhancedTargetSelect");
     expect(choosingTarget.players[0].hasJEnhancementRight).toBe(true);
 
@@ -223,6 +227,7 @@ describe("daifugo game state", () => {
     const normal = gameReducer(withoutRight, { type: "answerDaifugoEffect", activate: true });
     expect(normal.pendingDaifugoEffect).toBeNull();
     expect(normal.lastDiscarderIndex).toBe(1);
+    expect(normal.message).toBe("Player 2をスキップ！次の手番はPlayer 3です。");
 
     const base = stateForDiscard(card("five", 5), daifugoOptions({ fiveSkip: true }));
     const withRight = gameReducer(
@@ -237,6 +242,23 @@ describe("daifugo game state", () => {
     expect(declined.pendingDaifugoEffect).toBeNull();
     expect(declined.players[0].hasJEnhancementRight).toBe(true);
     expect(declined.lastDiscarderIndex).toBe(1);
+    expect(declined.message).toBe("Player 2をスキップ！次の手番はPlayer 3です。");
+  });
+
+  it("reports normal 5 skip results in the current direction", () => {
+    const clockwisePending = gameReducer(stateForFivePlayerDiscard(card("five", 5), "clockwise", daifugoOptions({ fiveSkip: true })), {
+      type: "discard",
+      cardId: "five",
+    });
+    const clockwise = gameReducer(clockwisePending, { type: "answerDaifugoEffect", activate: true });
+    expect(clockwise.message).toBe("Player 2をスキップ！次の手番はPlayer 3です。");
+
+    const reversedPending = gameReducer(stateForFivePlayerDiscard(card("five", 5), "counterclockwise", daifugoOptions({ fiveSkip: true })), {
+      type: "discard",
+      cardId: "five",
+    });
+    const reversed = gameReducer(reversedPending, { type: "answerDaifugoEffect", activate: true });
+    expect(reversed.message).toBe("Player 5をスキップ！次の手番はPlayer 4です。");
   });
 
   it("calculates enhanced 5 targets in current direction", () => {
@@ -264,7 +286,11 @@ describe("daifugo game state", () => {
       { type: "discard", cardId: "five" },
     );
     const confirming = gameReducer(pending, { type: "answerDaifugoEffect", activate: true });
-    const choosingTarget = gameReducer(confirming, { type: "answerFiveEnhancement", useEnhancement: true });
+    const splashing = gameReducer(confirming, { type: "answerFiveEnhancement", useEnhancement: true });
+    expect(splashing.pendingDaifugoEffect?.kind).toBe("fiveEnhancementSplash");
+    expect(splashing.players[0].hasJEnhancementRight).toBe(true);
+
+    const choosingTarget = gameReducer(splashing, { type: "finishFiveEnhancementSplash" });
     expect(choosingTarget.pendingDaifugoEffect?.kind).toBe("fiveEnhancedTargetSelect");
     expect(choosingTarget.players[0].hasJEnhancementRight).toBe(true);
 
@@ -279,6 +305,7 @@ describe("daifugo game state", () => {
     const resolved = gameReducer(selected, { type: "confirmEnhancedFiveTarget" });
     expect(resolved.players[0].hasJEnhancementRight).toBe(false);
     expect(resolved.lastDiscarderIndex).toBe(2);
+    expect(resolved.message).toBe("Player 2、Player 3をスキップ！次の手番はPlayer 4です。");
     const next = gameReducer(resolved, { type: "confirmHandoff" });
     expect(next.currentPlayerIndex).toBe(3);
   });
@@ -290,10 +317,12 @@ describe("daifugo game state", () => {
       { type: "discard", cardId: "five" },
     );
     const reversedConfirming = gameReducer(reversedPending, { type: "answerDaifugoEffect", activate: true });
-    const reversedChoosing = gameReducer(reversedConfirming, { type: "answerFiveEnhancement", useEnhancement: true });
+    const reversedSplashing = gameReducer(reversedConfirming, { type: "answerFiveEnhancement", useEnhancement: true });
+    const reversedChoosing = gameReducer(reversedSplashing, { type: "finishFiveEnhancementSplash" });
     const reversedSelected = gameReducer(reversedChoosing, { type: "selectEnhancedFiveTarget", targetPlayerIndex: 2 });
     const reversedResolved = gameReducer(reversedSelected, { type: "confirmEnhancedFiveTarget" });
     expect(reversedResolved.lastDiscarderIndex).toBe(3);
+    expect(reversedResolved.message).toBe("Player 5、Player 4をスキップ！次の手番はPlayer 3です。");
     expect(gameReducer(reversedResolved, { type: "confirmHandoff" }).currentPlayerIndex).toBe(2);
 
     const threeBase = stateForDiscard(card("five", 5), daifugoOptions({ fiveSkip: true }));
@@ -302,7 +331,8 @@ describe("daifugo game state", () => {
       { type: "discard", cardId: "five" },
     );
     const threeConfirming = gameReducer(threePending, { type: "answerDaifugoEffect", activate: true });
-    const threeChoosing = gameReducer(threeConfirming, { type: "answerFiveEnhancement", useEnhancement: true });
+    const threeSplashing = gameReducer(threeConfirming, { type: "answerFiveEnhancement", useEnhancement: true });
+    const threeChoosing = gameReducer(threeSplashing, { type: "finishFiveEnhancementSplash" });
     expect(getEnhancedFiveTurnOptions(threeChoosing, 0).filter((option) => option.selectable).map((option) => option.playerIndex)).toEqual([2]);
     const threeSelected = gameReducer(threeChoosing, { type: "selectEnhancedFiveTarget", targetPlayerIndex: 2 });
     const threeResolved = gameReducer(threeSelected, { type: "confirmEnhancedFiveTarget" });

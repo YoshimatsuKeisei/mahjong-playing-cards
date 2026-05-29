@@ -498,11 +498,13 @@ function consumeJEnhancementRight(players: Player[], playerIndex: number): Playe
 
 function resolveNormalFiveSkip(state: GameState, continueState?: PendingDaifugoContinue): GameState {
   const skippedIndex = getNextPlayerIndex(state.currentPlayerIndex, state.players.length, state.direction);
+  const nextTurnIndex = getNextPlayerIndex(skippedIndex, state.players.length, state.direction);
+  const message = `${state.players[skippedIndex].name}をスキップ！次の手番は${state.players[nextTurnIndex].name}です。`;
   return advanceToNextDraw(
     { ...state, pendingDaifugoEffect: null },
     state.players,
     skippedIndex,
-    continueState?.message ?? "5 effect skipped the next player.",
+    continueState?.message ?? message,
   );
 }
 
@@ -513,8 +515,8 @@ function resolveEnhancedFiveSkip(state: GameState, playerIndex: number, targetPl
   if (!player?.hasJEnhancementRight || player.isCpu) return state;
   const players = consumeJEnhancementRight(state.players, playerIndex);
   const previousIndex = getPreviousPlayerIndex(targetPlayerIndex, state.players.length, state.direction);
-  const skippedNames = option.skippedPlayerIndexes.map((skippedIndex) => state.players[skippedIndex].name).join(", ");
-  const message = `${player.name} used enhanced 5. Skipped ${skippedNames}; next turn is ${state.players[targetPlayerIndex].name}.`;
+  const skippedNames = option.skippedPlayerIndexes.map((skippedIndex) => state.players[skippedIndex].name).join("、");
+  const message = `${skippedNames}をスキップ！次の手番は${state.players[targetPlayerIndex].name}です。`;
   return advanceToNextDraw({ ...state, players, pendingDaifugoEffect: null }, players, previousIndex, message);
 }
 
@@ -1020,9 +1022,11 @@ export type GameAction =
   | { type: "answerRon"; takeRon: boolean }
   | { type: "answerDaifugoEffect"; activate: boolean }
   | { type: "answerSevenEnhancement"; useEnhancement: boolean }
+  | { type: "finishSevenEnhancementSplash" }
   | { type: "selectEnhancedSevenTarget"; targetPlayerIndex: number }
   | { type: "confirmEnhancedSevenTarget" }
   | { type: "answerFiveEnhancement"; useEnhancement: boolean }
+  | { type: "finishFiveEnhancementSplash" }
   | { type: "selectEnhancedFiveTarget"; targetPlayerIndex: number }
   | { type: "confirmEnhancedFiveTarget" }
   | { type: "drawForDaifugoEffect" }
@@ -1048,9 +1052,11 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     state.pendingDaifugoEffect &&
     action.type !== "answerDaifugoEffect" &&
     action.type !== "answerSevenEnhancement" &&
+    action.type !== "finishSevenEnhancementSplash" &&
     action.type !== "selectEnhancedSevenTarget" &&
     action.type !== "confirmEnhancedSevenTarget" &&
     action.type !== "answerFiveEnhancement" &&
+    action.type !== "finishFiveEnhancementSplash" &&
     action.type !== "selectEnhancedFiveTarget" &&
     action.type !== "confirmEnhancedFiveTarget" &&
     action.type !== "drawForDaifugoEffect" &&
@@ -1165,7 +1171,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return {
         ...state,
         pendingDaifugoEffect: {
-          kind: "sevenEnhancedTargetSelect",
+          kind: "sevenEnhancementSplash",
           effect: "sevenExchange",
           playerIndex: pending.playerIndex,
           continue: pending.continue,
@@ -1190,6 +1196,23 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       };
     }
 
+    case "finishSevenEnhancementSplash": {
+      const pending = state.pendingDaifugoEffect;
+      if (!pending || pending.kind !== "sevenEnhancementSplash") return state;
+      const player = state.players[pending.playerIndex];
+      if (!player?.hasJEnhancementRight || player.isCpu) return state;
+      return {
+        ...state,
+        pendingDaifugoEffect: {
+          kind: "sevenEnhancedTargetSelect",
+          effect: "sevenExchange",
+          playerIndex: pending.playerIndex,
+          continue: pending.continue,
+        },
+        message: `${player.name}が強化7の交換相手を選択しています。`,
+      };
+    }
+
     case "confirmEnhancedSevenTarget": {
       const pending = state.pendingDaifugoEffect;
       if (!pending || pending.kind !== "sevenEnhancedTargetSelect") return state;
@@ -1211,12 +1234,12 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return {
         ...state,
         pendingDaifugoEffect: {
-          kind: "fiveEnhancedTargetSelect",
+          kind: "fiveEnhancementSplash",
           effect: "fiveSkip",
           playerIndex: pending.playerIndex,
           continue: pending.continue,
         },
-        message: `${player.name} is choosing the next turn target for enhanced 5.`,
+        message: `${player.name}が強化5の次手番相手を選択しています。`,
       };
     }
 
@@ -1233,6 +1256,23 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           ...pending,
           selectedTargetPlayerIndex: action.targetPlayerIndex,
         },
+      };
+    }
+
+    case "finishFiveEnhancementSplash": {
+      const pending = state.pendingDaifugoEffect;
+      if (!pending || pending.kind !== "fiveEnhancementSplash") return state;
+      const player = state.players[pending.playerIndex];
+      if (!player?.hasJEnhancementRight || player.isCpu) return state;
+      return {
+        ...state,
+        pendingDaifugoEffect: {
+          kind: "fiveEnhancedTargetSelect",
+          effect: "fiveSkip",
+          playerIndex: pending.playerIndex,
+          continue: pending.continue,
+        },
+        message: `${player.name}が強化5の次手番相手を選択しています。`,
       };
     }
 

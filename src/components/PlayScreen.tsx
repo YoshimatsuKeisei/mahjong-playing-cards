@@ -47,6 +47,127 @@ type DaifugoAnimationStep = {
 };
 
 const reachVisualSrc = new URL("../../黒ローブ男.png", import.meta.url).href;
+const enhancedRoundTableSrc = new URL("../assets/テーブル.png", import.meta.url).href;
+const J_ENHANCEMENT_SPLASH_MS = 1350;
+
+type EnhancedFiveTurnOption = ReturnType<typeof getEnhancedFiveTurnOptions>[number];
+
+type EnhancedTargetTableProps = {
+  mode: "five" | "seven";
+  players: GameState["players"];
+  actorIndex: number;
+  selectedTargetIndex?: number;
+  direction: GameState["direction"];
+  fiveOptions?: EnhancedFiveTurnOption[];
+  selectedFiveOption?: EnhancedFiveTurnOption | null;
+  disabled: boolean;
+  onSelect: (playerIndex: number) => void;
+};
+
+function EnhancedTargetTable({
+  mode,
+  players,
+  actorIndex,
+  selectedTargetIndex,
+  direction,
+  fiveOptions = [],
+  selectedFiveOption = null,
+  disabled,
+  onSelect,
+}: EnhancedTargetTableProps) {
+  const fiveOptionByPlayer = new Map(fiveOptions.map((option) => [option.playerIndex, option]));
+  const activeRouteArrowCount = selectedFiveOption ? selectedFiveOption.skippedPlayerIndexes.length + 1 : 0;
+
+  return (
+    <div
+      className={`enhanced-target-table ${mode === "five" ? "enhanced-target-table--five" : "enhanced-target-table--seven"}`}
+      data-testid={`enhanced-${mode}-target-table`}
+    >
+      <div className="enhanced-target-table-core" aria-hidden="true">
+        <img className="enhanced-target-table-image" src={enhancedRoundTableSrc} alt="" data-testid="enhanced-round-table" />
+      </div>
+      {mode === "five" && (
+        <>
+          <div
+            className={`enhanced-target-route ${direction === "clockwise" ? "clockwise" : "counterclockwise"} ${
+              selectedFiveOption ? "route-active" : ""
+            }`}
+            data-testid="enhanced-five-direction-route"
+            aria-hidden="true"
+          >
+            {players.map((player, routeIndex) => (
+              <span
+                className={`enhanced-target-route-arrow enhanced-target-route-arrow--${players.length}-${routeIndex + 1} ${
+                  routeIndex < activeRouteArrowCount ? "active" : ""
+                }`}
+                key={`route-${player.id}`}
+              />
+            ))}
+          </div>
+          <div className={`enhanced-target-direction ${direction === "clockwise" ? "clockwise" : "counterclockwise"}`}>
+            {direction === "clockwise" ? "通常順" : "逆回り"}
+          </div>
+        </>
+      )}
+      {mode === "seven" && selectedTargetIndex !== undefined && (
+        <div className="enhanced-target-exchange-mark" data-testid="enhanced-seven-exchange-mark" aria-hidden="true">
+          ↔
+        </div>
+      )}
+      {players.map((player, playerIndex) => {
+        const isActor = playerIndex === actorIndex;
+        const isSelected = selectedTargetIndex === playerIndex;
+        const isSkipped = mode === "five" ? selectedFiveOption?.skippedPlayerIndexes.includes(playerIndex) ?? false : false;
+        const fiveOption = fiveOptionByPlayer.get(playerIndex);
+        const isSelectable = mode === "seven" ? !isActor : Boolean(fiveOption?.selectable);
+        const nodeDisabled = disabled || isActor || !isSelectable;
+        const stateClass = isActor
+          ? "self"
+          : mode === "five" && isSelected
+            ? "next-target"
+            : mode === "five" && isSkipped
+              ? "skip-target"
+              : mode === "seven" && isSelected
+                ? "exchange-target"
+                : !isSelectable
+                  ? "disabled-target"
+                  : "selectable-target";
+        const stateLabel = isActor
+          ? "自分"
+          : mode === "five" && isSelected
+            ? "次の手番"
+            : mode === "five" && isSkipped
+              ? "スキップ"
+              : mode === "seven" && isSelected
+                ? "交換相手"
+                : !isSelectable
+                  ? "選択不可"
+                  : "選択可";
+
+        return (
+          <button
+            type="button"
+            className={`enhanced-target-seat enhanced-target-seat--${players.length}-${playerIndex + 1} ${stateClass}`}
+            key={player.id}
+            disabled={nodeDisabled}
+            aria-label={player.name}
+            title={mode === "five" && !isActor && !isSelectable ? "スキップ対象がいないため選択できません" : undefined}
+            onClick={() => onSelect(playerIndex)}
+          >
+            <span className="enhanced-target-seat-icon" aria-hidden="true">
+              <span className="enhanced-target-seat-person-head" />
+              <span className="enhanced-target-seat-person-body" />
+            </span>
+            <span className="enhanced-target-seat-copy">
+              <span className="enhanced-target-seat-name">{player.name}</span>
+              <span className="enhanced-target-seat-state">{stateLabel}</span>
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 const seatPositions: Record<number, Array<{ left: string; top: string }>> = {
   3: [
@@ -125,6 +246,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
   const [discardingCardId, setDiscardingCardId] = useState<string | null>(null);
   const [reachSplashPlayerName, setReachSplashPlayerName] = useState<string | null>(null);
   const [reachSplashCall, setReachSplashCall] = useState("リーチ!!");
+  const [reachSplashDurationMs, setReachSplashDurationMs] = useState(2600);
   const [visibleDaifugoEventId, setVisibleDaifugoEventId] = useState<string | null>(null);
   const [daifugoEventStepIndex, setDaifugoEventStepIndex] = useState(0);
   const [daifugoDrawPhase, setDaifugoDrawPhase] = useState<"reveal" | "insert">("reveal");
@@ -149,9 +271,12 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
   const isDaifugoEffectDraw = pendingDaifugoEffect?.kind === "effectDraw";
   const isSevenExchange = pendingDaifugoEffect?.kind === "sevenExchange";
   const isSevenEnhancementConfirm = pendingDaifugoEffect?.kind === "sevenEnhancementConfirm";
+  const isSevenEnhancementSplash = pendingDaifugoEffect?.kind === "sevenEnhancementSplash";
   const isSevenEnhancedTargetSelect = pendingDaifugoEffect?.kind === "sevenEnhancedTargetSelect";
   const isFiveEnhancementConfirm = pendingDaifugoEffect?.kind === "fiveEnhancementConfirm";
+  const isFiveEnhancementSplash = pendingDaifugoEffect?.kind === "fiveEnhancementSplash";
   const isFiveEnhancedTargetSelect = pendingDaifugoEffect?.kind === "fiveEnhancedTargetSelect";
+  const isEnhancedTargetSelect = isSevenEnhancedTargetSelect || isFiveEnhancedTargetSelect;
   const isQueenSelect = pendingDaifugoEffect?.kind === "queenSelect";
   const isQueenWinConfirm = pendingDaifugoEffect?.kind === "queenWinConfirm";
   const isJackSelect = pendingDaifugoEffect?.kind === "jackSelect";
@@ -170,8 +295,10 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
     isDaifugoEffectDraw ||
     isSevenExchange ||
     isSevenEnhancementConfirm ||
+    isSevenEnhancementSplash ||
     isSevenEnhancedTargetSelect ||
     isFiveEnhancementConfirm ||
+    isFiveEnhancementSplash ||
     isFiveEnhancedTargetSelect ||
     isQueenSelect ||
     isQueenWinConfirm ||
@@ -204,10 +331,6 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
       ? getSevenExchangeCandidateCards(sevenSelectionPlayer, sevenSelectionPlayerIndex === pendingDaifugoEffect.playerIndex)
       : [];
   const sevenSelectionCandidateIds = sevenSelectionCandidates.map((card) => card.id);
-  const enhancedSevenTargetIndexes =
-    pendingDaifugoEffect?.kind === "sevenEnhancedTargetSelect"
-      ? state.players.map((_, playerIndex) => playerIndex).filter((playerIndex) => playerIndex !== pendingDaifugoEffect.playerIndex)
-      : [];
   const enhancedFiveTurnOptions =
     pendingDaifugoEffect?.kind === "fiveEnhancedTargetSelect" ? getEnhancedFiveTurnOptions(state, pendingDaifugoEffect.playerIndex) : [];
   const selectedEnhancedFiveOption =
@@ -277,6 +400,20 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
     timeoutsRef.current.forEach(window.clearTimeout);
     timeoutsRef.current = [];
   }, [state.currentPlayerIndex]);
+
+  useEffect(() => {
+    if (pendingDaifugoEffect?.kind !== "fiveEnhancementSplash" && pendingDaifugoEffect?.kind !== "sevenEnhancementSplash") return;
+    const player = state.players[pendingDaifugoEffect.playerIndex];
+    if (player?.isCpu) return;
+    const call = pendingDaifugoEffect.kind === "fiveEnhancementSplash" ? "5：スキップ強化" : "7：交換相手選択";
+    showTimedReachSplash("J強化発動！", call, J_ENHANCEMENT_SPLASH_MS);
+    const timeoutId = window.setTimeout(() => {
+      dispatch({
+        type: pendingDaifugoEffect.kind === "fiveEnhancementSplash" ? "finishFiveEnhancementSplash" : "finishSevenEnhancementSplash",
+      });
+    }, J_ENHANCEMENT_SPLASH_MS);
+    return () => window.clearTimeout(timeoutId);
+  }, [dispatch, pendingDaifugoEffect?.kind, pendingDaifugoEffect?.playerIndex, state.players]);
 
   useEffect(() => {
     if (isDaifugoEventPlaying) {
@@ -686,7 +823,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
 
   function handleDaifugoConfirmAnswer(activate: boolean) {
     if (activate && pendingDaifugoEffect?.kind === "confirm") {
-      if (pendingDaifugoEffect.effect === "sevenExchange") {
+      if (pendingDaifugoEffect.effect === "sevenExchange" && !currentPlayer.hasJEnhancementRight) {
         showReachSplash(currentPlayer.name, "カード交換!!");
       }
       if (pendingDaifugoEffect.effect === "queenNumberVanish") {
@@ -696,16 +833,21 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
     dispatch({ type: "answerDaifugoEffect", activate });
   }
 
-  function showReachSplash(playerName: string, call = "リーチ!!") {
+  function showTimedReachSplash(playerName: string, call: string, duration: number) {
     setReachSplashPlayerName(playerName);
     setReachSplashCall(call);
+    setReachSplashDurationMs(duration);
     if (reachSplashTimeoutRef.current !== null) {
       window.clearTimeout(reachSplashTimeoutRef.current);
     }
     reachSplashTimeoutRef.current = window.setTimeout(() => {
       setReachSplashPlayerName(null);
       reachSplashTimeoutRef.current = null;
-    }, 2600);
+    }, duration);
+  }
+
+  function showReachSplash(playerName: string, call = "リーチ!!") {
+    showTimedReachSplash(playerName, call, 2600);
   }
 
   function handleDeclareReach() {
@@ -768,7 +910,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
         )}
 
         {reachSplashPlayerName && (
-          <div className="reach-splash" role="status" aria-live="assertive">
+          <div className="reach-splash" role="status" aria-live="assertive" style={{ "--reach-splash-duration": `${reachSplashDurationMs}ms` } as CSSProperties}>
             <div className="reach-splash-band">
               <img src={reachVisualSrc} alt="" className="reach-splash-visual" />
               <div className="reach-splash-copy">
@@ -1007,7 +1149,11 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
           </div>
         )}
         {shouldShowActionPanel && (
-        <section className={`action-panel ${isJackInspect ? "jack-inspect-action-panel" : ""}`}>
+        <section
+          className={`action-panel ${isJackInspect ? "jack-inspect-action-panel" : ""} ${
+            isEnhancedTargetSelect ? `enhanced-target-action-panel enhanced-target-action-panel--${playerCount}` : ""
+          }`}
+        >
           {isDaifugoConfirm && (
             <div className="daifugo-effect-panel">
               <strong>{getDaifugoEffectText(pendingDaifugoEffect.effect)}</strong>
@@ -1082,31 +1228,20 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
           )}
 
           {isFiveEnhancedTargetSelect && pendingDaifugoEffect.playerIndex === state.currentPlayerIndex && !currentPlayer.isCpu && (
-            <div className="daifugo-effect-panel five-enhancement-panel">
+            <div className="daifugo-effect-panel enhanced-target-select-panel five-enhancement-panel">
               <strong>次の手番を渡すプレイヤーを選択してください</strong>
               <span className="hint">選択したプレイヤーまでの間にいる相手をスキップします。</span>
-              <span className="hint">{state.direction === "clockwise" ? "通常順" : "逆回り"}</span>
-              <div className="enhanced-seven-target-grid enhanced-five-target-grid">
-                {enhancedFiveTurnOptions.map((option) => {
-                  const player = state.players[option.playerIndex];
-                  const isSelected = pendingDaifugoEffect.selectedTargetPlayerIndex === option.playerIndex;
-                  const isSkipped = selectedEnhancedFiveOption?.skippedPlayerIndexes.includes(option.playerIndex) ?? false;
-                  return (
-                    <button
-                      type="button"
-                      className={`enhanced-seven-target-button enhanced-five-target-button ${isSelected ? "next-target" : ""} ${
-                        isSkipped ? "skip-target" : ""
-                      }`}
-                      key={player.id}
-                      disabled={!option.selectable || isAnimating || cpuActionInProgress}
-                      title={!option.selectable ? "スキップ対象がいないため選択できません" : undefined}
-                      onClick={() => dispatch({ type: "selectEnhancedFiveTarget", targetPlayerIndex: option.playerIndex })}
-                    >
-                      {player.name}
-                    </button>
-                  );
-                })}
-              </div>
+              <EnhancedTargetTable
+                mode="five"
+                players={state.players}
+                actorIndex={pendingDaifugoEffect.playerIndex}
+                selectedTargetIndex={pendingDaifugoEffect.selectedTargetPlayerIndex}
+                direction={state.direction}
+                fiveOptions={enhancedFiveTurnOptions}
+                selectedFiveOption={selectedEnhancedFiveOption}
+                disabled={isAnimating || cpuActionInProgress}
+                onSelect={(playerIndex) => dispatch({ type: "selectEnhancedFiveTarget", targetPlayerIndex: playerIndex })}
+              />
               {selectedEnhancedFiveOption && (
                 <span className="hint">
                   {selectedEnhancedFiveOption.skippedPlayerIndexes.length > 0
@@ -1151,25 +1286,18 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
           )}
 
           {isSevenEnhancedTargetSelect && pendingDaifugoEffect.playerIndex === state.currentPlayerIndex && !currentPlayer.isCpu && (
-            <div className="daifugo-effect-panel seven-enhancement-panel">
+            <div className="daifugo-effect-panel enhanced-target-select-panel seven-enhancement-panel">
               <strong>交換相手を選択してください</strong>
-              <div className="enhanced-seven-target-grid">
-                {enhancedSevenTargetIndexes.map((playerIndex) => {
-                  const player = state.players[playerIndex];
-                  const isSelected = pendingDaifugoEffect.selectedTargetPlayerIndex === playerIndex;
-                  return (
-                    <button
-                      type="button"
-                      className={`enhanced-seven-target-button ${isSelected ? "selected" : ""}`}
-                      key={player.id}
-                      disabled={isAnimating || cpuActionInProgress}
-                      onClick={() => dispatch({ type: "selectEnhancedSevenTarget", targetPlayerIndex: playerIndex })}
-                    >
-                      {player.name}
-                    </button>
-                  );
-                })}
-              </div>
+              <span className="hint">J強化により、任意の相手とカードを交換できます。</span>
+              <EnhancedTargetTable
+                mode="seven"
+                players={state.players}
+                actorIndex={pendingDaifugoEffect.playerIndex}
+                selectedTargetIndex={pendingDaifugoEffect.selectedTargetPlayerIndex}
+                direction={state.direction}
+                disabled={isAnimating || cpuActionInProgress}
+                onSelect={(playerIndex) => dispatch({ type: "selectEnhancedSevenTarget", targetPlayerIndex: playerIndex })}
+              />
               {pendingDaifugoEffect.selectedTargetPlayerIndex !== undefined && (
                 <span className="hint">{state.players[pendingDaifugoEffect.selectedTargetPlayerIndex].name}とカード交換します。</span>
               )}
@@ -2099,7 +2227,7 @@ function getActionText(state: GameState) {
   if (state.phase === "discard") return "手札から1枚選んで捨ててください。";
   if (state.phase === "reachConfirm") return "リーチ宣言を確認してください。";
   if (state.phase === "ronCheck") return "ロン可能な捨て札を確認しています。";
-  if (state.phase === "handoff") return "次のプレイヤーへ交代してください。";
+  if (state.phase === "handoff") return state.message || "次のプレイヤーへ交代してください。";
   if (state.drawnCard) return `引いたカード: ${formatCard(state.drawnCard)}`;
   return state.message;
 }
