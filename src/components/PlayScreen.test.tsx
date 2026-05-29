@@ -146,10 +146,17 @@ describe("PlayScreen round display", () => {
       players: baseState.players.map((player, index) => (index === 0 ? { ...player, hasJEnhancementRight: true } : player)),
     };
 
-    render(<PlayScreen state={state} dispatch={dispatch} currentRound={1} />);
+    const { container } = render(<PlayScreen state={state} dispatch={dispatch} currentRound={1} />);
 
     expect(screen.getByText("交換相手を選択してください")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "プレイヤー1" })).not.toBeInTheDocument();
+    expect(screen.getByTestId("enhanced-seven-target-table")).toBeInTheDocument();
+    expect(screen.getByTestId("enhanced-round-table")).toBeInTheDocument();
+    expect(container.querySelector(".enhanced-target-table-core span")).toBeNull();
+    expect(container.querySelector(".action-panel")).toHaveClass("enhanced-target-action-panel");
+    expect(screen.queryByText("宇宙")).not.toBeInTheDocument();
+    expect(screen.queryByText("次の手番")).not.toBeInTheDocument();
+    expect(screen.queryByText("スキップ")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "プレイヤー1" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "プレイヤー2" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "プレイヤー3" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "プレイヤー4" })).toBeInTheDocument();
@@ -197,15 +204,95 @@ describe("PlayScreen round display", () => {
       players: baseState.players.map((player, index) => (index === 0 ? { ...player, hasJEnhancementRight: true } : player)),
     };
 
-    render(<PlayScreen state={state} dispatch={dispatch} currentRound={1} />);
+    const { container } = render(<PlayScreen state={state} dispatch={dispatch} currentRound={1} />);
 
     expect(screen.getByText("次の手番を渡すプレイヤーを選択してください")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: baseState.players[0].name })).not.toBeInTheDocument();
+    expect(screen.getByTestId("enhanced-five-target-table")).toBeInTheDocument();
+    expect(screen.getByTestId("enhanced-round-table")).toBeInTheDocument();
+    expect(container.querySelector(".enhanced-target-table-core span")).toBeNull();
+    expect(container.querySelector(".action-panel")).toHaveClass("enhanced-target-action-panel");
+    expect(screen.queryByText("宇宙")).not.toBeInTheDocument();
+    expect(screen.getByText("通常順")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: baseState.players[0].name })).toBeDisabled();
     expect(screen.getByRole("button", { name: baseState.players[1].name })).toBeDisabled();
     expect(screen.getByRole("button", { name: baseState.players[2].name })).not.toBeDisabled();
 
     await user.click(screen.getByRole("button", { name: baseState.players[3].name }));
     expect(dispatch).toHaveBeenCalledWith({ type: "selectEnhancedFiveTarget", targetPlayerIndex: 3 });
+  });
+
+  it("marks enhanced 5 skip and next-turn seats on the circular table", () => {
+    const baseState = createInitialGame(5, "clockwise");
+    const state: GameState = {
+      ...baseState,
+      phase: "handoff",
+      pendingDaifugoEffect: {
+        kind: "fiveEnhancedTargetSelect",
+        effect: "fiveSkip",
+        playerIndex: 0,
+        selectedTargetPlayerIndex: 3,
+        continue: { shouldConfirmReach: false },
+      },
+      players: baseState.players.map((player, index) => (index === 0 ? { ...player, hasJEnhancementRight: true } : player)),
+    };
+
+    render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} />);
+
+    expect(screen.getByRole("button", { name: baseState.players[1].name })).toHaveClass("skip-target");
+    expect(screen.getByRole("button", { name: baseState.players[2].name })).toHaveClass("skip-target");
+    expect(screen.getByRole("button", { name: baseState.players[3].name })).toHaveClass("next-target");
+    expect(screen.getByRole("button", { name: baseState.players[4].name })).not.toHaveClass("skip-target");
+  });
+
+  it("marks reverse enhanced 5 seats using the current direction", () => {
+    const baseState = createInitialGame(5, "counterclockwise");
+    const state: GameState = {
+      ...baseState,
+      phase: "handoff",
+      pendingDaifugoEffect: {
+        kind: "fiveEnhancedTargetSelect",
+        effect: "fiveSkip",
+        playerIndex: 0,
+        selectedTargetPlayerIndex: 2,
+        continue: { shouldConfirmReach: false },
+      },
+      players: baseState.players.map((player, index) => (index === 0 ? { ...player, hasJEnhancementRight: true } : player)),
+    };
+
+    render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} />);
+
+    expect(screen.getByText("逆回り")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: baseState.players[4].name })).toHaveClass("skip-target");
+    expect(screen.getByRole("button", { name: baseState.players[3].name })).toHaveClass("skip-target");
+    expect(screen.getByRole("button", { name: baseState.players[2].name })).toHaveClass("next-target");
+  });
+
+  it("renders enhanced 5 circular table for three-player games", async () => {
+    const user = userEvent.setup();
+    const dispatch = vi.fn();
+    const baseState = createInitialGame(3, "clockwise");
+    const state: GameState = {
+      ...baseState,
+      phase: "handoff",
+      pendingDaifugoEffect: {
+        kind: "fiveEnhancedTargetSelect",
+        effect: "fiveSkip",
+        playerIndex: 0,
+        continue: { shouldConfirmReach: false },
+      },
+      players: baseState.players.map((player, index) => (index === 0 ? { ...player, hasJEnhancementRight: true } : player)),
+    };
+
+    const { container } = render(<PlayScreen state={state} dispatch={dispatch} currentRound={1} />);
+
+    expect(screen.getByTestId("enhanced-five-target-table")).toBeInTheDocument();
+    expect(container.querySelector(".action-panel")).toHaveClass("enhanced-target-action-panel--3");
+    expect(screen.getByRole("button", { name: baseState.players[0].name })).toBeDisabled();
+    expect(screen.getByRole("button", { name: baseState.players[1].name })).toBeDisabled();
+    expect(screen.getByRole("button", { name: baseState.players[2].name })).not.toBeDisabled();
+
+    await user.click(screen.getByRole("button", { name: baseState.players[2].name }));
+    expect(dispatch).toHaveBeenCalledWith({ type: "selectEnhancedFiveTarget", targetPlayerIndex: 2 });
   });
 
   it("shows a short J enhancement splash before enhanced 5 target selection", () => {
