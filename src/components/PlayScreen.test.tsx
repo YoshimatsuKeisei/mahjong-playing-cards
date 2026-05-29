@@ -45,7 +45,7 @@ describe("PlayScreen round display", () => {
     expect(onExitToHome).toHaveBeenCalledTimes(1);
   });
 
-  it("shows only the phase-one J special effect choices", async () => {
+  it("shows the phase 2-A J special effect choices", async () => {
     const user = userEvent.setup();
     const dispatch = vi.fn();
     const state: GameState = {
@@ -64,10 +64,46 @@ describe("PlayScreen round display", () => {
     expect(screen.getByText("J特殊効果を選択してください")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /情報閲覧/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Jバック/ })).toBeInTheDocument();
-    expect(screen.queryByText(/強化/)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /5\/7強化権/ })).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /情報閲覧/ }));
     expect(dispatch).toHaveBeenCalledWith({ type: "selectJackSpecialEffect", effect: "inspectHands" });
+  });
+
+  it("disables duplicate J enhancement selection while leaving other J choices available", () => {
+    const state: GameState = {
+      ...createInitialGame(3, "clockwise"),
+      phase: "handoff",
+      pendingDaifugoEffect: {
+        kind: "jackSelect",
+        effect: "jackBack",
+        playerIndex: 0,
+        continue: { shouldConfirmReach: false },
+      },
+      players: createInitialGame(3, "clockwise").players.map((player, index) =>
+        index === 0 ? { ...player, hasJEnhancementRight: true } : player,
+      ),
+    };
+
+    render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} />);
+
+    expect(screen.getByRole("button", { name: /5\/7強化権/ })).toBeDisabled();
+    expect(screen.getByText("すでに強化権を保持しています")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /情報閲覧/ })).not.toBeDisabled();
+    expect(screen.getByRole("button", { name: /Jバック/ })).not.toBeDisabled();
+  });
+
+  it("shows the public J enhancement right badge only for the holder", () => {
+    const baseState = createInitialGame(3, "clockwise");
+    const state: GameState = {
+      ...baseState,
+      players: baseState.players.map((player, index) => (index === 1 ? { ...player, hasJEnhancementRight: true } : player)),
+    };
+
+    render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} />);
+
+    expect(screen.getByText("J強化権あり")).toBeInTheDocument();
+    expect(screen.getAllByText("J強化権あり")).toHaveLength(1);
   });
 
   it("shows a full-size shuffled ten-card row for J information browsing", () => {

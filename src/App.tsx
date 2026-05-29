@@ -52,6 +52,9 @@ type DebugDaifugoCase =
   | "jBackToggleOff"
   | "eightKeepsJBack"
   | "cpuJack"
+  | "jEnhancementAcquire"
+  | "jEnhancementDuplicate"
+  | "jEnhancementFiveSeven"
   | "eightTsumo"
   | "eightReach"
   | "tenTsumo"
@@ -312,6 +315,9 @@ export default function App() {
                 { label: "DEV: 山札0枚流局", onClick: () => showDebugDaifugo("emptyDeckDraw") },
                 { label: "DEV: Q後山札0枚境界", onClick: () => showDebugDaifugo("queenEndsWithEmptyDeck") },
                 { label: "DEV: J特殊効果選択", onClick: () => showDebugDaifugo("jackSelect") },
+                { label: "DEV: J強化権取得", onClick: () => showDebugDaifugo("jEnhancementAcquire") },
+                { label: "DEV: J強化権重複防止", onClick: () => showDebugDaifugo("jEnhancementDuplicate") },
+                { label: "DEV: J強化権保持中5/7", onClick: () => showDebugDaifugo("jEnhancementFiveSeven") },
                 { label: "DEV: J情報閲覧3人戦", onClick: () => showDebugDaifugo("jackInspect3") },
                 { label: "DEV: J情報閲覧5人戦", onClick: () => showDebugDaifugo("jackInspect5") },
                 { label: "DEV: Jバック開始", onClick: () => showDebugDaifugo("jBackStart") },
@@ -525,6 +531,9 @@ function createDebugDaifugoState(caseName: DebugDaifugoCase): GameState {
   const isJBackCase = caseName === "jBack";
   const isJackCase =
     caseName === "jackSelect" ||
+    caseName === "jEnhancementAcquire" ||
+    caseName === "jEnhancementDuplicate" ||
+    caseName === "jEnhancementFiveSeven" ||
     caseName === "jackInspect3" ||
     caseName === "jackInspect5" ||
     caseName === "jBackStart" ||
@@ -606,10 +615,20 @@ function createDebugDaifugoState(caseName: DebugDaifugoCase): GameState {
     ...overrides,
   });
 
-  if (caseName === "jackSelect" || caseName === "jackInspect3" || caseName === "jBackStart" || caseName === "jBackToggleOff") {
+  if (
+    caseName === "jackSelect" ||
+    caseName === "jEnhancementAcquire" ||
+    caseName === "jEnhancementDuplicate" ||
+    caseName === "jEnhancementFiveSeven" ||
+    caseName === "jackInspect3" ||
+    caseName === "jBackStart" ||
+    caseName === "jBackToggleOff"
+  ) {
     return makeState({
       players: [
-        players[0],
+        caseName === "jEnhancementDuplicate" || caseName === "jEnhancementFiveSeven"
+          ? { ...players[0], hasJEnhancementRight: true }
+          : players[0],
         debugPlayer(2, debugHand("j3-p2")),
         debugPlayer(3, debugHand("j3-p3", [2, 3, 4, 5, 6, 7, 8, 9, 10, 12])),
       ],

@@ -779,11 +779,32 @@ function startJackInspectEffect(state: GameState, playerIndex: number, continueS
   };
 }
 
+function resolveJackEnhancementRightEffect(state: GameState, playerIndex: number, continueState: PendingDaifugoContinue): GameState {
+  const player = state.players[playerIndex];
+  if (!player || player.hasJEnhancementRight) return state;
+  const players = replacePlayer(state.players, playerIndex, { ...player, hasJEnhancementRight: true });
+  return continueAfterDaifugo(
+    {
+      ...state,
+      players,
+      pendingDaifugoEffect: null,
+    },
+    {
+      ...continueState,
+      shouldConfirmReach: false,
+      message: `${player.name}がJ効果で5/7強化権を獲得しました。`,
+    },
+  );
+}
+
 function resolveJackSpecialEffect(state: GameState, effect: JackSpecialEffectId): GameState {
   const pending = state.pendingDaifugoEffect;
   if (!pending || pending.kind !== "jackSelect") return state;
   if (effect === "jBack") {
     return resolveJackBackEffect(state, pending.playerIndex, pending.continue);
+  }
+  if (effect === "enhanceFiveOrSeven") {
+    return resolveJackEnhancementRightEffect(state, pending.playerIndex, pending.continue);
   }
   return startJackInspectEffect(state, pending.playerIndex, pending.continue);
 }

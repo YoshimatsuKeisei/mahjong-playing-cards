@@ -1091,6 +1091,19 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
                   <span>Jバック</span>
                   <small>{state.isJBackActive ? "失点計算を通常に戻します" : "失点計算の大小を反転します"}</small>
                 </button>
+                <button
+                  type="button"
+                  className="jack-effect-choice"
+                  disabled={isAnimating || cpuActionInProgress || Boolean(currentPlayer.hasJEnhancementRight)}
+                  onClick={() => dispatch({ type: "selectJackSpecialEffect", effect: "enhanceFiveOrSeven" })}
+                >
+                  <span>5/7強化権</span>
+                  <small>
+                    {currentPlayer.hasJEnhancementRight
+                      ? "すでに強化権を保持しています"
+                      : "後の自分の手番で、5または7の効果を強化できます"}
+                  </small>
+                </button>
               </div>
             </div>
           )}

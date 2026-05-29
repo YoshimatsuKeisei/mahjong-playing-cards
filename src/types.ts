@@ -13,7 +13,7 @@ export type DaifugoEffectId =
   | "tenSwapDraw"
   | "jackBack"
   | "queenNumberVanish";
-export type JackSpecialEffectId = "inspectHands" | "jBack";
+export type JackSpecialEffectId = "inspectHands" | "jBack" | "enhanceFiveOrSeven";
 
 export interface DaifugoOptions {
   enabled: boolean;
@@ -113,6 +113,7 @@ export interface Player {
   openMelds: Card[][];
   hasCalled: boolean;
   isReach: boolean;
+  hasJEnhancementRight?: boolean;
   winningResult?: WinningResult;
 }
 

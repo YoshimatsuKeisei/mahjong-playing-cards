@@ -456,6 +456,79 @@ describe("daifugo game state", () => {
     expect(inspecting.pendingDaifugoEffect?.kind).toBe("jackInspect");
   });
 
+  it("grants a single 5/7 enhancement right without changing unrelated J state", () => {
+    const choosing = gameReducer(gameReducer(stateForDiscard(card("jack", 11)), { type: "discard", cardId: "jack" }), {
+      type: "answerDaifugoEffect",
+      activate: true,
+    });
+    const originalHands = choosing.players.map((candidate) => candidate.hand.map((item) => item.id));
+    const originalDeck = choosing.deck.map((item) => item.id);
+    const originalDiscardPiles = choosing.players.map((candidate) => candidate.discardPile.map((item) => item.id));
+    const resolved = gameReducer(choosing, { type: "selectJackSpecialEffect", effect: "enhanceFiveOrSeven" });
+
+    expect(resolved.players[0].hasJEnhancementRight).toBe(true);
+    expect(resolved.players[1].hasJEnhancementRight).toBeFalsy();
+    expect(resolved.players[2].hasJEnhancementRight).toBeFalsy();
+    expect(resolved.isJBackActive).toBe(false);
+    expect(resolved.pendingDaifugoEffect).toBeNull();
+    expect(resolved.players.map((candidate) => candidate.hand.map((item) => item.id))).toEqual(originalHands);
+    expect(resolved.deck.map((item) => item.id)).toEqual(originalDeck);
+    expect(resolved.players.map((candidate) => candidate.discardPile.map((item) => item.id))).toEqual(originalDiscardPiles);
+    expect(resolved.players.map((candidate) => candidate.isReach)).toEqual(choosing.players.map((candidate) => candidate.isReach));
+    expect(resolved.direction).toBe(choosing.direction);
+    expect(resolved.queenVanishedRanks).toEqual(choosing.queenVanishedRanks);
+  });
+
+  it("does not complete or stack enhancement rights when already held", () => {
+    const choosing = gameReducer(
+      gameReducer(
+        {
+          ...stateForDiscard(card("jack", 11)),
+          players: stateForDiscard(card("jack", 11)).players.map((candidate, index) =>
+            index === 0 ? { ...candidate, hasJEnhancementRight: true } : candidate,
+          ),
+        },
+        { type: "discard", cardId: "jack" },
+      ),
+      { type: "answerDaifugoEffect", activate: true },
+    );
+    const blocked = gameReducer(choosing, { type: "selectJackSpecialEffect", effect: "enhanceFiveOrSeven" });
+
+    expect(blocked).toBe(choosing);
+    expect(blocked.pendingDaifugoEffect?.kind).toBe("jackSelect");
+
+    const inspecting = gameReducer(choosing, { type: "selectJackSpecialEffect", effect: "inspectHands" });
+    expect(inspecting.pendingDaifugoEffect?.kind).toBe("jackInspect");
+  });
+
+  it("phase 2-A keeps normal 5 and 7 behavior and does not consume the enhancement right", () => {
+    const fivePending = gameReducer(
+      {
+        ...stateForDiscard(card("five", 5), daifugoOptions({ fiveSkip: true, sevenExchange: true })),
+        players: stateForDiscard(card("five", 5)).players.map((candidate, index) =>
+          index === 0 ? { ...candidate, hasJEnhancementRight: true } : candidate,
+        ),
+      },
+      { type: "discard", cardId: "five" },
+    );
+    const fiveResolved = gameReducer(fivePending, { type: "answerDaifugoEffect", activate: true });
+    expect(fiveResolved.players[0].hasJEnhancementRight).toBe(true);
+    expect(fiveResolved.pendingDaifugoEffect).toBeNull();
+
+    const sevenPending = gameReducer(
+      {
+        ...stateForDiscard(card("seven", 7), daifugoOptions({ fiveSkip: true, sevenExchange: true })),
+        players: stateForDiscard(card("seven", 7)).players.map((candidate, index) =>
+          index === 0 ? { ...candidate, hasJEnhancementRight: true } : candidate,
+        ),
+      },
+      { type: "discard", cardId: "seven" },
+    );
+    const sevenResolved = gameReducer(sevenPending, { type: "answerDaifugoEffect", activate: true });
+    expect(sevenResolved.players[0].hasJEnhancementRight).toBe(true);
+    expect(sevenResolved.pendingDaifugoEffect?.kind).toBe("sevenExchange");
+  });
+
   it("information browsing targets every opponent once and does not alter card state", () => {
     const choosing = gameReducer(gameReducer(stateForDiscard(card("jack", 11)), { type: "discard", cardId: "jack" }), {
       type: "answerDaifugoEffect",

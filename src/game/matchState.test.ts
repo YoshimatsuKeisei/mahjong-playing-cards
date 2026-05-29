@@ -36,6 +36,7 @@ describe("rounds match state", () => {
           openMelds: index === 0 ? [[player.hand[1], player.hand[2], player.hand[3]]] : [],
           isReach: index === 0,
           hasCalled: index === 0,
+          hasJEnhancementRight: index === 0,
         })),
       },
     };
@@ -51,6 +52,7 @@ describe("rounds match state", () => {
     expect(secondRound.gameState.players.every((player) => player.discardPile.length === 0)).toBe(true);
     expect(secondRound.gameState.players.every((player) => player.openMelds.length === 0)).toBe(true);
     expect(secondRound.gameState.players.every((player) => !player.isReach && !player.hasCalled)).toBe(true);
+    expect(secondRound.gameState.players.every((player) => !player.hasJEnhancementRight)).toBe(true);
     expect(secondRound.gameState.players.every((player) => player.hand.length === 10)).toBe(true);
   });
 
