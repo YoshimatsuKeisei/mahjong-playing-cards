@@ -47,6 +47,7 @@ type DaifugoAnimationStep = {
 };
 
 const reachVisualSrc = new URL("../../黒ローブ男.png", import.meta.url).href;
+const J_ENHANCEMENT_SPLASH_MS = 1350;
 
 const seatPositions: Record<number, Array<{ left: string; top: string }>> = {
   3: [
@@ -125,6 +126,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
   const [discardingCardId, setDiscardingCardId] = useState<string | null>(null);
   const [reachSplashPlayerName, setReachSplashPlayerName] = useState<string | null>(null);
   const [reachSplashCall, setReachSplashCall] = useState("リーチ!!");
+  const [reachSplashDurationMs, setReachSplashDurationMs] = useState(2600);
   const [visibleDaifugoEventId, setVisibleDaifugoEventId] = useState<string | null>(null);
   const [daifugoEventStepIndex, setDaifugoEventStepIndex] = useState(0);
   const [daifugoDrawPhase, setDaifugoDrawPhase] = useState<"reveal" | "insert">("reveal");
@@ -149,8 +151,10 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
   const isDaifugoEffectDraw = pendingDaifugoEffect?.kind === "effectDraw";
   const isSevenExchange = pendingDaifugoEffect?.kind === "sevenExchange";
   const isSevenEnhancementConfirm = pendingDaifugoEffect?.kind === "sevenEnhancementConfirm";
+  const isSevenEnhancementSplash = pendingDaifugoEffect?.kind === "sevenEnhancementSplash";
   const isSevenEnhancedTargetSelect = pendingDaifugoEffect?.kind === "sevenEnhancedTargetSelect";
   const isFiveEnhancementConfirm = pendingDaifugoEffect?.kind === "fiveEnhancementConfirm";
+  const isFiveEnhancementSplash = pendingDaifugoEffect?.kind === "fiveEnhancementSplash";
   const isFiveEnhancedTargetSelect = pendingDaifugoEffect?.kind === "fiveEnhancedTargetSelect";
   const isQueenSelect = pendingDaifugoEffect?.kind === "queenSelect";
   const isQueenWinConfirm = pendingDaifugoEffect?.kind === "queenWinConfirm";
@@ -170,8 +174,10 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
     isDaifugoEffectDraw ||
     isSevenExchange ||
     isSevenEnhancementConfirm ||
+    isSevenEnhancementSplash ||
     isSevenEnhancedTargetSelect ||
     isFiveEnhancementConfirm ||
+    isFiveEnhancementSplash ||
     isFiveEnhancedTargetSelect ||
     isQueenSelect ||
     isQueenWinConfirm ||
@@ -277,6 +283,20 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
     timeoutsRef.current.forEach(window.clearTimeout);
     timeoutsRef.current = [];
   }, [state.currentPlayerIndex]);
+
+  useEffect(() => {
+    if (pendingDaifugoEffect?.kind !== "fiveEnhancementSplash" && pendingDaifugoEffect?.kind !== "sevenEnhancementSplash") return;
+    const player = state.players[pendingDaifugoEffect.playerIndex];
+    if (player?.isCpu) return;
+    const call = pendingDaifugoEffect.kind === "fiveEnhancementSplash" ? "5：スキップ強化" : "7：交換相手選択";
+    showTimedReachSplash("J強化発動！", call, J_ENHANCEMENT_SPLASH_MS);
+    const timeoutId = window.setTimeout(() => {
+      dispatch({
+        type: pendingDaifugoEffect.kind === "fiveEnhancementSplash" ? "finishFiveEnhancementSplash" : "finishSevenEnhancementSplash",
+      });
+    }, J_ENHANCEMENT_SPLASH_MS);
+    return () => window.clearTimeout(timeoutId);
+  }, [dispatch, pendingDaifugoEffect?.kind, pendingDaifugoEffect?.playerIndex, state.players]);
 
   useEffect(() => {
     if (isDaifugoEventPlaying) {
@@ -686,7 +706,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
 
   function handleDaifugoConfirmAnswer(activate: boolean) {
     if (activate && pendingDaifugoEffect?.kind === "confirm") {
-      if (pendingDaifugoEffect.effect === "sevenExchange") {
+      if (pendingDaifugoEffect.effect === "sevenExchange" && !currentPlayer.hasJEnhancementRight) {
         showReachSplash(currentPlayer.name, "カード交換!!");
       }
       if (pendingDaifugoEffect.effect === "queenNumberVanish") {
@@ -696,16 +716,21 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
     dispatch({ type: "answerDaifugoEffect", activate });
   }
 
-  function showReachSplash(playerName: string, call = "リーチ!!") {
+  function showTimedReachSplash(playerName: string, call: string, duration: number) {
     setReachSplashPlayerName(playerName);
     setReachSplashCall(call);
+    setReachSplashDurationMs(duration);
     if (reachSplashTimeoutRef.current !== null) {
       window.clearTimeout(reachSplashTimeoutRef.current);
     }
     reachSplashTimeoutRef.current = window.setTimeout(() => {
       setReachSplashPlayerName(null);
       reachSplashTimeoutRef.current = null;
-    }, 2600);
+    }, duration);
+  }
+
+  function showReachSplash(playerName: string, call = "リーチ!!") {
+    showTimedReachSplash(playerName, call, 2600);
   }
 
   function handleDeclareReach() {
@@ -768,7 +793,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
         )}
 
         {reachSplashPlayerName && (
-          <div className="reach-splash" role="status" aria-live="assertive">
+          <div className="reach-splash" role="status" aria-live="assertive" style={{ "--reach-splash-duration": `${reachSplashDurationMs}ms` } as CSSProperties}>
             <div className="reach-splash-band">
               <img src={reachVisualSrc} alt="" className="reach-splash-visual" />
               <div className="reach-splash-copy">
@@ -2099,7 +2124,7 @@ function getActionText(state: GameState) {
   if (state.phase === "discard") return "手札から1枚選んで捨ててください。";
   if (state.phase === "reachConfirm") return "リーチ宣言を確認してください。";
   if (state.phase === "ronCheck") return "ロン可能な捨て札を確認しています。";
-  if (state.phase === "handoff") return "次のプレイヤーへ交代してください。";
+  if (state.phase === "handoff") return state.message || "次のプレイヤーへ交代してください。";
   if (state.drawnCard) return `引いたカード: ${formatCard(state.drawnCard)}`;
   return state.message;
 }

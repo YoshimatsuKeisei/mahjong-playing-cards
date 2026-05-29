@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { act } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { createInitialGame } from "../game/gameState";
 import type { Card, GameState } from "../types";
@@ -205,6 +206,110 @@ describe("PlayScreen round display", () => {
 
     await user.click(screen.getByRole("button", { name: baseState.players[3].name }));
     expect(dispatch).toHaveBeenCalledWith({ type: "selectEnhancedFiveTarget", targetPlayerIndex: 3 });
+  });
+
+  it("shows a short J enhancement splash before enhanced 5 target selection", () => {
+    vi.useFakeTimers();
+    const dispatch = vi.fn();
+    const baseState = createInitialGame(5, "clockwise");
+    const state: GameState = {
+      ...baseState,
+      phase: "handoff",
+      pendingDaifugoEffect: {
+        kind: "fiveEnhancementSplash",
+        effect: "fiveSkip",
+        playerIndex: 0,
+        continue: { shouldConfirmReach: false },
+      },
+      players: baseState.players.map((player, index) => (index === 0 ? { ...player, hasJEnhancementRight: true } : player)),
+    };
+
+    render(<PlayScreen state={state} dispatch={dispatch} currentRound={1} />);
+
+    expect(screen.getByText("J強化発動！")).toBeInTheDocument();
+    expect(screen.getByText("5：スキップ強化")).toBeInTheDocument();
+    expect(screen.queryByText("次の手番を渡すプレイヤーを選択してください")).not.toBeInTheDocument();
+
+    expect(screen.getByRole("status")).toHaveStyle("--reach-splash-duration: 1350ms");
+
+    act(() => {
+      vi.advanceTimersByTime(1349);
+    });
+
+    expect(dispatch).not.toHaveBeenCalledWith({ type: "finishFiveEnhancementSplash" });
+
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
+
+    expect(dispatch).toHaveBeenCalledWith({ type: "finishFiveEnhancementSplash" });
+    vi.useRealTimers();
+  });
+
+  it("shows a short J enhancement splash before enhanced 7 target selection", () => {
+    vi.useFakeTimers();
+    const dispatch = vi.fn();
+    const baseState = createInitialGame(4, "clockwise");
+    const state: GameState = {
+      ...baseState,
+      phase: "handoff",
+      pendingDaifugoEffect: {
+        kind: "sevenEnhancementSplash",
+        effect: "sevenExchange",
+        playerIndex: 0,
+        continue: { shouldConfirmReach: false },
+      },
+      players: baseState.players.map((player, index) => (index === 0 ? { ...player, hasJEnhancementRight: true } : player)),
+    };
+
+    render(<PlayScreen state={state} dispatch={dispatch} currentRound={1} />);
+
+    expect(screen.getByText("J強化発動！")).toBeInTheDocument();
+    expect(screen.getByText("7：交換相手選択")).toBeInTheDocument();
+    expect(screen.queryByText("交換相手を選択してください")).not.toBeInTheDocument();
+
+    expect(screen.getByRole("status")).toHaveStyle("--reach-splash-duration: 1350ms");
+
+    act(() => {
+      vi.advanceTimersByTime(1349);
+    });
+
+    expect(dispatch).not.toHaveBeenCalledWith({ type: "finishSevenEnhancementSplash" });
+
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
+
+    expect(dispatch).toHaveBeenCalledWith({ type: "finishSevenEnhancementSplash" });
+    vi.useRealTimers();
+  });
+
+  it("shows the normal 5 skip result in the top toolbar during handoff", () => {
+    const state: GameState = {
+      ...createInitialGame(3, "clockwise"),
+      phase: "handoff",
+      message: "Player 2をスキップ！次の手番はPlayer 3です。",
+      lastDiscarderIndex: 1,
+    };
+
+    render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} />);
+
+    expect(screen.getByText("Player 2をスキップ！次の手番はPlayer 3です。")).toBeInTheDocument();
+    expect(screen.queryByText("次のプレイヤーへ交代してください。")).not.toBeInTheDocument();
+  });
+
+  it("shows the enhanced 5 skip result in the top toolbar during handoff", () => {
+    const state: GameState = {
+      ...createInitialGame(5, "clockwise"),
+      phase: "handoff",
+      message: "Player 2、Player 3をスキップ！次の手番はPlayer 4です。",
+      lastDiscarderIndex: 2,
+    };
+
+    render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} />);
+
+    expect(screen.getByText("Player 2、Player 3をスキップ！次の手番はPlayer 4です。")).toBeInTheDocument();
+    expect(screen.queryByText("次のプレイヤーへ交代してください。")).not.toBeInTheDocument();
   });
 
   it("shows a full-size shuffled ten-card row for J information browsing", () => {
