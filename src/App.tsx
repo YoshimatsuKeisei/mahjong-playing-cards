@@ -55,6 +55,7 @@ type DebugDaifugoCase =
   | "jEnhancementAcquire"
   | "jEnhancementDuplicate"
   | "jEnhancementFiveSeven"
+  | "jEnhancedSeven"
   | "eightTsumo"
   | "eightReach"
   | "tenTsumo"
@@ -318,6 +319,7 @@ export default function App() {
                 { label: "DEV: J強化権取得", onClick: () => showDebugDaifugo("jEnhancementAcquire") },
                 { label: "DEV: J強化権重複防止", onClick: () => showDebugDaifugo("jEnhancementDuplicate") },
                 { label: "DEV: J強化権保持中5/7", onClick: () => showDebugDaifugo("jEnhancementFiveSeven") },
+                { label: "DEV: 強化7確認", onClick: () => showDebugDaifugo("jEnhancedSeven") },
                 { label: "DEV: J情報閲覧3人戦", onClick: () => showDebugDaifugo("jackInspect3") },
                 { label: "DEV: J情報閲覧5人戦", onClick: () => showDebugDaifugo("jackInspect5") },
                 { label: "DEV: Jバック開始", onClick: () => showDebugDaifugo("jBackStart") },
@@ -529,6 +531,7 @@ function createDebugDaifugoOptions() {
 
 function createDebugDaifugoState(caseName: DebugDaifugoCase): GameState {
   const isJBackCase = caseName === "jBack";
+  const isEnhancedSevenCase = caseName === "jEnhancedSeven";
   const isJackCase =
     caseName === "jackSelect" ||
     caseName === "jEnhancementAcquire" ||
@@ -540,8 +543,10 @@ function createDebugDaifugoState(caseName: DebugDaifugoCase): GameState {
     caseName === "jBackToggleOff" ||
     caseName === "cpuJack";
   const isEightKeepCase = caseName === "eightKeepsJBack";
-  const effectCard = isJackCase
-    ? debugCard("effect-j", 11, "S")
+  const effectCard = isEnhancedSevenCase
+    ? debugCard("effect-7", 7, "S")
+    : isJackCase
+      ? debugCard("effect-j", 11, "S")
     : caseName.startsWith("ten") || caseName === "reachTenBlocked"
       ? debugCard("effect-10", 10, "S")
       : debugCard("effect-8", 8, "S");
@@ -637,6 +642,21 @@ function createDebugDaifugoState(caseName: DebugDaifugoCase): GameState {
       drawnCard: effectCard,
       drawnFrom: "deck",
       message: "DEV: Jを捨ててJ特殊効果を確認できます。",
+    });
+  }
+
+  if (caseName === "jEnhancedSeven") {
+    return makeState({
+      players: [
+        { ...players[0], hasJEnhancementRight: true },
+        debugPlayer(2, debugHand("j7-p2")),
+        debugPlayer(3, debugHand("j7-p3", [2, 2, 2, 5, 6, 7, 8, 9, 10, 13])),
+        debugPlayer(4, debugHand("j7-p4", [3, 3, 3, 4, 5, 6, 8, 10, 12, 13])),
+      ],
+      deck: [debugCard("j7-dev-draw", 4, "C"), debugCard("j7-dev-pad", 8, "D")],
+      drawnCard: effectCard,
+      drawnFrom: "deck",
+      message: "DEV: J強化権を持った状態で7を使用できます。",
     });
   }
 

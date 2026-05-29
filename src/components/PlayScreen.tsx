@@ -147,6 +147,8 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
   const isDaifugoExtraDiscard = pendingDaifugoEffect?.kind === "extraDiscard";
   const isDaifugoEffectDraw = pendingDaifugoEffect?.kind === "effectDraw";
   const isSevenExchange = pendingDaifugoEffect?.kind === "sevenExchange";
+  const isSevenEnhancementConfirm = pendingDaifugoEffect?.kind === "sevenEnhancementConfirm";
+  const isSevenEnhancedTargetSelect = pendingDaifugoEffect?.kind === "sevenEnhancedTargetSelect";
   const isQueenSelect = pendingDaifugoEffect?.kind === "queenSelect";
   const isQueenWinConfirm = pendingDaifugoEffect?.kind === "queenWinConfirm";
   const isJackSelect = pendingDaifugoEffect?.kind === "jackSelect";
@@ -164,6 +166,8 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
     isDaifugoConfirm ||
     isDaifugoEffectDraw ||
     isSevenExchange ||
+    isSevenEnhancementConfirm ||
+    isSevenEnhancedTargetSelect ||
     isQueenSelect ||
     isQueenWinConfirm ||
     isJackSelect ||
@@ -195,6 +199,10 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
       ? getSevenExchangeCandidateCards(sevenSelectionPlayer, sevenSelectionPlayerIndex === pendingDaifugoEffect.playerIndex)
       : [];
   const sevenSelectionCandidateIds = sevenSelectionCandidates.map((card) => card.id);
+  const enhancedSevenTargetIndexes =
+    pendingDaifugoEffect?.kind === "sevenEnhancedTargetSelect"
+      ? state.players.map((_, playerIndex) => playerIndex).filter((playerIndex) => playerIndex !== pendingDaifugoEffect.playerIndex)
+      : [];
   const humanPlayerIndex = state.players.findIndex((player) => !player.isCpu);
   const handPlayerIndex =
     sevenSelectionPlayerIndex ??
@@ -211,6 +219,8 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
   const shouldShowActionPanel =
     !shouldHideCpuDetails ||
     sevenSelectionPlayerIndex !== null ||
+    (pendingDaifugoEffect?.kind === "sevenEnhancementConfirm" && !state.players[pendingDaifugoEffect.playerIndex]?.isCpu) ||
+    (pendingDaifugoEffect?.kind === "sevenEnhancedTargetSelect" && !state.players[pendingDaifugoEffect.playerIndex]?.isCpu) ||
     (pendingDaifugoEffect?.kind === "queenSelect" && !state.players[pendingDaifugoEffect.playerIndex]?.isCpu) ||
     (pendingDaifugoEffect?.kind === "queenWinConfirm" && !state.players[pendingDaifugoEffect.playerIndex]?.isCpu) ||
     (pendingDaifugoEffect?.kind === "jackSelect" && !state.players[pendingDaifugoEffect.playerIndex]?.isCpu) ||
@@ -1030,6 +1040,64 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
                 onClick={handleDaifugoExtraDiscard}
               >
                 {mustDiscardDrawnForReachDaifugo ? "引いたカードを捨てる" : "効果で捨てる"}
+              </button>
+            </div>
+          )}
+
+          {isSevenEnhancementConfirm && pendingDaifugoEffect.playerIndex === state.currentPlayerIndex && !currentPlayer.isCpu && (
+            <div className="daifugo-effect-panel seven-enhancement-panel">
+              <strong>J強化を使用しますか？</strong>
+              <span className="hint">7の交換相手を自由に選択できます。</span>
+              <div className="daifugo-effect-actions">
+                <button
+                  type="button"
+                  className="primary-button"
+                  disabled={isAnimating || cpuActionInProgress}
+                  onClick={() => dispatch({ type: "answerSevenEnhancement", useEnhancement: true })}
+                >
+                  はい
+                </button>
+                <button
+                  type="button"
+                  disabled={isAnimating || cpuActionInProgress}
+                  onClick={() => dispatch({ type: "answerSevenEnhancement", useEnhancement: false })}
+                >
+                  いいえ
+                </button>
+              </div>
+            </div>
+          )}
+
+          {isSevenEnhancedTargetSelect && pendingDaifugoEffect.playerIndex === state.currentPlayerIndex && !currentPlayer.isCpu && (
+            <div className="daifugo-effect-panel seven-enhancement-panel">
+              <strong>交換相手を選択してください</strong>
+              <div className="enhanced-seven-target-grid">
+                {enhancedSevenTargetIndexes.map((playerIndex) => {
+                  const player = state.players[playerIndex];
+                  const isSelected = pendingDaifugoEffect.selectedTargetPlayerIndex === playerIndex;
+                  return (
+                    <button
+                      type="button"
+                      className={`enhanced-seven-target-button ${isSelected ? "selected" : ""}`}
+                      key={player.id}
+                      disabled={isAnimating || cpuActionInProgress}
+                      onClick={() => dispatch({ type: "selectEnhancedSevenTarget", targetPlayerIndex: playerIndex })}
+                    >
+                      {player.name}
+                    </button>
+                  );
+                })}
+              </div>
+              {pendingDaifugoEffect.selectedTargetPlayerIndex !== undefined && (
+                <span className="hint">{state.players[pendingDaifugoEffect.selectedTargetPlayerIndex].name}とカード交換します。</span>
+              )}
+              <button
+                type="button"
+                className="primary-button"
+                disabled={pendingDaifugoEffect.selectedTargetPlayerIndex === undefined || isAnimating || cpuActionInProgress}
+                onClick={() => dispatch({ type: "confirmEnhancedSevenTarget" })}
+              >
+                この相手と交換
               </button>
             </div>
           )}

@@ -464,6 +464,38 @@ function fillCpuSevenExchangeSelections(state: GameState, pending: Extract<NonNu
   return selections;
 }
 
+function consumeJEnhancementRightAfterSeven(players: Player[], playerIndex: number, shouldConsume?: boolean): Player[] {
+  if (!shouldConsume) return players;
+  const player = players[playerIndex];
+  if (!player?.hasJEnhancementRight) return players;
+  return replacePlayer(players, playerIndex, { ...player, hasJEnhancementRight: false });
+}
+
+function startSevenExchange(
+  state: GameState,
+  playerIndex: number,
+  targetPlayerIndex: number,
+  continueState: PendingDaifugoContinue,
+  consumeJEnhancementRightOnComplete = false,
+): GameState {
+  const message = consumeJEnhancementRightOnComplete
+    ? `${state.players[playerIndex].name}がJ強化を使用し、${state.players[targetPlayerIndex].name}とのカード交換を開始します。`
+    : `${state.players[playerIndex].name}と${state.players[targetPlayerIndex].name}が相手に渡すカードを選択しています。`;
+  return resolveSevenExchangeIfReady({
+    ...state,
+    pendingDaifugoEffect: {
+      kind: "sevenExchange",
+      effect: "sevenExchange",
+      playerIndex,
+      targetPlayerIndex,
+      selections: {},
+      continue: continueState,
+      consumeJEnhancementRightOnComplete,
+    },
+    message,
+  });
+}
+
 function resolveSevenExchange(state: GameState, pending: Extract<NonNullable<GameState["pendingDaifugoEffect"]>, { kind: "sevenExchange" }>): GameState {
   const giver = state.players[pending.playerIndex];
   const target = state.players[pending.targetPlayerIndex];
@@ -481,7 +513,11 @@ function resolveSevenExchange(state: GameState, pending: Extract<NonNullable<Gam
     ...target,
     hand: sortCards([...target.hand.filter((card) => card.id !== targetCard.id), giverCard]),
   };
-  const exchangedPlayers = replacePlayer(replacePlayer(state.players, pending.playerIndex, nextGiver), pending.targetPlayerIndex, nextTarget);
+  const exchangedPlayers = consumeJEnhancementRightAfterSeven(
+    replacePlayer(replacePlayer(state.players, pending.playerIndex, nextGiver), pending.targetPlayerIndex, nextTarget),
+    pending.playerIndex,
+    pending.consumeJEnhancementRightOnComplete,
+  );
   const { players, releasedPlayerIndexes } = releaseInvalidReachPlayers(exchangedPlayers);
   const message = appendReachReleaseMessage(`${giver.name}と${target.name}が互いにカードを渡しました。`, players, releasedPlayerIndexes);
   return continueAfterDaifugo(
@@ -524,7 +560,11 @@ function resolveSevenExchangeWithReachReview(
     ...target,
     hand: sortCards([...target.hand.filter((card) => card.id !== targetCard.id), giverCard]),
   };
-  const exchangedPlayers = replacePlayer(replacePlayer(state.players, pending.playerIndex, nextGiver), pending.targetPlayerIndex, nextTarget);
+  const exchangedPlayers = consumeJEnhancementRightAfterSeven(
+    replacePlayer(replacePlayer(state.players, pending.playerIndex, nextGiver), pending.targetPlayerIndex, nextTarget),
+    pending.playerIndex,
+    pending.consumeJEnhancementRightOnComplete,
+  );
   const reachCheck = recheckReachAfterHandChange(
     state,
     exchangedPlayers,
@@ -819,21 +859,22 @@ function applyDaifugoEffect(state: GameState): GameState {
   }
 
   if (pending.effect === "sevenExchange") {
+    const currentPlayer = state.players[state.currentPlayerIndex];
+    if (currentPlayer?.hasJEnhancementRight && !currentPlayer.isCpu) {
+      return {
+        ...state,
+        pendingDaifugoEffect: {
+          kind: "sevenEnhancementConfirm",
+          effect: "sevenExchange",
+          playerIndex: state.currentPlayerIndex,
+          continue: pending.continue,
+        },
+        message: `${currentPlayer.name}は7の効果でJ強化を使用できます。`,
+      };
+    }
     const targetPlayerIndex = getNextPlayerIndex(state.currentPlayerIndex, state.players.length, state.direction);
-    return resolveSevenExchangeIfReady({
-      ...state,
-      pendingDaifugoEffect: {
-        kind: "sevenExchange",
-        effect: "sevenExchange",
-        playerIndex: state.currentPlayerIndex,
-        targetPlayerIndex,
-        selections: {},
-        continue: pending.continue,
-      },
-      message: `${state.players[state.currentPlayerIndex].name}と${state.players[targetPlayerIndex].name}が相手に渡すカードを選択しています。`,
-    });
+    return startSevenExchange(state, state.currentPlayerIndex, targetPlayerIndex, pending.continue);
   }
-
   if (pending.effect === "nineReverse") {
     return continueAfterDaifugo({ ...state, direction: reverseDirection(state.direction) }, pending.continue);
   }
@@ -917,6 +958,9 @@ export type GameAction =
   | { type: "confirmHandoff" }
   | { type: "answerRon"; takeRon: boolean }
   | { type: "answerDaifugoEffect"; activate: boolean }
+  | { type: "answerSevenEnhancement"; useEnhancement: boolean }
+  | { type: "selectEnhancedSevenTarget"; targetPlayerIndex: number }
+  | { type: "confirmEnhancedSevenTarget" }
   | { type: "drawForDaifugoEffect" }
   | { type: "discardForDaifugoEffect"; cardId: string }
   | { type: "selectSevenExchangeCard"; playerIndex: number; cardId: string }
@@ -939,6 +983,9 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
   if (
     state.pendingDaifugoEffect &&
     action.type !== "answerDaifugoEffect" &&
+    action.type !== "answerSevenEnhancement" &&
+    action.type !== "selectEnhancedSevenTarget" &&
+    action.type !== "confirmEnhancedSevenTarget" &&
     action.type !== "drawForDaifugoEffect" &&
     action.type !== "discardForDaifugoEffect" &&
     action.type !== "selectSevenExchangeCard" &&
@@ -1037,6 +1084,53 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         return continueAfterDaifugo({ ...state, pendingDaifugoEffect: null }, pending.continue);
       }
       return applyDaifugoEffect(state);
+    }
+
+    case "answerSevenEnhancement": {
+      const pending = state.pendingDaifugoEffect;
+      if (!pending || pending.kind !== "sevenEnhancementConfirm") return state;
+      const player = state.players[pending.playerIndex];
+      if (!player?.hasJEnhancementRight || player.isCpu) return state;
+      if (!action.useEnhancement) {
+        const targetPlayerIndex = getNextPlayerIndex(pending.playerIndex, state.players.length, state.direction);
+        return startSevenExchange(state, pending.playerIndex, targetPlayerIndex, pending.continue);
+      }
+      return {
+        ...state,
+        pendingDaifugoEffect: {
+          kind: "sevenEnhancedTargetSelect",
+          effect: "sevenExchange",
+          playerIndex: pending.playerIndex,
+          continue: pending.continue,
+        },
+        message: `${player.name}が強化7の交換相手を選択しています。`,
+      };
+    }
+
+    case "selectEnhancedSevenTarget": {
+      const pending = state.pendingDaifugoEffect;
+      if (!pending || pending.kind !== "sevenEnhancedTargetSelect") return state;
+      if (action.targetPlayerIndex === pending.playerIndex) return state;
+      if (!state.players[action.targetPlayerIndex]) return state;
+      const player = state.players[pending.playerIndex];
+      if (!player?.hasJEnhancementRight || player.isCpu) return state;
+      return {
+        ...state,
+        pendingDaifugoEffect: {
+          ...pending,
+          selectedTargetPlayerIndex: action.targetPlayerIndex,
+        },
+      };
+    }
+
+    case "confirmEnhancedSevenTarget": {
+      const pending = state.pendingDaifugoEffect;
+      if (!pending || pending.kind !== "sevenEnhancedTargetSelect") return state;
+      const targetPlayerIndex = pending.selectedTargetPlayerIndex;
+      if (targetPlayerIndex === undefined || targetPlayerIndex === pending.playerIndex || !state.players[targetPlayerIndex]) return state;
+      const player = state.players[pending.playerIndex];
+      if (!player?.hasJEnhancementRight || player.isCpu) return state;
+      return startSevenExchange(state, pending.playerIndex, targetPlayerIndex, pending.continue, true);
     }
 
     case "drawForDaifugoEffect": {

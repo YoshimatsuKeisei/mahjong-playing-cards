@@ -59,6 +59,20 @@ export type PendingDaifugoEffect =
       targetPlayerIndex: number;
       selections: Record<number, string>;
       continue: PendingDaifugoContinue;
+      consumeJEnhancementRightOnComplete?: boolean;
+    }
+  | {
+      kind: "sevenEnhancementConfirm";
+      effect: "sevenExchange";
+      playerIndex: number;
+      continue: PendingDaifugoContinue;
+    }
+  | {
+      kind: "sevenEnhancedTargetSelect";
+      effect: "sevenExchange";
+      playerIndex: number;
+      selectedTargetPlayerIndex?: number;
+      continue: PendingDaifugoContinue;
     }
   | {
       kind: "queenSelect";

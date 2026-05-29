@@ -117,6 +117,93 @@ describe("daifugo game state", () => {
     expect(resolved.daifugoEffectEvent?.kind).toBe("sevenExchange");
   });
 
+  it("shows J enhancement confirmation only when a human 7 user has the right", () => {
+    const withoutRight = gameReducer(stateForDiscard(card("seven", 7), daifugoOptions({ sevenExchange: true })), {
+      type: "discard",
+      cardId: "seven",
+    });
+    const normal = gameReducer(withoutRight, { type: "answerDaifugoEffect", activate: true });
+    expect(normal.pendingDaifugoEffect?.kind).toBe("sevenExchange");
+
+    const withRightBase = stateForDiscard(card("seven", 7), daifugoOptions({ sevenExchange: true }));
+    const withRight = gameReducer(
+      {
+        ...withRightBase,
+        players: withRightBase.players.map((candidate, index) => (index === 0 ? { ...candidate, hasJEnhancementRight: true } : candidate)),
+      },
+      { type: "discard", cardId: "seven" },
+    );
+    const confirming = gameReducer(withRight, { type: "answerDaifugoEffect", activate: true });
+    expect(confirming.pendingDaifugoEffect?.kind).toBe("sevenEnhancementConfirm");
+    expect(confirming.players[0].hasJEnhancementRight).toBe(true);
+  });
+
+  it("keeps the enhancement right when declining enhanced 7 and starts normal 7", () => {
+    const base = stateForDiscard(card("seven", 7), daifugoOptions({ sevenExchange: true }));
+    const pending = gameReducer(
+      { ...base, players: base.players.map((candidate, index) => (index === 0 ? { ...candidate, hasJEnhancementRight: true } : candidate)) },
+      { type: "discard", cardId: "seven" },
+    );
+    const confirming = gameReducer(pending, { type: "answerDaifugoEffect", activate: true });
+    const normal = gameReducer(confirming, { type: "answerSevenEnhancement", useEnhancement: false });
+
+    expect(normal.pendingDaifugoEffect).toMatchObject({
+      kind: "sevenExchange",
+      playerIndex: 0,
+      targetPlayerIndex: 1,
+    });
+    expect(normal.players[0].hasJEnhancementRight).toBe(true);
+  });
+
+  it("selects any opponent for enhanced 7 and consumes the right only after exchange completion", () => {
+    const base = stateForDiscard(card("seven", 7), daifugoOptions({ sevenExchange: true }));
+    const pending = gameReducer(
+      { ...base, players: base.players.map((candidate, index) => (index === 0 ? { ...candidate, hasJEnhancementRight: true } : candidate)) },
+      { type: "discard", cardId: "seven" },
+    );
+    const confirming = gameReducer(pending, { type: "answerDaifugoEffect", activate: true });
+    const choosingTarget = gameReducer(confirming, { type: "answerSevenEnhancement", useEnhancement: true });
+    expect(choosingTarget.pendingDaifugoEffect?.kind).toBe("sevenEnhancedTargetSelect");
+    expect(choosingTarget.players[0].hasJEnhancementRight).toBe(true);
+
+    const selectedTarget = gameReducer(choosingTarget, { type: "selectEnhancedSevenTarget", targetPlayerIndex: 2 });
+    expect(selectedTarget.pendingDaifugoEffect).toMatchObject({ kind: "sevenEnhancedTargetSelect", selectedTargetPlayerIndex: 2 });
+    expect(selectedTarget.players[0].hasJEnhancementRight).toBe(true);
+
+    const exchange = gameReducer(selectedTarget, { type: "confirmEnhancedSevenTarget" });
+    expect(exchange.pendingDaifugoEffect).toMatchObject({
+      kind: "sevenExchange",
+      playerIndex: 0,
+      targetPlayerIndex: 2,
+      consumeJEnhancementRightOnComplete: true,
+    });
+    expect(exchange.players[0].hasJEnhancementRight).toBe(true);
+
+    const selectedByUser = gameReducer(exchange, { type: "selectSevenExchangeCard", playerIndex: 0, cardId: "a-1" });
+    const resolved = gameReducer(selectedByUser, { type: "selectSevenExchangeCard", playerIndex: 2, cardId: "p3-1" });
+    expect(resolved.pendingDaifugoEffect).toBeNull();
+    expect(resolved.players[0].hand.some((item) => item.id === "p3-1")).toBe(true);
+    expect(resolved.players[2].hand.some((item) => item.id === "a-1")).toBe(true);
+    expect(resolved.players[0].hasJEnhancementRight).toBe(false);
+    expect(resolved.daifugoEffectEvent).toMatchObject({
+      kind: "sevenExchange",
+      actorIndex: 0,
+      targetPlayerIndex: 2,
+    });
+  });
+
+  it("does not consume the enhancement right when the 7 effect itself is declined", () => {
+    const base = stateForDiscard(card("seven", 7), daifugoOptions({ sevenExchange: true }));
+    const pending = gameReducer(
+      { ...base, players: base.players.map((candidate, index) => (index === 0 ? { ...candidate, hasJEnhancementRight: true } : candidate)) },
+      { type: "discard", cardId: "seven" },
+    );
+    const declined = gameReducer(pending, { type: "answerDaifugoEffect", activate: false });
+
+    expect(declined.pendingDaifugoEffect).toBeNull();
+    expect(declined.players[0].hasJEnhancementRight).toBe(true);
+  });
+
   it("removes the selected rank from hands and deck using the Q effect", () => {
     const pending = gameReducer(stateForDiscard(card("queen", 12), daifugoOptions({ queenNumberVanish: true })), { type: "discard", cardId: "queen" });
     const selecting = gameReducer(pending, { type: "answerDaifugoEffect", activate: true });
@@ -501,7 +588,7 @@ describe("daifugo game state", () => {
     expect(inspecting.pendingDaifugoEffect?.kind).toBe("jackInspect");
   });
 
-  it("phase 2-A keeps normal 5 and 7 behavior and does not consume the enhancement right", () => {
+  it("keeps normal 5 behavior and keeps the enhancement right before enhanced 7 choice", () => {
     const fivePending = gameReducer(
       {
         ...stateForDiscard(card("five", 5), daifugoOptions({ fiveSkip: true, sevenExchange: true })),
@@ -526,7 +613,7 @@ describe("daifugo game state", () => {
     );
     const sevenResolved = gameReducer(sevenPending, { type: "answerDaifugoEffect", activate: true });
     expect(sevenResolved.players[0].hasJEnhancementRight).toBe(true);
-    expect(sevenResolved.pendingDaifugoEffect?.kind).toBe("sevenExchange");
+    expect(sevenResolved.pendingDaifugoEffect?.kind).toBe("sevenEnhancementConfirm");
   });
 
   it("information browsing targets every opponent once and does not alter card state", () => {

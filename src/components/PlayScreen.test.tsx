@@ -106,6 +106,57 @@ describe("PlayScreen round display", () => {
     expect(screen.getAllByText("J強化権あり")).toHaveLength(1);
   });
 
+  it("shows enhanced 7 confirmation for a human holder", async () => {
+    const user = userEvent.setup();
+    const dispatch = vi.fn();
+    const baseState = createInitialGame(3, "clockwise");
+    const state: GameState = {
+      ...baseState,
+      phase: "handoff",
+      pendingDaifugoEffect: {
+        kind: "sevenEnhancementConfirm",
+        effect: "sevenExchange",
+        playerIndex: 0,
+        continue: { shouldConfirmReach: false },
+      },
+      players: baseState.players.map((player, index) => (index === 0 ? { ...player, hasJEnhancementRight: true } : player)),
+    };
+
+    render(<PlayScreen state={state} dispatch={dispatch} currentRound={1} />);
+
+    expect(screen.getByText("J強化を使用しますか？")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "はい" }));
+    expect(dispatch).toHaveBeenCalledWith({ type: "answerSevenEnhancement", useEnhancement: true });
+  });
+
+  it("shows every opponent and excludes self for enhanced 7 target selection", async () => {
+    const user = userEvent.setup();
+    const dispatch = vi.fn();
+    const baseState = createInitialGame(4, "clockwise");
+    const state: GameState = {
+      ...baseState,
+      phase: "handoff",
+      pendingDaifugoEffect: {
+        kind: "sevenEnhancedTargetSelect",
+        effect: "sevenExchange",
+        playerIndex: 0,
+        continue: { shouldConfirmReach: false },
+      },
+      players: baseState.players.map((player, index) => (index === 0 ? { ...player, hasJEnhancementRight: true } : player)),
+    };
+
+    render(<PlayScreen state={state} dispatch={dispatch} currentRound={1} />);
+
+    expect(screen.getByText("交換相手を選択してください")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "プレイヤー1" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "プレイヤー2" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "プレイヤー3" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "プレイヤー4" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "プレイヤー4" }));
+    expect(dispatch).toHaveBeenCalledWith({ type: "selectEnhancedSevenTarget", targetPlayerIndex: 3 });
+  });
+
   it("shows a full-size shuffled ten-card row for J information browsing", () => {
     const randomSpy = vi.spyOn(Math, "random").mockReturnValue(0);
     const state: GameState = {

@@ -3034,6 +3034,34 @@ h2 {
   filter: grayscale(0.28);
 }
 
+.seven-enhancement-panel {
+  flex-direction: column;
+}
+
+.enhanced-seven-target-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  width: min(620px, 100%);
+}
+
+.enhanced-seven-target-button {
+  min-width: 132px;
+  border: 1px solid rgba(255, 216, 121, 0.58);
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(34, 114, 80, 0.92), rgba(13, 66, 50, 0.94));
+  color: #fff8dc;
+  font-weight: 900;
+  padding: 0.58rem 0.78rem;
+}
+
+.enhanced-seven-target-button.selected {
+  border-color: rgba(255, 126, 106, 0.95);
+  background: linear-gradient(180deg, rgba(141, 50, 38, 0.95), rgba(91, 24, 22, 0.96));
+  box-shadow: 0 0 0 2px rgba(255, 126, 106, 0.28);
+}
+
 .jack-inspect-card-grid {
   display: flex;
   flex-wrap: nowrap;
