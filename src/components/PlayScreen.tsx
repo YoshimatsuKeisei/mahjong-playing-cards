@@ -48,6 +48,8 @@ type DaifugoAnimationStep = {
 
 const reachVisualSrc = new URL("../../黒ローブ男.png", import.meta.url).href;
 const enhancedRoundTableSrc = new URL("../assets/テーブル.png", import.meta.url).href;
+const enhancedPlayerSilhouetteSrc = new URL("../assets/player-silhouette.png", import.meta.url).href;
+const enhancedTurnGuide3Src = new URL("../assets/turn-guide-3.png", import.meta.url).href;
 const J_ENHANCEMENT_SPLASH_MS = 1350;
 
 type EnhancedFiveTurnOption = ReturnType<typeof getEnhancedFiveTurnOptions>[number];
@@ -76,8 +78,6 @@ function EnhancedTargetTable({
   onSelect,
 }: EnhancedTargetTableProps) {
   const fiveOptionByPlayer = new Map(fiveOptions.map((option) => [option.playerIndex, option]));
-  const activeRouteArrowCount = selectedFiveOption ? selectedFiveOption.skippedPlayerIndexes.length + 1 : 0;
-
   return (
     <div
       className={`enhanced-target-table ${mode === "five" ? "enhanced-target-table--five" : "enhanced-target-table--seven"}`}
@@ -85,25 +85,19 @@ function EnhancedTargetTable({
     >
       <div className="enhanced-target-table-core" aria-hidden="true">
         <img className="enhanced-target-table-image" src={enhancedRoundTableSrc} alt="" data-testid="enhanced-round-table" />
+        {mode === "five" && players.length === 3 && (
+          <img
+            className={`enhanced-target-turn-guide enhanced-target-turn-guide--3 ${
+              direction === "clockwise" ? "clockwise" : "counterclockwise"
+            }`}
+            src={enhancedTurnGuide3Src}
+            alt=""
+            data-testid="enhanced-five-turn-guide-3"
+          />
+        )}
       </div>
       {mode === "five" && (
         <>
-          <div
-            className={`enhanced-target-route ${direction === "clockwise" ? "clockwise" : "counterclockwise"} ${
-              selectedFiveOption ? "route-active" : ""
-            }`}
-            data-testid="enhanced-five-direction-route"
-            aria-hidden="true"
-          >
-            {players.map((player, routeIndex) => (
-              <span
-                className={`enhanced-target-route-arrow enhanced-target-route-arrow--${players.length}-${routeIndex + 1} ${
-                  routeIndex < activeRouteArrowCount ? "active" : ""
-                }`}
-                key={`route-${player.id}`}
-              />
-            ))}
-          </div>
           <div className={`enhanced-target-direction ${direction === "clockwise" ? "clockwise" : "counterclockwise"}`}>
             {direction === "clockwise" ? "通常順" : "逆回り"}
           </div>
@@ -144,10 +138,12 @@ function EnhancedTargetTable({
                   ? "選択不可"
                   : "選択可";
 
+        const outlineClass = isActor || isSelected || isSkipped ? "persistent-outline" : "";
+
         return (
           <button
             type="button"
-            className={`enhanced-target-seat enhanced-target-seat--${players.length}-${playerIndex + 1} ${stateClass}`}
+            className={`enhanced-target-seat enhanced-target-seat--${players.length}-${playerIndex + 1} subtle-outline ${stateClass} ${outlineClass}`}
             key={player.id}
             disabled={nodeDisabled}
             aria-label={player.name}
@@ -155,8 +151,12 @@ function EnhancedTargetTable({
             onClick={() => onSelect(playerIndex)}
           >
             <span className="enhanced-target-seat-icon" aria-hidden="true">
-              <span className="enhanced-target-seat-person-head" />
-              <span className="enhanced-target-seat-person-body" />
+              <img
+                className="enhanced-target-seat-person-image"
+                src={enhancedPlayerSilhouetteSrc}
+                alt=""
+                data-testid="enhanced-target-player-silhouette"
+              />
             </span>
             <span className="enhanced-target-seat-copy">
               <span className="enhanced-target-seat-name">{player.name}</span>

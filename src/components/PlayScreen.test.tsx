@@ -154,9 +154,9 @@ describe("PlayScreen round display", () => {
     expect(container.querySelector(".enhanced-target-table-core span")).toBeNull();
     expect(container.querySelector(".action-panel")).toHaveClass("enhanced-target-action-panel");
     expect(container.querySelectorAll(".enhanced-target-seat-icon")).toHaveLength(4);
-    expect(container.querySelectorAll(".enhanced-target-seat-person-head")).toHaveLength(4);
-    expect(container.querySelectorAll(".enhanced-target-seat-person-body")).toHaveLength(4);
-    expect(screen.queryByTestId("enhanced-five-direction-route")).not.toBeInTheDocument();
+    expect(screen.getAllByTestId("enhanced-target-player-silhouette")).toHaveLength(4);
+    expect(container.querySelector(".enhanced-target-seat-person")).toBeNull();
+    expect(screen.queryByTestId("enhanced-five-turn-guide-3")).not.toBeInTheDocument();
     expect(screen.queryByText("宇宙")).not.toBeInTheDocument();
     expect(screen.queryByText("次の手番")).not.toBeInTheDocument();
     expect(screen.queryByText("スキップ")).not.toBeInTheDocument();
@@ -187,9 +187,11 @@ describe("PlayScreen round display", () => {
     render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} />);
 
     expect(screen.getByTestId("enhanced-seven-exchange-mark")).toBeInTheDocument();
-    expect(screen.queryByTestId("enhanced-five-direction-route")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: baseState.players[3].name })).toHaveClass("exchange-target");
+    expect(screen.queryByTestId("enhanced-five-turn-guide-3")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: baseState.players[3].name })).toHaveClass("exchange-target", "persistent-outline");
     expect(screen.getByRole("button", { name: baseState.players[1].name })).not.toHaveClass("exchange-target");
+    expect(screen.getByRole("button", { name: baseState.players[1].name })).toHaveClass("selectable-target", "subtle-outline");
+    expect(screen.getByRole("button", { name: baseState.players[1].name })).not.toHaveClass("persistent-outline");
     expect(screen.queryByText("スキップ")).not.toBeInTheDocument();
     expect(screen.queryByText("次の手番")).not.toBeInTheDocument();
   });
@@ -241,15 +243,18 @@ describe("PlayScreen round display", () => {
     expect(container.querySelector(".enhanced-target-table-core span")).toBeNull();
     expect(container.querySelector(".action-panel")).toHaveClass("enhanced-target-action-panel");
     expect(container.querySelectorAll(".enhanced-target-seat-icon")).toHaveLength(5);
-    expect(container.querySelectorAll(".enhanced-target-seat-person-head")).toHaveLength(5);
-    expect(container.querySelectorAll(".enhanced-target-seat-person-body")).toHaveLength(5);
-    expect(screen.getByTestId("enhanced-five-direction-route")).toBeInTheDocument();
-    expect(container.querySelectorAll(".enhanced-target-route-arrow")).toHaveLength(5);
+    expect(screen.getAllByTestId("enhanced-target-player-silhouette")).toHaveLength(5);
+    expect(container.querySelector(".enhanced-target-seat-person")).toBeNull();
+    expect(screen.queryByTestId("enhanced-five-turn-guide-3")).not.toBeInTheDocument();
     expect(screen.queryByText("宇宙")).not.toBeInTheDocument();
     expect(screen.getByText("通常順")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: baseState.players[0].name })).toBeDisabled();
     expect(screen.getByRole("button", { name: baseState.players[1].name })).toBeDisabled();
     expect(screen.getByRole("button", { name: baseState.players[2].name })).not.toBeDisabled();
+    expect(screen.getByRole("button", { name: baseState.players[0].name })).toHaveClass("self", "subtle-outline", "persistent-outline");
+    expect(screen.getByRole("button", { name: baseState.players[1].name })).toHaveClass("disabled-target", "subtle-outline");
+    expect(screen.getByRole("button", { name: baseState.players[2].name })).toHaveClass("selectable-target", "subtle-outline");
+    expect(screen.getByRole("button", { name: baseState.players[2].name })).not.toHaveClass("persistent-outline");
 
     await user.click(screen.getByRole("button", { name: baseState.players[3].name }));
     expect(dispatch).toHaveBeenCalledWith({ type: "selectEnhancedFiveTarget", targetPlayerIndex: 3 });
@@ -272,12 +277,12 @@ describe("PlayScreen round display", () => {
 
     render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} />);
 
-    expect(screen.getByTestId("enhanced-five-direction-route")).toHaveClass("route-active");
-    expect(document.querySelectorAll(".enhanced-target-route-arrow.active")).toHaveLength(3);
-    expect(screen.getByRole("button", { name: baseState.players[1].name })).toHaveClass("skip-target");
-    expect(screen.getByRole("button", { name: baseState.players[2].name })).toHaveClass("skip-target");
-    expect(screen.getByRole("button", { name: baseState.players[3].name })).toHaveClass("next-target");
+    expect(screen.getByRole("button", { name: baseState.players[1].name })).toHaveClass("skip-target", "persistent-outline");
+    expect(screen.getByRole("button", { name: baseState.players[2].name })).toHaveClass("skip-target", "persistent-outline");
+    expect(screen.getByRole("button", { name: baseState.players[3].name })).toHaveClass("next-target", "persistent-outline");
     expect(screen.getByRole("button", { name: baseState.players[4].name })).not.toHaveClass("skip-target");
+    expect(screen.getByRole("button", { name: baseState.players[4].name })).toHaveClass("selectable-target", "subtle-outline");
+    expect(screen.getByRole("button", { name: baseState.players[4].name })).not.toHaveClass("persistent-outline");
   });
 
   it("marks reverse enhanced 5 seats using the current direction", () => {
@@ -298,7 +303,8 @@ describe("PlayScreen round display", () => {
     render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} />);
 
     expect(screen.getByText("逆回り")).toBeInTheDocument();
-    expect(screen.getByTestId("enhanced-five-direction-route")).toHaveClass("counterclockwise");
+    expect(document.querySelector(".enhanced-target-direction.counterclockwise")).toBeInTheDocument();
+    expect(screen.queryByTestId("enhanced-five-turn-guide-3")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: baseState.players[4].name })).toHaveClass("skip-target");
     expect(screen.getByRole("button", { name: baseState.players[3].name })).toHaveClass("skip-target");
     expect(screen.getByRole("button", { name: baseState.players[2].name })).toHaveClass("next-target");
@@ -324,12 +330,35 @@ describe("PlayScreen round display", () => {
 
     expect(screen.getByTestId("enhanced-five-target-table")).toBeInTheDocument();
     expect(container.querySelector(".action-panel")).toHaveClass("enhanced-target-action-panel--3");
+    expect(screen.getAllByTestId("enhanced-target-player-silhouette")).toHaveLength(3);
+    expect(screen.getByTestId("enhanced-five-turn-guide-3")).toHaveClass("clockwise");
+    expect(screen.getByTestId("enhanced-five-turn-guide-3").parentElement).toHaveClass("enhanced-target-table-core");
+    expect(screen.queryByTestId("enhanced-five-route-svg")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: baseState.players[0].name })).toBeDisabled();
     expect(screen.getByRole("button", { name: baseState.players[1].name })).toBeDisabled();
     expect(screen.getByRole("button", { name: baseState.players[2].name })).not.toBeDisabled();
 
     await user.click(screen.getByRole("button", { name: baseState.players[2].name }));
     expect(dispatch).toHaveBeenCalledWith({ type: "selectEnhancedFiveTarget", targetPlayerIndex: 2 });
+  });
+
+  it("mirrors the three-player enhanced 5 turn guide for reverse play", () => {
+    const baseState = createInitialGame(3, "counterclockwise");
+    const state: GameState = {
+      ...baseState,
+      phase: "handoff",
+      pendingDaifugoEffect: {
+        kind: "fiveEnhancedTargetSelect",
+        effect: "fiveSkip",
+        playerIndex: 0,
+        continue: { shouldConfirmReach: false },
+      },
+      players: baseState.players.map((player, index) => (index === 0 ? { ...player, hasJEnhancementRight: true } : player)),
+    };
+
+    render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} />);
+
+    expect(screen.getByTestId("enhanced-five-turn-guide-3")).toHaveClass("counterclockwise");
   });
 
   it("uses the compact enhanced target layout for three-player enhanced 7", async () => {
@@ -353,9 +382,9 @@ describe("PlayScreen round display", () => {
     expect(screen.getByTestId("enhanced-seven-target-table")).toBeInTheDocument();
     expect(container.querySelector(".action-panel")).toHaveClass("enhanced-target-action-panel--3");
     expect(container.querySelector(".enhanced-target-select-panel")).toHaveClass("seven-enhancement-panel");
-    expect(container.querySelectorAll(".enhanced-target-seat-person-head")).toHaveLength(3);
-    expect(container.querySelectorAll(".enhanced-target-seat-person-body")).toHaveLength(3);
-    expect(screen.queryByTestId("enhanced-five-direction-route")).not.toBeInTheDocument();
+    expect(screen.getAllByTestId("enhanced-target-player-silhouette")).toHaveLength(3);
+    expect(screen.queryByTestId("enhanced-five-turn-guide-3")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("enhanced-five-route-svg")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: baseState.players[0].name })).toBeDisabled();
     expect(screen.getByRole("button", { name: baseState.players[1].name })).not.toBeDisabled();
     expect(screen.getByRole("button", { name: baseState.players[2].name })).not.toBeDisabled();
