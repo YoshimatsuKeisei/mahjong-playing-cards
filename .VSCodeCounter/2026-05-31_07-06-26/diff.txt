@@ -1,0 +1,40 @@
+Date : 2026-05-31 07:06:26
+Directory : c:\Users\jingc\Documents\8番出口
+Total : 10 files,  571 codes, 0 comments, 60 blanks, all 631 lines
+
+Languages
++------------+------------+------------+------------+------------+------------+
+| language   | files      | code       | comment    | blank      | total      |
++------------+------------+------------+------------+------------+------------+
+| TypeScript |          8 |        554 |          0 |         57 |        611 |
+| JavaScript |          1 |         16 |          0 |          3 |         19 |
+| JSON       |          1 |          1 |          0 |          0 |          1 |
++------------+------------+------------+------------+------------+------------+
+
+Directories
++------------------------------------------------------------+------------+------------+------------+------------+------------+
+| path                                                       | files      | code       | comment    | blank      | total      |
++------------------------------------------------------------+------------+------------+------------+------------+------------+
+| .                                                          |         10 |        571 |          0 |         60 |        631 |
+| . (Files)                                                  |          1 |          1 |          0 |          0 |          1 |
+| scripts                                                    |          1 |         16 |          0 |          3 |         19 |
+| src                                                        |          8 |        554 |          0 |         57 |        611 |
+| src\sim                                                    |          8 |        554 |          0 |         57 |        611 |
++------------------------------------------------------------+------------+------------+------------+------------+------------+
+
+Files
++------------------------------------------------------------+------------+------------+------------+------------+------------+
+| filename                                                   | language   | code       | comment    | blank      | total      |
++------------------------------------------------------------+------------+------------+------------+------------+------------+
+| c:\Users\jingc\Documents\8番出口\package.json                 | JSON       |          1 |          0 |          0 |          1 |
+| c:\Users\jingc\Documents\8番出口\scripts\sim.mjs              | JavaScript |         16 |          0 |          3 |         19 |
+| c:\Users\jingc\Documents\8番出口\src\sim\cli.ts               | TypeScript |         82 |          0 |          8 |         90 |
+| c:\Users\jingc\Documents\8番出口\src\sim\headlessCpuDriver.ts | TypeScript |         84 |          0 |          9 |         93 |
+| c:\Users\jingc\Documents\8番出口\src\sim\scenario.test.ts     | TypeScript |         24 |          0 |          3 |         27 |
+| c:\Users\jingc\Documents\8番出口\src\sim\scenario.ts          | TypeScript |         63 |          0 |          5 |         68 |
+| c:\Users\jingc\Documents\8番出口\src\sim\seededRandom.ts      | TypeScript |         28 |          0 |          3 |         31 |
+| c:\Users\jingc\Documents\8番出口\src\sim\simulator.test.ts    | TypeScript |         46 |          0 |          5 |         51 |
+| c:\Users\jingc\Documents\8番出口\src\sim\simulator.ts         | TypeScript |        171 |          0 |         17 |        188 |
+| c:\Users\jingc\Documents\8番出口\src\sim\types.ts             | TypeScript |         56 |          0 |          7 |         63 |
+| Total                                                      |            |        571 |          0 |         60 |        631 |
++------------------------------------------------------------+------------+------------+------------+------------+------------+
