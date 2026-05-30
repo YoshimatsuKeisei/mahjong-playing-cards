@@ -3392,7 +3392,7 @@ h2 {
 
 .enhanced-target-seat--4-2 {
   top: 50%;
-  left: 18%;
+  left: 22%;
 }
 
 .enhanced-target-seat--4-3 {
@@ -3402,12 +3402,12 @@ h2 {
 
 .enhanced-target-seat--4-4 {
   top: 50%;
-  left: 82%;
+  left: 77%;
 }
 
 .enhanced-target-seat--5-2 {
   top: 65%;
-  left: 16%;
+  left: 25%;
 }
 
 .enhanced-target-seat--5-3 {
@@ -3422,7 +3422,7 @@ h2 {
 
 .enhanced-target-seat--5-5 {
   top: 65%;
-  left: 84%;
+  left: 72%;
 }
 
 .enhanced-target-select-panel {
@@ -3576,6 +3576,13 @@ h2 {
 .enhanced-target-seat {
   --enhanced-seat-body-bg: linear-gradient(180deg, rgba(24, 92, 70, 0.97), rgba(8, 43, 34, 0.98));
   --enhanced-seat-body-border: rgba(255, 216, 121, 0.62);
+  --enhanced-seat-silhouette-color: rgba(28, 30, 29, 0.98);
+  --enhanced-seat-silhouette-opacity: 0.98;
+  --enhanced-seat-silhouette-filter: drop-shadow(0 9px 10px rgba(0, 0, 0, 0.3));
+  --enhanced-seat-outline-color: rgba(255, 248, 220, 0.68);
+  --enhanced-seat-outline-opacity: 0.42;
+  --enhanced-seat-outline-scale: 1.035;
+  --enhanced-seat-outline-filter: drop-shadow(0 7px 8px rgba(0, 0, 0, 0.22));
   display: grid;
   grid-template-columns: 1fr;
   grid-template-rows: 1fr;
@@ -3607,12 +3614,41 @@ h2 {
   box-shadow: none;
 }
 
-.enhanced-target-seat-person {
+.enhanced-target-seat-icon::before {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
   display: block;
-  width: 100%;
-  height: 100%;
-  overflow: visible;
-  filter: drop-shadow(0 9px 10px rgba(0, 0, 0, 0.26));
+  background: var(--enhanced-seat-silhouette-color);
+  content: "";
+  opacity: var(--enhanced-seat-silhouette-opacity);
+  filter: var(--enhanced-seat-silhouette-filter);
+  pointer-events: none;
+  transition:
+    background-color 160ms ease,
+    filter 160ms ease,
+    opacity 160ms ease;
+  -webkit-mask: url("./assets/player-silhouette.png") center / contain no-repeat;
+  mask: url("./assets/player-silhouette.png") center / contain no-repeat;
+}
+
+.enhanced-target-seat-icon::after {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: block;
+  background: var(--enhanced-seat-outline-color);
+  content: "";
+  opacity: var(--enhanced-seat-outline-opacity);
+  filter: var(--enhanced-seat-outline-filter);
+  pointer-events: none;
+  transform: scale(var(--enhanced-seat-outline-scale));
+  transition:
+    filter 160ms ease,
+    opacity 160ms ease,
+    transform 160ms ease;
+  -webkit-mask: url("./assets/player-silhouette.png") center / contain no-repeat;
+  mask: url("./assets/player-silhouette.png") center / contain no-repeat;
 }
 
 .enhanced-target-seat-person-image {
@@ -3620,46 +3656,20 @@ h2 {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  opacity: 0.94;
-  filter: drop-shadow(0 9px 10px rgba(0, 0, 0, 0.26));
-  transition:
-    filter 160ms ease,
-    opacity 160ms ease;
+  opacity: 0;
+  pointer-events: none;
 }
 
-.enhanced-target-seat:not(:disabled):hover .enhanced-target-seat-person-image {
-  opacity: 1;
-  filter:
-    brightness(1.1)
-    drop-shadow(1px 0 0 rgba(255, 248, 220, 0.95))
-    drop-shadow(-1px 0 0 rgba(255, 248, 220, 0.95))
-    drop-shadow(0 1px 0 rgba(255, 248, 220, 0.95))
-    drop-shadow(0 -1px 0 rgba(255, 248, 220, 0.95))
-    drop-shadow(0 9px 10px rgba(0, 0, 0, 0.3));
+.enhanced-target-seat:not(:disabled):hover {
+  --enhanced-seat-outline-opacity: 0.98;
+  --enhanced-seat-outline-scale: 1.075;
+  --enhanced-seat-outline-filter: drop-shadow(0 8px 9px rgba(0, 0, 0, 0.26));
 }
 
-.enhanced-target-seat.disabled-target .enhanced-target-seat-person-image {
-  opacity: 0.72;
-  filter:
-    grayscale(0.72)
-    drop-shadow(0 8px 8px rgba(0, 0, 0, 0.2));
-}
-
-.enhanced-target-seat-person-head,
-.enhanced-target-seat-person-body {
-  fill: var(--enhanced-seat-body-fill, rgba(17, 66, 52, 0.98));
-  stroke: rgba(255, 255, 248, 0.72);
-  stroke-width: 1.35;
-  vector-effect: non-scaling-stroke;
-}
-
-.enhanced-target-seat-person-head {
-  filter: drop-shadow(0 4px 4px rgba(0, 0, 0, 0.2));
-}
-
-.enhanced-target-seat-person-body {
-  stroke-linecap: round;
-  stroke-linejoin: round;
+.enhanced-target-seat.persistent-outline {
+  --enhanced-seat-outline-opacity: 0.94;
+  --enhanced-seat-outline-scale: 1.065;
+  --enhanced-seat-outline-filter: drop-shadow(0 8px 9px rgba(0, 0, 0, 0.26));
 }
 
 .enhanced-target-seat-copy {
@@ -3683,6 +3693,7 @@ h2 {
   --enhanced-seat-body-bg: linear-gradient(180deg, rgba(65, 68, 61, 0.98), rgba(22, 25, 23, 0.99));
   --enhanced-seat-body-border: rgba(245, 239, 210, 0.76);
   --enhanced-seat-body-fill: rgba(31, 34, 31, 0.99);
+  --enhanced-seat-silhouette-color: rgba(246, 242, 226, 0.98);
   background: transparent;
 }
 
@@ -3695,6 +3706,10 @@ h2 {
   --enhanced-seat-body-bg: linear-gradient(180deg, rgba(63, 69, 65, 0.9), rgba(29, 34, 32, 0.94));
   --enhanced-seat-body-border: rgba(194, 189, 171, 0.42);
   --enhanced-seat-body-fill: rgba(48, 54, 51, 0.95);
+  --enhanced-seat-silhouette-color: rgba(27, 29, 28, 0.9);
+  --enhanced-seat-silhouette-opacity: 0.72;
+  --enhanced-seat-outline-opacity: 0.2;
+  --enhanced-seat-outline-scale: 1.025;
   background: transparent;
 }
 
@@ -3702,6 +3717,7 @@ h2 {
   --enhanced-seat-body-bg: linear-gradient(180deg, rgba(148, 34, 32, 0.98), rgba(82, 18, 22, 0.99));
   --enhanced-seat-body-border: rgba(255, 126, 106, 0.96);
   --enhanced-seat-body-fill: rgba(111, 26, 28, 0.99);
+  --enhanced-seat-silhouette-color: rgba(191, 48, 54, 0.98);
   background: transparent;
   box-shadow: none;
 }
@@ -3710,6 +3726,7 @@ h2 {
   --enhanced-seat-body-bg: linear-gradient(180deg, rgba(34, 121, 178, 0.98), rgba(14, 63, 112, 0.99));
   --enhanced-seat-body-border: rgba(101, 190, 255, 0.97);
   --enhanced-seat-body-fill: rgba(19, 82, 133, 0.99);
+  --enhanced-seat-silhouette-color: rgba(54, 157, 224, 0.98);
   background: transparent;
   box-shadow: none;
 }
@@ -3718,6 +3735,7 @@ h2 {
   --enhanced-seat-body-bg: linear-gradient(180deg, rgba(132, 81, 28, 0.98), rgba(83, 39, 18, 0.99));
   --enhanced-seat-body-border: rgba(251, 210, 92, 0.98);
   --enhanced-seat-body-fill: rgba(103, 56, 22, 0.99);
+  --enhanced-seat-silhouette-color: rgba(41, 169, 177, 0.98);
   background: transparent;
   box-shadow: none;
 }

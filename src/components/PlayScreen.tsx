@@ -138,10 +138,12 @@ function EnhancedTargetTable({
                   ? "選択不可"
                   : "選択可";
 
+        const outlineClass = isActor || isSelected || isSkipped ? "persistent-outline" : "";
+
         return (
           <button
             type="button"
-            className={`enhanced-target-seat enhanced-target-seat--${players.length}-${playerIndex + 1} ${stateClass}`}
+            className={`enhanced-target-seat enhanced-target-seat--${players.length}-${playerIndex + 1} subtle-outline ${stateClass} ${outlineClass}`}
             key={player.id}
             disabled={nodeDisabled}
             aria-label={player.name}
