@@ -1,7 +1,37 @@
 import { describe, expect, it } from "vitest";
+import type { DaifugoOptions, GameState } from "../types";
 import { getDisplayedPlayerLosses, getResultLoserIndexes } from "../game/matchState";
+import { gameReducer } from "../game/gameState";
 import { formatSimulationSummary, parseSimulationArgs } from "./cli";
-import { runSimulation } from "./simulator";
+import { collectEffectTelemetry, makePlayerSummary, runSimulation } from "./simulator";
+import { createCpuScenario } from "./scenario";
+import type { SimulationConfig, SimulationViolation } from "./types";
+
+const ENABLED_DAIFUGO_OPTIONS: DaifugoOptions = {
+  enabled: true,
+  effects: {
+    fiveSkip: true,
+    sevenExchange: true,
+    eightExtraTurn: true,
+    nineReverse: true,
+    tenSwapDraw: true,
+    jackBack: true,
+    queenNumberVanish: true,
+  },
+};
+
+function createTelemetryFixture(logLevel: SimulationConfig["logLevel"] = "violations") {
+  const config = parseSimulationArgs(["--players", "pro,standard,standard", "--games", "1", "--rules", "daifugo", "--seed", "1", "--logLevel", logLevel]);
+  return {
+    config,
+    players: config.playerModels.map((_, index) => makePlayerSummary(index, config)),
+    violations: [] as SimulationViolation[],
+  };
+}
+
+function withPending(state: GameState, pendingDaifugoEffect: GameState["pendingDaifugoEffect"]): GameState {
+  return { ...state, pendingDaifugoEffect };
+}
 
 describe("headless CPU simulation", () => {
   it("replays the same simulation with a fixed seed", () => {
@@ -25,6 +55,14 @@ describe("headless CPU simulation", () => {
     expect(output).toContain("tsumoCount=");
     expect(output).toContain("ronCount=");
     expect(output).toContain("callCount=");
+    expect(output).toContain("use5=");
+    expect(output).toContain("use7=");
+    expect(output).toContain("use8=");
+    expect(output).toContain("use9=");
+    expect(output).toContain("use10=");
+    expect(output).toContain("useJ=");
+    expect(output).toContain("useQ=");
+    expect(output).toContain("tacticalNormalDecisionTurns=");
     expect(output).not.toContain("winRate");
     expect(output).not.toContain("averageRank");
     expect(output).not.toContain("averageScore");
@@ -76,5 +114,131 @@ describe("headless CPU simulation", () => {
         game: 1,
       }),
     ]);
+  });
+
+  it("records common effect usage and tactical 5 target telemetry without changing the reducer result", () => {
+    const fixture = createTelemetryFixture();
+    const state = withPending(
+      createCpuScenario({
+        phase: "discard",
+        daifugoOptions: ENABLED_DAIFUGO_OPTIONS,
+        players: [
+          { model: "tactical" },
+          { model: "standard", isReach: true },
+          { model: "standard" },
+        ],
+      }),
+      { kind: "confirm", effect: "fiveSkip", playerIndex: 0, continue: { shouldConfirmReach: false } },
+    );
+    const action = { type: "answerDaifugoEffect", activate: true } as const;
+    const nextState = gameReducer(state, action);
+
+    collectEffectTelemetry(fixture.config, 1, 1, 1, 1, state, action, nextState, fixture.players, fixture.violations);
+
+    expect(fixture.players[0].use5).toBe(1);
+    expect(fixture.players[0].proUsed5ToSkipReachTarget).toBe(1);
+    expect(fixture.violations).toEqual([]);
+    expect(nextState.phase).toBe("handoff");
+    expect(nextState.lastDiscarderIndex).toBe(1);
+  });
+
+  it("records tactical 7 target telemetry from the existing exchange event", () => {
+    const fixture = createTelemetryFixture();
+    const state = withPending(
+      createCpuScenario({
+        daifugoOptions: ENABLED_DAIFUGO_OPTIONS,
+        players: [
+          { model: "tactical" },
+          { model: "standard" },
+          { model: "standard", isReach: true },
+        ],
+      }),
+      { kind: "confirm", effect: "sevenExchange", playerIndex: 0, continue: { shouldConfirmReach: false } },
+    );
+    const action = { type: "answerDaifugoEffect", activate: true } as const;
+    const nextState: GameState = {
+      ...state,
+      daifugoEffectEvent: {
+        id: "seven-event",
+        kind: "sevenExchange",
+        actorIndex: 0,
+        targetPlayerIndex: 2,
+      },
+    };
+
+    collectEffectTelemetry(fixture.config, 1, 1, 1, 1, state, action, nextState, fixture.players, fixture.violations);
+
+    expect(fixture.players[0].use7).toBe(1);
+    expect(fixture.players[0].proUsed7OnReachTarget).toBe(1);
+  });
+
+  it("records an irrelevant tactical Q rank and prints compact target context only for violations mode", () => {
+    const fixture = createTelemetryFixture();
+    const state = withPending(
+      createCpuScenario({
+        daifugoOptions: ENABLED_DAIFUGO_OPTIONS,
+        players: [
+          { model: "tactical" },
+          { model: "standard", isReach: true, hand: [{ id: "threat-four", rank: 4, suit: "S" }] },
+          { model: "standard" },
+        ],
+      }),
+      { kind: "queenSelect", effect: "queenNumberVanish", playerIndex: 0, continue: { shouldConfirmReach: false } },
+    );
+    const action = { type: "selectQueenVanishRank", rank: 2 } as const;
+
+    collectEffectTelemetry(fixture.config, 1, 1, 2, 3, state, action, state, fixture.players, fixture.violations);
+
+    expect(fixture.players[0].proUsedQOnIrrelevantRank).toBe(1);
+    expect(fixture.violations).toEqual([
+      expect.objectContaining({
+        code: "tactical-queen-irrelevant-rank",
+        turn: 3,
+        effectCard: "Q",
+        selectedTarget: "2",
+        warningReason: "Q removed no rank held by a threat target.",
+      }),
+    ]);
+  });
+
+  it("does not create tactical target warnings outside violations log level", () => {
+    const fixture = createTelemetryFixture("summary");
+    const state = withPending(
+      createCpuScenario({
+        daifugoOptions: ENABLED_DAIFUGO_OPTIONS,
+        players: [
+          { model: "tactical" },
+          { model: "standard" },
+          { model: "standard", isReach: true },
+        ],
+      }),
+      { kind: "confirm", effect: "fiveSkip", playerIndex: 0, continue: { shouldConfirmReach: false } },
+    );
+    const action = { type: "answerDaifugoEffect", activate: true } as const;
+    const nextState = gameReducer(state, action);
+
+    collectEffectTelemetry(fixture.config, 1, 1, 1, 1, state, action, nextState, fixture.players, fixture.violations);
+
+    expect(fixture.players[0].proUsed5ToSkipIrrelevantTarget).toBe(1);
+    expect(fixture.violations).toEqual([]);
+  });
+
+  it("classifies tactical J fallback from reducer state changes", () => {
+    const fixture = createTelemetryFixture();
+    const state = withPending(
+      createCpuScenario({
+        daifugoOptions: ENABLED_DAIFUGO_OPTIONS,
+        players: [{ model: "tactical" }, { model: "standard" }, { model: "standard" }],
+      }),
+      { kind: "confirm", effect: "jackBack", playerIndex: 0, continue: { shouldConfirmReach: false } },
+    );
+    const action = { type: "answerDaifugoEffect", activate: true } as const;
+    const nextState = { ...state, isJBackActive: true };
+
+    collectEffectTelemetry(fixture.config, 1, 1, 1, 1, state, action, nextState, fixture.players, fixture.violations);
+
+    expect(fixture.players[0].useJ).toBe(1);
+    expect(fixture.players[0].proUsedJBackFallback).toBe(1);
+    expect(fixture.violations[0]).toEqual(expect.objectContaining({ code: "tactical-j-back-fallback" }));
   });
 });

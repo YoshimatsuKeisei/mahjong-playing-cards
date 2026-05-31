@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Card, DaifugoOptions } from "../types";
 import { createCpuDecisionContext } from "../game/cpuTypes";
-import { doesNineReverseIncreaseReachDistance, getTacticalDiscardScores, tacticalCpuModel } from "../game/tacticalCpu";
+import { doesNineReverseIncreaseReachDistance, doesNineReverseIncreaseTwoCallDistance, getTacticalDiscardScores, tacticalCpuModel } from "../game/tacticalCpu";
 import { chooseScenarioDiscard, createCpuScenario } from "./scenario";
 
 function card(id: string, rank: number, suit: Card["suit"] = "S"): Card {
@@ -53,6 +53,10 @@ function tacticalScoresWithOpponents(
     players: [{ model: "tactical", hand, hasJEnhancementRight }, ...opponents],
   });
   return { state, context: createCpuDecisionContext(state)!, scores: getTacticalDiscardScores(createCpuDecisionContext(state)!) };
+}
+
+function twoCalls(prefix: string): Card[][] {
+  return [[card(`${prefix}-meld-1`, 1)], [card(`${prefix}-meld-2`, 2)]];
 }
 
 describe("CPU fixed scenario helper", () => {
@@ -267,16 +271,132 @@ describe("CPU fixed scenario helper", () => {
     expect(tacticalCpuModel.chooseDaifugoEffectActivation?.(notBeneficial.context, "nineReverse")).toBe(false);
   });
 
+  it("uses 5 > Q > 7 while the next player has called twice", () => {
+    const { scores } = tacticalScoresWithOpponents(
+      [card("five", 5), card("queen", 12, "H"), card("seven", 7, "D")],
+      [
+        { model: "standard", hand: [card("opponent-1", 1)], openMelds: twoCalls("adjacent") },
+        { model: "standard", hand: [card("opponent-2", 3)] },
+      ],
+    );
+
+    expect(scores.map((item) => item.card.id)).toEqual(["five", "queen", "seven"]);
+  });
+
+  it("prefers 7 over a safe rank while the next player has called twice", () => {
+    const { scores } = tacticalScoresWithOpponents(
+      [card("seven", 7), card("safe", 2, "H")],
+      [
+        { model: "standard", hand: [card("opponent-1", 1)], discardPile: [card("safe-discard", 2, "D")], openMelds: twoCalls("adjacent") },
+        { model: "standard", hand: [card("opponent-2", 3)] },
+      ],
+    );
+
+    expect(scores[0].card.id).toBe("seven");
+  });
+
+  it("uses enhanced 5 against a remote two-call player", () => {
+    const { scores } = tacticalScoresWithOpponents(
+      [card("five", 5), card("queen", 12, "H")],
+      [
+        { model: "standard", hand: [card("opponent-1", 1)] },
+        { model: "standard", hand: [card("opponent-2", 3)], openMelds: twoCalls("remote") },
+        { model: "standard", hand: [card("opponent-3", 4)] },
+        { model: "standard", hand: [card("opponent-4", 6)] },
+      ],
+      { hasJEnhancementRight: true },
+    );
+
+    expect(scores[0].card.id).toBe("five");
+  });
+
+  it("uses Q > 8 > 10 against a remote two-call player", () => {
+    const { scores } = tacticalScoresWithOpponents(
+      [card("queen", 12), card("eight", 8, "H"), card("ten", 10, "D")],
+      [
+        { model: "standard", hand: [card("opponent-1", 1)] },
+        { model: "standard", hand: [card("opponent-2", 3)], openMelds: twoCalls("remote") },
+      ],
+    );
+
+    expect(scores.map((item) => item.card.id)).toEqual(["queen", "eight", "ten"]);
+  });
+
+  it("uses 9 against a two-call player only when reversing direction increases the distance", () => {
+    const beneficial = tacticalScoresWithOpponents(
+      [card("nine", 9), card("king", 13, "H")],
+      [
+        { model: "standard", hand: [card("opponent-1", 1)] },
+        { model: "standard", hand: [card("opponent-2", 2)], openMelds: twoCalls("remote") },
+        { model: "standard", hand: [card("opponent-3", 3)] },
+        { model: "standard", hand: [card("opponent-4", 4)] },
+      ],
+    );
+    const notBeneficial = tacticalScoresWithOpponents(
+      [card("nine", 9), card("king", 13, "H")],
+      [
+        { model: "standard", hand: [card("opponent-1", 1)] },
+        { model: "standard", hand: [card("opponent-2", 2)] },
+        { model: "standard", hand: [card("opponent-3", 3)], openMelds: twoCalls("remote") },
+        { model: "standard", hand: [card("opponent-4", 4)] },
+      ],
+    );
+
+    expect(doesNineReverseIncreaseTwoCallDistance(beneficial.context)).toBe(true);
+    expect(tacticalCpuModel.chooseDaifugoEffectActivation?.(beneficial.context, "nineReverse")).toBe(true);
+    expect(doesNineReverseIncreaseTwoCallDistance(notBeneficial.context)).toBe(false);
+    expect(tacticalCpuModel.chooseDaifugoEffectActivation?.(notBeneficial.context, "nineReverse")).toBe(false);
+  });
+
+  it("keeps reach priorities ahead of two-call priorities when both threats exist", () => {
+    const { scores } = tacticalScoresWithOpponents(
+      [card("seven", 7), card("five", 5, "H")],
+      [
+        { model: "standard", hand: [card("opponent-1", 1)], isReach: true },
+        { model: "standard", hand: [card("opponent-2", 3)], openMelds: twoCalls("remote") },
+      ],
+    );
+
+    expect(scores[0].card.id).toBe("seven");
+    expect(scores.every((item) => item.notes.every((note) => !note.includes("twoCallDaifugoPriority")))).toBe(true);
+  });
+
+  it("does not apply two-call priorities when the opponent has called only once", () => {
+    const { scores } = tacticalScoresWithOpponents(
+      [card("five", 5), card("queen", 12, "H")],
+      [
+        { model: "standard", hand: [card("opponent-1", 1)], openMelds: [[card("meld-1", 1)]] },
+        { model: "standard", hand: [card("opponent-2", 3)] },
+      ],
+    );
+
+    expect(scores.every((item) => item.notes.every((note) => !note.includes("twoCallDaifugoPriority")))).toBe(true);
+  });
+
   it("does not apply reach priorities when only a two-call player is being watched", () => {
     const { scores } = tacticalScoresWithOpponents(
       [card("eight", 8), card("ten", 10, "H")],
       [
-        { model: "standard", hand: [card("opponent-1", 1)], openMelds: [[card("m1", 1)], [card("m2", 2)]] },
+        { model: "standard", hand: [card("opponent-1", 1)], openMelds: twoCalls("adjacent") },
         { model: "standard", hand: [card("opponent-2", 3)] },
       ],
     );
 
     expect(scores.every((item) => item.notes.every((note) => !note.includes("reachDaifugoPriority")))).toBe(true);
+    expect(scores.some((item) => item.notes.some((note) => note.includes("twoCallDaifugoPriority")))).toBe(true);
+  });
+
+  it("does not apply two-call priorities when daifugo is disabled", () => {
+    const { scores } = tacticalScoresWithOpponents(
+      [card("five", 5), card("queen", 12, "H")],
+      [
+        { model: "standard", hand: [card("opponent-1", 1)], openMelds: twoCalls("adjacent") },
+        { model: "standard", hand: [card("opponent-2", 3)] },
+      ],
+      { options: { ...enabledDaifugoOptions(), enabled: false } },
+    );
+
+    expect(scores.every((item) => item.notes.every((note) => !note.includes("twoCallDaifugoPriority")))).toBe(true);
   });
 
   it("does not apply reach daifugo priorities when daifugo is disabled", () => {

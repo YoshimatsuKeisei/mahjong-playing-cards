@@ -964,6 +964,65 @@ describe("daifugo game state", () => {
     expect(exchange.players[0].hasJEnhancementRight).toBe(true);
   });
 
+  it("tactical CPU automatically uses enhanced 5 to skip a remote two-call player", () => {
+    const base = stateForFivePlayerDiscard(card("five", 5), "clockwise", daifugoOptions({ fiveSkip: true }));
+    const cpuState = {
+      ...base,
+      players: base.players.map((candidate, index) => {
+        if (index === 0) {
+          return {
+            ...candidate,
+            isCpu: true,
+            type: "cpu" as const,
+            cpuModelId: "tactical" as const,
+            hasJEnhancementRight: true,
+          };
+        }
+        return index === 2
+          ? { ...candidate, openMelds: [[card("two-call-1", 1)], [card("two-call-2", 2)]] }
+          : candidate;
+      }),
+    };
+    const fivePending = gameReducer(cpuState, { type: "discard", cardId: "five" });
+    const resolved = gameReducer(fivePending, { type: "answerDaifugoEffect", activate: true });
+    const next = gameReducer(resolved, { type: "confirmHandoff" });
+
+    expect(resolved.players[0].hasJEnhancementRight).toBe(false);
+    expect(resolved.lastDiscarderIndex).toBe(2);
+    expect(next.currentPlayerIndex).toBe(3);
+  });
+
+  it("tactical CPU automatically starts enhanced 7 with a remote two-call player", () => {
+    const base = stateForDiscard(card("seven", 7), daifugoOptions({ sevenExchange: true }));
+    const cpuState = {
+      ...base,
+      players: base.players.map((candidate, index) => {
+        if (index === 0) {
+          return {
+            ...candidate,
+            isCpu: true,
+            type: "cpu" as const,
+            cpuModelId: "tactical" as const,
+            hasJEnhancementRight: true,
+          };
+        }
+        return index === 2
+          ? { ...candidate, openMelds: [[card("two-call-1", 1)], [card("two-call-2", 2)]] }
+          : candidate;
+      }),
+    };
+    const sevenPending = gameReducer(cpuState, { type: "discard", cardId: "seven" });
+    const exchange = gameReducer(sevenPending, { type: "answerDaifugoEffect", activate: true });
+
+    expect(exchange.pendingDaifugoEffect).toMatchObject({
+      kind: "sevenExchange",
+      playerIndex: 0,
+      targetPlayerIndex: 2,
+      consumeJEnhancementRightOnComplete: true,
+    });
+    expect(exchange.players[0].hasJEnhancementRight).toBe(true);
+  });
+
   it("resolves 8 extra discard without chaining another daifugo effect", () => {
     const pending = gameReducer(stateForDiscard(card("eight", 8)), { type: "discard", cardId: "eight" });
     const drawPending = gameReducer(pending, { type: "answerDaifugoEffect", activate: true });

@@ -56,7 +56,31 @@ const REMOTE_REACH_EFFECT_BONUSES = {
   fiveSkip: -20,
 } as const;
 
+const ADJACENT_TWO_CALL_EFFECT_BONUSES = {
+  fiveSkip: 260,
+  queenNumberVanish: 245,
+  sevenExchange: 230,
+  nineReverse: 165,
+  eightExtraTurn: 145,
+  tenSwapDraw: 130,
+  jackInspect: 115,
+} as const;
+
+const REMOTE_TWO_CALL_EFFECT_BONUSES = {
+  enhancedFiveSkip: 260,
+  queenNumberVanish: 245,
+  eightExtraTurn: 225,
+  tenSwapDraw: 210,
+  jackEnhancementRight: 195,
+  enhancedSevenExchange: 180,
+  sevenExchange: 160,
+  nineReverse: 145,
+  jackInspect: 125,
+  fiveSkip: -20,
+} as const;
+
 const REACH_SAFE_RANK_BONUS = 180;
+const TWO_CALL_SAFE_RANK_BONUS = 180;
 
 export function tacticalChooseCpuCall(context: CpuDecisionContext): CpuCallChoice | null {
   const standardCall = standardChooseCpuCall(context);
@@ -155,7 +179,7 @@ export function scoreTacticalDiscardCandidate(
     notes.push(`${formatSigned(isolatedBonus)} isolated`);
   }
 
-  if (isNormalDaifugoEvaluation(context) || isReachDaifugoEvaluation(context)) {
+  if (isNormalDaifugoEvaluation(context) || isReachDaifugoEvaluation(context) || isTwoCallDaifugoEvaluation(context)) {
     if (isInStrongMeldCandidate(card, hand)) {
       const completedMeldLock = -220;
       score += completedMeldLock;
@@ -193,6 +217,19 @@ export function scoreTacticalDiscardCandidate(
     if (effectBonus !== 0) {
       score += effectBonus;
       notes.push(`${formatSigned(effectBonus)} reachDaifugoPriority`);
+    }
+  }
+
+  if (isTwoCallDaifugoEvaluation(context)) {
+    if (isAdjacentTwoCallThreat(context) && getTwoCallSafeRankCount(card.rank, context) > 0) {
+      score += TWO_CALL_SAFE_RANK_BONUS;
+      notes.push(`${formatSigned(TWO_CALL_SAFE_RANK_BONUS)} twoCallSafeRank`);
+    }
+
+    const effectBonus = getTwoCallDaifugoEffectBonus(card, context);
+    if (effectBonus !== 0) {
+      score += effectBonus;
+      notes.push(`${formatSigned(effectBonus)} twoCallDaifugoPriority`);
     }
   }
 
@@ -261,6 +298,12 @@ function getSafeRankCount(rank: number, context: CpuDecisionContext): number {
   }, 0);
 }
 
+function getTwoCallSafeRankCount(rank: number, context: CpuDecisionContext): number {
+  return getTwoCallPlayerIndexes(context).reduce((count, playerIndex) => {
+    return count + context.state.players[playerIndex].discardPile.filter((card) => card.rank === rank).length;
+  }, 0);
+}
+
 function getWatchPlayerIndexes(context: CpuDecisionContext): number[] {
   const indexes = new Set<number>();
   context.state.players.forEach((player, index) => {
@@ -306,16 +349,36 @@ function isIsolated(card: Card, hand: Card[]): boolean {
 }
 
 function isNormalDaifugoEvaluation(context: CpuDecisionContext): boolean {
-  return context.state.phase === "discard" && context.state.daifugoOptions.enabled && getReachPlayerIndexes(context).length === 0;
+  return (
+    context.state.phase === "discard" &&
+    context.state.daifugoOptions.enabled &&
+    getReachPlayerIndexes(context).length === 0 &&
+    getTwoCallPlayerIndexes(context).length === 0
+  );
 }
 
 function isReachDaifugoEvaluation(context: CpuDecisionContext): boolean {
   return context.state.phase === "discard" && context.state.daifugoOptions.enabled && getReachPlayerIndexes(context).length > 0;
 }
 
+function isTwoCallDaifugoEvaluation(context: CpuDecisionContext): boolean {
+  return (
+    context.state.phase === "discard" &&
+    context.state.daifugoOptions.enabled &&
+    getReachPlayerIndexes(context).length === 0 &&
+    getTwoCallPlayerIndexes(context).length > 0
+  );
+}
+
 function getReachPlayerIndexes(context: CpuDecisionContext): number[] {
   return context.state.players.flatMap((player, index) =>
     index !== context.currentPlayerIndex && player.isReach ? [index] : [],
+  );
+}
+
+function getTwoCallPlayerIndexes(context: CpuDecisionContext): number[] {
+  return context.state.players.flatMap((player, index) =>
+    index !== context.currentPlayerIndex && player.openMelds.length >= 2 ? [index] : [],
   );
 }
 
@@ -328,14 +391,24 @@ function isAdjacentReachThreat(context: CpuDecisionContext): boolean {
   return context.state.players[nextPlayerIndex]?.isReach ?? false;
 }
 
-function canEnhancedFiveSkipReach(context: CpuDecisionContext): boolean {
+function isAdjacentTwoCallThreat(context: CpuDecisionContext): boolean {
+  const nextPlayerIndex = getNextPlayerIndex(
+    context.currentPlayerIndex,
+    context.state.players.length,
+    context.state.direction,
+  );
+  return context.state.players[nextPlayerIndex]?.openMelds.length >= 2;
+}
+
+function canEnhancedFiveSkipTargets(context: CpuDecisionContext, targetPlayerIndexes: number[]): boolean {
+  const targets = new Set(targetPlayerIndexes);
   let cursor = context.currentPlayerIndex;
-  let foundReachPlayer = false;
+  let foundTarget = false;
   for (let count = 1; count < context.state.players.length; count += 1) {
     cursor = getNextPlayerIndex(cursor, context.state.players.length, context.state.direction);
-    if (foundReachPlayer) return true;
-    if (context.state.players[cursor]?.isReach) {
-      foundReachPlayer = true;
+    if (foundTarget) return true;
+    if (targets.has(cursor)) {
+      foundTarget = true;
     }
   }
   return false;
@@ -365,14 +438,23 @@ function reverseTurnDirection(
 
 export function doesNineReverseIncreaseReachDistance(context: CpuDecisionContext): boolean {
   const reachPlayerIndexes = getReachPlayerIndexes(context);
-  if (reachPlayerIndexes.length === 0) return false;
+  return doesNineReverseIncreaseTargetDistance(context, reachPlayerIndexes);
+}
 
-  const getNearestReachDistance = (direction: CpuDecisionContext["state"]["direction"]) =>
+export function doesNineReverseIncreaseTwoCallDistance(context: CpuDecisionContext): boolean {
+  const twoCallPlayerIndexes = getTwoCallPlayerIndexes(context);
+  return getReachPlayerIndexes(context).length === 0 && doesNineReverseIncreaseTargetDistance(context, twoCallPlayerIndexes);
+}
+
+function doesNineReverseIncreaseTargetDistance(context: CpuDecisionContext, targetPlayerIndexes: number[]): boolean {
+  if (targetPlayerIndexes.length === 0) return false;
+
+  const getNearestTargetDistance = (direction: CpuDecisionContext["state"]["direction"]) =>
     Math.min(
-      ...reachPlayerIndexes.map((reachPlayerIndex) =>
+      ...targetPlayerIndexes.map((targetPlayerIndex) =>
         getTurnDistance(
           context.currentPlayerIndex,
-          reachPlayerIndex,
+          targetPlayerIndex,
           context.state.players.length,
           direction,
         ),
@@ -380,8 +462,8 @@ export function doesNineReverseIncreaseReachDistance(context: CpuDecisionContext
     );
 
   return (
-    getNearestReachDistance(reverseTurnDirection(context.state.direction)) >
-    getNearestReachDistance(context.state.direction)
+    getNearestTargetDistance(reverseTurnDirection(context.state.direction)) >
+    getNearestTargetDistance(context.state.direction)
   );
 }
 
@@ -415,7 +497,7 @@ function getReachDaifugoEffectBonus(card: Card, context: CpuDecisionContext): nu
   switch (card.rank) {
     case 5:
       return effects.fiveSkip
-        ? hasEnhancementRight && canEnhancedFiveSkipReach(context)
+        ? hasEnhancementRight && canEnhancedFiveSkipTargets(context, getReachPlayerIndexes(context))
           ? REMOTE_REACH_EFFECT_BONUSES.enhancedFiveSkip
           : REMOTE_REACH_EFFECT_BONUSES.fiveSkip
         : 0;
@@ -440,6 +522,66 @@ function getReachDaifugoEffectBonus(card: Card, context: CpuDecisionContext): nu
         : REMOTE_REACH_EFFECT_BONUSES.jackEnhancementRight;
     case 12:
       return effects.queenNumberVanish ? REMOTE_REACH_EFFECT_BONUSES.queenNumberVanish : 0;
+    default:
+      return 0;
+  }
+}
+
+function getTwoCallDaifugoEffectBonus(card: Card, context: CpuDecisionContext): number {
+  const effects = context.state.daifugoOptions.effects;
+  const hasEnhancementRight = context.currentPlayer.hasJEnhancementRight;
+
+  if (isAdjacentTwoCallThreat(context)) {
+    switch (card.rank) {
+      case 5:
+        return effects.fiveSkip ? ADJACENT_TWO_CALL_EFFECT_BONUSES.fiveSkip : 0;
+      case 7:
+        return effects.sevenExchange ? ADJACENT_TWO_CALL_EFFECT_BONUSES.sevenExchange : 0;
+      case 8:
+        return effects.eightExtraTurn ? ADJACENT_TWO_CALL_EFFECT_BONUSES.eightExtraTurn : 0;
+      case 9:
+        return effects.nineReverse && doesNineReverseIncreaseTwoCallDistance(context)
+          ? ADJACENT_TWO_CALL_EFFECT_BONUSES.nineReverse
+          : 0;
+      case 10:
+        return effects.tenSwapDraw ? ADJACENT_TWO_CALL_EFFECT_BONUSES.tenSwapDraw : 0;
+      case 11:
+        return effects.jackBack && hasEnhancementRight ? ADJACENT_TWO_CALL_EFFECT_BONUSES.jackInspect : 0;
+      case 12:
+        return effects.queenNumberVanish ? ADJACENT_TWO_CALL_EFFECT_BONUSES.queenNumberVanish : 0;
+      default:
+        return 0;
+    }
+  }
+
+  switch (card.rank) {
+    case 5:
+      return effects.fiveSkip
+        ? hasEnhancementRight && canEnhancedFiveSkipTargets(context, getTwoCallPlayerIndexes(context))
+          ? REMOTE_TWO_CALL_EFFECT_BONUSES.enhancedFiveSkip
+          : REMOTE_TWO_CALL_EFFECT_BONUSES.fiveSkip
+        : 0;
+    case 7:
+      return effects.sevenExchange
+        ? hasEnhancementRight
+          ? REMOTE_TWO_CALL_EFFECT_BONUSES.enhancedSevenExchange
+          : REMOTE_TWO_CALL_EFFECT_BONUSES.sevenExchange
+        : 0;
+    case 8:
+      return effects.eightExtraTurn ? REMOTE_TWO_CALL_EFFECT_BONUSES.eightExtraTurn : 0;
+    case 9:
+      return effects.nineReverse && doesNineReverseIncreaseTwoCallDistance(context)
+        ? REMOTE_TWO_CALL_EFFECT_BONUSES.nineReverse
+        : 0;
+    case 10:
+      return effects.tenSwapDraw ? REMOTE_TWO_CALL_EFFECT_BONUSES.tenSwapDraw : 0;
+    case 11:
+      if (!effects.jackBack) return 0;
+      return hasEnhancementRight
+        ? REMOTE_TWO_CALL_EFFECT_BONUSES.jackInspect
+        : REMOTE_TWO_CALL_EFFECT_BONUSES.jackEnhancementRight;
+    case 12:
+      return effects.queenNumberVanish ? REMOTE_TWO_CALL_EFFECT_BONUSES.queenNumberVanish : 0;
     default:
       return 0;
   }
@@ -504,6 +646,14 @@ export const tacticalCpuModel: CpuModel = {
       getReachPlayerIndexes(context).length > 0
     ) {
       return doesNineReverseIncreaseReachDistance(context);
+    }
+    if (
+      effect === "nineReverse" &&
+      context.state.daifugoOptions.enabled &&
+      getReachPlayerIndexes(context).length === 0 &&
+      getTwoCallPlayerIndexes(context).length > 0
+    ) {
+      return doesNineReverseIncreaseTwoCallDistance(context);
     }
     return chooseStandardDaifugoEffectActivation();
   },

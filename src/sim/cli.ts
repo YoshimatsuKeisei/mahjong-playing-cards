@@ -65,7 +65,21 @@ export function formatSimulationSummary(summary: SimulationSummary): string {
   lines.push("", "Win method / action summary:");
   summary.players.forEach((player) => {
     lines.push(`- ${player.player}: winCount=${player.winCount} tsumoCount=${player.tsumoCount} ronCount=${player.ronCount} callCount=${player.callCount}`);
+    lines.push(`    use5=${player.use5} use7=${player.use7} use8=${player.use8} use9=${player.use9} use10=${player.use10} useJ=${player.useJ} useQ=${player.useQ}`);
   });
+  const tacticalPlayers = summary.players.filter((player) => player.model === "tactical");
+  if (tacticalPlayers.length > 0) {
+    lines.push("", "Tactical effect target summary:");
+    tacticalPlayers.forEach((player) => {
+      lines.push(`- ${player.player}:`);
+      lines.push(`    tacticalNormalDecisionTurns=${player.tacticalNormalDecisionTurns} tacticalReachDecisionTurns=${player.tacticalReachDecisionTurns} tacticalTwoCallDecisionTurns=${player.tacticalTwoCallDecisionTurns}`);
+      lines.push(`    proUsed5ToSkipReachTarget=${player.proUsed5ToSkipReachTarget} proUsed5ToSkipTwoCallTarget=${player.proUsed5ToSkipTwoCallTarget} proUsed5ToSkipIrrelevantTarget=${player.proUsed5ToSkipIrrelevantTarget}`);
+      lines.push(`    proUsed7OnReachTarget=${player.proUsed7OnReachTarget} proUsed7OnTwoCallTarget=${player.proUsed7OnTwoCallTarget} proUsed7OnIrrelevantTarget=${player.proUsed7OnIrrelevantTarget}`);
+      lines.push(`    proUsedQOnReachRelatedRank=${player.proUsedQOnReachRelatedRank} proUsedQOnTwoCallRelatedRank=${player.proUsedQOnTwoCallRelatedRank} proUsedQOnIrrelevantRank=${player.proUsedQOnIrrelevantRank}`);
+      lines.push(`    proUsed9ToIncreaseReachDistance=${player.proUsed9ToIncreaseReachDistance} proUsed9ToIncreaseTwoCallDistance=${player.proUsed9ToIncreaseTwoCallDistance} proUsed9WithoutDistanceGain=${player.proUsed9WithoutDistanceGain}`);
+      lines.push(`    proUsedJForEnhancement=${player.proUsedJForEnhancement} proUsedJForView=${player.proUsedJForView} proUsedJBackFallback=${player.proUsedJBackFallback}`);
+    });
+  }
   if (summary.config.logLevel === "detail") {
     lines.push("", "Detail:");
     summary.details.forEach((detail) => {
@@ -77,7 +91,11 @@ export function formatSimulationSummary(summary: SimulationSummary): string {
   if (summary.violations.length > 0 || summary.config.logLevel === "violations") {
     lines.push("", `Violations: ${summary.violations.length}`);
     summary.violations.forEach((violation) => {
-      lines.push(`[game=${violation.game} seed=${violation.seed} step=${violation.step}] ${violation.code}: ${violation.message}`);
+      const telemetry =
+        violation.turn === undefined
+          ? ""
+          : ` turn=${violation.turn} cpu=${violation.cpu ?? "-"} effect=${violation.effectCard ?? "-"} reach=[${violation.reachPlayers?.join(",") ?? ""}] calls=[${violation.callCounts?.join(",") ?? ""}] threat=[${violation.threatTargets?.join(",") ?? ""}] selected=${violation.selectedTarget ?? "-"} warning=${violation.warningReason ?? violation.message}`;
+      lines.push(`[game=${violation.game} seed=${violation.seed} step=${violation.step}${telemetry}] ${violation.code}: ${violation.message}`);
     });
   }
   return lines.join("\n");

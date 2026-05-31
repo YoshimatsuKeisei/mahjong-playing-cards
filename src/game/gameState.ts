@@ -529,9 +529,24 @@ function getReachPlayerIndexes(state: GameState, playerIndex: number): number[] 
   return state.players.flatMap((player, index) => (index !== playerIndex && player.isReach ? [index] : []));
 }
 
+function getTwoCallPlayerIndexes(state: GameState, playerIndex: number): number[] {
+  return state.players.flatMap((player, index) => (index !== playerIndex && player.openMelds.length >= 2 ? [index] : []));
+}
+
+function getCpuThreatPlayerIndexes(state: GameState, playerIndex: number): number[] {
+  const reachPlayerIndexes = getReachPlayerIndexes(state, playerIndex);
+  return reachPlayerIndexes.length > 0 ? reachPlayerIndexes : getTwoCallPlayerIndexes(state, playerIndex);
+}
+
 function isNextPlayerReach(state: GameState, playerIndex: number): boolean {
   const nextPlayerIndex = getNextPlayerIndex(playerIndex, state.players.length, state.direction);
   return state.players[nextPlayerIndex]?.isReach ?? false;
+}
+
+function isNextPlayerCpuThreat(state: GameState, playerIndex: number): boolean {
+  const threatPlayerIndexes = new Set(getCpuThreatPlayerIndexes(state, playerIndex));
+  const nextPlayerIndex = getNextPlayerIndex(playerIndex, state.players.length, state.direction);
+  return threatPlayerIndexes.has(nextPlayerIndex);
 }
 
 function shouldCpuUseRemoteReachEnhancement(state: GameState, playerIndex: number): boolean {
@@ -541,26 +556,27 @@ function shouldCpuUseRemoteReachEnhancement(state: GameState, playerIndex: numbe
     player.cpuModelId === "tactical" &&
     player.hasJEnhancementRight === true &&
     state.daifugoOptions.enabled &&
-    getReachPlayerIndexes(state, playerIndex).length > 0 &&
-    !isNextPlayerReach(state, playerIndex)
+    getCpuThreatPlayerIndexes(state, playerIndex).length > 0 &&
+    !isNextPlayerCpuThreat(state, playerIndex)
   );
 }
 
 function chooseCpuEnhancedFiveTarget(state: GameState, playerIndex: number): number | null {
+  const threatPlayerIndexes = new Set(getCpuThreatPlayerIndexes(state, playerIndex));
   const option = getEnhancedFiveTurnOptions(state, playerIndex).find(
     (candidate) =>
       candidate.selectable &&
-      candidate.skippedPlayerIndexes.some((skippedPlayerIndex) => state.players[skippedPlayerIndex]?.isReach),
+      candidate.skippedPlayerIndexes.some((skippedPlayerIndex) => threatPlayerIndexes.has(skippedPlayerIndex)),
   );
   return option?.playerIndex ?? null;
 }
 
 function chooseCpuEnhancedSevenTarget(state: GameState, playerIndex: number): number | null {
-  const reachPlayerIndexes = new Set(getReachPlayerIndexes(state, playerIndex));
+  const threatPlayerIndexes = new Set(getCpuThreatPlayerIndexes(state, playerIndex));
   let cursor = playerIndex;
   for (let count = 1; count < state.players.length; count += 1) {
     cursor = getNextPlayerIndex(cursor, state.players.length, state.direction);
-    if (reachPlayerIndexes.has(cursor)) return cursor;
+    if (threatPlayerIndexes.has(cursor)) return cursor;
   }
   return null;
 }

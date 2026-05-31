@@ -1,37 +1,40 @@
 # Summary
 
-Date : 2026-05-30 23:32:01
+Date : 2026-05-31 20:44:02
 
 Directory c:\\Users\\jingc\\Documents\\8番出口
 
-Total : 60 files,  18773 codes, 158 comments, 2147 blanks, all 21078 lines
+Total : 70 files,  20109 codes, 158 comments, 2293 blanks, all 22560 lines
 
 Summary / [Details](details.md) / [Diff Summary](diff.md) / [Diff Details](diff-details.md)
 
 ## Languages
 | language | files | code | comment | blank | total |
 | :--- | ---: | ---: | ---: | ---: | ---: |
-| TypeScript JSX | 29 | 6,310 | 151 | 703 | 7,164 |
-| PostCSS | 1 | 5,334 | 6 | 785 | 6,125 |
-| TypeScript | 23 | 4,849 | 1 | 646 | 5,496 |
-| JSON | 3 | 2,218 | 0 | 3 | 2,221 |
+| TypeScript JSX | 29 | 6,333 | 151 | 706 | 7,190 |
+| TypeScript | 31 | 6,162 | 1 | 799 | 6,962 |
+| PostCSS | 1 | 5,311 | 6 | 767 | 6,084 |
+| JSON | 3 | 2,219 | 0 | 3 | 2,222 |
 | YAML | 1 | 28 | 0 | 7 | 35 |
 | JSON with Comments | 1 | 22 | 0 | 1 | 23 |
+| JavaScript | 1 | 16 | 0 | 3 | 19 |
 | HTML | 1 | 12 | 0 | 1 | 13 |
-| Log | 1 | 0 | 0 | 1 | 1 |
+| Log | 2 | 6 | 0 | 6 | 12 |
 
 ## Directories
 | path | files | code | comment | blank | total |
 | :--- | ---: | ---: | ---: | ---: | ---: |
-| . | 60 | 18,773 | 158 | 2,147 | 21,078 |
-| . (Files) | 7 | 2,261 | 0 | 8 | 2,269 |
+| . | 70 | 20,109 | 158 | 2,293 | 22,560 |
+| . (Files) | 8 | 2,268 | 0 | 13 | 2,281 |
 | .github | 1 | 28 | 0 | 7 | 35 |
 | .github\\workflows | 1 | 28 | 0 | 7 | 35 |
-| src | 52 | 16,484 | 158 | 2,132 | 18,774 |
-| src (Files) | 5 | 6,490 | 7 | 868 | 7,365 |
-| src\\components | 27 | 5,427 | 151 | 638 | 6,216 |
+| scripts | 1 | 16 | 0 | 3 | 19 |
+| src | 60 | 17,797 | 158 | 2,270 | 20,225 |
+| src (Files) | 5 | 6,467 | 7 | 850 | 7,324 |
+| src\\components | 27 | 5,450 | 151 | 641 | 6,242 |
 | src\\data | 1 | 26 | 0 | 4 | 30 |
-| src\\game | 18 | 4,535 | 0 | 620 | 5,155 |
+| src\\game | 18 | 4,986 | 0 | 668 | 5,654 |
+| src\\sim | 8 | 862 | 0 | 105 | 967 |
 | src\\test | 1 | 6 | 0 | 2 | 8 |
 
 Summary / [Details](details.md) / [Diff Summary](diff.md) / [Diff Details](diff-details.md)
