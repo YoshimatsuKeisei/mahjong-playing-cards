@@ -508,16 +508,77 @@ function resolveNormalFiveSkip(state: GameState, continueState?: PendingDaifugoC
   );
 }
 
-function resolveEnhancedFiveSkip(state: GameState, playerIndex: number, targetPlayerIndex: number): GameState {
+function resolveEnhancedFiveSkip(
+  state: GameState,
+  playerIndex: number,
+  targetPlayerIndex: number,
+  allowCpuEnhancement = false,
+): GameState {
   const option = getEnhancedFiveTurnOptions(state, playerIndex).find((candidate) => candidate.playerIndex === targetPlayerIndex);
   if (!option?.selectable) return state;
   const player = state.players[playerIndex];
-  if (!player?.hasJEnhancementRight || player.isCpu) return state;
+  if (!player?.hasJEnhancementRight || (player.isCpu && !allowCpuEnhancement)) return state;
   const players = consumeJEnhancementRight(state.players, playerIndex);
   const previousIndex = getPreviousPlayerIndex(targetPlayerIndex, state.players.length, state.direction);
   const skippedNames = option.skippedPlayerIndexes.map((skippedIndex) => state.players[skippedIndex].name).join("、");
   const message = `${skippedNames}をスキップ！次の手番は${state.players[targetPlayerIndex].name}です。`;
   return advanceToNextDraw({ ...state, players, pendingDaifugoEffect: null }, players, previousIndex, message);
+}
+
+function getReachPlayerIndexes(state: GameState, playerIndex: number): number[] {
+  return state.players.flatMap((player, index) => (index !== playerIndex && player.isReach ? [index] : []));
+}
+
+function getTwoCallPlayerIndexes(state: GameState, playerIndex: number): number[] {
+  return state.players.flatMap((player, index) => (index !== playerIndex && player.openMelds.length >= 2 ? [index] : []));
+}
+
+function getCpuThreatPlayerIndexes(state: GameState, playerIndex: number): number[] {
+  const reachPlayerIndexes = getReachPlayerIndexes(state, playerIndex);
+  return reachPlayerIndexes.length > 0 ? reachPlayerIndexes : getTwoCallPlayerIndexes(state, playerIndex);
+}
+
+function isNextPlayerReach(state: GameState, playerIndex: number): boolean {
+  const nextPlayerIndex = getNextPlayerIndex(playerIndex, state.players.length, state.direction);
+  return state.players[nextPlayerIndex]?.isReach ?? false;
+}
+
+function isNextPlayerCpuThreat(state: GameState, playerIndex: number): boolean {
+  const threatPlayerIndexes = new Set(getCpuThreatPlayerIndexes(state, playerIndex));
+  const nextPlayerIndex = getNextPlayerIndex(playerIndex, state.players.length, state.direction);
+  return threatPlayerIndexes.has(nextPlayerIndex);
+}
+
+function shouldCpuUseRemoteReachEnhancement(state: GameState, playerIndex: number): boolean {
+  const player = state.players[playerIndex];
+  return (
+    player?.isCpu === true &&
+    player.cpuModelId === "tactical" &&
+    player.hasJEnhancementRight === true &&
+    state.daifugoOptions.enabled &&
+    getCpuThreatPlayerIndexes(state, playerIndex).length > 0 &&
+    !isNextPlayerCpuThreat(state, playerIndex)
+  );
+}
+
+function chooseCpuEnhancedFiveTarget(state: GameState, playerIndex: number): number | null {
+  const threatPlayerIndexes = new Set(getCpuThreatPlayerIndexes(state, playerIndex));
+  const option = getEnhancedFiveTurnOptions(state, playerIndex).find(
+    (candidate) =>
+      candidate.selectable &&
+      candidate.skippedPlayerIndexes.some((skippedPlayerIndex) => threatPlayerIndexes.has(skippedPlayerIndex)),
+  );
+  return option?.playerIndex ?? null;
+}
+
+function chooseCpuEnhancedSevenTarget(state: GameState, playerIndex: number): number | null {
+  const threatPlayerIndexes = new Set(getCpuThreatPlayerIndexes(state, playerIndex));
+  let cursor = playerIndex;
+  for (let count = 1; count < state.players.length; count += 1) {
+    cursor = getNextPlayerIndex(cursor, state.players.length, state.direction);
+    if (threatPlayerIndexes.has(cursor)) return cursor;
+  }
+  return null;
 }
 
 function startSevenExchange(
@@ -886,6 +947,43 @@ function resolveJackEnhancementRightEffect(state: GameState, playerIndex: number
   );
 }
 
+function resolveCpuJackInspectEffect(state: GameState, playerIndex: number, continueState: PendingDaifugoContinue): GameState {
+  const playerName = state.players[playerIndex]?.name ?? "CPU";
+  return continueAfterDaifugo(
+    { ...state, pendingDaifugoEffect: null },
+    {
+      ...continueState,
+      shouldConfirmReach: false,
+      message: `${playerName} completed J information browsing.`,
+    },
+  );
+}
+
+function resolveCpuJackSpecialEffect(state: GameState, playerIndex: number, continueState: PendingDaifugoContinue): GameState {
+  const player = state.players[playerIndex];
+  const isTacticalJack =
+    player?.cpuModelId === "tactical" &&
+    state.daifugoOptions.enabled &&
+    state.daifugoOptions.effects.jackBack;
+
+  if (!isTacticalJack) {
+    return resolveJackBackEffect(state, playerIndex, continueState);
+  }
+
+  const reachPlayerIndexes = getReachPlayerIndexes(state, playerIndex);
+  if (reachPlayerIndexes.length > 0) {
+    if (isNextPlayerReach(state, playerIndex) || player.hasJEnhancementRight) {
+      return resolveCpuJackInspectEffect(state, playerIndex, continueState);
+    }
+    return resolveJackEnhancementRightEffect(state, playerIndex, continueState);
+  }
+
+  if (!player.hasJEnhancementRight) {
+    return resolveJackEnhancementRightEffect(state, playerIndex, continueState);
+  }
+  return resolveCpuJackInspectEffect(state, playerIndex, continueState);
+}
+
 function resolveJackSpecialEffect(state: GameState, effect: JackSpecialEffectId): GameState {
   const pending = state.pendingDaifugoEffect;
   if (!pending || pending.kind !== "jackSelect") return state;
@@ -904,6 +1002,12 @@ function applyDaifugoEffect(state: GameState): GameState {
 
   if (pending.effect === "fiveSkip") {
     const currentPlayer = state.players[state.currentPlayerIndex];
+    if (shouldCpuUseRemoteReachEnhancement(state, state.currentPlayerIndex)) {
+      const targetPlayerIndex = chooseCpuEnhancedFiveTarget(state, state.currentPlayerIndex);
+      if (targetPlayerIndex !== null) {
+        return resolveEnhancedFiveSkip(state, state.currentPlayerIndex, targetPlayerIndex, true);
+      }
+    }
     if (currentPlayer?.hasJEnhancementRight && !currentPlayer.isCpu) {
       return {
         ...state,
@@ -923,6 +1027,12 @@ function applyDaifugoEffect(state: GameState): GameState {
 
   if (pending.effect === "sevenExchange") {
     const currentPlayer = state.players[state.currentPlayerIndex];
+    if (shouldCpuUseRemoteReachEnhancement(state, state.currentPlayerIndex)) {
+      const targetPlayerIndex = chooseCpuEnhancedSevenTarget(state, state.currentPlayerIndex);
+      if (targetPlayerIndex !== null) {
+        return startSevenExchange(state, state.currentPlayerIndex, targetPlayerIndex, pending.continue, true);
+      }
+    }
     if (currentPlayer?.hasJEnhancementRight && !currentPlayer.isCpu) {
       return {
         ...state,
@@ -944,7 +1054,7 @@ function applyDaifugoEffect(state: GameState): GameState {
 
   if (pending.effect === "jackBack") {
     if (state.players[state.currentPlayerIndex]?.isCpu) {
-      return resolveJackBackEffect(state, state.currentPlayerIndex, pending.continue);
+      return resolveCpuJackSpecialEffect(state, state.currentPlayerIndex, pending.continue);
     }
     return {
       ...state,
