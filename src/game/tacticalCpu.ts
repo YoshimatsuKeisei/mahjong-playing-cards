@@ -401,17 +401,12 @@ function isAdjacentTwoCallThreat(context: CpuDecisionContext): boolean {
 }
 
 function canEnhancedFiveSkipTargets(context: CpuDecisionContext, targetPlayerIndexes: number[]): boolean {
-  const targets = new Set(targetPlayerIndexes);
-  let cursor = context.currentPlayerIndex;
-  let foundTarget = false;
-  for (let count = 1; count < context.state.players.length; count += 1) {
-    cursor = getNextPlayerIndex(cursor, context.state.players.length, context.state.direction);
-    if (foundTarget) return true;
-    if (targets.has(cursor)) {
-      foundTarget = true;
-    }
-  }
-  return false;
+  const previousPlayerIndex = getNextPlayerIndex(
+    context.currentPlayerIndex,
+    context.state.players.length,
+    reverseTurnDirection(context.state.direction),
+  );
+  return targetPlayerIndexes.some((targetPlayerIndex) => targetPlayerIndex !== previousPlayerIndex);
 }
 
 function getTurnDistance(
@@ -499,7 +494,7 @@ function getReachDaifugoEffectBonus(card: Card, context: CpuDecisionContext): nu
       return effects.fiveSkip
         ? hasEnhancementRight && canEnhancedFiveSkipTargets(context, getReachPlayerIndexes(context))
           ? REMOTE_REACH_EFFECT_BONUSES.enhancedFiveSkip
-          : REMOTE_REACH_EFFECT_BONUSES.fiveSkip
+          : 0
         : 0;
     case 7:
       return effects.sevenExchange
@@ -559,7 +554,7 @@ function getTwoCallDaifugoEffectBonus(card: Card, context: CpuDecisionContext): 
       return effects.fiveSkip
         ? hasEnhancementRight && canEnhancedFiveSkipTargets(context, getTwoCallPlayerIndexes(context))
           ? REMOTE_TWO_CALL_EFFECT_BONUSES.enhancedFiveSkip
-          : REMOTE_TWO_CALL_EFFECT_BONUSES.fiveSkip
+          : 0
         : 0;
     case 7:
       return effects.sevenExchange
@@ -640,6 +635,29 @@ export const tacticalCpuModel: CpuModel = {
   chooseDiscardCard: tacticalChooseCpuDiscardCard,
   chooseReachDeclaration: standardChooseReachDeclaration,
   chooseDaifugoEffectActivation: (context, effect) => {
+    if (
+      effect === "fiveSkip" &&
+      context.state.daifugoOptions.enabled &&
+      getReachPlayerIndexes(context).length > 0
+    ) {
+      return (
+        isAdjacentReachThreat(context) ||
+        (context.state.players[context.currentPlayerIndex]?.hasJEnhancementRight === true &&
+          canEnhancedFiveSkipTargets(context, getReachPlayerIndexes(context)))
+      );
+    }
+    if (
+      effect === "fiveSkip" &&
+      context.state.daifugoOptions.enabled &&
+      getReachPlayerIndexes(context).length === 0 &&
+      getTwoCallPlayerIndexes(context).length > 0
+    ) {
+      return (
+        isAdjacentTwoCallThreat(context) ||
+        (context.state.players[context.currentPlayerIndex]?.hasJEnhancementRight === true &&
+          canEnhancedFiveSkipTargets(context, getTwoCallPlayerIndexes(context)))
+      );
+    }
     if (
       effect === "nineReverse" &&
       context.state.daifugoOptions.enabled &&

@@ -5,7 +5,7 @@ import { gameReducer } from "../game/gameState";
 import { formatSimulationSummary, parseSimulationArgs } from "./cli";
 import { collectEffectTelemetry, makePlayerSummary, runSimulation } from "./simulator";
 import { createCpuScenario } from "./scenario";
-import type { SimulationConfig, SimulationViolation } from "./types";
+import type { SimulationConfig, SimulationFiveTargetEvent, SimulationViolation } from "./types";
 
 const ENABLED_DAIFUGO_OPTIONS: DaifugoOptions = {
   enabled: true,
@@ -26,6 +26,7 @@ function createTelemetryFixture(logLevel: SimulationConfig["logLevel"] = "violat
     config,
     players: config.playerModels.map((_, index) => makePlayerSummary(index, config)),
     violations: [] as SimulationViolation[],
+    fiveTargetEvents: [] as SimulationFiveTargetEvent[],
   };
 }
 
@@ -41,6 +42,20 @@ describe("headless CPU simulation", () => {
     expect(second.players).toEqual(first.players);
     expect(second.results).toEqual(first.results);
     expect(second.gameSeeds).toEqual(first.gameSeeds);
+    expect(second.startPlayerIndexes).toEqual(first.startPlayerIndexes);
+  });
+
+  it("rotates the starting player for 3, 4, and 5 player simulations", () => {
+    const threePlayers = runSimulation(parseSimulationArgs(["--players", "standard,standard,pro", "--games", "10", "--rules", "off", "--seed", "1"]));
+    const fourPlayers = runSimulation(parseSimulationArgs(["--players", "standard,standard,standard,pro", "--games", "6", "--rules", "off", "--seed", "1"]));
+    const fivePlayers = runSimulation(parseSimulationArgs(["--players", "standard,standard,standard,standard,pro", "--games", "7", "--rules", "off", "--seed", "1"]));
+
+    expect(threePlayers.startPlayerIndexes).toEqual([0, 1, 2, 0, 1, 2, 0, 1, 2, 0]);
+    expect(threePlayers.players.map((player) => player.startPlayerCount)).toEqual([4, 3, 3]);
+    expect(fourPlayers.startPlayerIndexes).toEqual([0, 1, 2, 3, 0, 1]);
+    expect(fourPlayers.players.map((player) => player.startPlayerCount)).toEqual([2, 2, 1, 1]);
+    expect(fivePlayers.startPlayerIndexes).toEqual([0, 1, 2, 3, 4, 0, 1]);
+    expect(fivePlayers.players.map((player) => player.startPlayerCount)).toEqual([2, 2, 1, 1, 1]);
   });
 
   it("prints the requested defensive and action summary without excluded main metrics", () => {
@@ -51,6 +66,9 @@ describe("headless CPU simulation", () => {
     expect(output).toContain("pureLoss=");
     expect(output).toContain("loserCount=");
     expect(output).toContain("lossEfficiency=");
+    expect(output).toContain("Start player summary:");
+    expect(output).toContain("- standard-1: 1");
+    expect(output).toContain("- standard-2: 1");
     expect(output).toContain("winCount=");
     expect(output).toContain("tsumoCount=");
     expect(output).toContain("ronCount=");
@@ -63,6 +81,10 @@ describe("headless CPU simulation", () => {
     expect(output).toContain("useJ=");
     expect(output).toContain("useQ=");
     expect(output).toContain("tacticalNormalDecisionTurns=");
+    expect(output).toContain("proUsed5NoThreat=");
+    expect(output).toContain("proUsed5ThreatPresentAndSkippedThreat=");
+    expect(output).toContain("proUsed5ThreatPresentButDidNotSkipThreat=");
+    expect(output).toContain("proUsed5ThreatPresentButCannotSkipThreat=");
     expect(output).not.toContain("winRate");
     expect(output).not.toContain("averageRank");
     expect(output).not.toContain("averageScore");
@@ -133,11 +155,25 @@ describe("headless CPU simulation", () => {
     const action = { type: "answerDaifugoEffect", activate: true } as const;
     const nextState = gameReducer(state, action);
 
-    collectEffectTelemetry(fixture.config, 1, 1, 1, 1, state, action, nextState, fixture.players, fixture.violations);
+    collectEffectTelemetry(fixture.config, 1, 1, 1, 1, state, action, nextState, fixture.players, fixture.violations, fixture.fiveTargetEvents);
 
     expect(fixture.players[0].use5).toBe(1);
-    expect(fixture.players[0].proUsed5ToSkipReachTarget).toBe(1);
+    expect(fixture.players[0].proUsed5ThreatPresentAndSkippedThreat).toBe(1);
     expect(fixture.violations).toEqual([]);
+    expect(fixture.fiveTargetEvents).toEqual([
+      expect.objectContaining({
+        currentPlayer: "scenario-player-1",
+        selectedPlayer: "scenario-player-3",
+        nextPlayerBefore5: "scenario-player-2",
+        nextPlayerAfter5: "scenario-player-3",
+        skippedPlayers: ["scenario-player-2"],
+        reachPlayers: ["scenario-player-2"],
+        twoCallPlayers: [],
+        threatType: "reach",
+        threatTarget: "scenario-player-2",
+        threatWasSkipped: true,
+      }),
+    ]);
     expect(nextState.phase).toBe("handoff");
     expect(nextState.lastDiscarderIndex).toBe(1);
   });
@@ -219,8 +255,81 @@ describe("headless CPU simulation", () => {
 
     collectEffectTelemetry(fixture.config, 1, 1, 1, 1, state, action, nextState, fixture.players, fixture.violations);
 
-    expect(fixture.players[0].proUsed5ToSkipIrrelevantTarget).toBe(1);
+    expect(fixture.players[0].proUsed5ThreatPresentButCannotSkipThreat).toBe(1);
     expect(fixture.violations).toEqual([]);
+  });
+
+  it("classifies tactical 5 without a threat separately", () => {
+    const fixture = createTelemetryFixture();
+    const state = withPending(
+      createCpuScenario({
+        daifugoOptions: ENABLED_DAIFUGO_OPTIONS,
+        players: [{ model: "tactical" }, { model: "standard" }, { model: "standard" }],
+      }),
+      { kind: "confirm", effect: "fiveSkip", playerIndex: 0, continue: { shouldConfirmReach: false } },
+    );
+    const action = { type: "answerDaifugoEffect", activate: true } as const;
+
+    collectEffectTelemetry(fixture.config, 1, 1, 1, 1, state, action, gameReducer(state, action), fixture.players, fixture.violations, fixture.fiveTargetEvents);
+
+    expect(fixture.players[0].proUsed5NoThreat).toBe(1);
+    expect(fixture.violations).toEqual([]);
+    expect(fixture.fiveTargetEvents[0]).toEqual(expect.objectContaining({ threatType: "none", threatTarget: null, threatWasSkipped: false }));
+  });
+
+  it("treats a two-call player in the skipped path as a successful tactical 5 target", () => {
+    const fixture = createTelemetryFixture();
+    const state = withPending(
+      createCpuScenario({
+        daifugoOptions: ENABLED_DAIFUGO_OPTIONS,
+        players: [
+          { model: "tactical" },
+          { model: "standard", openMelds: [[], []] },
+          { model: "standard" },
+        ],
+      }),
+      { kind: "confirm", effect: "fiveSkip", playerIndex: 0, continue: { shouldConfirmReach: false } },
+    );
+    const action = { type: "answerDaifugoEffect", activate: true } as const;
+
+    collectEffectTelemetry(fixture.config, 1, 1, 1, 1, state, action, gameReducer(state, action), fixture.players, fixture.violations, fixture.fiveTargetEvents);
+
+    expect(fixture.players[0].proUsed5ThreatPresentAndSkippedThreat).toBe(1);
+    expect(fixture.fiveTargetEvents[0]).toEqual(expect.objectContaining({ threatType: "twoCall", threatTarget: "scenario-player-2", threatWasSkipped: true }));
+  });
+
+  it("warns only when tactical 5 could skip a threat but selected a path that does not", () => {
+    const fixture = createTelemetryFixture();
+    const state = withPending(
+      createCpuScenario({
+        daifugoOptions: ENABLED_DAIFUGO_OPTIONS,
+        players: [
+          { model: "tactical", hasJEnhancementRight: true },
+          { model: "standard" },
+          { model: "standard", isReach: true },
+          { model: "standard" },
+        ],
+      }),
+      { kind: "confirm", effect: "fiveSkip", playerIndex: 0, continue: { shouldConfirmReach: false } },
+    );
+    const action = { type: "answerDaifugoEffect", activate: true } as const;
+    const nextState = { ...state, lastDiscarderIndex: 1 };
+
+    collectEffectTelemetry(fixture.config, 1, 1, 1, 1, state, action, nextState, fixture.players, fixture.violations, fixture.fiveTargetEvents);
+
+    expect(fixture.players[0].proUsed5ThreatPresentButDidNotSkipThreat).toBe(1);
+    expect(fixture.violations).toEqual([
+      expect.objectContaining({
+        code: "tactical-five-did-not-skip-threat",
+        selectedTarget: "scenario-player-3",
+        fiveTarget: expect.objectContaining({
+          skippedPlayers: ["scenario-player-2"],
+          threatTarget: "scenario-player-3",
+          threatWasSkipped: false,
+          threatCouldBeSkipped: true,
+        }),
+      }),
+    ]);
   });
 
   it("classifies tactical J fallback from reducer state changes", () => {

@@ -62,6 +62,10 @@ export function formatSimulationSummary(summary: SimulationSummary): string {
     lines.push(`    loserCount=${player.loserCount}`);
     lines.push(`    lossEfficiency=${player.lossEfficiency === null ? "-" : formatNumber(player.lossEfficiency)}`);
   });
+  lines.push("", "Start player summary:");
+  summary.players.forEach((player) => {
+    lines.push(`- ${player.player}: ${player.startPlayerCount}`);
+  });
   lines.push("", "Win method / action summary:");
   summary.players.forEach((player) => {
     lines.push(`- ${player.player}: winCount=${player.winCount} tsumoCount=${player.tsumoCount} ronCount=${player.ronCount} callCount=${player.callCount}`);
@@ -73,7 +77,7 @@ export function formatSimulationSummary(summary: SimulationSummary): string {
     tacticalPlayers.forEach((player) => {
       lines.push(`- ${player.player}:`);
       lines.push(`    tacticalNormalDecisionTurns=${player.tacticalNormalDecisionTurns} tacticalReachDecisionTurns=${player.tacticalReachDecisionTurns} tacticalTwoCallDecisionTurns=${player.tacticalTwoCallDecisionTurns}`);
-      lines.push(`    proUsed5ToSkipReachTarget=${player.proUsed5ToSkipReachTarget} proUsed5ToSkipTwoCallTarget=${player.proUsed5ToSkipTwoCallTarget} proUsed5ToSkipIrrelevantTarget=${player.proUsed5ToSkipIrrelevantTarget}`);
+      lines.push(`    proUsed5NoThreat=${player.proUsed5NoThreat} proUsed5ThreatPresentAndSkippedThreat=${player.proUsed5ThreatPresentAndSkippedThreat} proUsed5ThreatPresentButDidNotSkipThreat=${player.proUsed5ThreatPresentButDidNotSkipThreat} proUsed5ThreatPresentButCannotSkipThreat=${player.proUsed5ThreatPresentButCannotSkipThreat}`);
       lines.push(`    proUsed7OnReachTarget=${player.proUsed7OnReachTarget} proUsed7OnTwoCallTarget=${player.proUsed7OnTwoCallTarget} proUsed7OnIrrelevantTarget=${player.proUsed7OnIrrelevantTarget}`);
       lines.push(`    proUsedQOnReachRelatedRank=${player.proUsedQOnReachRelatedRank} proUsedQOnTwoCallRelatedRank=${player.proUsedQOnTwoCallRelatedRank} proUsedQOnIrrelevantRank=${player.proUsedQOnIrrelevantRank}`);
       lines.push(`    proUsed9ToIncreaseReachDistance=${player.proUsed9ToIncreaseReachDistance} proUsed9ToIncreaseTwoCallDistance=${player.proUsed9ToIncreaseTwoCallDistance} proUsed9WithoutDistanceGain=${player.proUsed9WithoutDistanceGain}`);
@@ -87,6 +91,12 @@ export function formatSimulationSummary(summary: SimulationSummary): string {
         `[game=${detail.game} seed=${detail.seed} step=${detail.step} turn=${detail.turn}] ${detail.player}/${detail.model} phase=${detail.phase} hand=[${detail.hand.join(",")}] reach=[${detail.reachPlayers.join(",")}] action=${detail.action}${detail.reason ? ` reason=${detail.reason}` : ""}`,
       );
     });
+    lines.push("", "Tactical 5 target detail:");
+    summary.fiveTargetEvents.forEach((event) => {
+      lines.push(
+        `[game=${event.game} seed=${event.seed} step=${event.step} turn=${event.turn}] current=${event.currentPlayer} order=[${event.turnOrder.join(",")}] selected=${event.selectedPlayer} before=${event.nextPlayerBefore5} after=${event.nextPlayerAfter5} skipped=[${event.skippedPlayers.join(",")}] reach=[${event.reachPlayers.join(",")}] twoCall=[${event.twoCallPlayers.join(",")}] threatType=${event.threatType} threat=${event.threatTarget ?? "-"} threatWasSkipped=${event.threatWasSkipped} threatCouldBeSkipped=${event.threatCouldBeSkipped}`,
+      );
+    });
   }
   if (summary.violations.length > 0 || summary.config.logLevel === "violations") {
     lines.push("", `Violations: ${summary.violations.length}`);
@@ -95,7 +105,10 @@ export function formatSimulationSummary(summary: SimulationSummary): string {
         violation.turn === undefined
           ? ""
           : ` turn=${violation.turn} cpu=${violation.cpu ?? "-"} effect=${violation.effectCard ?? "-"} reach=[${violation.reachPlayers?.join(",") ?? ""}] calls=[${violation.callCounts?.join(",") ?? ""}] threat=[${violation.threatTargets?.join(",") ?? ""}] selected=${violation.selectedTarget ?? "-"} warning=${violation.warningReason ?? violation.message}`;
-      lines.push(`[game=${violation.game} seed=${violation.seed} step=${violation.step}${telemetry}] ${violation.code}: ${violation.message}`);
+      const fiveTarget = violation.fiveTarget
+        ? ` order=[${violation.fiveTarget.turnOrder.join(",")}] before=${violation.fiveTarget.nextPlayerBefore5} after=${violation.fiveTarget.nextPlayerAfter5} skipped=[${violation.fiveTarget.skippedPlayers.join(",")}] twoCall=[${violation.fiveTarget.twoCallPlayers.join(",")}] threatType=${violation.fiveTarget.threatType} threatWasSkipped=${violation.fiveTarget.threatWasSkipped}`
+        : "";
+      lines.push(`[game=${violation.game} seed=${violation.seed} step=${violation.step}${telemetry}${fiveTarget}] ${violation.code}: ${violation.message}`);
     });
   }
   return lines.join("\n");
