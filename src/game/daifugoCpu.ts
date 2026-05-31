@@ -82,9 +82,10 @@ export function chooseDaifugoSevenExchangeCardForModel(
   modelId: CpuModelId | undefined,
   context: CpuDecisionContext,
   candidates: Card[],
-  _role: DaifugoExchangeRole,
+  role: DaifugoExchangeRole,
 ): Card | null {
   if (modelId === "easy") return chooseJuniorDaifugoCard(candidates, context.currentPlayer.hand);
+  if (modelId === "tactical" && role === "initiator") return chooseTacticalSevenExchangeCard(context, candidates);
   return chooseStandardDaifugoCard(context, candidates);
 }
 
@@ -107,6 +108,60 @@ function scoreStandardDaifugoCard(card: Card, hand: Card[]): number {
   const highCardPenalty = getCardPenalty(card);
 
   return highCardPenalty * 2 - sameRankCount * 8 - neighborCount * 4 - suitCount;
+}
+
+function chooseTacticalSevenExchangeCard(context: CpuDecisionContext, candidates: Card[]): Card | null {
+  const fallback = chooseStandardDaifugoCard(context, candidates);
+  const pending = context.state.pendingDaifugoEffect;
+  if (
+    !fallback ||
+    !pending ||
+    pending.kind !== "sevenExchange" ||
+    pending.playerIndex !== context.currentPlayerIndex
+  ) {
+    return fallback;
+  }
+
+  const target = context.state.players[pending.targetPlayerIndex];
+  if (!target || (!target.isReach && target.openMelds.length < 2)) return fallback;
+
+  const discardRanks = new Set(target.discardPile.map((card) => card.rank));
+  const openMeldRanks = new Set(target.openMelds.flat().map((card) => card.rank));
+  const rankedCandidates = candidates
+    .map((card) => ({
+      card,
+      preservationRisk: getSevenExchangePreservationRisk(card, context.currentPlayer.hand),
+      publicRankPriority: discardRanks.has(card.rank) ? 2 : openMeldRanks.has(card.rank) ? 1 : 0,
+      discardScore: scoreStandardDaifugoCard(card, context.currentPlayer.hand),
+    }))
+    .filter((candidate) => candidate.publicRankPriority > 0);
+  if (rankedCandidates.length === 0) return fallback;
+
+  const bestPreservationRisk = Math.min(
+    ...candidates.map((card) => getSevenExchangePreservationRisk(card, context.currentPlayer.hand)),
+  );
+  return (
+    rankedCandidates
+      .filter((candidate) => candidate.preservationRisk === bestPreservationRisk)
+      .sort(
+        (a, b) =>
+          b.publicRankPriority - a.publicRankPriority ||
+          b.discardScore - a.discardScore ||
+          a.card.id.localeCompare(b.card.id),
+      )[0]?.card ?? fallback
+  );
+}
+
+function getSevenExchangePreservationRisk(card: Card, hand: Card[]): number {
+  const meldIds = new Set(findPossibleMelds(hand).flat().map((candidate) => candidate.id));
+  const sameRankCount = hand.filter((candidate) => candidate.rank === card.rank).length;
+  const runCandidateCount = hand.filter(
+    (candidate) =>
+      candidate.id !== card.id &&
+      candidate.suit === card.suit &&
+      Math.abs(candidate.rank - card.rank) <= 2,
+  ).length;
+  return (meldIds.has(card.id) ? 100 : 0) + (sameRankCount >= 2 ? 30 : 0) + runCandidateCount * 5;
 }
 
 function scoreQueenRank(rank: number, hand: Card[], meldRanks: Set<number>): number {

@@ -133,6 +133,68 @@ describe("CPU models", () => {
     expect(cpuModels.standard.chooseDaifugoExtraDiscard?.(context, "tenSwapDraw", [hand[0], hand[4]])?.id).toBe("13h");
   });
 
+  function tacticalSevenContext(hand: Card[], target: Player): ReturnType<typeof createCpuDecisionContext> {
+    const gameState = {
+      ...state([player(1, []), player(2, hand), target]),
+      pendingDaifugoEffect: {
+        kind: "sevenExchange" as const,
+        effect: "sevenExchange" as const,
+        playerIndex: 1,
+        targetPlayerIndex: 2,
+        selections: {},
+        continue: { shouldConfirmReach: false },
+      },
+    };
+    return createCpuDecisionContext(gameState);
+  }
+
+  it("tactical 7 gives a reach target a loose rank already visible in its discards", () => {
+    const hand = [card("4s", 4), card("13h", 13, "H")];
+    const target = { ...player(3, [card("hidden", 9)]), isReach: true, discardPile: [card("discard-4", 4)] };
+    const context = tacticalSevenContext(hand, target)!;
+
+    expect(cpuModels.tactical.chooseDaifugoSevenExchangeCard?.(context, hand, "initiator")?.id).toBe("4s");
+  });
+
+  it("tactical 7 gives a two-call target a loose rank already visible in its discards", () => {
+    const hand = [card("5s", 5), card("13h", 13, "H")];
+    const target = {
+      ...player(3, [card("hidden", 9)], [card("discard-5", 5)]),
+      openMelds: [[card("meld-2a", 2)], [card("meld-3a", 3)]],
+    };
+    const context = tacticalSevenContext(hand, target)!;
+
+    expect(cpuModels.tactical.chooseDaifugoSevenExchangeCard?.(context, hand, "initiator")?.id).toBe("5s");
+  });
+
+  it("tactical 7 can use a public called rank when the target has no matching discard", () => {
+    const hand = [card("6s", 6), card("13h", 13, "H")];
+    const target = {
+      ...player(3, [card("hidden", 9)]),
+      openMelds: [[card("meld-6a", 6)], [card("meld-3a", 3)]],
+    };
+    const context = tacticalSevenContext(hand, target)!;
+
+    expect(cpuModels.tactical.chooseDaifugoSevenExchangeCard?.(context, hand, "initiator")?.id).toBe("6s");
+  });
+
+  it("tactical 7 does not break its own meld to match a threat target public rank", () => {
+    const hand = [card("3s", 3), card("3h", 3, "H"), card("3d", 3, "D"), card("13c", 13, "C")];
+    const target = { ...player(3, [card("hidden", 9)]), isReach: true, discardPile: [card("discard-3", 3)] };
+    const context = tacticalSevenContext(hand, target)!;
+
+    expect(cpuModels.tactical.chooseDaifugoSevenExchangeCard?.(context, hand, "initiator")?.id).toBe("13c");
+  });
+
+  it("tactical 7 keeps the existing fallback without a useful public rank or threat target", () => {
+    const hand = [card("4s", 4), card("13h", 13, "H")];
+    const threat = { ...player(3, [card("hidden", 4)]), isReach: true, discardPile: [card("discard-2", 2)] };
+    const normal = { ...player(3, [card("hidden", 4)]), discardPile: [card("discard-4", 4)] };
+
+    expect(cpuModels.tactical.chooseDaifugoSevenExchangeCard?.(tacticalSevenContext(hand, threat)!, hand, "initiator")?.id).toBe("13h");
+    expect(cpuModels.tactical.chooseDaifugoSevenExchangeCard?.(tacticalSevenContext(hand, normal)!, hand, "initiator")?.id).toBe("13h");
+  });
+
   it("standard queen choice avoids ranks that are part of completed melds when possible", () => {
     const hand = [card("13s", 13, "S"), card("13h", 13, "H"), card("13d", 13, "D"), card("5c", 5, "C")];
     const gameState = state([player(1, []), player(2, hand), player(3, [])]);

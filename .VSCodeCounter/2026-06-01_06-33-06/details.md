@@ -1,10 +1,10 @@
 # Details
 
-Date : 2026-05-31 06:36:42
+Date : 2026-06-01 06:33:06
 
 Directory c:\\Users\\jingc\\Documents\\8番出口
 
-Total : 61 files,  18779 codes, 158 comments, 2137 blanks, all 21074 lines
+Total : 70 files,  21716 codes, 158 comments, 2427 blanks, all 24301 lines
 
 [Summary](results.md) / Details / [Diff Summary](diff.md) / [Diff Details](diff-details.md)
 
@@ -14,7 +14,8 @@ Total : 61 files,  18779 codes, 158 comments, 2137 blanks, all 21074 lines
 | [.github/workflows/ci.yml](/.github/workflows/ci.yml) | YAML | 28 | 0 | 7 | 35 |
 | [index.html](/index.html) | HTML | 12 | 0 | 1 | 13 |
 | [package-lock.json](/package-lock.json) | JSON | 2,180 | 0 | 1 | 2,181 |
-| [package.json](/package.json) | JSON | 29 | 0 | 1 | 30 |
+| [package.json](/package.json) | JSON | 30 | 0 | 1 | 31 |
+| [scripts/sim.mjs](/scripts/sim.mjs) | JavaScript | 16 | 0 | 3 | 19 |
 | [src/App.tsx](/src/App.tsx) | TypeScript JSX | 874 | 0 | 63 | 937 |
 | [src/components/AvatarGallery.tsx](/src/components/AvatarGallery.tsx) | TypeScript JSX | 34 | 0 | 4 | 38 |
 | [src/components/AvatarPreview.tsx](/src/components/AvatarPreview.tsx) | TypeScript JSX | 44 | 0 | 8 | 52 |
@@ -45,15 +46,15 @@ Total : 61 files,  18779 codes, 158 comments, 2137 blanks, all 21074 lines
 | [src/components/StartScreen.tsx](/src/components/StartScreen.tsx) | TypeScript JSX | 421 | 0 | 35 | 456 |
 | [src/data/avatars.ts](/src/data/avatars.ts) | TypeScript | 26 | 0 | 4 | 30 |
 | [src/game/cpu.ts](/src/game/cpu.ts) | TypeScript | 19 | 0 | 2 | 21 |
-| [src/game/cpuModel.test.ts](/src/game/cpuModel.test.ts) | TypeScript | 222 | 0 | 40 | 262 |
+| [src/game/cpuModel.test.ts](/src/game/cpuModel.test.ts) | TypeScript | 273 | 0 | 51 | 324 |
 | [src/game/cpuModelRegistry.ts](/src/game/cpuModelRegistry.ts) | TypeScript | 22 | 0 | 6 | 28 |
 | [src/game/cpuTypes.ts](/src/game/cpuTypes.ts) | TypeScript | 40 | 0 | 6 | 46 |
-| [src/game/daifugoCpu.ts](/src/game/daifugoCpu.ts) | TypeScript | 123 | 0 | 28 | 151 |
+| [src/game/daifugoCpu.ts](/src/game/daifugoCpu.ts) | TypeScript | 173 | 0 | 33 | 206 |
 | [src/game/deck.test.ts](/src/game/deck.test.ts) | TypeScript | 58 | 0 | 18 | 76 |
 | [src/game/deck.ts](/src/game/deck.ts) | TypeScript | 103 | 0 | 13 | 116 |
 | [src/game/easyCpu.ts](/src/game/easyCpu.ts) | TypeScript | 93 | 0 | 19 | 112 |
-| [src/game/gameState.test.ts](/src/game/gameState.test.ts) | TypeScript | 932 | 0 | 120 | 1,052 |
-| [src/game/gameState.ts](/src/game/gameState.ts) | TypeScript | 1,615 | 0 | 147 | 1,762 |
+| [src/game/gameState.test.ts](/src/game/gameState.test.ts) | TypeScript | 1,399 | 0 | 157 | 1,556 |
+| [src/game/gameState.ts](/src/game/gameState.ts) | TypeScript | 1,774 | 0 | 163 | 1,937 |
 | [src/game/matchState.test.ts](/src/game/matchState.test.ts) | TypeScript | 184 | 0 | 37 | 221 |
 | [src/game/matchState.ts](/src/game/matchState.ts) | TypeScript | 166 | 0 | 19 | 185 |
 | [src/game/resultFixtures.ts](/src/game/resultFixtures.ts) | TypeScript | 161 | 0 | 10 | 171 |
@@ -61,11 +62,19 @@ Total : 61 files,  18779 codes, 158 comments, 2137 blanks, all 21074 lines
 | [src/game/scoring.test.ts](/src/game/scoring.test.ts) | TypeScript | 190 | 0 | 23 | 213 |
 | [src/game/scoring.ts](/src/game/scoring.ts) | TypeScript | 156 | 0 | 37 | 193 |
 | [src/game/standardCpu.ts](/src/game/standardCpu.ts) | TypeScript | 80 | 0 | 17 | 97 |
-| [src/game/tacticalCpu.ts](/src/game/tacticalCpu.ts) | TypeScript | 225 | 0 | 41 | 266 |
+| [src/game/tacticalCpu.ts](/src/game/tacticalCpu.ts) | TypeScript | 607 | 0 | 78 | 685 |
 | [src/main.tsx](/src/main.tsx) | TypeScript JSX | 9 | 0 | 2 | 11 |
+| [src/sim/cli.ts](/src/sim/cli.ts) | TypeScript | 112 | 0 | 8 | 120 |
+| [src/sim/headlessCpuDriver.ts](/src/sim/headlessCpuDriver.ts) | TypeScript | 84 | 0 | 9 | 93 |
+| [src/sim/scenario.test.ts](/src/sim/scenario.test.ts) | TypeScript | 488 | 0 | 69 | 557 |
+| [src/sim/scenario.ts](/src/sim/scenario.ts) | TypeScript | 63 | 0 | 5 | 68 |
+| [src/sim/seededRandom.ts](/src/sim/seededRandom.ts) | TypeScript | 28 | 0 | 3 | 31 |
+| [src/sim/simulator.test.ts](/src/sim/simulator.test.ts) | TypeScript | 317 | 0 | 37 | 354 |
+| [src/sim/simulator.ts](/src/sim/simulator.ts) | TypeScript | 604 | 0 | 41 | 645 |
+| [src/sim/types.ts](/src/sim/types.ts) | TypeScript | 111 | 0 | 8 | 119 |
 | [src/styles.css](/src/styles.css) | PostCSS | 5,311 | 6 | 767 | 6,084 |
 | [src/test/setup.ts](/src/test/setup.ts) | TypeScript | 6 | 0 | 2 | 8 |
-| [src/types.ts](/src/types.ts) | TypeScript | 273 | 0 | 18 | 291 |
+| [src/types.ts](/src/types.ts) | TypeScript | 277 | 0 | 19 | 296 |
 | [src/vite-env.d.ts](/src/vite-env.d.ts) | TypeScript | 0 | 1 | 0 | 1 |
 | [tsconfig.json](/tsconfig.json) | JSON with Comments | 22 | 0 | 1 | 23 |
 | [tsconfig.node.json](/tsconfig.node.json) | JSON | 9 | 0 | 1 | 10 |
