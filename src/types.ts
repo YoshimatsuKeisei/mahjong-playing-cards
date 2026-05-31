@@ -33,12 +33,15 @@ export interface PendingDaifugoContinue {
   message?: string;
 }
 
+export type CpuThreatResponseMode = "reach" | "twoCall";
+
 export type PendingDaifugoEffect =
   | {
       kind: "confirm";
       effect: DaifugoEffectId;
       playerIndex: number;
       continue: PendingDaifugoContinue;
+      cpuThreatResponseMode?: CpuThreatResponseMode;
     }
   | {
       kind: "extraDiscard";
@@ -60,6 +63,7 @@ export type PendingDaifugoEffect =
       selections: Record<number, string>;
       continue: PendingDaifugoContinue;
       consumeJEnhancementRightOnComplete?: boolean;
+      cpuThreatResponseMode?: CpuThreatResponseMode;
     }
   | {
       kind: "sevenEnhancementConfirm";
@@ -183,6 +187,7 @@ export interface DaifugoEffectEvent {
   kind: "sevenExchange" | "queenNumberVanish";
   actorIndex: number;
   targetPlayerIndex?: number;
+  cpuThreatResponseMode?: CpuThreatResponseMode;
   rank?: number;
   exchangedCards?: Array<{
     playerIndex: number;

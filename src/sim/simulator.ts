@@ -309,9 +309,9 @@ function collectTacticalSevenTarget(
     summary.proUsed7OnIrrelevantTarget += 1;
   }
   const targetName = state.players[targetPlayerIndex]?.name ?? `player-${targetPlayerIndex + 1}`;
-  if (reachPlayerIndexes.length > 0 && !reachPlayerIndexes.includes(targetPlayerIndex)) {
+  if (event.cpuThreatResponseMode === "reach" && !reachPlayerIndexes.includes(targetPlayerIndex)) {
     pushTargetWarning(config, violations, game, seed, step, turn, state, actorIndex, "7", "tactical-seven-irrelevant-reach-target", targetName, "7 targeted no reach player.");
-  } else if (reachPlayerIndexes.length === 0 && twoCallPlayerIndexes.length > 0 && !twoCallPlayerIndexes.includes(targetPlayerIndex)) {
+  } else if (event.cpuThreatResponseMode === "twoCall" && !twoCallPlayerIndexes.includes(targetPlayerIndex)) {
     pushTargetWarning(config, violations, game, seed, step, turn, state, actorIndex, "7", "tactical-seven-irrelevant-two-call-target", targetName, "7 targeted no two-call player.");
   }
 }
