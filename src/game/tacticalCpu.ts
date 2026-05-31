@@ -33,6 +33,31 @@ const NORMAL_DAIFUGO_EFFECT_BONUSES = {
   jackInspect: 20,
 } as const;
 
+const ADJACENT_REACH_EFFECT_BONUSES = {
+  sevenExchange: 230,
+  queenNumberVanish: 215,
+  fiveSkip: 200,
+  nineReverse: 165,
+  eightExtraTurn: 145,
+  tenSwapDraw: 130,
+  jackInspect: 115,
+} as const;
+
+const REMOTE_REACH_EFFECT_BONUSES = {
+  enhancedSevenExchange: 260,
+  enhancedFiveSkip: 245,
+  queenNumberVanish: 225,
+  jackEnhancementRight: 190,
+  eightExtraTurn: 170,
+  tenSwapDraw: 155,
+  sevenExchange: 140,
+  nineReverse: 125,
+  jackInspect: 110,
+  fiveSkip: -20,
+} as const;
+
+const REACH_SAFE_RANK_BONUS = 180;
+
 export function tacticalChooseCpuCall(context: CpuDecisionContext): CpuCallChoice | null {
   const standardCall = standardChooseCpuCall(context);
   if (!standardCall) return null;
@@ -130,7 +155,7 @@ export function scoreTacticalDiscardCandidate(
     notes.push(`${formatSigned(isolatedBonus)} isolated`);
   }
 
-  if (isNormalDaifugoEvaluation(context)) {
+  if (isNormalDaifugoEvaluation(context) || isReachDaifugoEvaluation(context)) {
     if (isInStrongMeldCandidate(card, hand)) {
       const completedMeldLock = -220;
       score += completedMeldLock;
@@ -148,11 +173,26 @@ export function scoreTacticalDiscardCandidate(
       score += singletonBonus;
       notes.push(`${formatSigned(singletonBonus)} normalSingleton`);
     }
+  }
 
+  if (isNormalDaifugoEvaluation(context)) {
     const effectBonus = getNormalDaifugoEffectBonus(card, context);
     if (effectBonus > 0) {
       score += effectBonus;
       notes.push(`${formatSigned(effectBonus)} normalDaifugoPriority`);
+    }
+  }
+
+  if (isReachDaifugoEvaluation(context)) {
+    if (safeRankCount > 0) {
+      score += REACH_SAFE_RANK_BONUS;
+      notes.push(`${formatSigned(REACH_SAFE_RANK_BONUS)} reachSafeRank`);
+    }
+
+    const effectBonus = getReachDaifugoEffectBonus(card, context);
+    if (effectBonus !== 0) {
+      score += effectBonus;
+      notes.push(`${formatSigned(effectBonus)} reachDaifugoPriority`);
     }
   }
 
@@ -266,7 +306,143 @@ function isIsolated(card: Card, hand: Card[]): boolean {
 }
 
 function isNormalDaifugoEvaluation(context: CpuDecisionContext): boolean {
-  return context.state.phase === "discard" && context.state.daifugoOptions.enabled && !context.state.players.some((player) => player.isReach);
+  return context.state.phase === "discard" && context.state.daifugoOptions.enabled && getReachPlayerIndexes(context).length === 0;
+}
+
+function isReachDaifugoEvaluation(context: CpuDecisionContext): boolean {
+  return context.state.phase === "discard" && context.state.daifugoOptions.enabled && getReachPlayerIndexes(context).length > 0;
+}
+
+function getReachPlayerIndexes(context: CpuDecisionContext): number[] {
+  return context.state.players.flatMap((player, index) =>
+    index !== context.currentPlayerIndex && player.isReach ? [index] : [],
+  );
+}
+
+function isAdjacentReachThreat(context: CpuDecisionContext): boolean {
+  const nextPlayerIndex = getNextPlayerIndex(
+    context.currentPlayerIndex,
+    context.state.players.length,
+    context.state.direction,
+  );
+  return context.state.players[nextPlayerIndex]?.isReach ?? false;
+}
+
+function canEnhancedFiveSkipReach(context: CpuDecisionContext): boolean {
+  let cursor = context.currentPlayerIndex;
+  let foundReachPlayer = false;
+  for (let count = 1; count < context.state.players.length; count += 1) {
+    cursor = getNextPlayerIndex(cursor, context.state.players.length, context.state.direction);
+    if (foundReachPlayer) return true;
+    if (context.state.players[cursor]?.isReach) {
+      foundReachPlayer = true;
+    }
+  }
+  return false;
+}
+
+function getTurnDistance(
+  fromPlayerIndex: number,
+  toPlayerIndex: number,
+  playerCount: number,
+  direction: CpuDecisionContext["state"]["direction"],
+): number {
+  let currentPlayerIndex = fromPlayerIndex;
+  for (let distance = 1; distance < playerCount; distance += 1) {
+    currentPlayerIndex = getNextPlayerIndex(currentPlayerIndex, playerCount, direction);
+    if (currentPlayerIndex === toPlayerIndex) {
+      return distance;
+    }
+  }
+  return Number.POSITIVE_INFINITY;
+}
+
+function reverseTurnDirection(
+  direction: CpuDecisionContext["state"]["direction"],
+): CpuDecisionContext["state"]["direction"] {
+  return direction === "clockwise" ? "counterclockwise" : "clockwise";
+}
+
+export function doesNineReverseIncreaseReachDistance(context: CpuDecisionContext): boolean {
+  const reachPlayerIndexes = getReachPlayerIndexes(context);
+  if (reachPlayerIndexes.length === 0) return false;
+
+  const getNearestReachDistance = (direction: CpuDecisionContext["state"]["direction"]) =>
+    Math.min(
+      ...reachPlayerIndexes.map((reachPlayerIndex) =>
+        getTurnDistance(
+          context.currentPlayerIndex,
+          reachPlayerIndex,
+          context.state.players.length,
+          direction,
+        ),
+      ),
+    );
+
+  return (
+    getNearestReachDistance(reverseTurnDirection(context.state.direction)) >
+    getNearestReachDistance(context.state.direction)
+  );
+}
+
+function getReachDaifugoEffectBonus(card: Card, context: CpuDecisionContext): number {
+  const effects = context.state.daifugoOptions.effects;
+  const hasEnhancementRight = context.currentPlayer.hasJEnhancementRight;
+
+  if (isAdjacentReachThreat(context)) {
+    switch (card.rank) {
+      case 5:
+        return effects.fiveSkip ? ADJACENT_REACH_EFFECT_BONUSES.fiveSkip : 0;
+      case 7:
+        return effects.sevenExchange ? ADJACENT_REACH_EFFECT_BONUSES.sevenExchange : 0;
+      case 8:
+        return effects.eightExtraTurn ? ADJACENT_REACH_EFFECT_BONUSES.eightExtraTurn : 0;
+      case 9:
+        return effects.nineReverse && doesNineReverseIncreaseReachDistance(context)
+          ? ADJACENT_REACH_EFFECT_BONUSES.nineReverse
+          : 0;
+      case 10:
+        return effects.tenSwapDraw ? ADJACENT_REACH_EFFECT_BONUSES.tenSwapDraw : 0;
+      case 11:
+        return effects.jackBack ? ADJACENT_REACH_EFFECT_BONUSES.jackInspect : 0;
+      case 12:
+        return effects.queenNumberVanish ? ADJACENT_REACH_EFFECT_BONUSES.queenNumberVanish : 0;
+      default:
+        return 0;
+    }
+  }
+
+  switch (card.rank) {
+    case 5:
+      return effects.fiveSkip
+        ? hasEnhancementRight && canEnhancedFiveSkipReach(context)
+          ? REMOTE_REACH_EFFECT_BONUSES.enhancedFiveSkip
+          : REMOTE_REACH_EFFECT_BONUSES.fiveSkip
+        : 0;
+    case 7:
+      return effects.sevenExchange
+        ? hasEnhancementRight
+          ? REMOTE_REACH_EFFECT_BONUSES.enhancedSevenExchange
+          : REMOTE_REACH_EFFECT_BONUSES.sevenExchange
+        : 0;
+    case 8:
+      return effects.eightExtraTurn ? REMOTE_REACH_EFFECT_BONUSES.eightExtraTurn : 0;
+    case 9:
+      return effects.nineReverse && doesNineReverseIncreaseReachDistance(context)
+        ? REMOTE_REACH_EFFECT_BONUSES.nineReverse
+        : 0;
+    case 10:
+      return effects.tenSwapDraw ? REMOTE_REACH_EFFECT_BONUSES.tenSwapDraw : 0;
+    case 11:
+      if (!effects.jackBack) return 0;
+      return hasEnhancementRight
+        ? REMOTE_REACH_EFFECT_BONUSES.jackInspect
+        : REMOTE_REACH_EFFECT_BONUSES.jackEnhancementRight;
+    case 12:
+      return effects.queenNumberVanish ? REMOTE_REACH_EFFECT_BONUSES.queenNumberVanish : 0;
+    default:
+      return 0;
+  }
 }
 
 function getNormalDaifugoEffectBonus(card: Card, context: CpuDecisionContext): number {
@@ -321,7 +497,16 @@ export const tacticalCpuModel: CpuModel = {
   chooseDrawSource: tacticalChooseCpuDrawSource,
   chooseDiscardCard: tacticalChooseCpuDiscardCard,
   chooseReachDeclaration: standardChooseReachDeclaration,
-  chooseDaifugoEffectActivation: chooseStandardDaifugoEffectActivation,
+  chooseDaifugoEffectActivation: (context, effect) => {
+    if (
+      effect === "nineReverse" &&
+      context.state.daifugoOptions.enabled &&
+      getReachPlayerIndexes(context).length > 0
+    ) {
+      return doesNineReverseIncreaseReachDistance(context);
+    }
+    return chooseStandardDaifugoEffectActivation();
+  },
   chooseDaifugoSevenExchangeCard: (context, candidates) => chooseStandardDaifugoCard(context, candidates),
   chooseQueenVanishRank: chooseStandardQueenRank,
   chooseDaifugoExtraDiscard: (context, _effect, candidates) => chooseStandardDaifugoCard(context, candidates),

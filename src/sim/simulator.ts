@@ -1,7 +1,9 @@
 import type { Card, CpuModelId, DaifugoOptions, GameResult, GameState } from "../types";
 import { createDefaultDaifugoOptions } from "../game/deck";
+import { createCpuDecisionContext } from "../game/cpuTypes";
 import { createInitialGame, gameReducer, type GameAction } from "../game/gameState";
 import { getDisplayedPlayerLosses, getResultLoserIndexes } from "../game/matchState";
+import { doesNineReverseIncreaseReachDistance, getTacticalDiscardScores } from "../game/tacticalCpu";
 import { chooseHeadlessCpuAction } from "./headlessCpuDriver";
 import { deriveGameSeed, withSeededMathRandom } from "./seededRandom";
 import type {
@@ -114,6 +116,55 @@ function createFallbackDeckout(playerCount: number): GameResult {
   };
 }
 
+function collectTacticalReachViolations(
+  game: number,
+  seed: number,
+  step: number,
+  state: GameState,
+  action: GameAction,
+  violations: SimulationViolation[],
+) {
+  const context = createCpuDecisionContext(state);
+  if (
+    !context ||
+    context.currentPlayer.cpuModelId !== "tactical" ||
+    !state.daifugoOptions.enabled ||
+    !state.players.some((player, index) => index !== state.currentPlayerIndex && player.isReach)
+  ) {
+    return;
+  }
+
+  if (state.phase === "discard" && action.type === "discard") {
+    const expectedCard = getTacticalDiscardScores(context)[0]?.card;
+    if (expectedCard && expectedCard.id !== action.cardId) {
+      violations.push({
+        game,
+        seed,
+        step,
+        code: "tactical-reach-discard-priority",
+        message: `Expected ${formatCard(expectedCard)} but discarded ${action.cardId}.`,
+      });
+    }
+  }
+
+  if (
+    state.pendingDaifugoEffect?.kind === "confirm" &&
+    state.pendingDaifugoEffect.effect === "nineReverse" &&
+    action.type === "answerDaifugoEffect"
+  ) {
+    const expectedActivation = doesNineReverseIncreaseReachDistance(context);
+    if (action.activate !== expectedActivation) {
+      violations.push({
+        game,
+        seed,
+        step,
+        code: "tactical-reach-nine-distance",
+        message: `Expected 9 activation=${expectedActivation} but received ${action.activate}.`,
+      });
+    }
+  }
+}
+
 function runOneGame(config: SimulationConfig, game: number, seed: number, players: SimulationPlayerSummary[], violations: SimulationViolation[], details: SimulationDetailEvent[]): SimulationGameOutcome {
   return withSeededMathRandom(seed, () => {
     let state = createInitialGame(config.playerModels.length, config.direction, 0, "standard", config.rules === "daifugo" ? ALL_DAIFUGO_OPTIONS : createDefaultDaifugoOptions(), config.playerModels, false);
@@ -140,6 +191,7 @@ function runOneGame(config: SimulationConfig, game: number, seed: number, player
       if (config.logLevel === "detail") {
         details.push(createDetailEvent(game, seed, step, turn, state, decision.action, decision.reason));
       }
+      collectTacticalReachViolations(game, seed, step, state, decision.action, violations);
       const nextState = gameReducer(state, decision.action);
       if (nextState === state) {
         violations.push({ game, seed, step, code: "stalled-action", message: `${describeAction(decision.action)} did not change state.` });
