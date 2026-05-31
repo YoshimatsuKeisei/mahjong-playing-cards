@@ -810,6 +810,61 @@ describe("daifugo game state", () => {
     expect(resolved.isJBackActive).toBe(true);
   });
 
+  it("normal tactical CPU J activation gains an enhancement right instead of toggling J-back", () => {
+    const base = stateForDiscard(card("jack", 11));
+    const cpuState = {
+      ...base,
+      players: base.players.map((candidate, index) =>
+        index === 0 ? { ...candidate, isCpu: true, type: "cpu" as const, cpuModelId: "tactical" as const } : candidate,
+      ),
+    };
+    const jackPending = gameReducer(cpuState, { type: "discard", cardId: "jack" });
+    const resolved = gameReducer(jackPending, { type: "answerDaifugoEffect", activate: true });
+
+    expect(resolved.pendingDaifugoEffect).toBeNull();
+    expect(resolved.players[0].hasJEnhancementRight).toBe(true);
+    expect(resolved.isJBackActive).toBe(false);
+  });
+
+  it("normal tactical CPU with an enhancement right completes J information browsing without interactive pending state", () => {
+    const base = stateForDiscard(card("jack", 11));
+    const cpuState = {
+      ...base,
+      players: base.players.map((candidate, index) =>
+        index === 0
+          ? { ...candidate, isCpu: true, type: "cpu" as const, cpuModelId: "tactical" as const, hasJEnhancementRight: true }
+          : candidate,
+      ),
+    };
+    const originalHands = cpuState.players.map((candidate) => candidate.hand.map((item) => item.id));
+    const jackPending = gameReducer(cpuState, { type: "discard", cardId: "jack" });
+    const resolved = gameReducer(jackPending, { type: "answerDaifugoEffect", activate: true });
+
+    expect(resolved.pendingDaifugoEffect).toBeNull();
+    expect(resolved.players[0].hasJEnhancementRight).toBe(true);
+    expect(resolved.players.map((candidate) => candidate.hand.map((item) => item.id).sort())).toEqual(
+      originalHands.map((hand, index) => (index === 0 ? hand.filter((id) => id !== "jack") : hand).sort()),
+    );
+    expect(resolved.isJBackActive).toBe(false);
+  });
+
+  it("tactical CPU keeps the existing J-back fallback while a player is in reach", () => {
+    const base = stateForDiscard(card("jack", 11));
+    const cpuState = {
+      ...base,
+      players: base.players.map((candidate, index) => {
+        if (index === 0) return { ...candidate, isCpu: true, type: "cpu" as const, cpuModelId: "tactical" as const };
+        return index === 1 ? { ...candidate, isReach: true } : candidate;
+      }),
+    };
+    const jackPending = gameReducer(cpuState, { type: "discard", cardId: "jack" });
+    const resolved = gameReducer(jackPending, { type: "answerDaifugoEffect", activate: true });
+
+    expect(resolved.pendingDaifugoEffect).toBeNull();
+    expect(resolved.players[0].hasJEnhancementRight).toBeFalsy();
+    expect(resolved.isJBackActive).toBe(true);
+  });
+
   it("resolves 8 extra discard without chaining another daifugo effect", () => {
     const pending = gameReducer(stateForDiscard(card("eight", 8)), { type: "discard", cardId: "eight" });
     const drawPending = gameReducer(pending, { type: "answerDaifugoEffect", activate: true });

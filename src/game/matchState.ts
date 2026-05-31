@@ -168,7 +168,7 @@ function buildRoundHistoryEntry(
   };
 }
 
-function getDisplayedPlayerLosses(result: GameResult, playerCount: number): number[] {
+export function getDisplayedPlayerLosses(result: GameResult, playerCount: number): number[] {
   return Array.from({ length: playerCount }, (_, playerIndex) => {
     const ronResult = result.ronResults?.find((item) => item.winnerIndex === playerIndex);
     return ronResult?.score.playerLosses[playerIndex] ?? result.score.playerLosses[playerIndex] ?? 0;

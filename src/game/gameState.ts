@@ -886,6 +886,35 @@ function resolveJackEnhancementRightEffect(state: GameState, playerIndex: number
   );
 }
 
+function resolveCpuJackInspectEffect(state: GameState, playerIndex: number, continueState: PendingDaifugoContinue): GameState {
+  const playerName = state.players[playerIndex]?.name ?? "CPU";
+  return continueAfterDaifugo(
+    { ...state, pendingDaifugoEffect: null },
+    {
+      ...continueState,
+      shouldConfirmReach: false,
+      message: `${playerName} completed J information browsing.`,
+    },
+  );
+}
+
+function resolveCpuJackSpecialEffect(state: GameState, playerIndex: number, continueState: PendingDaifugoContinue): GameState {
+  const player = state.players[playerIndex];
+  const isNormalTacticalJack =
+    player?.cpuModelId === "tactical" &&
+    state.daifugoOptions.enabled &&
+    state.daifugoOptions.effects.jackBack &&
+    !state.players.some((candidate) => candidate.isReach);
+
+  if (!isNormalTacticalJack) {
+    return resolveJackBackEffect(state, playerIndex, continueState);
+  }
+  if (!player.hasJEnhancementRight) {
+    return resolveJackEnhancementRightEffect(state, playerIndex, continueState);
+  }
+  return resolveCpuJackInspectEffect(state, playerIndex, continueState);
+}
+
 function resolveJackSpecialEffect(state: GameState, effect: JackSpecialEffectId): GameState {
   const pending = state.pendingDaifugoEffect;
   if (!pending || pending.kind !== "jackSelect") return state;
@@ -944,7 +973,7 @@ function applyDaifugoEffect(state: GameState): GameState {
 
   if (pending.effect === "jackBack") {
     if (state.players[state.currentPlayerIndex]?.isCpu) {
-      return resolveJackBackEffect(state, state.currentPlayerIndex, pending.continue);
+      return resolveCpuJackSpecialEffect(state, state.currentPlayerIndex, pending.continue);
     }
     return {
       ...state,

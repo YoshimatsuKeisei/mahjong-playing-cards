@@ -58,14 +58,13 @@ export function formatSimulationSummary(summary: SimulationSummary): string {
   summary.players.forEach((player) => {
     lines.push(`- ${player.player}:`);
     lines.push(`    totalLoss=${formatNumber(player.totalLoss)}`);
-    lines.push(`    damageDealt=${formatNumber(player.damageDealt)}`);
-    lines.push(`    netLoss=${formatNumber(player.netLoss)}`);
-    lines.push(`    lossEfficiencyPerGame=${formatNumber(player.lossEfficiencyPerGame)}`);
-    lines.push(`    lossEfficiencyPerTurn=${formatNumber(player.lossEfficiencyPerTurn)}`);
+    lines.push(`    pureLoss=${formatNumber(player.pureLoss)}`);
+    lines.push(`    loserCount=${player.loserCount}`);
+    lines.push(`    lossEfficiency=${player.lossEfficiency === null ? "-" : formatNumber(player.lossEfficiency)}`);
   });
   lines.push("", "Win method / action summary:");
   summary.players.forEach((player) => {
-    lines.push(`- ${player.player}: tsumoCount=${player.tsumoCount} ronCount=${player.ronCount} callCount=${player.callCount}`);
+    lines.push(`- ${player.player}: winCount=${player.winCount} tsumoCount=${player.tsumoCount} ronCount=${player.ronCount} callCount=${player.callCount}`);
   });
   if (summary.config.logLevel === "detail") {
     lines.push("", "Detail:");

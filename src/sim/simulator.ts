@@ -1,7 +1,7 @@
 import type { Card, CpuModelId, DaifugoOptions, GameResult, GameState } from "../types";
 import { createDefaultDaifugoOptions } from "../game/deck";
 import { createInitialGame, gameReducer, type GameAction } from "../game/gameState";
-import { calculatePointDeductions } from "../game/scoring";
+import { getDisplayedPlayerLosses, getResultLoserIndexes } from "../game/matchState";
 import { chooseHeadlessCpuAction } from "./headlessCpuDriver";
 import { deriveGameSeed, withSeededMathRandom } from "./seededRandom";
 import type {
@@ -25,6 +25,11 @@ const ALL_DAIFUGO_OPTIONS: DaifugoOptions = {
   },
 };
 
+interface SimulationGameOutcome {
+  result: GameResult;
+  calledPlayerIndexes: number[];
+}
+
 function formatCard(card: Card): string {
   return `${card.rank}${card.suit}`;
 }
@@ -44,41 +49,42 @@ function makePlayerSummary(playerIndex: number, config: SimulationConfig): Simul
   return {
     player: config.playerLabels[playerIndex],
     model: config.playerModels[playerIndex],
+    winCount: 0,
     totalLoss: 0,
-    damageDealt: 0,
-    netLoss: 0,
-    lossEfficiencyPerGame: 0,
-    lossEfficiencyPerTurn: 0,
-    turnCount: 0,
+    pureLoss: 0,
+    loserCount: 0,
+    lossEfficiency: null,
     tsumoCount: 0,
     ronCount: 0,
     callCount: 0,
   };
 }
 
-function collectResult(result: GameResult, players: SimulationPlayerSummary[]) {
-  const deductions = calculatePointDeductions(result, players.length);
-  deductions.forEach((loss, index) => {
+function collectResult(result: GameResult, players: SimulationPlayerSummary[], calledPlayerIndexes: number[]) {
+  const playerLosses = getDisplayedPlayerLosses(result, players.length);
+  playerLosses.forEach((loss, index) => {
     players[index].totalLoss += loss;
+  });
+  getResultLoserIndexes(result, players.length).forEach((index) => {
+    players[index].pureLoss += playerLosses[index] ?? 0;
+    players[index].loserCount += 1;
+  });
+  calledPlayerIndexes.forEach((index) => {
+    players[index].callCount += 1;
   });
   if (result.winType === "deckout") return;
 
   if (result.winType === "ron") {
     const ronResults = result.ronResults ?? [{ winnerIndex: result.winnerIndex, winningResult: result.winningResult, score: result.score }];
-    for (const ron of ronResults) {
-      players[ron.winnerIndex].ronCount += 1;
-      const discarderIndex = result.discarderIndex;
-      if (discarderIndex !== null) {
-        const winnerLoss = ron.score.playerLosses[ron.winnerIndex] ?? 0;
-        const discarderLoss = ron.score.playerLosses[discarderIndex] ?? 0;
-        players[ron.winnerIndex].damageDealt += Math.max(0, discarderLoss - winnerLoss);
-      }
-    }
+    new Set(ronResults.map((ron) => ron.winnerIndex)).forEach((winnerIndex) => {
+      players[winnerIndex].ronCount += 1;
+      players[winnerIndex].winCount += 1;
+    });
     return;
   }
 
   players[result.winnerIndex].tsumoCount += 1;
-  players[result.winnerIndex].damageDealt += deductions.reduce((sum, loss) => sum + loss, 0);
+  players[result.winnerIndex].winCount += 1;
 }
 
 function createDetailEvent(game: number, seed: number, step: number, turn: number, state: GameState, action: GameAction, reason?: string): SimulationDetailEvent {
@@ -108,24 +114,28 @@ function createFallbackDeckout(playerCount: number): GameResult {
   };
 }
 
-function runOneGame(config: SimulationConfig, game: number, seed: number, players: SimulationPlayerSummary[], violations: SimulationViolation[], details: SimulationDetailEvent[]): GameResult {
+function runOneGame(config: SimulationConfig, game: number, seed: number, players: SimulationPlayerSummary[], violations: SimulationViolation[], details: SimulationDetailEvent[]): SimulationGameOutcome {
   return withSeededMathRandom(seed, () => {
     let state = createInitialGame(config.playerModels.length, config.direction, 0, "standard", config.rules === "daifugo" ? ALL_DAIFUGO_OPTIONS : createDefaultDaifugoOptions(), config.playerModels, false);
     let turn = 0;
+    const calledPlayerIndexes = new Set<number>();
+    const complete = (result: GameResult): SimulationGameOutcome => ({
+      result,
+      calledPlayerIndexes: [...calledPlayerIndexes],
+    });
 
     for (let step = 1; step <= config.maxStepsPerGame; step += 1) {
-      if (state.phase === "result" && state.result) return state.result;
+      if (state.phase === "result" && state.result) return complete(state.result);
       const decision = chooseHeadlessCpuAction(state);
       if (!decision.action) {
         violations.push({ game, seed, step, code: "no-action", message: decision.reason ?? `No action for ${state.phase}.` });
-        return createFallbackDeckout(players.length);
+        return complete(createFallbackDeckout(players.length));
       }
       if (state.phase === "draw" && decision.action.type !== "confirmHandoff") {
         turn += 1;
-        players[state.currentPlayerIndex].turnCount += 1;
       }
       if (decision.action.type === "takeDiscard" && decision.action.meld) {
-        players[state.currentPlayerIndex].callCount += 1;
+        calledPlayerIndexes.add(state.currentPlayerIndex);
       }
       if (config.logLevel === "detail") {
         details.push(createDetailEvent(game, seed, step, turn, state, decision.action, decision.reason));
@@ -133,13 +143,13 @@ function runOneGame(config: SimulationConfig, game: number, seed: number, player
       const nextState = gameReducer(state, decision.action);
       if (nextState === state) {
         violations.push({ game, seed, step, code: "stalled-action", message: `${describeAction(decision.action)} did not change state.` });
-        return createFallbackDeckout(players.length);
+        return complete(createFallbackDeckout(players.length));
       }
       state = nextState;
     }
 
     violations.push({ game, seed, step: config.maxStepsPerGame, code: "max-steps", message: `Game exceeded ${config.maxStepsPerGame} steps.` });
-    return createFallbackDeckout(players.length);
+    return complete(createFallbackDeckout(players.length));
   });
 }
 
@@ -158,9 +168,9 @@ export function runSimulation(config: SimulationConfig): SimulationSummary {
   };
   try {
     gameSeeds.forEach((gameSeed, index) => {
-      const result = runOneGame(config, index + 1, gameSeed, players, violations, details);
-      results.push(result);
-      collectResult(result, players);
+      const outcome = runOneGame(config, index + 1, gameSeed, players, violations, details);
+      results.push(outcome.result);
+      collectResult(outcome.result, players, outcome.calledPlayerIndexes);
     });
   } finally {
     console.info = originalInfo;
@@ -168,9 +178,7 @@ export function runSimulation(config: SimulationConfig): SimulationSummary {
   }
 
   players.forEach((player) => {
-    player.netLoss = player.totalLoss - player.damageDealt;
-    player.lossEfficiencyPerGame = config.games > 0 ? player.totalLoss / config.games : 0;
-    player.lossEfficiencyPerTurn = player.turnCount > 0 ? player.totalLoss / player.turnCount : 0;
+    player.lossEfficiency = player.loserCount > 0 ? Math.round(player.pureLoss / player.loserCount) : null;
   });
 
   return {

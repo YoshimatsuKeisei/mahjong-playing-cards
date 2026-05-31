@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { getDisplayedPlayerLosses, getResultLoserIndexes } from "../game/matchState";
 import { formatSimulationSummary, parseSimulationArgs } from "./cli";
 import { runSimulation } from "./simulator";
 
@@ -17,9 +18,10 @@ describe("headless CPU simulation", () => {
     const output = formatSimulationSummary(summary);
     expect(summary.completedGames).toBe(2);
     expect(output).toContain("totalLoss=");
-    expect(output).toContain("netLoss=");
-    expect(output).toContain("lossEfficiencyPerGame=");
-    expect(output).toContain("lossEfficiencyPerTurn=");
+    expect(output).toContain("pureLoss=");
+    expect(output).toContain("loserCount=");
+    expect(output).toContain("lossEfficiency=");
+    expect(output).toContain("winCount=");
     expect(output).toContain("tsumoCount=");
     expect(output).toContain("ronCount=");
     expect(output).toContain("callCount=");
@@ -27,6 +29,34 @@ describe("headless CPU simulation", () => {
     expect(output).not.toContain("averageRank");
     expect(output).not.toContain("averageScore");
     expect(output).not.toContain("averageWinningTurn");
+    expect(output).not.toContain("netLoss=");
+    expect(output).not.toContain("lossEfficiencyPerGame=");
+    expect(output).not.toContain("lossEfficiencyPerTurn=");
+  });
+
+  it("uses the final-result definitions for losses and efficiency", () => {
+    const summary = runSimulation(parseSimulationArgs(["--players", "standard,standard,pro", "--games", "10", "--rules", "daifugo", "--seed", "12345"]));
+
+    summary.players.forEach((player, playerIndex) => {
+      const expected = summary.results.reduce(
+        (acc, result) => {
+          const playerLosses = getDisplayedPlayerLosses(result, summary.players.length);
+          const isLoser = getResultLoserIndexes(result, summary.players.length).includes(playerIndex);
+          return {
+            totalLoss: acc.totalLoss + (playerLosses[playerIndex] ?? 0),
+            pureLoss: acc.pureLoss + (isLoser ? (playerLosses[playerIndex] ?? 0) : 0),
+            loserCount: acc.loserCount + (isLoser ? 1 : 0),
+          };
+        },
+        { totalLoss: 0, pureLoss: 0, loserCount: 0 },
+      );
+
+      expect(player.totalLoss).toBe(expected.totalLoss);
+      expect(player.pureLoss).toBe(expected.pureLoss);
+      expect(player.loserCount).toBe(expected.loserCount);
+      expect(player.lossEfficiency).toBe(expected.loserCount === 0 ? null : Math.round(expected.pureLoss / expected.loserCount));
+      expect(player.winCount).toBe(player.tsumoCount + player.ronCount);
+    });
   });
 
   it("supports detail and violations log levels plus rules ON/OFF", () => {

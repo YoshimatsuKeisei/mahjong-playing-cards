@@ -22,6 +22,17 @@ interface TacticalScoreBreakdown {
   notes: string[];
 }
 
+const NORMAL_DAIFUGO_EFFECT_BONUSES = {
+  eightExtraTurn: 120,
+  tenSwapDraw: 105,
+  jackEnhancementRight: 90,
+  nineReverse: 74,
+  queenNumberVanish: 70,
+  sevenExchange: 60,
+  fiveSkip: 50,
+  jackInspect: 20,
+} as const;
+
 export function tacticalChooseCpuCall(context: CpuDecisionContext): CpuCallChoice | null {
   const standardCall = standardChooseCpuCall(context);
   if (!standardCall) return null;
@@ -117,6 +128,32 @@ export function scoreTacticalDiscardCandidate(
     const isolatedBonus = 22;
     score += isolatedBonus;
     notes.push(`${formatSigned(isolatedBonus)} isolated`);
+  }
+
+  if (isNormalDaifugoEvaluation(context)) {
+    if (isInStrongMeldCandidate(card, hand)) {
+      const completedMeldLock = -220;
+      score += completedMeldLock;
+      notes.push(`${formatSigned(completedMeldLock)} completedMeldLock`);
+    }
+
+    if (pairCount >= 2) {
+      const pairProtection = -64;
+      score += pairProtection;
+      notes.push(`${formatSigned(pairProtection)} normalPairProtection`);
+    }
+
+    if (isIsolated(card, hand)) {
+      const singletonBonus = 20;
+      score += singletonBonus;
+      notes.push(`${formatSigned(singletonBonus)} normalSingleton`);
+    }
+
+    const effectBonus = getNormalDaifugoEffectBonus(card, context);
+    if (effectBonus > 0) {
+      score += effectBonus;
+      notes.push(`${formatSigned(effectBonus)} normalDaifugoPriority`);
+    }
   }
 
   return { card, score, notes };
@@ -226,6 +263,35 @@ function countRunCandidateLinks(card: Card, hand: Card[]): number {
 function isIsolated(card: Card, hand: Card[]): boolean {
   const sameRankCount = hand.filter((candidate) => candidate.id !== card.id && candidate.rank === card.rank).length;
   return sameRankCount === 0 && countRunCandidateLinks(card, hand) === 0;
+}
+
+function isNormalDaifugoEvaluation(context: CpuDecisionContext): boolean {
+  return context.state.phase === "discard" && context.state.daifugoOptions.enabled && !context.state.players.some((player) => player.isReach);
+}
+
+function getNormalDaifugoEffectBonus(card: Card, context: CpuDecisionContext): number {
+  const effects = context.state.daifugoOptions.effects;
+  switch (card.rank) {
+    case 5:
+      return effects.fiveSkip ? NORMAL_DAIFUGO_EFFECT_BONUSES.fiveSkip : 0;
+    case 7:
+      return effects.sevenExchange ? NORMAL_DAIFUGO_EFFECT_BONUSES.sevenExchange : 0;
+    case 8:
+      return effects.eightExtraTurn ? NORMAL_DAIFUGO_EFFECT_BONUSES.eightExtraTurn : 0;
+    case 9:
+      return effects.nineReverse ? NORMAL_DAIFUGO_EFFECT_BONUSES.nineReverse : 0;
+    case 10:
+      return effects.tenSwapDraw ? NORMAL_DAIFUGO_EFFECT_BONUSES.tenSwapDraw : 0;
+    case 11:
+      if (!effects.jackBack) return 0;
+      return context.currentPlayer.hasJEnhancementRight
+        ? NORMAL_DAIFUGO_EFFECT_BONUSES.jackInspect
+        : NORMAL_DAIFUGO_EFFECT_BONUSES.jackEnhancementRight;
+    case 12:
+      return effects.queenNumberVanish ? NORMAL_DAIFUGO_EFFECT_BONUSES.queenNumberVanish : 0;
+    default:
+      return 0;
+  }
 }
 
 function isAlreadyOpenMeld(openMelds: Card[][], meld: Card[]): boolean {

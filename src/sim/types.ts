@@ -16,12 +16,11 @@ export interface SimulationConfig {
 export interface SimulationPlayerSummary {
   player: string;
   model: CpuModelId;
+  winCount: number;
   totalLoss: number;
-  damageDealt: number;
-  netLoss: number;
-  lossEfficiencyPerGame: number;
-  lossEfficiencyPerTurn: number;
-  turnCount: number;
+  pureLoss: number;
+  loserCount: number;
+  lossEfficiency: number | null;
   tsumoCount: number;
   ronCount: number;
   callCount: number;
