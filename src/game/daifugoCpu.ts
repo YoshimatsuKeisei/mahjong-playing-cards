@@ -78,6 +78,48 @@ export function chooseStandardQueenRank(context: CpuDecisionContext, candidates:
   return rankScores.sort((a, b) => b.score - a.score || a.rank - b.rank)[0]?.rank ?? validCandidates[0] ?? null;
 }
 
+export function chooseTacticalQueenRank(context: CpuDecisionContext, candidates: number[]): number | null {
+  const fallback = chooseStandardQueenRank(context, candidates);
+  const pending = context.state.pendingDaifugoEffect;
+  if (
+    fallback === null ||
+    !context.state.daifugoOptions.enabled ||
+    !pending ||
+    pending.kind !== "queenSelect" ||
+    pending.playerIndex !== context.currentPlayerIndex ||
+    !pending.cpuThreatResponseMode ||
+    pending.cpuThreatTargetPlayerIndex === undefined
+  ) {
+    return fallback;
+  }
+
+  const target = context.state.players[pending.cpuThreatTargetPlayerIndex];
+  if (!target) return fallback;
+
+  const publicRanks = new Set([
+    ...target.discardPile.map((card) => card.rank),
+    ...target.openMelds.flat().map((card) => card.rank),
+  ]);
+  const ownRankCounts = countRanks(context.currentPlayer.hand);
+  const validCandidates = candidates.filter((rank) => rank >= 1 && rank <= 13);
+  if (shouldProtectOwnHandFromQueen(context)) {
+    const zeroOwnThreatCandidates = validCandidates.filter((rank) => !publicRanks.has(rank) && !ownRankCounts.has(rank));
+    if (zeroOwnThreatCandidates.length > 0) return zeroOwnThreatCandidates.sort((a, b) => a - b)[0] ?? fallback;
+
+    const zeroOwnCandidates = validCandidates.filter((rank) => !ownRankCounts.has(rank));
+    if (zeroOwnCandidates.length > 0) return zeroOwnCandidates.sort((a, b) => a - b)[0] ?? fallback;
+  }
+
+  const contribution = classifyDaifugoHandCards(context.currentPlayer.hand);
+  const meldRanks = new Set(contribution.meldCards.map((card) => card.rank));
+  const threatCandidates = validCandidates
+    .filter((rank) => !publicRanks.has(rank) && (ownRankCounts.get(rank) ?? 0) > 0)
+    .map((rank) => ({ rank, score: scoreQueenRank(rank, context.currentPlayer.hand, meldRanks) }))
+    .sort((a, b) => b.score - a.score || a.rank - b.rank);
+
+  return threatCandidates[0]?.rank ?? fallback;
+}
+
 export function chooseDaifugoSevenExchangeCardForModel(
   modelId: CpuModelId | undefined,
   context: CpuDecisionContext,
@@ -162,6 +204,12 @@ function getSevenExchangePreservationRisk(card: Card, hand: Card[]): number {
       Math.abs(candidate.rank - card.rank) <= 2,
   ).length;
   return (meldIds.has(card.id) ? 100 : 0) + (sameRankCount >= 2 ? 30 : 0) + runCandidateCount * 5;
+}
+
+function shouldProtectOwnHandFromQueen(context: CpuDecisionContext): boolean {
+  const contribution = classifyDaifugoHandCards(context.currentPlayer.hand);
+  const pairRankCount = new Set(contribution.pairCards.map((card) => card.rank)).size;
+  return context.currentPlayer.isReach || context.currentPlayer.openMelds.length >= 2 || (contribution.singleCards.length === 0 && pairRankCount >= 2);
 }
 
 function scoreQueenRank(rank: number, hand: Card[], meldRanks: Set<number>): number {

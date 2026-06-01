@@ -203,6 +203,114 @@ describe("CPU models", () => {
     expect(cpuModels.standard.chooseQueenVanishRank?.(context, [13, 5])).toBe(5);
   });
 
+  function tacticalQueenContext(
+    hand: Card[],
+    players: Player[],
+    responseMode?: "reach" | "twoCall",
+    targetPlayerIndex?: number,
+  ): ReturnType<typeof createCpuDecisionContext> {
+    const gameState = {
+      ...state(players),
+      daifugoOptions: { ...createDefaultDaifugoOptions(), enabled: true },
+      pendingDaifugoEffect: {
+        kind: "queenSelect" as const,
+        effect: "queenNumberVanish" as const,
+        playerIndex: 1,
+        continue: { shouldConfirmReach: false },
+        cpuThreatResponseMode: responseMode,
+        cpuThreatTargetPlayerIndex: targetPlayerIndex,
+      },
+    };
+    gameState.players[1] = { ...gameState.players[1], hand };
+    return createCpuDecisionContext(gameState);
+  }
+
+  it("tactical Q avoids a reach target public discard rank", () => {
+    const hand = [card("6s", 6)];
+    const target = { ...player(3, [card("hidden-6", 6)]), isReach: true, discardPile: [card("discard-4", 4)] };
+    const context = tacticalQueenContext(hand, [player(1, []), player(2, hand), target], "reach", 2)!;
+
+    expect(cpuModels.tactical.chooseQueenVanishRank?.(context, [4, 6])).toBe(6);
+  });
+
+  it("tactical Q avoids a two-call target public discard and called ranks", () => {
+    const hand = [card("6s", 6)];
+    const target = {
+      ...player(3, [card("hidden-6", 6)], [card("discard-4", 4)]),
+      openMelds: [[card("meld-5a", 5)], [card("meld-7a", 7)]],
+    };
+    const context = tacticalQueenContext(hand, [player(1, []), player(2, hand), target], "twoCall", 2)!;
+
+    expect(cpuModels.tactical.chooseQueenVanishRank?.(context, [4, 5, 6])).toBe(6);
+  });
+
+  it("tactical Q keeps the recorded reach target when a later two-call player exists", () => {
+    const hand = [card("4s", 4), card("6s", 6)];
+    const laterTwoCall = {
+      ...player(1, [], [card("discard-6", 6)]),
+      openMelds: [[card("meld-2a", 2)], [card("meld-3a", 3)]],
+    };
+    const reachTarget = { ...player(3, []), isReach: true, discardPile: [card("discard-4", 4)] };
+    const context = tacticalQueenContext(hand, [laterTwoCall, player(2, hand), reachTarget], "reach", 2)!;
+
+    expect(cpuModels.tactical.chooseQueenVanishRank?.(context, [4, 6])).toBe(6);
+  });
+
+  it("tactical Q keeps the recorded two-call target when a later reach player exists", () => {
+    const hand = [card("4s", 4), card("6s", 6)];
+    const laterReach = { ...player(1, [], [card("discard-6", 6)]), isReach: true };
+    const twoCallTarget = {
+      ...player(3, [], [card("discard-4", 4)]),
+      openMelds: [[card("meld-2a", 2)], [card("meld-3a", 3)]],
+    };
+    const context = tacticalQueenContext(hand, [laterReach, player(2, hand), twoCallTarget], "twoCall", 2)!;
+
+    expect(cpuModels.tactical.chooseQueenVanishRank?.(context, [4, 6])).toBe(6);
+  });
+
+  it("tactical Q prefers a useful own discard over a zero-own rank during a threat", () => {
+    const hand = [card("5s", 5)];
+    const target = { ...player(3, []), isReach: true };
+    const context = tacticalQueenContext(hand, [player(1, []), player(2, hand), target], "reach", 2)!;
+
+    expect(cpuModels.tactical.chooseQueenVanishRank?.(context, [5, 6])).toBe(5);
+  });
+
+  it("tactical Q uses the existing unnecessary-card score among own threat candidates", () => {
+    const hand = [card("3s", 3), card("3h", 3, "H"), card("13c", 13, "C")];
+    const target = { ...player(3, []), isReach: true };
+    const context = tacticalQueenContext(hand, [player(1, []), player(2, hand), target], "reach", 2)!;
+
+    expect(cpuModels.tactical.chooseQueenVanishRank?.(context, [3, 13])).toBe(13);
+  });
+
+  it("tactical Q uses a zero-own rank when its remaining hand is two protected pairs", () => {
+    const hand = [card("4s", 4), card("4h", 4, "H"), card("6s", 6), card("6h", 6, "H")];
+    const target = { ...player(3, []), isReach: true };
+    const context = tacticalQueenContext(hand, [player(1, []), player(2, hand), target], "reach", 2)!;
+
+    expect(cpuModels.tactical.chooseQueenVanishRank?.(context, [4, 5, 6])).toBe(5);
+  });
+
+  it("tactical Q keeps normal fallback and does not inspect hidden target cards", () => {
+    const hand = [card("5s", 5)];
+    const hiddenOnly = player(3, [card("hidden-4", 4)]);
+    const normalContext = tacticalQueenContext(hand, [player(1, []), player(2, hand), hiddenOnly])!;
+    const hiddenFourContext = tacticalQueenContext(hand, [player(1, []), player(2, hand), { ...hiddenOnly, isReach: true }], "reach", 2)!;
+    const hiddenSixContext = tacticalQueenContext(
+      hand,
+      [player(1, []), player(2, hand), { ...player(3, [card("hidden-6", 6)]), isReach: true }],
+      "reach",
+      2,
+    )!;
+
+    expect(cpuModels.tactical.chooseQueenVanishRank?.(normalContext, [5, 13])).toBe(
+      cpuModels.standard.chooseQueenVanishRank?.(normalContext, [5, 13]),
+    );
+    expect(cpuModels.tactical.chooseQueenVanishRank?.(hiddenFourContext, [5, 6])).toBe(5);
+    expect(cpuModels.tactical.chooseQueenVanishRank?.(hiddenSixContext, [5, 6])).toBe(5);
+  });
+
   it("keeps standard discard choice stable when daifugo rules are disabled", () => {
     const gameState = {
       ...state([player(1, []), player(2, [card("3s", 3, "S"), card("3h", 3, "H"), card("3d", 3, "D"), card("13h", 13, "H")]), player(3, [])]),

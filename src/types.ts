@@ -42,6 +42,7 @@ export type PendingDaifugoEffect =
       playerIndex: number;
       continue: PendingDaifugoContinue;
       cpuThreatResponseMode?: CpuThreatResponseMode;
+      cpuThreatTargetPlayerIndex?: number;
     }
   | {
       kind: "extraDiscard";
@@ -108,6 +109,8 @@ export type PendingDaifugoEffect =
       effect: "queenNumberVanish";
       playerIndex: number;
       continue: PendingDaifugoContinue;
+      cpuThreatResponseMode?: CpuThreatResponseMode;
+      cpuThreatTargetPlayerIndex?: number;
     }
   | {
       kind: "queenWinConfirm";

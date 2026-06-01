@@ -288,13 +288,21 @@ function createPendingDaifugoEffect(state: GameState, discardCard: Card, continu
   const player = state.players[state.currentPlayerIndex];
   if (effect === "tenSwapDraw" && player?.isReach) return null;
   if (!effect) return null;
+  const cpuThreatResponseMode =
+    effect === "sevenExchange" || effect === "queenNumberVanish"
+      ? getCpuThreatResponseMode(state, state.currentPlayerIndex)
+      : undefined;
+  const cpuThreatTargetPlayerIndex =
+    effect === "queenNumberVanish"
+      ? chooseCpuThreatTarget(state, state.currentPlayerIndex, cpuThreatResponseMode)
+      : null;
   return {
     kind: "confirm" as const,
     effect,
     playerIndex: state.currentPlayerIndex,
     continue: continueState,
-    cpuThreatResponseMode:
-      effect === "sevenExchange" ? getCpuSevenThreatResponseMode(state, state.currentPlayerIndex) : undefined,
+    cpuThreatResponseMode,
+    ...(cpuThreatTargetPlayerIndex === null ? {} : { cpuThreatTargetPlayerIndex }),
   };
 }
 
@@ -564,7 +572,7 @@ function shouldCpuUseRemoteReachEnhancement(state: GameState, playerIndex: numbe
   );
 }
 
-function getCpuSevenThreatResponseMode(state: GameState, playerIndex: number): CpuThreatResponseMode | undefined {
+function getCpuThreatResponseMode(state: GameState, playerIndex: number): CpuThreatResponseMode | undefined {
   const player = state.players[playerIndex];
   if (player?.isCpu !== true || player.cpuModelId !== "tactical") return undefined;
   if (getReachPlayerIndexes(state, playerIndex).length > 0) return "reach";
@@ -572,7 +580,7 @@ function getCpuSevenThreatResponseMode(state: GameState, playerIndex: number): C
   return undefined;
 }
 
-function getCpuSevenThreatPlayerIndexes(
+function getCpuThreatPlayerIndexesForMode(
   state: GameState,
   playerIndex: number,
   responseMode: CpuThreatResponseMode | undefined,
@@ -582,13 +590,27 @@ function getCpuSevenThreatPlayerIndexes(
   return [];
 }
 
+function chooseCpuThreatTarget(
+  state: GameState,
+  playerIndex: number,
+  responseMode: CpuThreatResponseMode | undefined,
+): number | null {
+  const threatPlayerIndexes = new Set(getCpuThreatPlayerIndexesForMode(state, playerIndex, responseMode));
+  let cursor = playerIndex;
+  for (let count = 1; count < state.players.length; count += 1) {
+    cursor = getNextPlayerIndex(cursor, state.players.length, state.direction);
+    if (threatPlayerIndexes.has(cursor)) return cursor;
+  }
+  return null;
+}
+
 function shouldCpuUseRemoteSevenEnhancement(
   state: GameState,
   playerIndex: number,
   responseMode: CpuThreatResponseMode | undefined,
 ): boolean {
   const player = state.players[playerIndex];
-  const threatPlayerIndexes = getCpuSevenThreatPlayerIndexes(state, playerIndex, responseMode);
+  const threatPlayerIndexes = getCpuThreatPlayerIndexesForMode(state, playerIndex, responseMode);
   const nextPlayerIndex = getNextPlayerIndex(playerIndex, state.players.length, state.direction);
   return (
     player?.isCpu === true &&
@@ -615,13 +637,7 @@ function chooseCpuEnhancedSevenTarget(
   playerIndex: number,
   responseMode: CpuThreatResponseMode | undefined,
 ): number | null {
-  const threatPlayerIndexes = new Set(getCpuSevenThreatPlayerIndexes(state, playerIndex, responseMode));
-  let cursor = playerIndex;
-  for (let count = 1; count < state.players.length; count += 1) {
-    cursor = getNextPlayerIndex(cursor, state.players.length, state.direction);
-    if (threatPlayerIndexes.has(cursor)) return cursor;
-  }
-  return null;
+  return chooseCpuThreatTarget(state, playerIndex, responseMode);
 }
 
 function startSevenExchange(
@@ -1174,6 +1190,8 @@ function applyDaifugoEffect(state: GameState): GameState {
         effect: "queenNumberVanish",
         playerIndex: state.currentPlayerIndex,
         continue: pending.continue,
+        cpuThreatResponseMode: pending.cpuThreatResponseMode,
+        cpuThreatTargetPlayerIndex: pending.cpuThreatTargetPlayerIndex,
       },
       message: "Qの効果で消す数字を選んでください。",
     };
