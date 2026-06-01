@@ -99,6 +99,7 @@ export interface SimulationDetailEvent {
   phase: string;
   hand: string[];
   reachPlayers: string[];
+  estimatedUnseenByRank?: string;
   action: string;
   reason?: string;
 }

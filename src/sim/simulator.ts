@@ -4,6 +4,7 @@ import { createCpuDecisionContext } from "../game/cpuTypes";
 import { createInitialGame, gameReducer, getEnhancedFiveTurnOptions, getNextPlayerIndex, type GameAction } from "../game/gameState";
 import { getDisplayedPlayerLosses, getResultLoserIndexes } from "../game/matchState";
 import { doesNineReverseIncreaseReachDistance, doesNineReverseIncreaseTwoCallDistance, getTacticalDiscardScores } from "../game/tacticalCpu";
+import { createMasterRankEstimate, formatEstimatedUnseenByRank } from "../game/masterRankEstimate";
 import { chooseHeadlessCpuAction } from "./headlessCpuDriver";
 import { deriveGameSeed, withSeededMathRandom } from "./seededRandom";
 import type {
@@ -479,6 +480,10 @@ function createDetailEvent(game: number, seed: number, step: number, turn: numbe
     phase: state.phase,
     hand: player?.hand.map(formatCard) ?? [],
     reachPlayers: state.players.filter((candidate) => candidate.isReach).map((candidate) => candidate.name),
+    estimatedUnseenByRank:
+      player?.cpuModelId === "master"
+        ? formatEstimatedUnseenByRank(createMasterRankEstimate(state, state.currentPlayerIndex))
+        : undefined,
     action: describeAction(action),
     reason,
   };

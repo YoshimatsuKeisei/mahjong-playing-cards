@@ -44,6 +44,14 @@ describe("headless CPU simulation", () => {
     expect(summary.players[0].model).toBe("master");
   });
 
+  it("prints master unseen rank estimates only in detail events", () => {
+    const summary = runSimulation(parseSimulationArgs(["--players", "master,standard,standard", "--games", "1", "--rules", "off", "--seed", "1", "--logLevel", "detail"]));
+    const output = formatSimulationSummary(summary);
+
+    expect(summary.details.some((detail) => detail.model === "master" && detail.estimatedUnseenByRank?.includes("A="))).toBe(true);
+    expect(output).toContain("estimatedUnseenByRank=[");
+  });
+
   it("replays the same simulation with a fixed seed", () => {
     const config = parseSimulationArgs(["--players", "standard,standard,pro", "--games", "3", "--rules", "daifugo", "--seed", "12345"]);
     const first = runSimulation(config);

@@ -89,7 +89,7 @@ export function formatSimulationSummary(summary: SimulationSummary): string {
     lines.push("", "Detail:");
     summary.details.forEach((detail) => {
       lines.push(
-        `[game=${detail.game} seed=${detail.seed} step=${detail.step} turn=${detail.turn}] ${detail.player}/${detail.model} phase=${detail.phase} hand=[${detail.hand.join(",")}] reach=[${detail.reachPlayers.join(",")}] action=${detail.action}${detail.reason ? ` reason=${detail.reason}` : ""}`,
+        `[game=${detail.game} seed=${detail.seed} step=${detail.step} turn=${detail.turn}] ${detail.player}/${detail.model} phase=${detail.phase} hand=[${detail.hand.join(",")}] reach=[${detail.reachPlayers.join(",")}] action=${detail.action}${detail.estimatedUnseenByRank ? ` estimatedUnseenByRank=[${detail.estimatedUnseenByRank}]` : ""}${detail.reason ? ` reason=${detail.reason}` : ""}`,
       );
     });
     lines.push("", "Tactical 5 target detail:");

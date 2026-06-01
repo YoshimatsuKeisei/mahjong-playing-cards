@@ -1,6 +1,7 @@
 import type { CpuModel } from "./cpuTypes";
 import { chooseDaifugoSevenExchangeCardForModel } from "./daifugoCpu";
 import { tacticalCpuModel } from "./tacticalCpu";
+export { createMasterRankEstimate } from "./masterRankEstimate";
 
 export const masterCpuModel: CpuModel = {
   ...tacticalCpuModel,
