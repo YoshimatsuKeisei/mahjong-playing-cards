@@ -35,6 +35,15 @@ function withPending(state: GameState, pendingDaifugoEffect: GameState["pendingD
 }
 
 describe("headless CPU simulation", () => {
+  it("accepts master players in headless simulations", () => {
+    const config = parseSimulationArgs(["--players", "master,standard,standard", "--games", "1", "--rules", "off", "--seed", "1"]);
+    const summary = runSimulation(config);
+
+    expect(config.playerModels).toEqual(["master", "standard", "standard"]);
+    expect(summary.completedGames).toBe(1);
+    expect(summary.players[0].model).toBe("master");
+  });
+
   it("replays the same simulation with a fixed seed", () => {
     const config = parseSimulationArgs(["--players", "standard,standard,pro", "--games", "3", "--rules", "daifugo", "--seed", "12345"]);
     const first = runSimulation(config);

@@ -173,7 +173,7 @@ function incrementEffectUsage(player: SimulationPlayerSummary, effect: string) {
 function collectTacticalDecisionTurn(state: GameState, action: GameAction, players: SimulationPlayerSummary[]) {
   if (state.phase !== "discard" || (action.type !== "discard" && action.type !== "discardDrawnOnly" && action.type !== "winWithDiscard")) return;
   const actorIndex = state.currentPlayerIndex;
-  if (state.players[actorIndex]?.cpuModelId !== "tactical") return;
+  if (!isTacticalFamilyModel(state.players[actorIndex]?.cpuModelId)) return;
   const summary = players[actorIndex];
   if (getReachPlayerIndexes(state, actorIndex).length > 0) {
     summary.tacticalReachDecisionTurns += 1;
@@ -413,7 +413,7 @@ export function collectEffectTelemetry(
   if (!pending || pending.kind !== "confirm" || action.type !== "answerDaifugoEffect" || !action.activate) {
     if (pending?.kind === "queenSelect") {
       const actorIndex = pending.playerIndex;
-      if (state.players[actorIndex]?.cpuModelId === "tactical") {
+      if (isTacticalFamilyModel(state.players[actorIndex]?.cpuModelId)) {
         collectTacticalQueenTarget(config, game, seed, step, turn, state, action, actorIndex, players[actorIndex], violations);
       }
     }
@@ -423,7 +423,7 @@ export function collectEffectTelemetry(
   const actorIndex = pending.playerIndex;
   const summary = players[actorIndex];
   incrementEffectUsage(summary, pending.effect);
-  if (state.players[actorIndex]?.cpuModelId !== "tactical") return;
+  if (!isTacticalFamilyModel(state.players[actorIndex]?.cpuModelId)) return;
 
   switch (pending.effect) {
     case "fiveSkip":
@@ -505,7 +505,7 @@ function collectTacticalReachViolations(
   const context = createCpuDecisionContext(state);
   if (
     !context ||
-    context.currentPlayer.cpuModelId !== "tactical" ||
+    !isTacticalFamilyModel(context.currentPlayer.cpuModelId) ||
     !state.daifugoOptions.enabled ||
     !state.players.some((player, index) => index !== state.currentPlayerIndex && player.isReach)
   ) {
@@ -541,6 +541,10 @@ function collectTacticalReachViolations(
       });
     }
   }
+}
+
+function isTacticalFamilyModel(cpuModelId: CpuModelId | undefined): boolean {
+  return cpuModelId === "tactical" || cpuModelId === "master";
 }
 
 function runOneGame(

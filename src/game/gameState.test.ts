@@ -139,6 +139,44 @@ function stateForTacticalSevenThreat(
 }
 
 describe("daifugo game state", () => {
+  it("reevaluates a master 7 threat target while tactical keeps its pending response mode", () => {
+    const createState = (cpuModelId: "tactical" | "master") => {
+      const seven = card("seven", 7);
+      const base = stateForDiscard(seven, daifugoOptions({ sevenExchange: true }));
+      return {
+        ...base,
+        players: [
+          {
+            ...player(1, handWith(seven), true),
+            cpuModelId,
+            hasJEnhancementRight: true,
+          },
+          {
+            ...player(2, [card("p2-1", 1)]),
+            openMelds: [[card("two-call-1", 1)], [card("two-call-2", 2)]],
+          },
+          {
+            ...player(3, [card("p3-1", 1)]),
+            isReach: true,
+          },
+        ],
+        pendingDaifugoEffect: {
+          kind: "confirm" as const,
+          effect: "sevenExchange" as const,
+          playerIndex: 0,
+          continue: { shouldConfirmReach: false },
+          cpuThreatResponseMode: "twoCall" as const,
+        },
+      };
+    };
+
+    const tactical = gameReducer(createState("tactical"), { type: "answerDaifugoEffect", activate: true });
+    const master = gameReducer(createState("master"), { type: "answerDaifugoEffect", activate: true });
+
+    expect(tactical.pendingDaifugoEffect).toEqual(expect.objectContaining({ kind: "sevenExchange", targetPlayerIndex: 1 }));
+    expect(master.pendingDaifugoEffect).toEqual(expect.objectContaining({ kind: "sevenExchange", targetPlayerIndex: 2 }));
+  });
+
   it("does not create an effect confirmation when daifugo is disabled", () => {
     const state = gameReducer(stateForDiscard(card("five", 5), daifugoOptions({}, false)), { type: "discard", cardId: "five" });
 

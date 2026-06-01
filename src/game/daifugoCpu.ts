@@ -127,7 +127,7 @@ export function chooseDaifugoSevenExchangeCardForModel(
   role: DaifugoExchangeRole,
 ): Card | null {
   if (modelId === "easy") return chooseJuniorDaifugoCard(candidates, context.currentPlayer.hand);
-  if (modelId === "tactical" && role === "initiator") return chooseTacticalSevenExchangeCard(context, candidates);
+  if ((modelId === "tactical" || modelId === "master") && role === "initiator") return chooseTacticalSevenExchangeCard(context, candidates);
   return chooseStandardDaifugoCard(context, candidates);
 }
 

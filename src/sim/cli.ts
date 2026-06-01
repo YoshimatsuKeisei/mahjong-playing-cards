@@ -11,6 +11,7 @@ function normalizeModel(value: string): { id: CpuModelId; label: string } {
   if (value === "easy" || value === "junior") return { id: "easy", label: "junior" };
   if (value === "standard") return { id: "standard", label: "standard" };
   if (value === "tactical" || value === "pro") return { id: "tactical", label: "pro" };
+  if (value === "master") return { id: "master", label: "master" };
   throw new Error(`Unknown CPU model: ${value}`);
 }
 
@@ -71,7 +72,7 @@ export function formatSimulationSummary(summary: SimulationSummary): string {
     lines.push(`- ${player.player}: winCount=${player.winCount} tsumoCount=${player.tsumoCount} ronCount=${player.ronCount} callCount=${player.callCount}`);
     lines.push(`    use5=${player.use5} use7=${player.use7} use8=${player.use8} use9=${player.use9} use10=${player.use10} useJ=${player.useJ} useQ=${player.useQ}`);
   });
-  const tacticalPlayers = summary.players.filter((player) => player.model === "tactical");
+  const tacticalPlayers = summary.players.filter((player) => player.model === "tactical" || player.model === "master");
   if (tacticalPlayers.length > 0) {
     lines.push("", "Tactical effect target summary:");
     tacticalPlayers.forEach((player) => {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Card, DaifugoOptions, Direction } from "../types";
 import { createCpuDecisionContext } from "../game/cpuTypes";
+import { getCpuThreatSelection } from "../game/gameState";
 import { doesNineReverseIncreaseReachDistance, doesNineReverseIncreaseTwoCallDistance, getTacticalDiscardScores, tacticalCpuModel } from "../game/tacticalCpu";
 import { chooseScenarioDiscard, createCpuScenario } from "./scenario";
 
@@ -92,6 +93,47 @@ function tacticalScoresWithPreviousThreat(
 }
 
 describe("CPU fixed scenario helper", () => {
+  it("selects the nearest master reach threat before two-call threats in the active direction", () => {
+    for (const playerCount of [3, 4, 5]) {
+      const players = Array.from({ length: playerCount }, (_, index) => ({
+        model: index === 0 ? ("master" as const) : ("standard" as const),
+        isReach: index === 2,
+        openMelds: index === 1 ? twoCalls(`two-call-${playerCount}`) : [],
+      }));
+      const state = createCpuScenario({ players });
+
+      expect(getCpuThreatSelection(state, 0)).toEqual({ mode: "reach", targetPlayerIndex: 2 });
+    }
+  });
+
+  it("selects the nearest master threat using the reversed direction", () => {
+    const state = createCpuScenario({
+      direction: "counterclockwise",
+      players: [
+        { model: "master" },
+        { model: "standard", isReach: true },
+        { model: "standard" },
+        { model: "standard", isReach: true },
+        { model: "standard" },
+      ],
+    });
+
+    expect(getCpuThreatSelection(state, 0)).toEqual({ mode: "reach", targetPlayerIndex: 3 });
+  });
+
+  it("selects the nearest master two-call threat when nobody is in reach", () => {
+    const state = createCpuScenario({
+      players: [
+        { model: "master" },
+        { model: "standard" },
+        { model: "standard", openMelds: twoCalls("near") },
+        { model: "standard", openMelds: twoCalls("far") },
+      ],
+    });
+
+    expect(getCpuThreatSelection(state, 0)).toEqual({ mode: "twoCall", targetPlayerIndex: 2 });
+  });
+
   it("builds a tactical CPU scenario with explicit state for later priority tests", () => {
     const state = createCpuScenario({
       currentPlayerIndex: 0,

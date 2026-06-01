@@ -55,13 +55,24 @@ describe("CPU models", () => {
     vi.restoreAllMocks();
   });
 
-  it("registers easy, standard, and tactical models", () => {
+  it("registers easy, standard, tactical, and master models", () => {
     expect(cpuModels.easy.name).toBe("Easy CPU");
     expect(cpuModels.standard.name).toBe("Standard CPU");
     expect(cpuModels.tactical.name).toBe("Tactical CPU");
+    expect(cpuModels.master.name).toBe("Master CPU");
     expect(getCpuModel("easy").id).toBe("easy");
     expect(getCpuModel("standard").id).toBe("standard");
     expect(getCpuModel("tactical").id).toBe("tactical");
+    expect(getCpuModel("master").id).toBe("master");
+  });
+
+  it("master inherits tactical discard behavior", () => {
+    const gameState = state([player(1, []), player(2, [card("8s", 8), card("10h", 10, "H")]), player(3, [])]);
+    gameState.players[1] = { ...gameState.players[1], cpuModelId: "master" };
+    gameState.phase = "discard";
+    const context = createCpuDecisionContext(gameState)!;
+
+    expect(cpuModels.master.chooseDiscardCard(context)?.id).toBe(cpuModels.tactical.chooseDiscardCard(context)?.id);
   });
 
   it("easy CPU uses daifugo effects only at a modest random rate", () => {
