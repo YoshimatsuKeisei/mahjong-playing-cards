@@ -23,6 +23,10 @@ interface TacticalScoreBreakdown {
   notes: string[];
 }
 
+interface TacticalDiscardPolicy {
+  protectIncompleteRuns: boolean;
+}
+
 const NORMAL_DAIFUGO_EFFECT_BONUSES = {
   eightExtraTurn: 120,
   tenSwapDraw: 105,
@@ -121,10 +125,11 @@ export function tacticalChooseCpuDiscardCard(context: CpuDecisionContext): Card 
 
 export function getTacticalDiscardScores(context: CpuDecisionContext): TacticalScoreBreakdown[] {
   const legalCards = getCpuDiscardCandidates(context);
-  const handShape = analyzeHandShape(legalCards, context);
+  const policy = getDiscardPolicy(context);
+  const handShape = analyzeHandShape(legalCards, context, policy);
 
   return legalCards
-    .map((card) => scoreTacticalDiscardCandidate(card, legalCards, context, handShape))
+    .map((card) => scoreTacticalDiscardCandidate(card, legalCards, context, handShape, policy))
     .sort((a, b) => b.score - a.score || a.card.id.localeCompare(b.card.id));
 }
 
@@ -132,9 +137,12 @@ export function scoreTacticalDiscardCandidate(
   card: Card,
   hand: Card[],
   context: CpuDecisionContext,
-  handShape = analyzeHandShape(hand, context),
+  handShape = analyzeHandShape(hand, context, getDiscardPolicy(context)),
+  policy = getDiscardPolicy(context),
 ): TacticalScoreBreakdown {
-  let score = scoreStandardDiscardCandidate(card, hand);
+  let score = scoreStandardDiscardCandidate(card, hand, {
+    protectRunCandidates: policy.protectIncompleteRuns,
+  });
   const notes = [`standard ${formatSigned(score)}`];
 
   const highPoint = getCardPenalty(card) * (handShape.isNearWin ? 0.2 : 0.5);
@@ -155,7 +163,7 @@ export function scoreTacticalDiscardCandidate(
     notes.push(`${formatSigned(pairPenalty)} pairCandidate`);
   }
 
-  const runCandidateCount = countRunCandidateLinks(card, hand);
+  const runCandidateCount = policy.protectIncompleteRuns ? countRunCandidateLinks(card, hand) : 0;
   if (runCandidateCount > 0) {
     const runPenalty = (handShape.isNearWin ? -14 : -9) * runCandidateCount;
     score += runPenalty;
@@ -174,7 +182,7 @@ export function scoreTacticalDiscardCandidate(
     notes.push(`${formatSigned(pairDefenseBonus)} highPairFallback`);
   }
 
-  if (isIsolated(card, hand)) {
+  if (isIsolated(card, hand, policy)) {
     const isolatedBonus = 22;
     score += isolatedBonus;
     notes.push(`${formatSigned(isolatedBonus)} isolated`);
@@ -193,7 +201,7 @@ export function scoreTacticalDiscardCandidate(
       notes.push(`${formatSigned(pairProtection)} normalPairProtection`);
     }
 
-    if (isIsolated(card, hand)) {
+    if (isIsolated(card, hand, policy)) {
       const singletonBonus = 20;
       score += singletonBonus;
       notes.push(`${formatSigned(singletonBonus)} normalSingleton`);
@@ -272,11 +280,17 @@ export function describeTacticalCallSkip(context: CpuDecisionContext): string | 
   return `[Tactical CPU] skipped call: ${reason}`;
 }
 
-function analyzeHandShape(hand: Card[], context: CpuDecisionContext) {
+function getDiscardPolicy(context: CpuDecisionContext): TacticalDiscardPolicy {
+  return {
+    protectIncompleteRuns: context.currentPlayer.cpuModelId !== "master",
+  };
+}
+
+function analyzeHandShape(hand: Card[], context: CpuDecisionContext, policy: TacticalDiscardPolicy) {
   const completedMeldCount = context.currentPlayer.openMelds.length + countMaxMelds(hand);
   const isReachReady = canDeclareReachAfterDraw(hand, context.currentPlayer.hasCalled, context.currentPlayer.isReach);
   const meldCandidates = findPossibleMelds(hand);
-  const hasClearIsolatedCard = hand.some((card) => isIsolated(card, hand));
+  const hasClearIsolatedCard = hand.some((card) => isIsolated(card, hand, policy));
 
   return {
     completedMeldCount,
@@ -344,9 +358,10 @@ function countRunCandidateLinks(card: Card, hand: Card[]): number {
   return hand.filter((candidate) => candidate.id !== card.id && candidate.suit === card.suit && Math.abs(candidate.rank - card.rank) <= 2).length;
 }
 
-function isIsolated(card: Card, hand: Card[]): boolean {
+function isIsolated(card: Card, hand: Card[], policy: TacticalDiscardPolicy): boolean {
   const sameRankCount = hand.filter((candidate) => candidate.id !== card.id && candidate.rank === card.rank).length;
-  return sameRankCount === 0 && countRunCandidateLinks(card, hand) === 0;
+  if (sameRankCount > 0 || isInStrongMeldCandidate(card, hand)) return false;
+  return !policy.protectIncompleteRuns || countRunCandidateLinks(card, hand) === 0;
 }
 
 function isNormalDaifugoEvaluation(context: CpuDecisionContext): boolean {

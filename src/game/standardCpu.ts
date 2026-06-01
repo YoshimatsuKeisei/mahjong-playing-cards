@@ -68,11 +68,17 @@ export function getCpuDiscardCandidates(context: CpuDecisionContext): Card[] {
   return player.hand;
 }
 
-export function scoreStandardDiscardCandidate(card: Card, hand: Card[]): number {
+export function scoreStandardDiscardCandidate(
+  card: Card,
+  hand: Card[],
+  { protectRunCandidates = true }: { protectRunCandidates?: boolean } = {},
+): number {
   const sameRankCount = hand.filter((candidate) => candidate.rank === card.rank && candidate.id !== card.id).length;
-  const neighborCount = hand.filter((candidate) => {
-    return candidate.suit === card.suit && candidate.id !== card.id && Math.abs(candidate.rank - card.rank) <= 2;
-  }).length;
+  const neighborCount = protectRunCandidates
+    ? hand.filter((candidate) => {
+        return candidate.suit === card.suit && candidate.id !== card.id && Math.abs(candidate.rank - card.rank) <= 2;
+      }).length
+    : 0;
   const suitCount = hand.filter((candidate) => candidate.suit === card.suit && candidate.id !== card.id).length;
   const highCardPenalty = getCardPenalty(card);
 

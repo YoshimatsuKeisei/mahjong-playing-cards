@@ -75,6 +75,97 @@ describe("CPU models", () => {
     expect(cpuModels.master.chooseDiscardCard(context)?.id).toBe(cpuModels.tactical.chooseDiscardCard(context)?.id);
   });
 
+  it("master treats incomplete run candidates as singletons without changing tactical behavior", () => {
+    const hand = [card("4h", 4, "H"), card("5h", 5, "H"), card("9c", 9, "C")];
+    const tacticalState = state([player(1, []), player(2, hand), player(3, [])]);
+    tacticalState.phase = "discard";
+    tacticalState.daifugoOptions = { ...tacticalState.daifugoOptions, enabled: true };
+    const tacticalScores = getTacticalDiscardScores(createCpuDecisionContext(tacticalState)!);
+
+    const masterState = state([player(1, []), { ...player(2, hand), cpuModelId: "master" }, player(3, [])]);
+    masterState.phase = "discard";
+    masterState.daifugoOptions = { ...masterState.daifugoOptions, enabled: true };
+    const masterScores = getTacticalDiscardScores(createCpuDecisionContext(masterState)!);
+
+    expect(tacticalScores.find((item) => item.card.id === "4h")?.notes.some((note) => note.includes("runCandidate"))).toBe(true);
+    expect(masterScores.find((item) => item.card.id === "4h")?.notes.some((note) => note.includes("runCandidate"))).toBe(false);
+    expect(masterScores.find((item) => item.card.id === "4h")?.notes.some((note) => note.includes("normalSingleton"))).toBe(true);
+  });
+
+  it("master does not protect a one-card-away run candidate", () => {
+    const hand = [card("3h", 3, "H"), card("5h", 5, "H"), card("9c", 9, "C")];
+    const gameState = state([player(1, []), { ...player(2, hand), cpuModelId: "master" }, player(3, [])]);
+    gameState.phase = "discard";
+    gameState.daifugoOptions = { ...gameState.daifugoOptions, enabled: true };
+    const scores = getTacticalDiscardScores(createCpuDecisionContext(gameState)!);
+
+    expect(scores.find((item) => item.card.id === "3h")?.notes.some((note) => note.includes("runCandidate"))).toBe(false);
+    expect(scores.find((item) => item.card.id === "5h")?.notes.some((note) => note.includes("normalSingleton"))).toBe(true);
+  });
+
+  it("master protects completed runs and pairs ahead of incomplete run candidates", () => {
+    const completedRun = [card("3h", 3, "H"), card("4h", 4, "H"), card("5h", 5, "H"), card("13c", 13, "C")];
+    const completedRunState = state([player(1, []), { ...player(2, completedRun), cpuModelId: "master" }, player(3, [])]);
+    completedRunState.phase = "discard";
+    completedRunState.daifugoOptions = { ...completedRunState.daifugoOptions, enabled: true };
+    const completedRunScores = getTacticalDiscardScores(createCpuDecisionContext(completedRunState)!);
+
+    const pairAndIncompleteRun = [card("4h", 4, "H"), card("5h", 5, "H"), card("9s", 9, "S"), card("9d", 9, "D")];
+    const pairState = state([player(1, []), { ...player(2, pairAndIncompleteRun), cpuModelId: "master" }, player(3, [])]);
+    pairState.phase = "discard";
+    pairState.daifugoOptions = { ...pairState.daifugoOptions, enabled: true };
+    const pairScores = getTacticalDiscardScores(createCpuDecisionContext(pairState)!);
+
+    expect(completedRunScores[0].card.id).toBe("13c");
+    expect(completedRunScores.filter((item) => item.card.suit === "H").every((item) => item.notes.some((note) => note.includes("completedMeldLock")))).toBe(true);
+    expect(pairScores.slice(0, 2).every((item) => item.card.rank !== 9)).toBe(true);
+    expect(pairScores.filter((item) => item.card.rank === 9).every((item) => item.notes.some((note) => note.includes("normalPairProtection")))).toBe(true);
+  });
+
+  it("master protects completed triples while leaving incomplete runs unprotected", () => {
+    const hand = [
+      card("3s", 3, "S"),
+      card("3h", 3, "H"),
+      card("3d", 3, "D"),
+      card("4c", 4, "C"),
+      card("5c", 5, "C"),
+    ];
+    const gameState = state([player(1, []), { ...player(2, hand), cpuModelId: "master" }, player(3, [])]);
+    gameState.phase = "discard";
+    gameState.daifugoOptions = { ...gameState.daifugoOptions, enabled: true };
+    const scores = getTacticalDiscardScores(createCpuDecisionContext(gameState)!);
+
+    expect(scores.filter((item) => item.card.rank === 3).every((item) => item.notes.some((note) => note.includes("completedMeldLock")))).toBe(true);
+    expect(scores.filter((item) => item.card.suit === "C").every((item) => item.notes.some((note) => note.includes("runCandidate")) === false)).toBe(true);
+  });
+
+  it("master keeps tactical effect priorities during normal, reach, and two-call play", () => {
+    const masterScores = (hand: Card[], opponent: Player) => {
+      const gameState = state([player(1, []), { ...player(2, hand), cpuModelId: "master" }, opponent]);
+      gameState.phase = "discard";
+      gameState.daifugoOptions = {
+        enabled: true,
+        effects: {
+          fiveSkip: true,
+          sevenExchange: true,
+          eightExtraTurn: true,
+          nineReverse: true,
+          tenSwapDraw: true,
+          jackBack: true,
+          queenNumberVanish: true,
+        },
+      };
+      return getTacticalDiscardScores(createCpuDecisionContext(gameState)!);
+    };
+
+    expect(masterScores([card("8s", 8), card("10h", 10, "H")], player(3, []))[0].card.rank).toBe(8);
+    expect(masterScores([card("7s", 7), card("12h", 12, "H")], { ...player(3, []), isReach: true })[0].card.rank).toBe(7);
+    expect(masterScores(
+      [card("5s", 5), card("12h", 12, "H")],
+      { ...player(3, []), openMelds: [[card("meld-a", 1)], [card("meld-b", 2)]] },
+    )[0].card.rank).toBe(5);
+  });
+
   it("easy CPU uses daifugo effects only at a modest random rate", () => {
     vi.spyOn(Math, "random").mockReturnValue(0.24);
     expect(easyChooseDaifugoEffectActivation()).toBe(true);
