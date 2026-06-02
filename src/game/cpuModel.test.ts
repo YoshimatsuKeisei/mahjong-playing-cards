@@ -235,6 +235,57 @@ describe("CPU models", () => {
     expect(cpuModels.standard.chooseDaifugoExtraDiscard?.(context, "tenSwapDraw", [hand[0], hand[4]])?.id).toBe("13h");
   });
 
+  it("master extra discards preserve completed melds and choose loose non-effect cards first", () => {
+    const hand = [
+      card("3s", 3, "S"),
+      card("3h", 3, "H"),
+      card("3d", 3, "D"),
+      card("6c", 6, "C"),
+      card("12c", 12, "C"),
+    ];
+    const gameState = state([player(1, []), { ...player(2, hand), cpuModelId: "master" }, player(3, [])]);
+    const context = createCpuDecisionContext(gameState)!;
+
+    expect(cpuModels.master.chooseDaifugoExtraDiscard?.(context, "eightExtraTurn", hand)?.id).toBe("6c");
+    expect(cpuModels.master.chooseDaifugoExtraDiscard?.(context, "tenSwapDraw", hand)?.id).toBe("6c");
+  });
+
+  it("master extra discards do not break pairs while a loose card remains", () => {
+    const hand = [card("9s", 9, "S"), card("9h", 9, "H"), card("12c", 12, "C")];
+    const gameState = state([player(1, []), { ...player(2, hand), cpuModelId: "master" }, player(3, [])]);
+    const context = createCpuDecisionContext(gameState)!;
+
+    expect(cpuModels.master.chooseDaifugoExtraDiscard?.(context, "eightExtraTurn", hand)?.id).toBe("12c");
+  });
+
+  it("master extra discards break the easier fixed-priority pair only when no singleton remains", () => {
+    const hand = [card("9s", 9, "S"), card("9h", 9, "H"), card("12s", 12, "S"), card("12h", 12, "H")];
+    const gameState = state([player(1, []), { ...player(2, hand), cpuModelId: "master" }, player(3, [])]);
+    const context = createCpuDecisionContext(gameState)!;
+
+    expect(cpuModels.master.chooseDaifugoExtraDiscard?.(context, "tenSwapDraw", hand)?.rank).toBe(9);
+  });
+
+  it("master extra discards protect strong effect cards without changing tactical extra discards", () => {
+    const hand = [card("6s", 6, "S"), card("7h", 7, "H"), card("8d", 8, "D"), card("11c", 11, "C"), card("12s", 12, "S")];
+    const tacticalState = state([player(1, []), player(2, hand), player(3, [])]);
+    const masterState = state([player(1, []), { ...player(2, hand), cpuModelId: "master" }, player(3, [])]);
+    const tacticalContext = createCpuDecisionContext(tacticalState)!;
+    const masterContext = createCpuDecisionContext(masterState)!;
+
+    expect(cpuModels.master.chooseDaifugoExtraDiscard?.(masterContext, "eightExtraTurn", hand)?.id).toBe("6s");
+    expect(cpuModels.tactical.chooseDaifugoExtraDiscard?.(tacticalContext, "eightExtraTurn", hand)?.id)
+      .toBe(cpuModels.standard.chooseDaifugoExtraDiscard?.(tacticalContext, "eightExtraTurn", hand)?.id);
+  });
+
+  it("master extra discards add an extra guard for enhanced 5 and 7 cards", () => {
+    const hand = [card("5s", 5, "S"), card("8h", 8, "H")];
+    const gameState = state([player(1, []), { ...player(2, hand), cpuModelId: "master", hasJEnhancementRight: true }, player(3, [])]);
+    const context = createCpuDecisionContext(gameState)!;
+
+    expect(cpuModels.master.chooseDaifugoExtraDiscard?.(context, "tenSwapDraw", hand)?.id).toBe("8h");
+  });
+
   function tacticalSevenContext(hand: Card[], target: Player): ReturnType<typeof createCpuDecisionContext> {
     const gameState = {
       ...state([player(1, []), player(2, hand), target]),

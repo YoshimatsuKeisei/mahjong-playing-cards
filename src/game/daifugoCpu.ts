@@ -138,7 +138,38 @@ export function chooseDaifugoExtraDiscardForModel(
   candidates: Card[],
 ): Card | null {
   if (modelId === "easy") return chooseJuniorDaifugoCard(candidates, context.currentPlayer.hand);
+  if (modelId === "master") return chooseMasterDaifugoExtraDiscard(context, candidates);
   return chooseStandardDaifugoCard(context, candidates);
+}
+
+export function chooseMasterDaifugoExtraDiscard(context: CpuDecisionContext, candidates: Card[]): Card | null {
+  if (candidates.length === 0) return null;
+
+  const candidateIds = new Set(candidates.map((card) => card.id));
+  const hand = context.currentPlayer.hand;
+  const meldIds = new Set(findPossibleMelds(hand).flat().map((card) => card.id));
+  const looseCards = hand.filter((card) => !meldIds.has(card.id));
+  const looseRankCounts = countRanks(looseCards);
+  const looseSingles = looseCards.filter((card) => (looseRankCounts.get(card.rank) ?? 0) === 1 && candidateIds.has(card.id));
+  const loosePairs = looseCards.filter((card) => (looseRankCounts.get(card.rank) ?? 0) >= 2 && candidateIds.has(card.id));
+  const nonMeldCandidates = candidates.filter((card) => !meldIds.has(card.id));
+
+  const discardPool =
+    looseSingles.length > 0
+      ? looseSingles
+      : loosePairs.length > 0
+        ? loosePairs
+        : nonMeldCandidates.length > 0
+          ? nonMeldCandidates
+          : candidates;
+
+  return [...discardPool].sort(
+    (a, b) =>
+      scoreMasterDaifugoExtraDiscard(b, context.currentPlayer.hasJEnhancementRight === true) -
+        scoreMasterDaifugoExtraDiscard(a, context.currentPlayer.hasJEnhancementRight === true) ||
+      getCardPenalty(b) - getCardPenalty(a) ||
+      a.id.localeCompare(b.id),
+  )[0] ?? null;
 }
 
 function scoreStandardDaifugoCard(card: Card, hand: Card[]): number {
@@ -150,6 +181,36 @@ function scoreStandardDaifugoCard(card: Card, hand: Card[]): number {
   const highCardPenalty = getCardPenalty(card);
 
   return highCardPenalty * 2 - sameRankCount * 8 - neighborCount * 4 - suitCount;
+}
+
+function scoreMasterDaifugoExtraDiscard(card: Card, hasJEnhancementRight: boolean): number {
+  const enhancementProtection = hasJEnhancementRight && (card.rank === 5 || card.rank === 7) ? -250 : 0;
+  switch (card.rank) {
+    case 6:
+    case 13:
+      return 900 + getCardPenalty(card);
+    case 1:
+    case 2:
+    case 3:
+    case 4:
+      return 800 + getCardPenalty(card);
+    case 9:
+      return 700;
+    case 5:
+      return 600 + enhancementProtection;
+    case 10:
+      return 500;
+    case 8:
+      return 400;
+    case 11:
+      return 300;
+    case 12:
+      return 200;
+    case 7:
+      return 100 + enhancementProtection;
+    default:
+      return getCardPenalty(card);
+  }
 }
 
 function chooseTacticalSevenExchangeCard(context: CpuDecisionContext, candidates: Card[]): Card | null {
