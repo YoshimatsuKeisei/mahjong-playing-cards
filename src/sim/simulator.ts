@@ -4,13 +4,18 @@ import { createCpuDecisionContext } from "../game/cpuTypes";
 import { createInitialGame, gameReducer, getEnhancedFiveTurnOptions, getNextPlayerIndex, type GameAction } from "../game/gameState";
 import { getDisplayedPlayerLosses, getResultLoserIndexes } from "../game/matchState";
 import { doesNineReverseIncreaseReachDistance, doesNineReverseIncreaseTwoCallDistance, getTacticalDiscardScores } from "../game/tacticalCpu";
+import { createMasterRankEstimate, formatEstimatedUnseenByRank } from "../game/masterRankEstimate";
 import { chooseHeadlessCpuAction } from "./headlessCpuDriver";
 import { deriveGameSeed, withSeededMathRandom } from "./seededRandom";
 import type {
   SimulationConfig,
   SimulationDetailEvent,
+  SimulationFiveTargetEvent,
+  SimulationNumberStats,
   SimulationPlayerSummary,
   SimulationSummary,
+  SimulationTurnTimingSanityCheck,
+  SimulationTurnTimingSummary,
   SimulationViolation,
 } from "./types";
 
@@ -30,6 +35,23 @@ const ALL_DAIFUGO_OPTIONS: DaifugoOptions = {
 interface SimulationGameOutcome {
   result: GameResult;
   calledPlayerIndexes: number[];
+  timing: SimulationGameTiming;
+}
+
+export interface SimulationGameTiming {
+  playerCount: number;
+  reachSelfTurnCounts: Array<number | null>;
+  secondCallSelfTurnCounts: Array<number | null>;
+  winners: Array<{
+    playerIndex: number;
+    winType: "tsumo" | "ron";
+    selfTurnCountAtWin: number;
+    selfTurnCountFromReachToWin: number | null;
+    selfTurnCountFromSecondCallToWin: number | null;
+  }>;
+  globalTurnCountAtWin: number | null;
+  deckRemainingAtWin: number | null;
+  deckConsumedAtWin: number | null;
 }
 
 function formatCard(card: Card): string {
@@ -51,6 +73,7 @@ export function makePlayerSummary(playerIndex: number, config: SimulationConfig)
   return {
     player: config.playerLabels[playerIndex],
     model: config.playerModels[playerIndex],
+    startPlayerCount: 0,
     winCount: 0,
     totalLoss: 0,
     pureLoss: 0,
@@ -69,9 +92,10 @@ export function makePlayerSummary(playerIndex: number, config: SimulationConfig)
     tacticalNormalDecisionTurns: 0,
     tacticalReachDecisionTurns: 0,
     tacticalTwoCallDecisionTurns: 0,
-    proUsed5ToSkipReachTarget: 0,
-    proUsed5ToSkipTwoCallTarget: 0,
-    proUsed5ToSkipIrrelevantTarget: 0,
+    proUsed5NoThreat: 0,
+    proUsed5ThreatPresentAndSkippedThreat: 0,
+    proUsed5ThreatPresentButDidNotSkipThreat: 0,
+    proUsed5ThreatPresentButCannotSkipThreat: 0,
     proUsed7OnReachTarget: 0,
     proUsed7OnTwoCallTarget: 0,
     proUsed7OnIrrelevantTarget: 0,
@@ -121,6 +145,7 @@ function pushTargetWarning(
   code: string,
   selectedTarget: string,
   warningReason: string,
+  fiveTarget?: SimulationFiveTargetEvent,
 ) {
   if (config.logLevel !== "violations") return;
   violations.push({
@@ -136,6 +161,7 @@ function pushTargetWarning(
     threatTargets: getPlayerNames(state, getThreatPlayerIndexes(state, actorIndex)),
     selectedTarget,
     warningReason,
+    fiveTarget,
     message: warningReason,
   });
 }
@@ -165,10 +191,130 @@ function incrementEffectUsage(player: SimulationPlayerSummary, effect: string) {
   }
 }
 
+export function summarizeNumberSamples(samples: number[]): SimulationNumberStats {
+  if (samples.length === 0) return { count: 0, avg: null, p50: null, p75: null, p90: null };
+  const sorted = [...samples].sort((a, b) => a - b);
+  const percentile = (ratio: number): number => sorted[Math.min(sorted.length - 1, Math.max(0, Math.ceil(sorted.length * ratio) - 1))] ?? 0;
+  return {
+    count: sorted.length,
+    avg: sorted.reduce((sum, value) => sum + value, 0) / sorted.length,
+    p50: percentile(0.5),
+    p75: percentile(0.75),
+    p90: percentile(0.9),
+  };
+}
+
+function createTimingFromResult(
+  result: GameResult,
+  selfTurnCounts: number[],
+  reachSelfTurnCounts: Array<number | null>,
+  secondCallSelfTurnCounts: Array<number | null>,
+  globalTurnCount: number,
+  deckRemaining: number,
+  initialDeckCount: number,
+): SimulationGameTiming {
+  const winners =
+    result.winType === "deckout"
+      ? []
+      : [
+          {
+            playerIndex: result.winnerIndex,
+            winType: result.winType === "ron" ? ("ron" as const) : ("tsumo" as const),
+          },
+        ];
+
+  return {
+    playerCount: selfTurnCounts.length,
+    reachSelfTurnCounts: [...reachSelfTurnCounts],
+    secondCallSelfTurnCounts: [...secondCallSelfTurnCounts],
+    winners: winners.map((winner) => {
+      const winSelfTurnCount = selfTurnCounts[winner.playerIndex] ?? 0;
+      const reachSelfTurnCount = reachSelfTurnCounts[winner.playerIndex];
+      const secondCallSelfTurnCount = secondCallSelfTurnCounts[winner.playerIndex];
+      return {
+        playerIndex: winner.playerIndex,
+        winType: winner.winType,
+        selfTurnCountAtWin: winSelfTurnCount,
+        selfTurnCountFromReachToWin: reachSelfTurnCount === null ? null : Math.max(0, winSelfTurnCount - reachSelfTurnCount),
+        selfTurnCountFromSecondCallToWin: secondCallSelfTurnCount === null ? null : Math.max(0, winSelfTurnCount - secondCallSelfTurnCount),
+      };
+    }),
+    globalTurnCountAtWin: result.winType === "deckout" ? null : globalTurnCount,
+    deckRemainingAtWin: result.winType === "deckout" ? null : deckRemaining,
+    deckConsumedAtWin: result.winType === "deckout" ? null : Math.max(0, initialDeckCount - deckRemaining),
+  };
+}
+
+export function createTurnTimingSummary(timings: SimulationGameTiming[]): SimulationTurnTimingSummary[] {
+  const byPlayerCount = new Map<number, SimulationGameTiming[]>();
+  for (const timing of timings) {
+    byPlayerCount.set(timing.playerCount, [...(byPlayerCount.get(timing.playerCount) ?? []), timing]);
+  }
+
+  return [...byPlayerCount.entries()]
+    .sort(([a], [b]) => a - b)
+    .map(([playerCount, games]) => {
+      const playerSlots = games.length * playerCount;
+      const reachSamples = games.flatMap((game) => game.reachSelfTurnCounts.filter((value): value is number => value !== null));
+      const secondCallSamples = games.flatMap((game) => game.secondCallSelfTurnCounts.filter((value): value is number => value !== null));
+      const winners = games.flatMap((game) => game.winners);
+      const reachWinSamples = winners.flatMap((winner) => (winner.selfTurnCountFromReachToWin === null ? [] : [winner.selfTurnCountFromReachToWin]));
+      const secondCallWinSamples = winners.flatMap((winner) => (winner.selfTurnCountFromSecondCallToWin === null ? [] : [winner.selfTurnCountFromSecondCallToWin]));
+      return {
+        playerCount,
+        winnerSelfTurnCountAtWin: summarizeNumberSamples(winners.map((winner) => winner.selfTurnCountAtWin)),
+        selfTurnCountAtReach: summarizeNumberSamples(reachSamples),
+        selfTurnCountFromReachToWin: summarizeNumberSamples(reachWinSamples),
+        reachToTsumoWinSelfTurnCount: summarizeNumberSamples(
+          winners.flatMap((winner) => (winner.winType === "tsumo" && winner.selfTurnCountFromReachToWin !== null ? [winner.selfTurnCountFromReachToWin] : [])),
+        ),
+        reachToRonWinSelfTurnCount: summarizeNumberSamples(
+          winners.flatMap((winner) => (winner.winType === "ron" && winner.selfTurnCountFromReachToWin !== null ? [winner.selfTurnCountFromReachToWin] : [])),
+        ),
+        reachDeclaredPlayerCount: reachSamples.length,
+        nonReachPlayerCount: playerSlots - reachSamples.length,
+        reachRate: playerSlots > 0 ? reachSamples.length / playerSlots : 0,
+        selfTurnCountAtSecondCall: summarizeNumberSamples(secondCallSamples),
+        selfTurnCountFromSecondCallToWin: summarizeNumberSamples(secondCallWinSamples),
+        secondCallToTsumoWinSelfTurnCount: summarizeNumberSamples(
+          winners.flatMap((winner) => (winner.winType === "tsumo" && winner.selfTurnCountFromSecondCallToWin !== null ? [winner.selfTurnCountFromSecondCallToWin] : [])),
+        ),
+        secondCallToRonWinSelfTurnCount: summarizeNumberSamples(
+          winners.flatMap((winner) => (winner.winType === "ron" && winner.selfTurnCountFromSecondCallToWin !== null ? [winner.selfTurnCountFromSecondCallToWin] : [])),
+        ),
+        secondCallReachedPlayerCount: secondCallSamples.length,
+        nonSecondCallPlayerCount: playerSlots - secondCallSamples.length,
+        secondCallRate: playerSlots > 0 ? secondCallSamples.length / playerSlots : 0,
+      };
+    });
+}
+
+export function createTurnTimingSanityCheck(games: number, deckouts: number, timings: SimulationGameTiming[]): SimulationTurnTimingSanityCheck {
+  const completedGames = games - deckouts;
+  const winnerSamples = timings.flatMap((timing) => timing.winners.map((winner) => winner.selfTurnCountAtWin));
+  const globalTurnSamples = timings.flatMap((timing) => (timing.globalTurnCountAtWin === null ? [] : [timing.globalTurnCountAtWin]));
+  const deckRemainingSamples = timings.flatMap((timing) => (timing.deckRemainingAtWin === null ? [] : [timing.deckRemainingAtWin]));
+  const deckConsumedSamples = timings.flatMap((timing) => (timing.deckConsumedAtWin === null ? [] : [timing.deckConsumedAtWin]));
+  const avg = (samples: number[]): number | null =>
+    samples.length === 0 ? null : samples.reduce((sum, value) => sum + value, 0) / samples.length;
+  return {
+    games,
+    deckouts,
+    completedGames,
+    winnerSelfTurnCountAtWinCount: winnerSamples.length,
+    winnerCountMatchesCompletedGames: winnerSamples.length === completedGames,
+    minWinnerSelfTurnCountAtWin: winnerSamples.length === 0 ? null : Math.min(...winnerSamples),
+    maxWinnerSelfTurnCountAtWin: winnerSamples.length === 0 ? null : Math.max(...winnerSamples),
+    avgGlobalTurnCountAtWin: avg(globalTurnSamples),
+    avgDeckRemainingAtWin: avg(deckRemainingSamples),
+    avgDeckConsumedAtWin: avg(deckConsumedSamples),
+  };
+}
+
 function collectTacticalDecisionTurn(state: GameState, action: GameAction, players: SimulationPlayerSummary[]) {
   if (state.phase !== "discard" || (action.type !== "discard" && action.type !== "discardDrawnOnly" && action.type !== "winWithDiscard")) return;
   const actorIndex = state.currentPlayerIndex;
-  if (state.players[actorIndex]?.cpuModelId !== "tactical") return;
+  if (!isTacticalFamilyModel(state.players[actorIndex]?.cpuModelId)) return;
   const summary = players[actorIndex];
   if (getReachPlayerIndexes(state, actorIndex).length > 0) {
     summary.tacticalReachDecisionTurns += 1;
@@ -179,13 +325,28 @@ function collectTacticalDecisionTurn(state: GameState, action: GameAction, playe
   }
 }
 
-function getSkippedPlayerIndexesForFive(state: GameState, actorIndex: number, nextState: GameState): number[] {
+function getTurnOrderIndexes(state: GameState, actorIndex: number): number[] {
+  const indexes = [actorIndex];
+  let cursor = actorIndex;
+  for (let count = 1; count < state.players.length; count += 1) {
+    cursor = getNextPlayerIndex(cursor, state.players.length, state.direction);
+    indexes.push(cursor);
+  }
+  return indexes;
+}
+
+function getSelectedPlayerIndexForFive(state: GameState, actorIndex: number, nextState: GameState): number {
   const targetPlayerIndex =
     nextState.lastDiscarderIndex === null
       ? null
       : getNextPlayerIndex(nextState.lastDiscarderIndex, state.players.length, state.direction);
-  if (targetPlayerIndex === null) return [getNextPlayerIndex(actorIndex, state.players.length, state.direction)];
-  const option = getEnhancedFiveTurnOptions(state, actorIndex).find((candidate) => candidate.playerIndex === targetPlayerIndex);
+  if (targetPlayerIndex !== null) return targetPlayerIndex;
+  const skippedIndex = getNextPlayerIndex(actorIndex, state.players.length, state.direction);
+  return getNextPlayerIndex(skippedIndex, state.players.length, state.direction);
+}
+
+function getSkippedPlayerIndexesForFive(state: GameState, actorIndex: number, selectedPlayerIndex: number): number[] {
+  const option = getEnhancedFiveTurnOptions(state, actorIndex).find((candidate) => candidate.playerIndex === selectedPlayerIndex);
   if (option?.selectable) return option.skippedPlayerIndexes;
   return [getNextPlayerIndex(actorIndex, state.players.length, state.direction)];
 }
@@ -201,23 +362,66 @@ function collectTacticalFiveTarget(
   actorIndex: number,
   summary: SimulationPlayerSummary,
   violations: SimulationViolation[],
+  fiveTargetEvents: SimulationFiveTargetEvent[],
 ) {
-  const skippedPlayerIndexes = getSkippedPlayerIndexesForFive(state, actorIndex, nextState);
+  const selectedPlayerIndex = getSelectedPlayerIndexForFive(state, actorIndex, nextState);
+  const skippedPlayerIndexes = getSkippedPlayerIndexesForFive(state, actorIndex, selectedPlayerIndex);
   const reachPlayerIndexes = getReachPlayerIndexes(state, actorIndex);
   const twoCallPlayerIndexes = getTwoCallPlayerIndexes(state, actorIndex);
-  const skippedReach = skippedPlayerIndexes.some((index) => reachPlayerIndexes.includes(index));
-  const skippedTwoCall = skippedPlayerIndexes.some((index) => twoCallPlayerIndexes.includes(index));
-  if (skippedReach) {
-    summary.proUsed5ToSkipReachTarget += 1;
-  } else if (skippedTwoCall) {
-    summary.proUsed5ToSkipTwoCallTarget += 1;
+  const threatType = reachPlayerIndexes.length > 0 ? "reach" : twoCallPlayerIndexes.length > 0 ? "twoCall" : "none";
+  const threatPlayerIndexes = threatType === "reach" ? reachPlayerIndexes : threatType === "twoCall" ? twoCallPlayerIndexes : [];
+  const turnOrderIndexes = getTurnOrderIndexes(state, actorIndex);
+  const threatTargetIndex = turnOrderIndexes.find((index) => threatPlayerIndexes.includes(index)) ?? null;
+  const threatWasSkipped = threatPlayerIndexes.some((index) => skippedPlayerIndexes.includes(index));
+  const immediateSkippedPlayerIndex = getNextPlayerIndex(actorIndex, state.players.length, state.direction);
+  const threatCouldBeSkipped = state.players[actorIndex]?.hasJEnhancementRight
+    ? getEnhancedFiveTurnOptions(state, actorIndex).some(
+        (option) => option.selectable && option.skippedPlayerIndexes.some((index) => threatPlayerIndexes.includes(index)),
+      )
+    : threatPlayerIndexes.includes(immediateSkippedPlayerIndex);
+  const event: SimulationFiveTargetEvent = {
+    game,
+    seed,
+    step,
+    turn,
+    currentPlayer: state.players[actorIndex]?.name ?? `player-${actorIndex + 1}`,
+    turnOrder: getPlayerNames(state, turnOrderIndexes),
+    selectedPlayer: state.players[selectedPlayerIndex]?.name ?? `player-${selectedPlayerIndex + 1}`,
+    nextPlayerBefore5: state.players[getNextPlayerIndex(actorIndex, state.players.length, state.direction)]?.name ?? "-",
+    nextPlayerAfter5: state.players[selectedPlayerIndex]?.name ?? `player-${selectedPlayerIndex + 1}`,
+    skippedPlayers: getPlayerNames(state, skippedPlayerIndexes),
+    reachPlayers: getPlayerNames(state, reachPlayerIndexes),
+    twoCallPlayers: getPlayerNames(state, twoCallPlayerIndexes),
+    threatType,
+    threatTarget: threatTargetIndex === null ? null : state.players[threatTargetIndex]?.name ?? `player-${threatTargetIndex + 1}`,
+    threatWasSkipped,
+    threatCouldBeSkipped,
+  };
+  fiveTargetEvents.push(event);
+
+  if (threatType === "none") {
+    summary.proUsed5NoThreat += 1;
+  } else if (threatWasSkipped) {
+    summary.proUsed5ThreatPresentAndSkippedThreat += 1;
+  } else if (!threatCouldBeSkipped) {
+    summary.proUsed5ThreatPresentButCannotSkipThreat += 1;
   } else {
-    summary.proUsed5ToSkipIrrelevantTarget += 1;
-  }
-  if (reachPlayerIndexes.length > 0 && !skippedReach) {
-    pushTargetWarning(config, violations, game, seed, step, turn, state, actorIndex, "5", "tactical-five-irrelevant-reach-target", getPlayerNames(state, skippedPlayerIndexes).join(","), "5 skipped no reach target.");
-  } else if (reachPlayerIndexes.length === 0 && twoCallPlayerIndexes.length > 0 && !skippedTwoCall) {
-    pushTargetWarning(config, violations, game, seed, step, turn, state, actorIndex, "5", "tactical-five-irrelevant-two-call-target", getPlayerNames(state, skippedPlayerIndexes).join(","), "5 skipped no two-call target.");
+    summary.proUsed5ThreatPresentButDidNotSkipThreat += 1;
+    pushTargetWarning(
+      config,
+      violations,
+      game,
+      seed,
+      step,
+      turn,
+      state,
+      actorIndex,
+      "5",
+      "tactical-five-did-not-skip-threat",
+      event.selectedPlayer,
+      "5 could skip a threat target but did not.",
+      event,
+    );
   }
 }
 
@@ -246,9 +450,9 @@ function collectTacticalSevenTarget(
     summary.proUsed7OnIrrelevantTarget += 1;
   }
   const targetName = state.players[targetPlayerIndex]?.name ?? `player-${targetPlayerIndex + 1}`;
-  if (reachPlayerIndexes.length > 0 && !reachPlayerIndexes.includes(targetPlayerIndex)) {
+  if (event.cpuThreatResponseMode === "reach" && !reachPlayerIndexes.includes(targetPlayerIndex)) {
     pushTargetWarning(config, violations, game, seed, step, turn, state, actorIndex, "7", "tactical-seven-irrelevant-reach-target", targetName, "7 targeted no reach player.");
-  } else if (reachPlayerIndexes.length === 0 && twoCallPlayerIndexes.length > 0 && !twoCallPlayerIndexes.includes(targetPlayerIndex)) {
+  } else if (event.cpuThreatResponseMode === "twoCall" && !twoCallPlayerIndexes.includes(targetPlayerIndex)) {
     pushTargetWarning(config, violations, game, seed, step, turn, state, actorIndex, "7", "tactical-seven-irrelevant-two-call-target", targetName, "7 targeted no two-call player.");
   }
 }
@@ -343,13 +547,14 @@ export function collectEffectTelemetry(
   nextState: GameState,
   players: SimulationPlayerSummary[],
   violations: SimulationViolation[],
+  fiveTargetEvents: SimulationFiveTargetEvent[] = [],
 ) {
   collectTacticalDecisionTurn(state, action, players);
   const pending = state.pendingDaifugoEffect;
   if (!pending || pending.kind !== "confirm" || action.type !== "answerDaifugoEffect" || !action.activate) {
     if (pending?.kind === "queenSelect") {
       const actorIndex = pending.playerIndex;
-      if (state.players[actorIndex]?.cpuModelId === "tactical") {
+      if (isTacticalFamilyModel(state.players[actorIndex]?.cpuModelId)) {
         collectTacticalQueenTarget(config, game, seed, step, turn, state, action, actorIndex, players[actorIndex], violations);
       }
     }
@@ -359,11 +564,11 @@ export function collectEffectTelemetry(
   const actorIndex = pending.playerIndex;
   const summary = players[actorIndex];
   incrementEffectUsage(summary, pending.effect);
-  if (state.players[actorIndex]?.cpuModelId !== "tactical") return;
+  if (!isTacticalFamilyModel(state.players[actorIndex]?.cpuModelId)) return;
 
   switch (pending.effect) {
     case "fiveSkip":
-      collectTacticalFiveTarget(config, game, seed, step, turn, state, nextState, actorIndex, summary, violations);
+      collectTacticalFiveTarget(config, game, seed, step, turn, state, nextState, actorIndex, summary, violations, fiveTargetEvents);
       return;
     case "sevenExchange":
       collectTacticalSevenTarget(config, game, seed, step, turn, state, nextState, actorIndex, summary, violations);
@@ -415,6 +620,10 @@ function createDetailEvent(game: number, seed: number, step: number, turn: numbe
     phase: state.phase,
     hand: player?.hand.map(formatCard) ?? [],
     reachPlayers: state.players.filter((candidate) => candidate.isReach).map((candidate) => candidate.name),
+    estimatedUnseenByRank:
+      player?.cpuModelId === "master"
+        ? formatEstimatedUnseenByRank(createMasterRankEstimate(state, state.currentPlayerIndex))
+        : undefined,
     action: describeAction(action),
     reason,
   };
@@ -441,7 +650,7 @@ function collectTacticalReachViolations(
   const context = createCpuDecisionContext(state);
   if (
     !context ||
-    context.currentPlayer.cpuModelId !== "tactical" ||
+    !isTacticalFamilyModel(context.currentPlayer.cpuModelId) ||
     !state.daifugoOptions.enabled ||
     !state.players.some((player, index) => index !== state.currentPlayerIndex && player.isReach)
   ) {
@@ -479,14 +688,35 @@ function collectTacticalReachViolations(
   }
 }
 
-function runOneGame(config: SimulationConfig, game: number, seed: number, players: SimulationPlayerSummary[], violations: SimulationViolation[], details: SimulationDetailEvent[]): SimulationGameOutcome {
+function isTacticalFamilyModel(cpuModelId: CpuModelId | undefined): boolean {
+  return cpuModelId === "tactical" || cpuModelId === "master";
+}
+
+function runOneGame(
+  config: SimulationConfig,
+  game: number,
+  seed: number,
+  startPlayerIndex: number,
+  players: SimulationPlayerSummary[],
+  violations: SimulationViolation[],
+  details: SimulationDetailEvent[],
+  fiveTargetEvents: SimulationFiveTargetEvent[],
+): SimulationGameOutcome {
   return withSeededMathRandom(seed, () => {
-    let state = createInitialGame(config.playerModels.length, config.direction, 0, "standard", config.rules === "daifugo" ? ALL_DAIFUGO_OPTIONS : createDefaultDaifugoOptions(), config.playerModels, false);
+    let state = {
+      ...createInitialGame(config.playerModels.length, config.direction, 0, "standard", config.rules === "daifugo" ? ALL_DAIFUGO_OPTIONS : createDefaultDaifugoOptions(), config.playerModels, false),
+      currentPlayerIndex: startPlayerIndex,
+    };
+    const initialDeckCount = state.deck.length;
     let turn = 0;
+    const selfTurnCounts = Array.from({ length: players.length }, () => 0);
+    const reachSelfTurnCounts: Array<number | null> = Array.from({ length: players.length }, () => null);
+    const secondCallSelfTurnCounts: Array<number | null> = Array.from({ length: players.length }, () => null);
     const calledPlayerIndexes = new Set<number>();
     const complete = (result: GameResult): SimulationGameOutcome => ({
       result,
       calledPlayerIndexes: [...calledPlayerIndexes],
+      timing: createTimingFromResult(result, selfTurnCounts, reachSelfTurnCounts, secondCallSelfTurnCounts, turn, state.deck.length, initialDeckCount),
     });
 
     for (let step = 1; step <= config.maxStepsPerGame; step += 1) {
@@ -498,6 +728,7 @@ function runOneGame(config: SimulationConfig, game: number, seed: number, player
       }
       if (state.phase === "draw" && decision.action.type !== "confirmHandoff") {
         turn += 1;
+        selfTurnCounts[state.currentPlayerIndex] += 1;
       }
       if (decision.action.type === "takeDiscard" && decision.action.meld) {
         calledPlayerIndexes.add(state.currentPlayerIndex);
@@ -507,7 +738,20 @@ function runOneGame(config: SimulationConfig, game: number, seed: number, player
       }
       collectTacticalReachViolations(game, seed, step, state, decision.action, violations);
       const nextState = gameReducer(state, decision.action);
-      collectEffectTelemetry(config, game, seed, step, turn, state, decision.action, nextState, players, violations);
+      if (
+        (decision.action.type === "answerReachAfterDiscard" && decision.action.declareReach) ||
+        decision.action.type === "declareReach"
+      ) {
+        reachSelfTurnCounts[state.currentPlayerIndex] ??= selfTurnCounts[state.currentPlayerIndex];
+      }
+      if (decision.action.type === "takeDiscard" && decision.action.meld) {
+        const beforeCallCount = state.players[state.currentPlayerIndex]?.openMelds.length ?? 0;
+        const afterCallCount = nextState.players[state.currentPlayerIndex]?.openMelds.length ?? beforeCallCount;
+        if (beforeCallCount < 2 && afterCallCount >= 2) {
+          secondCallSelfTurnCounts[state.currentPlayerIndex] ??= selfTurnCounts[state.currentPlayerIndex];
+        }
+      }
+      collectEffectTelemetry(config, game, seed, step, turn, state, decision.action, nextState, players, violations, fiveTargetEvents);
       if (nextState === state) {
         violations.push({ game, seed, step, code: "stalled-action", message: `${describeAction(decision.action)} did not change state.` });
         return complete(createFallbackDeckout(players.length));
@@ -524,8 +768,11 @@ export function runSimulation(config: SimulationConfig): SimulationSummary {
   const players = config.playerModels.map((_, index) => makePlayerSummary(index, config));
   const violations: SimulationViolation[] = [];
   const details: SimulationDetailEvent[] = [];
+  const fiveTargetEvents: SimulationFiveTargetEvent[] = [];
   const results: GameResult[] = [];
+  const timings: SimulationGameTiming[] = [];
   const gameSeeds = Array.from({ length: config.games }, (_, index) => deriveGameSeed(config.seed, index));
+  const startPlayerIndexes = Array.from({ length: config.games }, (_, index) => index % players.length);
   const originalInfo = console.info;
   const originalWarn = console.warn;
 
@@ -535,8 +782,11 @@ export function runSimulation(config: SimulationConfig): SimulationSummary {
   };
   try {
     gameSeeds.forEach((gameSeed, index) => {
-      const outcome = runOneGame(config, index + 1, gameSeed, players, violations, details);
+      const startPlayerIndex = startPlayerIndexes[index];
+      players[startPlayerIndex].startPlayerCount += 1;
+      const outcome = runOneGame(config, index + 1, gameSeed, startPlayerIndex, players, violations, details, fiveTargetEvents);
       results.push(outcome.result);
+      timings.push(outcome.timing);
       collectResult(outcome.result, players, outcome.calledPlayerIndexes);
     });
   } finally {
@@ -548,15 +798,20 @@ export function runSimulation(config: SimulationConfig): SimulationSummary {
     player.lossEfficiency = player.loserCount > 0 ? Math.round(player.pureLoss / player.loserCount) : null;
   });
 
+  const deckoutCount = results.filter((result) => result.winType === "deckout").length;
   return {
     config,
     daifugoOptions: config.rules === "daifugo" ? ALL_DAIFUGO_OPTIONS : createDefaultDaifugoOptions(),
     players,
     completedGames: results.length,
-    deckoutCount: results.filter((result) => result.winType === "deckout").length,
+    deckoutCount,
     violations,
     details,
+    fiveTargetEvents,
     gameSeeds,
+    startPlayerIndexes,
     results,
+    turnTiming: createTurnTimingSummary(timings),
+    turnTimingSanity: createTurnTimingSanityCheck(results.length, deckoutCount, timings),
   };
 }

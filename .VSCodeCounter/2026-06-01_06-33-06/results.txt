@@ -1,13 +1,13 @@
-Date : 2026-05-31 07:06:26
+Date : 2026-06-01 06:33:06
 Directory : c:\Users\jingc\Documents\8番出口
-Total : 70 files,  19350 codes, 158 comments, 2197 blanks, all 21705 lines
+Total : 70 files,  21716 codes, 158 comments, 2427 blanks, all 24301 lines
 
 Languages
 +--------------------+------------+------------+------------+------------+------------+
 | language           | files      | code       | comment    | blank      | total      |
 +--------------------+------------+------------+------------+------------+------------+
+| TypeScript         |         31 |      7,769 |          1 |        933 |      8,703 |
 | TypeScript JSX     |         29 |      6,333 |        151 |        706 |      7,190 |
-| TypeScript         |         31 |      5,403 |          1 |        703 |      6,107 |
 | PostCSS            |          1 |      5,311 |          6 |        767 |      6,084 |
 | JSON               |          3 |      2,219 |          0 |          3 |      2,222 |
 | YAML               |          1 |         28 |          0 |          7 |         35 |
@@ -21,17 +21,17 @@ Directories
 +----------------------------------------------------------------------------+------------+------------+------------+------------+------------+
 | path                                                                       | files      | code       | comment    | blank      | total      |
 +----------------------------------------------------------------------------+------------+------------+------------+------------+------------+
-| .                                                                          |         70 |     19,350 |        158 |      2,197 |     21,705 |
+| .                                                                          |         70 |     21,716 |        158 |      2,427 |     24,301 |
 | . (Files)                                                                  |          8 |      2,268 |          0 |         13 |      2,281 |
 | .github                                                                    |          1 |         28 |          0 |          7 |         35 |
 | .github\workflows                                                          |          1 |         28 |          0 |          7 |         35 |
 | scripts                                                                    |          1 |         16 |          0 |          3 |         19 |
-| src                                                                        |         60 |     17,038 |        158 |      2,174 |     19,370 |
-| src (Files)                                                                |          5 |      6,467 |          7 |        850 |      7,324 |
+| src                                                                        |         60 |     19,404 |        158 |      2,404 |     21,966 |
+| src (Files)                                                                |          5 |      6,471 |          7 |        851 |      7,329 |
 | src\components                                                             |         27 |      5,450 |        151 |        641 |      6,242 |
 | src\data                                                                   |          1 |         26 |          0 |          4 |         30 |
-| src\game                                                                   |         18 |      4,535 |          0 |        620 |      5,155 |
-| src\sim                                                                    |          8 |        554 |          0 |         57 |        611 |
+| src\game                                                                   |         18 |      5,644 |          0 |        726 |      6,370 |
+| src\sim                                                                    |          8 |      1,807 |          0 |        180 |      1,987 |
 | src\test                                                                   |          1 |          6 |          0 |          2 |          8 |
 +----------------------------------------------------------------------------+------------+------------+------------+------------+------------+
 
@@ -74,15 +74,15 @@ Files
 | c:\Users\jingc\Documents\8番出口\src\components\StartScreen.tsx               | TypeScript JSX     |        421 |          0 |         35 |        456 |
 | c:\Users\jingc\Documents\8番出口\src\data\avatars.ts                          | TypeScript         |         26 |          0 |          4 |         30 |
 | c:\Users\jingc\Documents\8番出口\src\game\cpu.ts                              | TypeScript         |         19 |          0 |          2 |         21 |
-| c:\Users\jingc\Documents\8番出口\src\game\cpuModel.test.ts                    | TypeScript         |        222 |          0 |         40 |        262 |
+| c:\Users\jingc\Documents\8番出口\src\game\cpuModel.test.ts                    | TypeScript         |        273 |          0 |         51 |        324 |
 | c:\Users\jingc\Documents\8番出口\src\game\cpuModelRegistry.ts                 | TypeScript         |         22 |          0 |          6 |         28 |
 | c:\Users\jingc\Documents\8番出口\src\game\cpuTypes.ts                         | TypeScript         |         40 |          0 |          6 |         46 |
-| c:\Users\jingc\Documents\8番出口\src\game\daifugoCpu.ts                       | TypeScript         |        123 |          0 |         28 |        151 |
+| c:\Users\jingc\Documents\8番出口\src\game\daifugoCpu.ts                       | TypeScript         |        173 |          0 |         33 |        206 |
 | c:\Users\jingc\Documents\8番出口\src\game\deck.test.ts                        | TypeScript         |         58 |          0 |         18 |         76 |
 | c:\Users\jingc\Documents\8番出口\src\game\deck.ts                             | TypeScript         |        103 |          0 |         13 |        116 |
 | c:\Users\jingc\Documents\8番出口\src\game\easyCpu.ts                          | TypeScript         |         93 |          0 |         19 |        112 |
-| c:\Users\jingc\Documents\8番出口\src\game\gameState.test.ts                   | TypeScript         |        932 |          0 |        120 |      1,052 |
-| c:\Users\jingc\Documents\8番出口\src\game\gameState.ts                        | TypeScript         |      1,615 |          0 |        147 |      1,762 |
+| c:\Users\jingc\Documents\8番出口\src\game\gameState.test.ts                   | TypeScript         |      1,399 |          0 |        157 |      1,556 |
+| c:\Users\jingc\Documents\8番出口\src\game\gameState.ts                        | TypeScript         |      1,774 |          0 |        163 |      1,937 |
 | c:\Users\jingc\Documents\8番出口\src\game\matchState.test.ts                  | TypeScript         |        184 |          0 |         37 |        221 |
 | c:\Users\jingc\Documents\8番出口\src\game\matchState.ts                       | TypeScript         |        166 |          0 |         19 |        185 |
 | c:\Users\jingc\Documents\8番出口\src\game\resultFixtures.ts                   | TypeScript         |        161 |          0 |         10 |        171 |
@@ -90,24 +90,24 @@ Files
 | c:\Users\jingc\Documents\8番出口\src\game\scoring.test.ts                     | TypeScript         |        190 |          0 |         23 |        213 |
 | c:\Users\jingc\Documents\8番出口\src\game\scoring.ts                          | TypeScript         |        156 |          0 |         37 |        193 |
 | c:\Users\jingc\Documents\8番出口\src\game\standardCpu.ts                      | TypeScript         |         80 |          0 |         17 |         97 |
-| c:\Users\jingc\Documents\8番出口\src\game\tacticalCpu.ts                      | TypeScript         |        225 |          0 |         41 |        266 |
+| c:\Users\jingc\Documents\8番出口\src\game\tacticalCpu.ts                      | TypeScript         |        607 |          0 |         78 |        685 |
 | c:\Users\jingc\Documents\8番出口\src\main.tsx                                 | TypeScript JSX     |          9 |          0 |          2 |         11 |
-| c:\Users\jingc\Documents\8番出口\src\sim\cli.ts                               | TypeScript         |         82 |          0 |          8 |         90 |
+| c:\Users\jingc\Documents\8番出口\src\sim\cli.ts                               | TypeScript         |        112 |          0 |          8 |        120 |
 | c:\Users\jingc\Documents\8番出口\src\sim\headlessCpuDriver.ts                 | TypeScript         |         84 |          0 |          9 |         93 |
-| c:\Users\jingc\Documents\8番出口\src\sim\scenario.test.ts                     | TypeScript         |         24 |          0 |          3 |         27 |
+| c:\Users\jingc\Documents\8番出口\src\sim\scenario.test.ts                     | TypeScript         |        488 |          0 |         69 |        557 |
 | c:\Users\jingc\Documents\8番出口\src\sim\scenario.ts                          | TypeScript         |         63 |          0 |          5 |         68 |
 | c:\Users\jingc\Documents\8番出口\src\sim\seededRandom.ts                      | TypeScript         |         28 |          0 |          3 |         31 |
-| c:\Users\jingc\Documents\8番出口\src\sim\simulator.test.ts                    | TypeScript         |         46 |          0 |          5 |         51 |
-| c:\Users\jingc\Documents\8番出口\src\sim\simulator.ts                         | TypeScript         |        171 |          0 |         17 |        188 |
-| c:\Users\jingc\Documents\8番出口\src\sim\types.ts                             | TypeScript         |         56 |          0 |          7 |         63 |
+| c:\Users\jingc\Documents\8番出口\src\sim\simulator.test.ts                    | TypeScript         |        317 |          0 |         37 |        354 |
+| c:\Users\jingc\Documents\8番出口\src\sim\simulator.ts                         | TypeScript         |        604 |          0 |         41 |        645 |
+| c:\Users\jingc\Documents\8番出口\src\sim\types.ts                             | TypeScript         |        111 |          0 |          8 |        119 |
 | c:\Users\jingc\Documents\8番出口\src\styles.css                               | PostCSS            |      5,311 |          6 |        767 |      6,084 |
 | c:\Users\jingc\Documents\8番出口\src\test\setup.ts                            | TypeScript         |          6 |          0 |          2 |          8 |
-| c:\Users\jingc\Documents\8番出口\src\types.ts                                 | TypeScript         |        273 |          0 |         18 |        291 |
+| c:\Users\jingc\Documents\8番出口\src\types.ts                                 | TypeScript         |        277 |          0 |         19 |        296 |
 | c:\Users\jingc\Documents\8番出口\src\vite-env.d.ts                            | TypeScript         |          0 |          1 |          0 |          1 |
 | c:\Users\jingc\Documents\8番出口\tsconfig.json                                | JSON with Comments |         22 |          0 |          1 |         23 |
 | c:\Users\jingc\Documents\8番出口\tsconfig.node.json                           | JSON               |          9 |          0 |          1 |         10 |
 | c:\Users\jingc\Documents\8番出口\vite-5173.log                                | Log                |          6 |          0 |          5 |         11 |
 | c:\Users\jingc\Documents\8番出口\vite-dev.out.log                             | Log                |          0 |          0 |          1 |          1 |
 | c:\Users\jingc\Documents\8番出口\vite.config.ts                               | TypeScript         |          9 |          0 |          2 |         11 |
-| Total                                                                      |                    |     19,350 |        158 |      2,197 |     21,705 |
+| Total                                                                      |                    |     21,716 |        158 |      2,427 |     24,301 |
 +----------------------------------------------------------------------------+--------------------+------------+------------+------------+------------+

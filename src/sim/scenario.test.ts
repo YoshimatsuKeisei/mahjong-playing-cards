@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import type { Card, DaifugoOptions } from "../types";
+import type { Card, DaifugoOptions, Direction } from "../types";
 import { createCpuDecisionContext } from "../game/cpuTypes";
+import { getCpuThreatSelection } from "../game/gameState";
 import { doesNineReverseIncreaseReachDistance, doesNineReverseIncreaseTwoCallDistance, getTacticalDiscardScores, tacticalCpuModel } from "../game/tacticalCpu";
 import { chooseScenarioDiscard, createCpuScenario } from "./scenario";
 
@@ -43,7 +44,11 @@ function tacticalScoresWithOpponents(
   {
     options = enabledDaifugoOptions(),
     hasJEnhancementRight = false,
-    direction = "clockwise" as const,
+    direction = "clockwise",
+  }: {
+    options?: DaifugoOptions;
+    hasJEnhancementRight?: boolean;
+    direction?: Direction;
   } = {},
 ) {
   const state = createCpuScenario({
@@ -59,7 +64,76 @@ function twoCalls(prefix: string): Card[][] {
   return [[card(`${prefix}-meld-1`, 1)], [card(`${prefix}-meld-2`, 2)]];
 }
 
+function tacticalScoresWithPreviousThreat(
+  playerCount: number,
+  currentPlayerIndex: number,
+  direction: Direction,
+  threat: "reach" | "two-call",
+) {
+  const previousPlayerIndex =
+    direction === "clockwise"
+      ? (currentPlayerIndex - 1 + playerCount) % playerCount
+      : (currentPlayerIndex + 1) % playerCount;
+  const players = Array.from({ length: playerCount }, (_, playerIndex) => ({
+    model: playerIndex === currentPlayerIndex ? ("tactical" as const) : ("standard" as const),
+    hand: playerIndex === currentPlayerIndex ? [card("five", 5), card("king", 13, "H")] : [],
+    hasJEnhancementRight: playerIndex === currentPlayerIndex,
+    isReach: threat === "reach" && playerIndex === previousPlayerIndex,
+    openMelds: threat === "two-call" && playerIndex === previousPlayerIndex ? twoCalls(`previous-${playerCount}-${currentPlayerIndex}`) : [],
+  }));
+  const state = createCpuScenario({
+    currentPlayerIndex,
+    direction,
+    phase: "discard",
+    daifugoOptions: enabledDaifugoOptions(),
+    players,
+  });
+  const context = createCpuDecisionContext(state)!;
+  return { context, scores: getTacticalDiscardScores(context) };
+}
+
 describe("CPU fixed scenario helper", () => {
+  it("selects the nearest master reach threat before two-call threats in the active direction", () => {
+    for (const playerCount of [3, 4, 5]) {
+      const players = Array.from({ length: playerCount }, (_, index) => ({
+        model: index === 0 ? ("master" as const) : ("standard" as const),
+        isReach: index === 2,
+        openMelds: index === 1 ? twoCalls(`two-call-${playerCount}`) : [],
+      }));
+      const state = createCpuScenario({ players });
+
+      expect(getCpuThreatSelection(state, 0)).toEqual({ mode: "reach", targetPlayerIndex: 2 });
+    }
+  });
+
+  it("selects the nearest master threat using the reversed direction", () => {
+    const state = createCpuScenario({
+      direction: "counterclockwise",
+      players: [
+        { model: "master" },
+        { model: "standard", isReach: true },
+        { model: "standard" },
+        { model: "standard", isReach: true },
+        { model: "standard" },
+      ],
+    });
+
+    expect(getCpuThreatSelection(state, 0)).toEqual({ mode: "reach", targetPlayerIndex: 3 });
+  });
+
+  it("selects the nearest master two-call threat when nobody is in reach", () => {
+    const state = createCpuScenario({
+      players: [
+        { model: "master" },
+        { model: "standard" },
+        { model: "standard", openMelds: twoCalls("near") },
+        { model: "standard", openMelds: twoCalls("far") },
+      ],
+    });
+
+    expect(getCpuThreatSelection(state, 0)).toEqual({ mode: "twoCall", targetPlayerIndex: 2 });
+  });
+
   it("builds a tactical CPU scenario with explicit state for later priority tests", () => {
     const state = createCpuScenario({
       currentPlayerIndex: 0,
@@ -197,7 +271,7 @@ describe("CPU fixed scenario helper", () => {
     expect(scores.map((item) => item.card.id)).toEqual(["eight", "ten"]);
   });
 
-  it("prefers enhanced 7 and enhanced 5 against a remote reach player", () => {
+  it("prefers enhanced 7 and enhanced 5 when a remote reach player can be skipped", () => {
     const opponents = [
       { model: "standard" as const, hand: [card("opponent-1", 1)] },
       { model: "standard" as const, hand: [card("opponent-2", 3)], isReach: true },
@@ -218,6 +292,7 @@ describe("CPU fixed scenario helper", () => {
 
     expect(enhancedSeven.scores[0].card.id).toBe("seven");
     expect(enhancedFive.scores[0].card.id).toBe("five");
+    expect(tacticalCpuModel.chooseDaifugoEffectActivation?.(enhancedFive.context, "fiveSkip")).toBe(true);
   });
 
   it("values remote-reach J as an enhancement right before 8 and 10", () => {
@@ -295,8 +370,8 @@ describe("CPU fixed scenario helper", () => {
     expect(scores[0].card.id).toBe("seven");
   });
 
-  it("uses enhanced 5 against a remote two-call player", () => {
-    const { scores } = tacticalScoresWithOpponents(
+  it("elevates and activates enhanced 5 against a remote two-call player that can be skipped", () => {
+    const { context, scores } = tacticalScoresWithOpponents(
       [card("five", 5), card("queen", 12, "H")],
       [
         { model: "standard", hand: [card("opponent-1", 1)] },
@@ -308,6 +383,115 @@ describe("CPU fixed scenario helper", () => {
     );
 
     expect(scores[0].card.id).toBe("five");
+    expect(tacticalCpuModel.chooseDaifugoEffectActivation?.(context, "fiveSkip")).toBe(true);
+  });
+
+  it("activates enhanced 5 when a remote reach or two-call threat can actually be skipped", () => {
+    const reach = tacticalScoresWithOpponents(
+      [card("five", 5), card("queen", 12, "H")],
+      [
+        { model: "standard" },
+        { model: "standard", isReach: true },
+        { model: "standard" },
+      ],
+      { hasJEnhancementRight: true },
+    );
+    const twoCall = tacticalScoresWithOpponents(
+      [card("five", 5), card("queen", 12, "H")],
+      [
+        { model: "standard" },
+        { model: "standard", openMelds: twoCalls("remote-skippable") },
+        { model: "standard" },
+      ],
+      { hasJEnhancementRight: true },
+    );
+    const precedingReach = tacticalScoresWithOpponents(
+      [card("five", 5), card("queen", 12, "H")],
+      [
+        { model: "standard" },
+        { model: "standard" },
+        { model: "standard" },
+        { model: "standard", isReach: true },
+      ],
+      { hasJEnhancementRight: true },
+    );
+
+    expect(reach.scores[0].card.id).toBe("five");
+    expect(tacticalCpuModel.chooseDaifugoEffectActivation?.(reach.context, "fiveSkip")).toBe(true);
+    expect(twoCall.scores[0].card.id).toBe("five");
+    expect(tacticalCpuModel.chooseDaifugoEffectActivation?.(twoCall.context, "fiveSkip")).toBe(true);
+    expect(precedingReach.scores[0].card.id).toBe("queen");
+    expect(tacticalCpuModel.chooseDaifugoEffectActivation?.(precedingReach.context, "fiveSkip")).toBe(false);
+  });
+
+  it("does not elevate or activate 5 against the previous threat for every seat and player count", () => {
+    for (const playerCount of [3, 4, 5]) {
+      for (let currentPlayerIndex = 0; currentPlayerIndex < playerCount; currentPlayerIndex += 1) {
+        for (const direction of ["clockwise", "counterclockwise"] satisfies Direction[]) {
+          for (const threat of ["reach", "two-call"] as const) {
+            const { context, scores } = tacticalScoresWithPreviousThreat(playerCount, currentPlayerIndex, direction, threat);
+            expect(scores[0].card.id, `${playerCount} players seat ${currentPlayerIndex} ${direction} ${threat}`).toBe("king");
+            expect(tacticalCpuModel.chooseDaifugoEffectActivation?.(context, "fiveSkip")).toBe(false);
+          }
+        }
+      }
+    }
+  });
+
+  it("activates 5 only when the next player is the reach threat in the current direction", () => {
+    const adjacent = tacticalScoresWithOpponents(
+      [card("five", 5), card("king", 13, "H")],
+      [
+        { model: "standard", isReach: true },
+        { model: "standard" },
+      ],
+    );
+    const remote = tacticalScoresWithOpponents(
+      [card("five", 5), card("king", 13, "H")],
+      [
+        { model: "standard" },
+        { model: "standard", isReach: true },
+      ],
+    );
+    const reversed = tacticalScoresWithOpponents(
+      [card("five", 5), card("king", 13, "H")],
+      [
+        { model: "standard", isReach: true },
+        { model: "standard" },
+      ],
+      { direction: "counterclockwise" },
+    );
+
+    expect(adjacent.scores[0].card.id).toBe("five");
+    expect(tacticalCpuModel.chooseDaifugoEffectActivation?.(adjacent.context, "fiveSkip")).toBe(true);
+    expect(remote.scores[0].card.id).toBe("king");
+    expect(tacticalCpuModel.chooseDaifugoEffectActivation?.(remote.context, "fiveSkip")).toBe(false);
+    expect(reversed.scores[0].card.id).toBe("king");
+    expect(tacticalCpuModel.chooseDaifugoEffectActivation?.(reversed.context, "fiveSkip")).toBe(false);
+  });
+
+  it("activates 5 when reverse direction makes a reach or two-call threat the next player", () => {
+    const reach = tacticalScoresWithOpponents(
+      [card("five", 5), card("king", 13, "H")],
+      [
+        { model: "standard" },
+        { model: "standard", isReach: true },
+      ],
+      { direction: "counterclockwise" },
+    );
+    const twoCall = tacticalScoresWithOpponents(
+      [card("five", 5), card("king", 13, "H")],
+      [
+        { model: "standard" },
+        { model: "standard", openMelds: twoCalls("reverse-adjacent") },
+      ],
+      { direction: "counterclockwise" },
+    );
+
+    expect(reach.scores[0].card.id).toBe("five");
+    expect(tacticalCpuModel.chooseDaifugoEffectActivation?.(reach.context, "fiveSkip")).toBe(true);
+    expect(twoCall.scores[0].card.id).toBe("five");
+    expect(tacticalCpuModel.chooseDaifugoEffectActivation?.(twoCall.context, "fiveSkip")).toBe(true);
   });
 
   it("uses Q > 8 > 10 against a remote two-call player", () => {

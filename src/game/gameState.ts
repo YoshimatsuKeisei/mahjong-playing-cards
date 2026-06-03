@@ -1,5 +1,6 @@
 import type {
   Card,
+  CpuThreatResponseMode,
   CpuModelId,
   DaifugoEffectEvent,
   DaifugoEffectId,
@@ -287,11 +288,21 @@ function createPendingDaifugoEffect(state: GameState, discardCard: Card, continu
   const player = state.players[state.currentPlayerIndex];
   if (effect === "tenSwapDraw" && player?.isReach) return null;
   if (!effect) return null;
+  const cpuThreatResponseMode =
+    effect === "sevenExchange" || effect === "queenNumberVanish"
+      ? getCpuThreatResponseMode(state, state.currentPlayerIndex)
+      : undefined;
+  const cpuThreatTargetPlayerIndex =
+    effect === "queenNumberVanish"
+      ? chooseCpuThreatTarget(state, state.currentPlayerIndex, cpuThreatResponseMode)
+      : null;
   return {
     kind: "confirm" as const,
     effect,
     playerIndex: state.currentPlayerIndex,
     continue: continueState,
+    cpuThreatResponseMode,
+    ...(cpuThreatTargetPlayerIndex === null ? {} : { cpuThreatTargetPlayerIndex }),
   };
 }
 
@@ -553,11 +564,83 @@ function shouldCpuUseRemoteReachEnhancement(state: GameState, playerIndex: numbe
   const player = state.players[playerIndex];
   return (
     player?.isCpu === true &&
-    player.cpuModelId === "tactical" &&
+    isThreatAwareCpuModel(player.cpuModelId) &&
     player.hasJEnhancementRight === true &&
     state.daifugoOptions.enabled &&
     getCpuThreatPlayerIndexes(state, playerIndex).length > 0 &&
     !isNextPlayerCpuThreat(state, playerIndex)
+  );
+}
+
+function getCpuThreatResponseMode(state: GameState, playerIndex: number): CpuThreatResponseMode | undefined {
+  const player = state.players[playerIndex];
+  if (player?.isCpu !== true || !isThreatAwareCpuModel(player.cpuModelId)) return undefined;
+  if (getReachPlayerIndexes(state, playerIndex).length > 0) return "reach";
+  if (getTwoCallPlayerIndexes(state, playerIndex).length > 0) return "twoCall";
+  return undefined;
+}
+
+function isThreatAwareCpuModel(cpuModelId: CpuModelId | undefined): boolean {
+  return cpuModelId === "tactical" || cpuModelId === "master";
+}
+
+function getResolvedCpuThreatResponseMode(
+  state: GameState,
+  playerIndex: number,
+  pendingResponseMode: CpuThreatResponseMode | undefined,
+): CpuThreatResponseMode | undefined {
+  return state.players[playerIndex]?.cpuModelId === "master"
+    ? getCpuThreatResponseMode(state, playerIndex)
+    : pendingResponseMode;
+}
+
+export function getCpuThreatSelection(state: GameState, playerIndex: number) {
+  const mode = getCpuThreatResponseMode(state, playerIndex);
+  return {
+    mode,
+    targetPlayerIndex: chooseCpuThreatTarget(state, playerIndex, mode),
+  };
+}
+
+function getCpuThreatPlayerIndexesForMode(
+  state: GameState,
+  playerIndex: number,
+  responseMode: CpuThreatResponseMode | undefined,
+): number[] {
+  if (responseMode === "reach") return getReachPlayerIndexes(state, playerIndex);
+  if (responseMode === "twoCall") return getTwoCallPlayerIndexes(state, playerIndex);
+  return [];
+}
+
+function chooseCpuThreatTarget(
+  state: GameState,
+  playerIndex: number,
+  responseMode: CpuThreatResponseMode | undefined,
+): number | null {
+  const threatPlayerIndexes = new Set(getCpuThreatPlayerIndexesForMode(state, playerIndex, responseMode));
+  let cursor = playerIndex;
+  for (let count = 1; count < state.players.length; count += 1) {
+    cursor = getNextPlayerIndex(cursor, state.players.length, state.direction);
+    if (threatPlayerIndexes.has(cursor)) return cursor;
+  }
+  return null;
+}
+
+function shouldCpuUseRemoteSevenEnhancement(
+  state: GameState,
+  playerIndex: number,
+  responseMode: CpuThreatResponseMode | undefined,
+): boolean {
+  const player = state.players[playerIndex];
+  const threatPlayerIndexes = getCpuThreatPlayerIndexesForMode(state, playerIndex, responseMode);
+  const nextPlayerIndex = getNextPlayerIndex(playerIndex, state.players.length, state.direction);
+  return (
+    player?.isCpu === true &&
+    isThreatAwareCpuModel(player.cpuModelId) &&
+    player.hasJEnhancementRight === true &&
+    state.daifugoOptions.enabled &&
+    threatPlayerIndexes.length > 0 &&
+    !threatPlayerIndexes.includes(nextPlayerIndex)
   );
 }
 
@@ -571,14 +654,12 @@ function chooseCpuEnhancedFiveTarget(state: GameState, playerIndex: number): num
   return option?.playerIndex ?? null;
 }
 
-function chooseCpuEnhancedSevenTarget(state: GameState, playerIndex: number): number | null {
-  const threatPlayerIndexes = new Set(getCpuThreatPlayerIndexes(state, playerIndex));
-  let cursor = playerIndex;
-  for (let count = 1; count < state.players.length; count += 1) {
-    cursor = getNextPlayerIndex(cursor, state.players.length, state.direction);
-    if (threatPlayerIndexes.has(cursor)) return cursor;
-  }
-  return null;
+function chooseCpuEnhancedSevenTarget(
+  state: GameState,
+  playerIndex: number,
+  responseMode: CpuThreatResponseMode | undefined,
+): number | null {
+  return chooseCpuThreatTarget(state, playerIndex, responseMode);
 }
 
 function startSevenExchange(
@@ -587,6 +668,7 @@ function startSevenExchange(
   targetPlayerIndex: number,
   continueState: PendingDaifugoContinue,
   consumeJEnhancementRightOnComplete = false,
+  cpuThreatResponseMode?: CpuThreatResponseMode,
 ): GameState {
   const message = consumeJEnhancementRightOnComplete
     ? `${state.players[playerIndex].name}がJ強化を使用し、${state.players[targetPlayerIndex].name}とのカード交換を開始します。`
@@ -601,6 +683,7 @@ function startSevenExchange(
       selections: {},
       continue: continueState,
       consumeJEnhancementRightOnComplete,
+      cpuThreatResponseMode,
     },
     message,
   });
@@ -640,6 +723,7 @@ function resolveSevenExchange(state: GameState, pending: Extract<NonNullable<Gam
         kind: "sevenExchange",
         actorIndex: pending.playerIndex,
         targetPlayerIndex: pending.targetPlayerIndex,
+        cpuThreatResponseMode: pending.cpuThreatResponseMode,
         exchangedCards: [
           { playerIndex: pending.playerIndex, receivedCard: targetCard },
           { playerIndex: pending.targetPlayerIndex, receivedCard: giverCard },
@@ -962,7 +1046,7 @@ function resolveCpuJackInspectEffect(state: GameState, playerIndex: number, cont
 function resolveCpuJackSpecialEffect(state: GameState, playerIndex: number, continueState: PendingDaifugoContinue): GameState {
   const player = state.players[playerIndex];
   const isTacticalJack =
-    player?.cpuModelId === "tactical" &&
+    isThreatAwareCpuModel(player?.cpuModelId) &&
     state.daifugoOptions.enabled &&
     state.daifugoOptions.effects.jackBack;
 
@@ -1027,11 +1111,28 @@ function applyDaifugoEffect(state: GameState): GameState {
 
   if (pending.effect === "sevenExchange") {
     const currentPlayer = state.players[state.currentPlayerIndex];
-    if (shouldCpuUseRemoteReachEnhancement(state, state.currentPlayerIndex)) {
-      const targetPlayerIndex = chooseCpuEnhancedSevenTarget(state, state.currentPlayerIndex);
-      if (targetPlayerIndex !== null) {
-        return startSevenExchange(state, state.currentPlayerIndex, targetPlayerIndex, pending.continue, true);
-      }
+    const cpuThreatResponseMode = getResolvedCpuThreatResponseMode(
+      state,
+      state.currentPlayerIndex,
+      pending.cpuThreatResponseMode,
+    );
+    const threatTargetPlayerIndex = chooseCpuEnhancedSevenTarget(
+      state,
+      state.currentPlayerIndex,
+      cpuThreatResponseMode,
+    );
+    if (
+      threatTargetPlayerIndex !== null &&
+      shouldCpuUseRemoteSevenEnhancement(state, state.currentPlayerIndex, cpuThreatResponseMode)
+    ) {
+      return startSevenExchange(
+        state,
+        state.currentPlayerIndex,
+        threatTargetPlayerIndex,
+        pending.continue,
+        true,
+        cpuThreatResponseMode,
+      );
     }
     if (currentPlayer?.hasJEnhancementRight && !currentPlayer.isCpu) {
       return {
@@ -1046,7 +1147,14 @@ function applyDaifugoEffect(state: GameState): GameState {
       };
     }
     const targetPlayerIndex = getNextPlayerIndex(state.currentPlayerIndex, state.players.length, state.direction);
-    return startSevenExchange(state, state.currentPlayerIndex, targetPlayerIndex, pending.continue);
+    return startSevenExchange(
+      state,
+      state.currentPlayerIndex,
+      targetPlayerIndex,
+      pending.continue,
+      false,
+      threatTargetPlayerIndex === targetPlayerIndex ? cpuThreatResponseMode : undefined,
+    );
   }
   if (pending.effect === "nineReverse") {
     return continueAfterDaifugo({ ...state, direction: reverseDirection(state.direction) }, pending.continue);
@@ -1102,6 +1210,15 @@ function applyDaifugoEffect(state: GameState): GameState {
         { ...pending.continue, shouldConfirmReach: false, message: "山札が不足しているため、Q効果は発動できませんでした。" },
       );
     }
+    const cpuThreatResponseMode = getResolvedCpuThreatResponseMode(
+      state,
+      state.currentPlayerIndex,
+      pending.cpuThreatResponseMode,
+    );
+    const cpuThreatTargetPlayerIndex =
+      state.players[state.currentPlayerIndex]?.cpuModelId === "master"
+        ? chooseCpuThreatTarget(state, state.currentPlayerIndex, cpuThreatResponseMode) ?? undefined
+        : pending.cpuThreatTargetPlayerIndex;
     return {
       ...state,
       pendingDaifugoEffect: {
@@ -1109,6 +1226,8 @@ function applyDaifugoEffect(state: GameState): GameState {
         effect: "queenNumberVanish",
         playerIndex: state.currentPlayerIndex,
         continue: pending.continue,
+        cpuThreatResponseMode,
+        cpuThreatTargetPlayerIndex,
       },
       message: "Qの効果で消す数字を選んでください。",
     };

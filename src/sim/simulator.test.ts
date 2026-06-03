@@ -3,9 +3,16 @@ import type { DaifugoOptions, GameState } from "../types";
 import { getDisplayedPlayerLosses, getResultLoserIndexes } from "../game/matchState";
 import { gameReducer } from "../game/gameState";
 import { formatSimulationSummary, parseSimulationArgs } from "./cli";
-import { collectEffectTelemetry, makePlayerSummary, runSimulation } from "./simulator";
+import {
+  collectEffectTelemetry,
+  createTurnTimingSanityCheck,
+  createTurnTimingSummary,
+  makePlayerSummary,
+  runSimulation,
+  summarizeNumberSamples,
+} from "./simulator";
 import { createCpuScenario } from "./scenario";
-import type { SimulationConfig, SimulationViolation } from "./types";
+import type { SimulationConfig, SimulationFiveTargetEvent, SimulationViolation } from "./types";
 
 const ENABLED_DAIFUGO_OPTIONS: DaifugoOptions = {
   enabled: true,
@@ -26,6 +33,7 @@ function createTelemetryFixture(logLevel: SimulationConfig["logLevel"] = "violat
     config,
     players: config.playerModels.map((_, index) => makePlayerSummary(index, config)),
     violations: [] as SimulationViolation[],
+    fiveTargetEvents: [] as SimulationFiveTargetEvent[],
   };
 }
 
@@ -34,6 +42,23 @@ function withPending(state: GameState, pendingDaifugoEffect: GameState["pendingD
 }
 
 describe("headless CPU simulation", () => {
+  it("accepts master players in headless simulations", () => {
+    const config = parseSimulationArgs(["--players", "master,standard,standard", "--games", "1", "--rules", "off", "--seed", "1"]);
+    const summary = runSimulation(config);
+
+    expect(config.playerModels).toEqual(["master", "standard", "standard"]);
+    expect(summary.completedGames).toBe(1);
+    expect(summary.players[0].model).toBe("master");
+  });
+
+  it("prints master unseen rank estimates only in detail events", () => {
+    const summary = runSimulation(parseSimulationArgs(["--players", "master,standard,standard", "--games", "1", "--rules", "off", "--seed", "1", "--logLevel", "detail"]));
+    const output = formatSimulationSummary(summary);
+
+    expect(summary.details.some((detail) => detail.model === "master" && detail.estimatedUnseenByRank?.includes("A="))).toBe(true);
+    expect(output).toContain("estimatedUnseenByRank=[");
+  });
+
   it("replays the same simulation with a fixed seed", () => {
     const config = parseSimulationArgs(["--players", "standard,standard,pro", "--games", "3", "--rules", "daifugo", "--seed", "12345"]);
     const first = runSimulation(config);
@@ -41,6 +66,20 @@ describe("headless CPU simulation", () => {
     expect(second.players).toEqual(first.players);
     expect(second.results).toEqual(first.results);
     expect(second.gameSeeds).toEqual(first.gameSeeds);
+    expect(second.startPlayerIndexes).toEqual(first.startPlayerIndexes);
+  });
+
+  it("rotates the starting player for 3, 4, and 5 player simulations", () => {
+    const threePlayers = runSimulation(parseSimulationArgs(["--players", "standard,standard,pro", "--games", "10", "--rules", "off", "--seed", "1"]));
+    const fourPlayers = runSimulation(parseSimulationArgs(["--players", "standard,standard,standard,pro", "--games", "6", "--rules", "off", "--seed", "1"]));
+    const fivePlayers = runSimulation(parseSimulationArgs(["--players", "standard,standard,standard,standard,pro", "--games", "7", "--rules", "off", "--seed", "1"]));
+
+    expect(threePlayers.startPlayerIndexes).toEqual([0, 1, 2, 0, 1, 2, 0, 1, 2, 0]);
+    expect(threePlayers.players.map((player) => player.startPlayerCount)).toEqual([4, 3, 3]);
+    expect(fourPlayers.startPlayerIndexes).toEqual([0, 1, 2, 3, 0, 1]);
+    expect(fourPlayers.players.map((player) => player.startPlayerCount)).toEqual([2, 2, 1, 1]);
+    expect(fivePlayers.startPlayerIndexes).toEqual([0, 1, 2, 3, 4, 0, 1]);
+    expect(fivePlayers.players.map((player) => player.startPlayerCount)).toEqual([2, 2, 1, 1, 1]);
   });
 
   it("prints the requested defensive and action summary without excluded main metrics", () => {
@@ -51,6 +90,9 @@ describe("headless CPU simulation", () => {
     expect(output).toContain("pureLoss=");
     expect(output).toContain("loserCount=");
     expect(output).toContain("lossEfficiency=");
+    expect(output).toContain("Start player summary:");
+    expect(output).toContain("- standard-1: 1");
+    expect(output).toContain("- standard-2: 1");
     expect(output).toContain("winCount=");
     expect(output).toContain("tsumoCount=");
     expect(output).toContain("ronCount=");
@@ -63,6 +105,16 @@ describe("headless CPU simulation", () => {
     expect(output).toContain("useJ=");
     expect(output).toContain("useQ=");
     expect(output).toContain("tacticalNormalDecisionTurns=");
+    expect(output).toContain("proUsed5NoThreat=");
+    expect(output).toContain("proUsed5ThreatPresentAndSkippedThreat=");
+    expect(output).toContain("proUsed5ThreatPresentButDidNotSkipThreat=");
+    expect(output).toContain("proUsed5ThreatPresentButCannotSkipThreat=");
+    expect(output).toContain("Turn timing summary:");
+    expect(output).toContain("Turn timing sanity check:");
+    expect(output).toContain("winnerCountMatchesCompletedGames=true");
+    expect(output).toContain("winnerSelfTurnCountAtWin:");
+    expect(output).toContain("selfTurnCountAtReach:");
+    expect(output).toContain("selfTurnCountAtSecondCall:");
     expect(output).not.toContain("winRate");
     expect(output).not.toContain("averageRank");
     expect(output).not.toContain("averageScore");
@@ -70,6 +122,164 @@ describe("headless CPU simulation", () => {
     expect(output).not.toContain("netLoss=");
     expect(output).not.toContain("lossEfficiencyPerGame=");
     expect(output).not.toContain("lossEfficiencyPerTurn=");
+  });
+
+  it("computes turn timing percentiles and rates from per-player self turns", () => {
+    expect(summarizeNumberSamples([3, 1, 10, 7])).toEqual({
+      count: 4,
+      avg: 5.25,
+      p50: 3,
+      p75: 7,
+      p90: 10,
+    });
+
+    const [timing] = createTurnTimingSummary([
+      {
+        playerCount: 3,
+        reachSelfTurnCounts: [2, null, 5],
+        secondCallSelfTurnCounts: [null, 3, null],
+        winners: [
+          {
+            playerIndex: 0,
+            winType: "tsumo",
+            selfTurnCountAtWin: 4,
+            selfTurnCountFromReachToWin: 2,
+            selfTurnCountFromSecondCallToWin: null,
+          },
+        ],
+        globalTurnCountAtWin: 10,
+        deckRemainingAtWin: 30,
+        deckConsumedAtWin: 30,
+      },
+      {
+        playerCount: 3,
+        reachSelfTurnCounts: [null, null, null],
+        secondCallSelfTurnCounts: [1, null, null],
+        winners: [
+          {
+            playerIndex: 2,
+            winType: "ron",
+            selfTurnCountAtWin: 6,
+            selfTurnCountFromReachToWin: null,
+            selfTurnCountFromSecondCallToWin: null,
+          },
+        ],
+        globalTurnCountAtWin: 14,
+        deckRemainingAtWin: 20,
+        deckConsumedAtWin: 40,
+      },
+    ]);
+
+    expect(timing.playerCount).toBe(3);
+    expect(timing.winnerSelfTurnCountAtWin).toMatchObject({ count: 2, avg: 5, p50: 4, p75: 6, p90: 6 });
+    expect(timing.selfTurnCountAtReach).toMatchObject({ count: 2, avg: 3.5, p50: 2, p75: 5, p90: 5 });
+    expect(timing.selfTurnCountAtSecondCall).toMatchObject({ count: 2, avg: 2, p50: 1, p75: 3, p90: 3 });
+    expect(timing.selfTurnCountFromReachToWin).toMatchObject({ count: 1, avg: 2, p50: 2, p75: 2, p90: 2 });
+    expect(timing.selfTurnCountFromSecondCallToWin.count).toBe(0);
+    expect(timing.reachDeclaredPlayerCount).toBe(2);
+    expect(timing.nonReachPlayerCount).toBe(4);
+    expect(timing.reachRate).toBeCloseTo(2 / 6);
+    expect(timing.secondCallReachedPlayerCount).toBe(2);
+    expect(timing.nonSecondCallPlayerCount).toBe(4);
+    expect(timing.secondCallRate).toBeCloseTo(2 / 6);
+  });
+
+  it("keeps winner timing to one sample per completed game for sanity checks", () => {
+    const timings = [
+      {
+        playerCount: 3,
+        reachSelfTurnCounts: [1, null, null],
+        secondCallSelfTurnCounts: [null, null, null],
+        winners: [
+          {
+            playerIndex: 0,
+            winType: "ron" as const,
+            selfTurnCountAtWin: 3,
+            selfTurnCountFromReachToWin: 2,
+            selfTurnCountFromSecondCallToWin: null,
+          },
+        ],
+        globalTurnCountAtWin: 8,
+        deckRemainingAtWin: 20,
+        deckConsumedAtWin: 40,
+      },
+      {
+        playerCount: 3,
+        reachSelfTurnCounts: [null, null, null],
+        secondCallSelfTurnCounts: [null, null, null],
+        winners: [
+          {
+            playerIndex: 2,
+            winType: "tsumo" as const,
+            selfTurnCountAtWin: 5,
+            selfTurnCountFromReachToWin: null,
+            selfTurnCountFromSecondCallToWin: null,
+          },
+        ],
+        globalTurnCountAtWin: 13,
+        deckRemainingAtWin: 10,
+        deckConsumedAtWin: 50,
+      },
+    ];
+    const [timing] = createTurnTimingSummary(timings);
+    const sanity = createTurnTimingSanityCheck(2, 0, timings);
+
+    expect(timing.winnerSelfTurnCountAtWin.count).toBe(2);
+    expect(sanity).toMatchObject({
+      games: 2,
+      deckouts: 0,
+      completedGames: 2,
+      winnerSelfTurnCountAtWinCount: 2,
+      winnerCountMatchesCompletedGames: true,
+      minWinnerSelfTurnCountAtWin: 3,
+      maxWinnerSelfTurnCountAtWin: 5,
+      avgGlobalTurnCountAtWin: 10.5,
+      avgDeckRemainingAtWin: 15,
+      avgDeckConsumedAtWin: 45,
+    });
+  });
+
+  it("keeps deckout games out of win timing stats while preserving reach and second-call arrivals", () => {
+    const [timing] = createTurnTimingSummary([
+      {
+        playerCount: 4,
+        reachSelfTurnCounts: [2, null, null, null],
+        secondCallSelfTurnCounts: [null, 3, null, null],
+        winners: [],
+        globalTurnCountAtWin: null,
+        deckRemainingAtWin: null,
+        deckConsumedAtWin: null,
+      },
+    ]);
+    const sanity = createTurnTimingSanityCheck(1, 1, [
+      {
+        playerCount: 4,
+        reachSelfTurnCounts: [2, null, null, null],
+        secondCallSelfTurnCounts: [null, 3, null, null],
+        winners: [],
+        globalTurnCountAtWin: null,
+        deckRemainingAtWin: null,
+        deckConsumedAtWin: null,
+      },
+    ]);
+
+    expect(timing.winnerSelfTurnCountAtWin.count).toBe(0);
+    expect(timing.selfTurnCountFromReachToWin.count).toBe(0);
+    expect(timing.selfTurnCountFromSecondCallToWin.count).toBe(0);
+    expect(timing.selfTurnCountAtReach.count).toBe(1);
+    expect(timing.selfTurnCountAtSecondCall.count).toBe(1);
+    expect(sanity.winnerSelfTurnCountAtWinCount).toBe(0);
+    expect(sanity.winnerCountMatchesCompletedGames).toBe(true);
+  });
+
+  it("groups timing summaries by 3, 4, and 5 player games", () => {
+    const timing = createTurnTimingSummary([
+      { playerCount: 3, reachSelfTurnCounts: [null, null, null], secondCallSelfTurnCounts: [null, null, null], winners: [], globalTurnCountAtWin: null, deckRemainingAtWin: null, deckConsumedAtWin: null },
+      { playerCount: 4, reachSelfTurnCounts: [null, null, null, null], secondCallSelfTurnCounts: [null, null, null, null], winners: [], globalTurnCountAtWin: null, deckRemainingAtWin: null, deckConsumedAtWin: null },
+      { playerCount: 5, reachSelfTurnCounts: [null, null, null, null, null], secondCallSelfTurnCounts: [null, null, null, null, null], winners: [], globalTurnCountAtWin: null, deckRemainingAtWin: null, deckConsumedAtWin: null },
+    ]);
+
+    expect(timing.map((entry) => entry.playerCount)).toEqual([3, 4, 5]);
   });
 
   it("uses the final-result definitions for losses and efficiency", () => {
@@ -133,11 +343,25 @@ describe("headless CPU simulation", () => {
     const action = { type: "answerDaifugoEffect", activate: true } as const;
     const nextState = gameReducer(state, action);
 
-    collectEffectTelemetry(fixture.config, 1, 1, 1, 1, state, action, nextState, fixture.players, fixture.violations);
+    collectEffectTelemetry(fixture.config, 1, 1, 1, 1, state, action, nextState, fixture.players, fixture.violations, fixture.fiveTargetEvents);
 
     expect(fixture.players[0].use5).toBe(1);
-    expect(fixture.players[0].proUsed5ToSkipReachTarget).toBe(1);
+    expect(fixture.players[0].proUsed5ThreatPresentAndSkippedThreat).toBe(1);
     expect(fixture.violations).toEqual([]);
+    expect(fixture.fiveTargetEvents).toEqual([
+      expect.objectContaining({
+        currentPlayer: "scenario-player-1",
+        selectedPlayer: "scenario-player-3",
+        nextPlayerBefore5: "scenario-player-2",
+        nextPlayerAfter5: "scenario-player-3",
+        skippedPlayers: ["scenario-player-2"],
+        reachPlayers: ["scenario-player-2"],
+        twoCallPlayers: [],
+        threatType: "reach",
+        threatTarget: "scenario-player-2",
+        threatWasSkipped: true,
+      }),
+    ]);
     expect(nextState.phase).toBe("handoff");
     expect(nextState.lastDiscarderIndex).toBe(1);
   });
@@ -219,8 +443,81 @@ describe("headless CPU simulation", () => {
 
     collectEffectTelemetry(fixture.config, 1, 1, 1, 1, state, action, nextState, fixture.players, fixture.violations);
 
-    expect(fixture.players[0].proUsed5ToSkipIrrelevantTarget).toBe(1);
+    expect(fixture.players[0].proUsed5ThreatPresentButCannotSkipThreat).toBe(1);
     expect(fixture.violations).toEqual([]);
+  });
+
+  it("classifies tactical 5 without a threat separately", () => {
+    const fixture = createTelemetryFixture();
+    const state = withPending(
+      createCpuScenario({
+        daifugoOptions: ENABLED_DAIFUGO_OPTIONS,
+        players: [{ model: "tactical" }, { model: "standard" }, { model: "standard" }],
+      }),
+      { kind: "confirm", effect: "fiveSkip", playerIndex: 0, continue: { shouldConfirmReach: false } },
+    );
+    const action = { type: "answerDaifugoEffect", activate: true } as const;
+
+    collectEffectTelemetry(fixture.config, 1, 1, 1, 1, state, action, gameReducer(state, action), fixture.players, fixture.violations, fixture.fiveTargetEvents);
+
+    expect(fixture.players[0].proUsed5NoThreat).toBe(1);
+    expect(fixture.violations).toEqual([]);
+    expect(fixture.fiveTargetEvents[0]).toEqual(expect.objectContaining({ threatType: "none", threatTarget: null, threatWasSkipped: false }));
+  });
+
+  it("treats a two-call player in the skipped path as a successful tactical 5 target", () => {
+    const fixture = createTelemetryFixture();
+    const state = withPending(
+      createCpuScenario({
+        daifugoOptions: ENABLED_DAIFUGO_OPTIONS,
+        players: [
+          { model: "tactical" },
+          { model: "standard", openMelds: [[], []] },
+          { model: "standard" },
+        ],
+      }),
+      { kind: "confirm", effect: "fiveSkip", playerIndex: 0, continue: { shouldConfirmReach: false } },
+    );
+    const action = { type: "answerDaifugoEffect", activate: true } as const;
+
+    collectEffectTelemetry(fixture.config, 1, 1, 1, 1, state, action, gameReducer(state, action), fixture.players, fixture.violations, fixture.fiveTargetEvents);
+
+    expect(fixture.players[0].proUsed5ThreatPresentAndSkippedThreat).toBe(1);
+    expect(fixture.fiveTargetEvents[0]).toEqual(expect.objectContaining({ threatType: "twoCall", threatTarget: "scenario-player-2", threatWasSkipped: true }));
+  });
+
+  it("warns only when tactical 5 could skip a threat but selected a path that does not", () => {
+    const fixture = createTelemetryFixture();
+    const state = withPending(
+      createCpuScenario({
+        daifugoOptions: ENABLED_DAIFUGO_OPTIONS,
+        players: [
+          { model: "tactical", hasJEnhancementRight: true },
+          { model: "standard" },
+          { model: "standard", isReach: true },
+          { model: "standard" },
+        ],
+      }),
+      { kind: "confirm", effect: "fiveSkip", playerIndex: 0, continue: { shouldConfirmReach: false } },
+    );
+    const action = { type: "answerDaifugoEffect", activate: true } as const;
+    const nextState = { ...state, lastDiscarderIndex: 1 };
+
+    collectEffectTelemetry(fixture.config, 1, 1, 1, 1, state, action, nextState, fixture.players, fixture.violations, fixture.fiveTargetEvents);
+
+    expect(fixture.players[0].proUsed5ThreatPresentButDidNotSkipThreat).toBe(1);
+    expect(fixture.violations).toEqual([
+      expect.objectContaining({
+        code: "tactical-five-did-not-skip-threat",
+        selectedTarget: "scenario-player-3",
+        fiveTarget: expect.objectContaining({
+          skippedPlayers: ["scenario-player-2"],
+          threatTarget: "scenario-player-3",
+          threatWasSkipped: false,
+          threatCouldBeSkipped: true,
+        }),
+      }),
+    ]);
   });
 
   it("classifies tactical J fallback from reducer state changes", () => {

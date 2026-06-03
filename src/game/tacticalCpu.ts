@@ -11,15 +11,20 @@ import {
   standardShouldCpuWin,
 } from "./standardCpu";
 import {
+  chooseDaifugoSevenExchangeCardForModel,
   chooseStandardDaifugoCard,
   chooseStandardDaifugoEffectActivation,
-  chooseStandardQueenRank,
+  chooseTacticalQueenRank,
 } from "./daifugoCpu";
 
 interface TacticalScoreBreakdown {
   card: Card;
   score: number;
   notes: string[];
+}
+
+interface TacticalDiscardPolicy {
+  protectIncompleteRuns: boolean;
 }
 
 const NORMAL_DAIFUGO_EFFECT_BONUSES = {
@@ -120,10 +125,11 @@ export function tacticalChooseCpuDiscardCard(context: CpuDecisionContext): Card 
 
 export function getTacticalDiscardScores(context: CpuDecisionContext): TacticalScoreBreakdown[] {
   const legalCards = getCpuDiscardCandidates(context);
-  const handShape = analyzeHandShape(legalCards, context);
+  const policy = getDiscardPolicy(context);
+  const handShape = analyzeHandShape(legalCards, context, policy);
 
   return legalCards
-    .map((card) => scoreTacticalDiscardCandidate(card, legalCards, context, handShape))
+    .map((card) => scoreTacticalDiscardCandidate(card, legalCards, context, handShape, policy))
     .sort((a, b) => b.score - a.score || a.card.id.localeCompare(b.card.id));
 }
 
@@ -131,9 +137,12 @@ export function scoreTacticalDiscardCandidate(
   card: Card,
   hand: Card[],
   context: CpuDecisionContext,
-  handShape = analyzeHandShape(hand, context),
+  handShape = analyzeHandShape(hand, context, getDiscardPolicy(context)),
+  policy = getDiscardPolicy(context),
 ): TacticalScoreBreakdown {
-  let score = scoreStandardDiscardCandidate(card, hand);
+  let score = scoreStandardDiscardCandidate(card, hand, {
+    protectRunCandidates: policy.protectIncompleteRuns,
+  });
   const notes = [`standard ${formatSigned(score)}`];
 
   const highPoint = getCardPenalty(card) * (handShape.isNearWin ? 0.2 : 0.5);
@@ -154,7 +163,7 @@ export function scoreTacticalDiscardCandidate(
     notes.push(`${formatSigned(pairPenalty)} pairCandidate`);
   }
 
-  const runCandidateCount = countRunCandidateLinks(card, hand);
+  const runCandidateCount = policy.protectIncompleteRuns ? countRunCandidateLinks(card, hand) : 0;
   if (runCandidateCount > 0) {
     const runPenalty = (handShape.isNearWin ? -14 : -9) * runCandidateCount;
     score += runPenalty;
@@ -173,7 +182,7 @@ export function scoreTacticalDiscardCandidate(
     notes.push(`${formatSigned(pairDefenseBonus)} highPairFallback`);
   }
 
-  if (isIsolated(card, hand)) {
+  if (isIsolated(card, hand, policy)) {
     const isolatedBonus = 22;
     score += isolatedBonus;
     notes.push(`${formatSigned(isolatedBonus)} isolated`);
@@ -192,7 +201,7 @@ export function scoreTacticalDiscardCandidate(
       notes.push(`${formatSigned(pairProtection)} normalPairProtection`);
     }
 
-    if (isIsolated(card, hand)) {
+    if (isIsolated(card, hand, policy)) {
       const singletonBonus = 20;
       score += singletonBonus;
       notes.push(`${formatSigned(singletonBonus)} normalSingleton`);
@@ -271,11 +280,17 @@ export function describeTacticalCallSkip(context: CpuDecisionContext): string | 
   return `[Tactical CPU] skipped call: ${reason}`;
 }
 
-function analyzeHandShape(hand: Card[], context: CpuDecisionContext) {
+function getDiscardPolicy(context: CpuDecisionContext): TacticalDiscardPolicy {
+  return {
+    protectIncompleteRuns: context.currentPlayer.cpuModelId !== "master",
+  };
+}
+
+function analyzeHandShape(hand: Card[], context: CpuDecisionContext, policy: TacticalDiscardPolicy) {
   const completedMeldCount = context.currentPlayer.openMelds.length + countMaxMelds(hand);
   const isReachReady = canDeclareReachAfterDraw(hand, context.currentPlayer.hasCalled, context.currentPlayer.isReach);
   const meldCandidates = findPossibleMelds(hand);
-  const hasClearIsolatedCard = hand.some((card) => isIsolated(card, hand));
+  const hasClearIsolatedCard = hand.some((card) => isIsolated(card, hand, policy));
 
   return {
     completedMeldCount,
@@ -343,9 +358,10 @@ function countRunCandidateLinks(card: Card, hand: Card[]): number {
   return hand.filter((candidate) => candidate.id !== card.id && candidate.suit === card.suit && Math.abs(candidate.rank - card.rank) <= 2).length;
 }
 
-function isIsolated(card: Card, hand: Card[]): boolean {
+function isIsolated(card: Card, hand: Card[], policy: TacticalDiscardPolicy): boolean {
   const sameRankCount = hand.filter((candidate) => candidate.id !== card.id && candidate.rank === card.rank).length;
-  return sameRankCount === 0 && countRunCandidateLinks(card, hand) === 0;
+  if (sameRankCount > 0 || isInStrongMeldCandidate(card, hand)) return false;
+  return !policy.protectIncompleteRuns || countRunCandidateLinks(card, hand) === 0;
 }
 
 function isNormalDaifugoEvaluation(context: CpuDecisionContext): boolean {
@@ -401,17 +417,12 @@ function isAdjacentTwoCallThreat(context: CpuDecisionContext): boolean {
 }
 
 function canEnhancedFiveSkipTargets(context: CpuDecisionContext, targetPlayerIndexes: number[]): boolean {
-  const targets = new Set(targetPlayerIndexes);
-  let cursor = context.currentPlayerIndex;
-  let foundTarget = false;
-  for (let count = 1; count < context.state.players.length; count += 1) {
-    cursor = getNextPlayerIndex(cursor, context.state.players.length, context.state.direction);
-    if (foundTarget) return true;
-    if (targets.has(cursor)) {
-      foundTarget = true;
-    }
-  }
-  return false;
+  const previousPlayerIndex = getNextPlayerIndex(
+    context.currentPlayerIndex,
+    context.state.players.length,
+    reverseTurnDirection(context.state.direction),
+  );
+  return targetPlayerIndexes.some((targetPlayerIndex) => targetPlayerIndex !== previousPlayerIndex);
 }
 
 function getTurnDistance(
@@ -499,7 +510,7 @@ function getReachDaifugoEffectBonus(card: Card, context: CpuDecisionContext): nu
       return effects.fiveSkip
         ? hasEnhancementRight && canEnhancedFiveSkipTargets(context, getReachPlayerIndexes(context))
           ? REMOTE_REACH_EFFECT_BONUSES.enhancedFiveSkip
-          : REMOTE_REACH_EFFECT_BONUSES.fiveSkip
+          : 0
         : 0;
     case 7:
       return effects.sevenExchange
@@ -559,7 +570,7 @@ function getTwoCallDaifugoEffectBonus(card: Card, context: CpuDecisionContext): 
       return effects.fiveSkip
         ? hasEnhancementRight && canEnhancedFiveSkipTargets(context, getTwoCallPlayerIndexes(context))
           ? REMOTE_TWO_CALL_EFFECT_BONUSES.enhancedFiveSkip
-          : REMOTE_TWO_CALL_EFFECT_BONUSES.fiveSkip
+          : 0
         : 0;
     case 7:
       return effects.sevenExchange
@@ -641,6 +652,29 @@ export const tacticalCpuModel: CpuModel = {
   chooseReachDeclaration: standardChooseReachDeclaration,
   chooseDaifugoEffectActivation: (context, effect) => {
     if (
+      effect === "fiveSkip" &&
+      context.state.daifugoOptions.enabled &&
+      getReachPlayerIndexes(context).length > 0
+    ) {
+      return (
+        isAdjacentReachThreat(context) ||
+        (context.state.players[context.currentPlayerIndex]?.hasJEnhancementRight === true &&
+          canEnhancedFiveSkipTargets(context, getReachPlayerIndexes(context)))
+      );
+    }
+    if (
+      effect === "fiveSkip" &&
+      context.state.daifugoOptions.enabled &&
+      getReachPlayerIndexes(context).length === 0 &&
+      getTwoCallPlayerIndexes(context).length > 0
+    ) {
+      return (
+        isAdjacentTwoCallThreat(context) ||
+        (context.state.players[context.currentPlayerIndex]?.hasJEnhancementRight === true &&
+          canEnhancedFiveSkipTargets(context, getTwoCallPlayerIndexes(context)))
+      );
+    }
+    if (
       effect === "nineReverse" &&
       context.state.daifugoOptions.enabled &&
       getReachPlayerIndexes(context).length > 0
@@ -657,8 +691,9 @@ export const tacticalCpuModel: CpuModel = {
     }
     return chooseStandardDaifugoEffectActivation();
   },
-  chooseDaifugoSevenExchangeCard: (context, candidates) => chooseStandardDaifugoCard(context, candidates),
-  chooseQueenVanishRank: chooseStandardQueenRank,
+  chooseDaifugoSevenExchangeCard: (context, candidates, role) =>
+    chooseDaifugoSevenExchangeCardForModel("tactical", context, candidates, role),
+  chooseQueenVanishRank: chooseTacticalQueenRank,
   chooseDaifugoExtraDiscard: (context, _effect, candidates) => chooseStandardDaifugoCard(context, candidates),
   getDiscardDebugInfo: getTacticalDiscardDebugInfo,
   describeDiscardChoice: describeTacticalDiscardChoice,

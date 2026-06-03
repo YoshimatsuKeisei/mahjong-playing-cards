@@ -20,7 +20,7 @@ function formatCard(card: Card): string {
 
 function describeTacticalCandidates(state: GameState): string | undefined {
   const context = createCpuDecisionContext(state);
-  if (!context || context.currentPlayer.cpuModelId !== "tactical" || state.phase !== "discard") return undefined;
+  if (!context || (context.currentPlayer.cpuModelId !== "tactical" && context.currentPlayer.cpuModelId !== "master") || state.phase !== "discard") return undefined;
   return getTacticalDiscardScores(context)
     .map((item) => `${formatCard(item.card)}=${item.score.toFixed(1)}(${item.notes.join(",")})`)
     .join("; ");

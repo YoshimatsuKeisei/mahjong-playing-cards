@@ -4,7 +4,7 @@ export type DrawnFrom = "deck" | "discard";
 export type Phase = "setup" | "handoff" | "draw" | "discard" | "reachConfirm" | "ronCheck" | "result";
 export type WinType = "tsumo" | "ron" | "deckout";
 export type MatchMode = "rounds" | "targetScore" | "startingPoints";
-export type CpuModelId = "easy" | "standard" | "tactical";
+export type CpuModelId = "easy" | "standard" | "tactical" | "master";
 export type DaifugoEffectId =
   | "fiveSkip"
   | "sevenExchange"
@@ -33,12 +33,16 @@ export interface PendingDaifugoContinue {
   message?: string;
 }
 
+export type CpuThreatResponseMode = "reach" | "twoCall";
+
 export type PendingDaifugoEffect =
   | {
       kind: "confirm";
       effect: DaifugoEffectId;
       playerIndex: number;
       continue: PendingDaifugoContinue;
+      cpuThreatResponseMode?: CpuThreatResponseMode;
+      cpuThreatTargetPlayerIndex?: number;
     }
   | {
       kind: "extraDiscard";
@@ -60,6 +64,7 @@ export type PendingDaifugoEffect =
       selections: Record<number, string>;
       continue: PendingDaifugoContinue;
       consumeJEnhancementRightOnComplete?: boolean;
+      cpuThreatResponseMode?: CpuThreatResponseMode;
     }
   | {
       kind: "sevenEnhancementConfirm";
@@ -104,6 +109,8 @@ export type PendingDaifugoEffect =
       effect: "queenNumberVanish";
       playerIndex: number;
       continue: PendingDaifugoContinue;
+      cpuThreatResponseMode?: CpuThreatResponseMode;
+      cpuThreatTargetPlayerIndex?: number;
     }
   | {
       kind: "queenWinConfirm";
@@ -183,6 +190,7 @@ export interface DaifugoEffectEvent {
   kind: "sevenExchange" | "queenNumberVanish";
   actorIndex: number;
   targetPlayerIndex?: number;
+  cpuThreatResponseMode?: CpuThreatResponseMode;
   rank?: number;
   exchangedCards?: Array<{
     playerIndex: number;
