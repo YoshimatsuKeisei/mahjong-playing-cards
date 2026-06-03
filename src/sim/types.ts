@@ -53,6 +53,46 @@ export interface SimulationPlayerSummary {
   proUsedJBackFallback: number;
 }
 
+export interface SimulationNumberStats {
+  count: number;
+  avg: number | null;
+  p50: number | null;
+  p75: number | null;
+  p90: number | null;
+}
+
+export interface SimulationTurnTimingSummary {
+  playerCount: number;
+  winnerSelfTurnCountAtWin: SimulationNumberStats;
+  selfTurnCountAtReach: SimulationNumberStats;
+  selfTurnCountFromReachToWin: SimulationNumberStats;
+  reachToTsumoWinSelfTurnCount: SimulationNumberStats;
+  reachToRonWinSelfTurnCount: SimulationNumberStats;
+  reachDeclaredPlayerCount: number;
+  nonReachPlayerCount: number;
+  reachRate: number;
+  selfTurnCountAtSecondCall: SimulationNumberStats;
+  selfTurnCountFromSecondCallToWin: SimulationNumberStats;
+  secondCallToTsumoWinSelfTurnCount: SimulationNumberStats;
+  secondCallToRonWinSelfTurnCount: SimulationNumberStats;
+  secondCallReachedPlayerCount: number;
+  nonSecondCallPlayerCount: number;
+  secondCallRate: number;
+}
+
+export interface SimulationTurnTimingSanityCheck {
+  games: number;
+  deckouts: number;
+  completedGames: number;
+  winnerSelfTurnCountAtWinCount: number;
+  winnerCountMatchesCompletedGames: boolean;
+  minWinnerSelfTurnCountAtWin: number | null;
+  maxWinnerSelfTurnCountAtWin: number | null;
+  avgGlobalTurnCountAtWin: number | null;
+  avgDeckRemainingAtWin: number | null;
+  avgDeckConsumedAtWin: number | null;
+}
+
 export interface SimulationViolation {
   game: number;
   seed: number;
@@ -116,4 +156,6 @@ export interface SimulationSummary {
   gameSeeds: number[];
   startPlayerIndexes: number[];
   results: GameResult[];
+  turnTiming: SimulationTurnTimingSummary[];
+  turnTimingSanity: SimulationTurnTimingSanityCheck;
 }

@@ -3,7 +3,14 @@ import type { DaifugoOptions, GameState } from "../types";
 import { getDisplayedPlayerLosses, getResultLoserIndexes } from "../game/matchState";
 import { gameReducer } from "../game/gameState";
 import { formatSimulationSummary, parseSimulationArgs } from "./cli";
-import { collectEffectTelemetry, makePlayerSummary, runSimulation } from "./simulator";
+import {
+  collectEffectTelemetry,
+  createTurnTimingSanityCheck,
+  createTurnTimingSummary,
+  makePlayerSummary,
+  runSimulation,
+  summarizeNumberSamples,
+} from "./simulator";
 import { createCpuScenario } from "./scenario";
 import type { SimulationConfig, SimulationFiveTargetEvent, SimulationViolation } from "./types";
 
@@ -102,6 +109,12 @@ describe("headless CPU simulation", () => {
     expect(output).toContain("proUsed5ThreatPresentAndSkippedThreat=");
     expect(output).toContain("proUsed5ThreatPresentButDidNotSkipThreat=");
     expect(output).toContain("proUsed5ThreatPresentButCannotSkipThreat=");
+    expect(output).toContain("Turn timing summary:");
+    expect(output).toContain("Turn timing sanity check:");
+    expect(output).toContain("winnerCountMatchesCompletedGames=true");
+    expect(output).toContain("winnerSelfTurnCountAtWin:");
+    expect(output).toContain("selfTurnCountAtReach:");
+    expect(output).toContain("selfTurnCountAtSecondCall:");
     expect(output).not.toContain("winRate");
     expect(output).not.toContain("averageRank");
     expect(output).not.toContain("averageScore");
@@ -109,6 +122,164 @@ describe("headless CPU simulation", () => {
     expect(output).not.toContain("netLoss=");
     expect(output).not.toContain("lossEfficiencyPerGame=");
     expect(output).not.toContain("lossEfficiencyPerTurn=");
+  });
+
+  it("computes turn timing percentiles and rates from per-player self turns", () => {
+    expect(summarizeNumberSamples([3, 1, 10, 7])).toEqual({
+      count: 4,
+      avg: 5.25,
+      p50: 3,
+      p75: 7,
+      p90: 10,
+    });
+
+    const [timing] = createTurnTimingSummary([
+      {
+        playerCount: 3,
+        reachSelfTurnCounts: [2, null, 5],
+        secondCallSelfTurnCounts: [null, 3, null],
+        winners: [
+          {
+            playerIndex: 0,
+            winType: "tsumo",
+            selfTurnCountAtWin: 4,
+            selfTurnCountFromReachToWin: 2,
+            selfTurnCountFromSecondCallToWin: null,
+          },
+        ],
+        globalTurnCountAtWin: 10,
+        deckRemainingAtWin: 30,
+        deckConsumedAtWin: 30,
+      },
+      {
+        playerCount: 3,
+        reachSelfTurnCounts: [null, null, null],
+        secondCallSelfTurnCounts: [1, null, null],
+        winners: [
+          {
+            playerIndex: 2,
+            winType: "ron",
+            selfTurnCountAtWin: 6,
+            selfTurnCountFromReachToWin: null,
+            selfTurnCountFromSecondCallToWin: null,
+          },
+        ],
+        globalTurnCountAtWin: 14,
+        deckRemainingAtWin: 20,
+        deckConsumedAtWin: 40,
+      },
+    ]);
+
+    expect(timing.playerCount).toBe(3);
+    expect(timing.winnerSelfTurnCountAtWin).toMatchObject({ count: 2, avg: 5, p50: 4, p75: 6, p90: 6 });
+    expect(timing.selfTurnCountAtReach).toMatchObject({ count: 2, avg: 3.5, p50: 2, p75: 5, p90: 5 });
+    expect(timing.selfTurnCountAtSecondCall).toMatchObject({ count: 2, avg: 2, p50: 1, p75: 3, p90: 3 });
+    expect(timing.selfTurnCountFromReachToWin).toMatchObject({ count: 1, avg: 2, p50: 2, p75: 2, p90: 2 });
+    expect(timing.selfTurnCountFromSecondCallToWin.count).toBe(0);
+    expect(timing.reachDeclaredPlayerCount).toBe(2);
+    expect(timing.nonReachPlayerCount).toBe(4);
+    expect(timing.reachRate).toBeCloseTo(2 / 6);
+    expect(timing.secondCallReachedPlayerCount).toBe(2);
+    expect(timing.nonSecondCallPlayerCount).toBe(4);
+    expect(timing.secondCallRate).toBeCloseTo(2 / 6);
+  });
+
+  it("keeps winner timing to one sample per completed game for sanity checks", () => {
+    const timings = [
+      {
+        playerCount: 3,
+        reachSelfTurnCounts: [1, null, null],
+        secondCallSelfTurnCounts: [null, null, null],
+        winners: [
+          {
+            playerIndex: 0,
+            winType: "ron" as const,
+            selfTurnCountAtWin: 3,
+            selfTurnCountFromReachToWin: 2,
+            selfTurnCountFromSecondCallToWin: null,
+          },
+        ],
+        globalTurnCountAtWin: 8,
+        deckRemainingAtWin: 20,
+        deckConsumedAtWin: 40,
+      },
+      {
+        playerCount: 3,
+        reachSelfTurnCounts: [null, null, null],
+        secondCallSelfTurnCounts: [null, null, null],
+        winners: [
+          {
+            playerIndex: 2,
+            winType: "tsumo" as const,
+            selfTurnCountAtWin: 5,
+            selfTurnCountFromReachToWin: null,
+            selfTurnCountFromSecondCallToWin: null,
+          },
+        ],
+        globalTurnCountAtWin: 13,
+        deckRemainingAtWin: 10,
+        deckConsumedAtWin: 50,
+      },
+    ];
+    const [timing] = createTurnTimingSummary(timings);
+    const sanity = createTurnTimingSanityCheck(2, 0, timings);
+
+    expect(timing.winnerSelfTurnCountAtWin.count).toBe(2);
+    expect(sanity).toMatchObject({
+      games: 2,
+      deckouts: 0,
+      completedGames: 2,
+      winnerSelfTurnCountAtWinCount: 2,
+      winnerCountMatchesCompletedGames: true,
+      minWinnerSelfTurnCountAtWin: 3,
+      maxWinnerSelfTurnCountAtWin: 5,
+      avgGlobalTurnCountAtWin: 10.5,
+      avgDeckRemainingAtWin: 15,
+      avgDeckConsumedAtWin: 45,
+    });
+  });
+
+  it("keeps deckout games out of win timing stats while preserving reach and second-call arrivals", () => {
+    const [timing] = createTurnTimingSummary([
+      {
+        playerCount: 4,
+        reachSelfTurnCounts: [2, null, null, null],
+        secondCallSelfTurnCounts: [null, 3, null, null],
+        winners: [],
+        globalTurnCountAtWin: null,
+        deckRemainingAtWin: null,
+        deckConsumedAtWin: null,
+      },
+    ]);
+    const sanity = createTurnTimingSanityCheck(1, 1, [
+      {
+        playerCount: 4,
+        reachSelfTurnCounts: [2, null, null, null],
+        secondCallSelfTurnCounts: [null, 3, null, null],
+        winners: [],
+        globalTurnCountAtWin: null,
+        deckRemainingAtWin: null,
+        deckConsumedAtWin: null,
+      },
+    ]);
+
+    expect(timing.winnerSelfTurnCountAtWin.count).toBe(0);
+    expect(timing.selfTurnCountFromReachToWin.count).toBe(0);
+    expect(timing.selfTurnCountFromSecondCallToWin.count).toBe(0);
+    expect(timing.selfTurnCountAtReach.count).toBe(1);
+    expect(timing.selfTurnCountAtSecondCall.count).toBe(1);
+    expect(sanity.winnerSelfTurnCountAtWinCount).toBe(0);
+    expect(sanity.winnerCountMatchesCompletedGames).toBe(true);
+  });
+
+  it("groups timing summaries by 3, 4, and 5 player games", () => {
+    const timing = createTurnTimingSummary([
+      { playerCount: 3, reachSelfTurnCounts: [null, null, null], secondCallSelfTurnCounts: [null, null, null], winners: [], globalTurnCountAtWin: null, deckRemainingAtWin: null, deckConsumedAtWin: null },
+      { playerCount: 4, reachSelfTurnCounts: [null, null, null, null], secondCallSelfTurnCounts: [null, null, null, null], winners: [], globalTurnCountAtWin: null, deckRemainingAtWin: null, deckConsumedAtWin: null },
+      { playerCount: 5, reachSelfTurnCounts: [null, null, null, null, null], secondCallSelfTurnCounts: [null, null, null, null, null], winners: [], globalTurnCountAtWin: null, deckRemainingAtWin: null, deckConsumedAtWin: null },
+    ]);
+
+    expect(timing.map((entry) => entry.playerCount)).toEqual([3, 4, 5]);
   });
 
   it("uses the final-result definitions for losses and efficiency", () => {

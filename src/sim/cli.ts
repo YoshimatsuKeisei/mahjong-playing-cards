@@ -1,6 +1,6 @@
 import type { CpuModelId } from "../types";
 import { runSimulation } from "./simulator";
-import type { SimulationConfig, SimulationLogLevel, SimulationSummary } from "./types";
+import type { SimulationConfig, SimulationLogLevel, SimulationNumberStats, SimulationSummary } from "./types";
 
 function readOption(args: string[], name: string): string | undefined {
   const index = args.indexOf(`--${name}`);
@@ -45,6 +45,14 @@ function formatNumber(value: number): string {
   return Number.isInteger(value) ? String(value) : value.toFixed(4);
 }
 
+function formatOptionalNumber(value: number | null): string {
+  return value === null ? "-" : formatNumber(value);
+}
+
+function formatTimingStats(name: string, stats: SimulationNumberStats, suffix = ""): string {
+  return `${name}: count=${stats.count} avg=${formatOptionalNumber(stats.avg)} p50=${formatOptionalNumber(stats.p50)} p75=${formatOptionalNumber(stats.p75)} p90=${formatOptionalNumber(stats.p90)}${suffix}`;
+}
+
 export function formatSimulationSummary(summary: SimulationSummary): string {
   const lines = [
     "Simulation completed.",
@@ -83,6 +91,44 @@ export function formatSimulationSummary(summary: SimulationSummary): string {
       lines.push(`    proUsedQOnReachRelatedRank=${player.proUsedQOnReachRelatedRank} proUsedQOnTwoCallRelatedRank=${player.proUsedQOnTwoCallRelatedRank} proUsedQOnIrrelevantRank=${player.proUsedQOnIrrelevantRank}`);
       lines.push(`    proUsed9ToIncreaseReachDistance=${player.proUsed9ToIncreaseReachDistance} proUsed9ToIncreaseTwoCallDistance=${player.proUsed9ToIncreaseTwoCallDistance} proUsed9WithoutDistanceGain=${player.proUsed9WithoutDistanceGain}`);
       lines.push(`    proUsedJForEnhancement=${player.proUsedJForEnhancement} proUsedJForView=${player.proUsedJForView} proUsedJBackFallback=${player.proUsedJBackFallback}`);
+    });
+  }
+  lines.push("", "Turn timing sanity check:");
+  lines.push(`games=${summary.turnTimingSanity.games}`);
+  lines.push(`deckouts=${summary.turnTimingSanity.deckouts}`);
+  lines.push(`completedGames=${summary.turnTimingSanity.completedGames}`);
+  lines.push(`winnerSelfTurnCountAtWin.count=${summary.turnTimingSanity.winnerSelfTurnCountAtWinCount}`);
+  lines.push(`winnerCountMatchesCompletedGames=${summary.turnTimingSanity.winnerCountMatchesCompletedGames}`);
+  lines.push(`minWinnerSelfTurnCountAtWin=${formatOptionalNumber(summary.turnTimingSanity.minWinnerSelfTurnCountAtWin)}`);
+  lines.push(`maxWinnerSelfTurnCountAtWin=${formatOptionalNumber(summary.turnTimingSanity.maxWinnerSelfTurnCountAtWin)}`);
+  lines.push(`avgGlobalTurnCountAtWin=${formatOptionalNumber(summary.turnTimingSanity.avgGlobalTurnCountAtWin)}`);
+  lines.push(`avgDeckRemainingAtWin=${formatOptionalNumber(summary.turnTimingSanity.avgDeckRemainingAtWin)}`);
+  lines.push(`avgDeckConsumedAtWin=${formatOptionalNumber(summary.turnTimingSanity.avgDeckConsumedAtWin)}`);
+  if (summary.turnTiming.length > 0) {
+    lines.push("", "Turn timing summary:");
+    summary.turnTiming.forEach((timing) => {
+      lines.push(`players=${timing.playerCount}`);
+      lines.push(formatTimingStats("winnerSelfTurnCountAtWin", timing.winnerSelfTurnCountAtWin));
+      lines.push(
+        formatTimingStats(
+          "selfTurnCountAtReach",
+          timing.selfTurnCountAtReach,
+          ` reachDeclaredPlayerCount=${timing.reachDeclaredPlayerCount} nonReachPlayerCount=${timing.nonReachPlayerCount} reachRate=${formatNumber(timing.reachRate)}`,
+        ),
+      );
+      lines.push(formatTimingStats("selfTurnCountFromReachToWin", timing.selfTurnCountFromReachToWin));
+      lines.push(formatTimingStats("reachToTsumoWinSelfTurnCount", timing.reachToTsumoWinSelfTurnCount));
+      lines.push(formatTimingStats("reachToRonWinSelfTurnCount", timing.reachToRonWinSelfTurnCount));
+      lines.push(
+        formatTimingStats(
+          "selfTurnCountAtSecondCall",
+          timing.selfTurnCountAtSecondCall,
+          ` secondCallReachedPlayerCount=${timing.secondCallReachedPlayerCount} nonSecondCallPlayerCount=${timing.nonSecondCallPlayerCount} secondCallRate=${formatNumber(timing.secondCallRate)}`,
+        ),
+      );
+      lines.push(formatTimingStats("selfTurnCountFromSecondCallToWin", timing.selfTurnCountFromSecondCallToWin));
+      lines.push(formatTimingStats("secondCallToTsumoWinSelfTurnCount", timing.secondCallToTsumoWinSelfTurnCount));
+      lines.push(formatTimingStats("secondCallToRonWinSelfTurnCount", timing.secondCallToRonWinSelfTurnCount));
     });
   }
   if (summary.config.logLevel === "detail") {
