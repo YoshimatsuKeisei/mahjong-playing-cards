@@ -64,7 +64,7 @@ describe("PlayScreen round display", () => {
 
     expect(screen.getByText("J特殊効果を選択してください")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /情報閲覧/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Jバック/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Jシールド/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /5\/7強化権/ })).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /情報閲覧/ }));
@@ -91,7 +91,7 @@ describe("PlayScreen round display", () => {
     expect(screen.getByRole("button", { name: /5\/7強化権/ })).toBeDisabled();
     expect(screen.getByText("すでに強化権を保持しています")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /情報閲覧/ })).not.toBeDisabled();
-    expect(screen.getByRole("button", { name: /Jバック/ })).not.toBeDisabled();
+    expect(screen.getByRole("button", { name: /Jシールド/ })).not.toBeDisabled();
   });
 
   it("shows the public J enhancement right badge only for the holder", () => {

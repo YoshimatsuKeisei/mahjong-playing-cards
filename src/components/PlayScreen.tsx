@@ -16,6 +16,7 @@ import {
   getEnhancedFiveTurnOptions,
   getReachWinningOptions,
   getSevenExchangeCandidateCards,
+  isCardJShielded,
   chooseCpuQueenRank,
   getQueenVanishRankOptions,
   type GameAction,
@@ -280,6 +281,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
   const isQueenSelect = pendingDaifugoEffect?.kind === "queenSelect";
   const isQueenWinConfirm = pendingDaifugoEffect?.kind === "queenWinConfirm";
   const isJackSelect = pendingDaifugoEffect?.kind === "jackSelect";
+  const isJackShieldSelect = pendingDaifugoEffect?.kind === "jackShieldSelect";
   const isJackInspect = pendingDaifugoEffect?.kind === "jackInspect";
   const isReachContinueConfirm = pendingDaifugoEffect?.kind === "reachContinueConfirm";
   const mustDiscardDrawnForReachDaifugo =
@@ -303,6 +305,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
     isQueenSelect ||
     isQueenWinConfirm ||
     isJackSelect ||
+    isJackShieldSelect ||
     isJackInspect ||
     isReachContinueConfirm;
   const pendingRonResult = state.pendingRonResult;
@@ -342,6 +345,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
     sevenSelectionPlayerIndex ??
     (currentPlayer?.isCpu ? (humanPlayerIndex >= 0 ? humanPlayerIndex : state.currentPlayerIndex) : state.currentPlayerIndex);
   const handPlayer = state.players[handPlayerIndex] ?? currentPlayer;
+  const handShieldedCardIds = handPlayer.jShield?.cardIds.filter((cardId) => handPlayer.hand.some((card) => card.id === cardId)) ?? [];
   const handDrawnCardId = handPlayerIndex === state.currentPlayerIndex ? state.drawnCard?.id ?? null : null;
   const hiddenDaifugoIncomingIds =
     visibleDaifugoEvent && isDaifugoEventPlaying ? getDaifugoIncomingCardIdsForPlayer(visibleDaifugoEvent, handPlayerIndex) : new Set<string>();
@@ -360,6 +364,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
     (pendingDaifugoEffect?.kind === "queenSelect" && !state.players[pendingDaifugoEffect.playerIndex]?.isCpu) ||
     (pendingDaifugoEffect?.kind === "queenWinConfirm" && !state.players[pendingDaifugoEffect.playerIndex]?.isCpu) ||
     (pendingDaifugoEffect?.kind === "jackSelect" && !state.players[pendingDaifugoEffect.playerIndex]?.isCpu) ||
+    (pendingDaifugoEffect?.kind === "jackShieldSelect" && !state.players[pendingDaifugoEffect.playerIndex]?.isCpu) ||
     (pendingDaifugoEffect?.kind === "jackInspect" && !state.players[pendingDaifugoEffect.playerIndex]?.isCpu) ||
     (pendingDaifugoEffect?.kind === "reachContinueConfirm" && !state.players[pendingDaifugoEffect.playerIndex]?.isCpu);
 
@@ -776,6 +781,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
   function handleDiscardSelected() {
     const card = currentPlayer.hand.find((item) => item.id === selectedDiscardId);
     if (!card) return;
+    if (isCardJShielded(currentPlayer, card)) return;
     animateDiscard(card, () => dispatch({ type: "discard", cardId: card.id }));
   }
 
@@ -789,6 +795,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
       ? state.drawnCard
       : currentPlayer.hand.find((item) => item.id === selectedDiscardId);
     if (!card) return;
+    if (isCardJShielded(currentPlayer, card)) return;
     animateDiscard(card, () => dispatch({ type: "discardForDaifugoEffect", cardId: card.id }));
   }
 
@@ -801,10 +808,12 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
 
   function handleDiscardDrawnOnly() {
     if (!state.drawnCard) return;
+    if (isCardJShielded(currentPlayer, state.drawnCard)) return;
     animateDiscard(state.drawnCard, () => dispatch({ type: "discardDrawnOnly" }));
   }
 
   function handleWinWithDiscard(card: Card) {
+    if (isCardJShielded(currentPlayer, card)) return;
     animateDiscard(card, () => dispatch({ type: "winWithDiscard", discardCardId: card.id }));
   }
 
@@ -818,6 +827,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
       setSelectedDiscardId(card.id);
       return;
     }
+    if (isCardJShielded(currentPlayer, card)) return;
     setSelectedDiscardId((previousId) => (previousId === card.id ? null : card.id));
   }
 
@@ -873,7 +883,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
           <div className="toolbar-player">
             <span>現在のプレイヤー</span>
             <strong>{cpuDisplayNames.get(state.currentPlayerIndex) ?? currentPlayer.name}</strong>
-            <em>{getPlayerStatus(currentPlayer)}</em>
+            <em>{getPlayerStatus(currentPlayer, true)}</em>
           </div>
           <div className="toolbar-action">{daifugoAnimationStep?.message ?? getActionText(state)}</div>
           <div className="toolbar-deck">
@@ -881,9 +891,8 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
             <strong>{state.deck.length}</strong>
           </div>
           {state.daifugoOptions.enabled && (
-            <div className={`daifugo-status ${state.isJBackActive ? "active" : ""}`}>
+            <div className="daifugo-status">
               <span className="daifugo-status-direction">{state.direction === "clockwise" ? "通常順" : "逆回り"}</span>
-              {state.isJBackActive && <span className="daifugo-status-jback">Jバック中</span>}
             </div>
           )}
         </header>
@@ -1364,10 +1373,10 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
                   type="button"
                   className="jack-effect-choice"
                   disabled={isAnimating || cpuActionInProgress}
-                  onClick={() => dispatch({ type: "selectJackSpecialEffect", effect: "jBack" })}
+                  onClick={() => dispatch({ type: "selectJackSpecialEffect", effect: "jShield" })}
                 >
-                  <span>Jバック</span>
-                  <small>{state.isJBackActive ? "失点計算を通常に戻します" : "失点計算の大小を反転します"}</small>
+                  <span>Jシールド</span>
+                  <small>選んだ数字の現在の手札だけを1回守ります</small>
                 </button>
                 <button
                   type="button"
@@ -1382,6 +1391,26 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
                       : "後の自分の手番で、5または7の効果を強化できます"}
                   </small>
                 </button>
+              </div>
+            </div>
+          )}
+
+          {isJackShieldSelect && pendingDaifugoEffect.playerIndex === state.currentPlayerIndex && !currentPlayer.isCpu && (
+            <div className="daifugo-effect-panel jack-shield-panel">
+              <strong>Jシールドで守る数字を選んでください</strong>
+              <span className="hint">発動時点で持っている同じ数字のカードだけを1回保護します。</span>
+              <div className="rank-choice-grid">
+                {pendingDaifugoEffect.selectableRanks.map((rank) => (
+                  <button
+                    type="button"
+                    className="rank-choice-button"
+                    key={rank}
+                    disabled={isAnimating || cpuActionInProgress}
+                    onClick={() => dispatch({ type: "selectJackShieldRank", rank })}
+                  >
+                    {formatRankLabel(rank)}
+                  </button>
+                ))}
               </div>
             </div>
           )}
@@ -1572,6 +1601,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
             selectedCardId={selectedDiscardId}
             discardingCardId={discardingCardId}
             selectableCardIds={isSevenHandSelection ? sevenSelectionCandidateIds : null}
+            disabledCardIds={handShieldedCardIds}
             disabled={
               isSevenHandSelection
                 ? isAnimating || cpuActionInProgress
@@ -2127,10 +2157,12 @@ function getHistoryAnchorStyle(playerCount: number, index: number): CSSPropertie
   return getSeatStyle(playerCount, index);
 }
 
-function getPlayerStatus(player: GameState["players"][number]) {
-  if (player.isReach) return "リーチ中";
-  if (player.hasCalled) return "鳴き済み";
-  return "通常";
+function getPlayerStatus(player: GameState["players"][number], revealShieldRank = false) {
+  const statuses = [player.isReach ? "リーチ中" : player.hasCalled ? "鳴き済み" : "通常"];
+  if (player.jShield) {
+    statuses.push(revealShieldRank ? `Jシールド:${formatRankLabel(player.jShield.rank)}` : "Jシールド発動中");
+  }
+  return statuses.join(" / ");
 }
 
 function buildCpuDisplayNames(state: GameState) {
@@ -2204,6 +2236,7 @@ function getActionText(state: GameState) {
   if (state.pendingDaifugoEffect?.kind === "queenSelect") return "Qの効果で消す数字を選んでいます。";
   if (state.pendingDaifugoEffect?.kind === "queenWinConfirm") return "Qの効果後の上がりを確認しています。";
   if (state.pendingDaifugoEffect?.kind === "jackSelect") return "J特殊効果を選択しています。";
+  if (state.pendingDaifugoEffect?.kind === "jackShieldSelect") return "Jシールドの対象数字を選択しています。";
   if (state.pendingDaifugoEffect?.kind === "jackInspect") return "J効果で相手の手札を確認しています。";
   if (state.pendingDaifugoEffect?.kind === "reachContinueConfirm") return state.pendingDaifugoEffect.message;
   if (state.pendingDaifugoEffect?.kind === "confirm") return getDaifugoEffectText(state.pendingDaifugoEffect.effect);

@@ -28,6 +28,10 @@ function player(index: number, hand: Card[], isCpu = false): Player {
   };
 }
 
+function replacePlayerForTest(players: Player[], playerIndex: number, nextPlayer: Player): Player[] {
+  return players.map((candidate, index) => (index === playerIndex ? nextPlayer : candidate));
+}
+
 function daifugoOptions(overrides: Partial<DaifugoOptions["effects"]> = {}, enabled = true): DaifugoOptions {
   return {
     enabled,
@@ -724,39 +728,136 @@ describe("daifugo game state", () => {
     expect(next.currentPlayerIndex).toBe(1);
   });
 
-  it("shows a J special effect choice before toggling J-back", () => {
+  it("shows a J special effect choice before starting J shield", () => {
     const jackPending = gameReducer(stateForDiscard(card("jack", 11)), { type: "discard", cardId: "jack" });
     const choosing = gameReducer(jackPending, { type: "answerDaifugoEffect", activate: true });
 
     expect(choosing.pendingDaifugoEffect?.kind).toBe("jackSelect");
     expect(choosing.isJBackActive).toBe(false);
 
-    const jBack = gameReducer(choosing, { type: "selectJackSpecialEffect", effect: "jBack" });
-    expect(jBack.isJBackActive).toBe(true);
-    expect(jBack.pendingDaifugoEffect).toBeNull();
+    const selectingShield = gameReducer(choosing, { type: "selectJackSpecialEffect", effect: "jShield" });
+    expect(selectingShield.pendingDaifugoEffect).toMatchObject({
+      kind: "jackShieldSelect",
+      playerIndex: 0,
+      selectableRanks: expect.arrayContaining([7]),
+    });
+
+    const shielded = gameReducer(selectingShield, { type: "selectJackShieldRank", rank: 7 });
+    expect(shielded.isJBackActive).toBe(false);
+    expect(shielded.players[0].jShield).toEqual({
+      rank: 7,
+      cardIds: ["a-7"],
+    });
+    expect(shielded.pendingDaifugoEffect).toBeNull();
   });
 
-  it("J-back is toggled only by choosing J-back and is no longer cleared by the 8 effect", () => {
-    const jackPending = gameReducer({ ...stateForDiscard(card("jack", 11)), isJBackActive: true }, { type: "discard", cardId: "jack" });
+  it("J shield only protects card instances held when it is selected", () => {
+    const jackPending = gameReducer(stateForDiscard(card("jack", 11)), { type: "discard", cardId: "jack" });
     const choosing = gameReducer(jackPending, { type: "answerDaifugoEffect", activate: true });
-    const normal = gameReducer(choosing, { type: "selectJackSpecialEffect", effect: "jBack" });
-    expect(normal.isJBackActive).toBe(false);
+    const selectingShield = gameReducer(choosing, { type: "selectJackSpecialEffect", effect: "jShield" });
+    const shielded = gameReducer(selectingShield, { type: "selectJackShieldRank", rank: 7 });
 
-    const eightPending = gameReducer({ ...stateForDiscard(card("eight", 8)), isJBackActive: true }, { type: "discard", cardId: "eight" });
-    const drawPending = gameReducer(eightPending, { type: "answerDaifugoEffect", activate: true });
-    expect(drawPending.isJBackActive).toBe(true);
-    expect(drawPending.pendingDaifugoEffect?.kind).toBe("effectDraw");
-    expect(drawPending.currentPlayerIndex).toBe(0);
+    const withLaterSeven = {
+      ...shielded,
+      players: replacePlayerForTest(shielded.players, 0, {
+        ...shielded.players[0],
+        hand: [...shielded.players[0].hand, card("later-7", 7)],
+      }),
+    };
+    expect(withLaterSeven.players[0].jShield).toEqual({
+      rank: 7,
+      cardIds: ["a-7"],
+    });
   });
 
-  it("does not change J-back when J special effect is declined or information browsing is selected", () => {
+  it("prevents normal discard of a shielded card", () => {
+    const jackPending = gameReducer(stateForDiscard(card("jack", 11)), { type: "discard", cardId: "jack" });
+    const choosing = gameReducer(jackPending, { type: "answerDaifugoEffect", activate: true });
+    const selectingShield = gameReducer(choosing, { type: "selectJackSpecialEffect", effect: "jShield" });
+    const shielded = gameReducer(selectingShield, { type: "selectJackShieldRank", rank: 7 });
+    const discardState: GameState = {
+      ...shielded,
+      phase: "discard",
+      currentPlayerIndex: 0,
+      drawnCard: shielded.players[0].hand.find((item) => item.id === "a-7") ?? null,
+      pendingDaifugoEffect: null,
+    };
+
+    const blocked = gameReducer(discardState, { type: "discard", cardId: "a-7" });
+
+    expect(blocked).toBe(discardState);
+  });
+
+  it("keeps shielded cards during Q number vanish and consumes the shield", () => {
+    const base = stateForDiscard(card("queen", 12), daifugoOptions({ queenNumberVanish: true }));
+    const selecting: GameState = {
+      ...base,
+      players: [
+        {
+          ...base.players[0],
+          hand: [card("self-5", 5), card("self-6", 6)],
+          jShield: { rank: 5, cardIds: ["self-5"] },
+        },
+        { ...base.players[1], hand: [card("target-5", 5)] },
+        base.players[2],
+      ],
+      deck: [card("draw-a", 1), card("draw-b", 2)],
+      pendingDaifugoEffect: {
+        kind: "queenSelect",
+        effect: "queenNumberVanish",
+        playerIndex: 0,
+        continue: { shouldConfirmReach: false },
+      },
+    };
+
+    const resolved = gameReducer(selecting, { type: "selectQueenVanishRank", rank: 5 });
+
+    expect(resolved.players[0].hand.some((item) => item.id === "self-5")).toBe(true);
+    expect(resolved.players[0].jShield).toBeUndefined();
+    expect(resolved.players[1].hand.some((item) => item.id === "target-5")).toBe(false);
+    expect(resolved.players[1].discardPile.some((item) => item.id === "target-5")).toBe(true);
+  });
+
+  it("uses a decoy card when 7 exchange selects a shielded card", () => {
+    const base = stateForDiscard(card("seven", 7), daifugoOptions({ sevenExchange: true }));
+    const selecting: GameState = {
+      ...base,
+      players: [
+        {
+          ...base.players[0],
+          hand: [card("protected-9", 9), card("decoy-4", 4)],
+          jShield: { rank: 9, cardIds: ["protected-9"] },
+        },
+        { ...base.players[1], hand: [card("target-card", 2)] },
+        base.players[2],
+      ],
+      pendingDaifugoEffect: {
+        kind: "sevenExchange",
+        effect: "sevenExchange",
+        playerIndex: 0,
+        targetPlayerIndex: 1,
+        selections: { 0: "protected-9" },
+        continue: { shouldConfirmReach: false },
+      },
+    };
+
+    const resolved = gameReducer(selecting, { type: "selectSevenExchangeCard", playerIndex: 1, cardId: "target-card" });
+
+    expect(resolved.players[0].hand.some((item) => item.id === "protected-9")).toBe(true);
+    expect(resolved.players[0].hand.some((item) => item.id === "target-card")).toBe(true);
+    expect(resolved.players[0].jShield).toBeUndefined();
+    expect(resolved.players[1].hand.some((item) => item.id === "decoy-4")).toBe(true);
+    expect(resolved.players[1].hand.some((item) => item.id === "protected-9")).toBe(false);
+  });
+
+  it("does not start J shield when J special effect is declined or information browsing is selected", () => {
     const jackPending = gameReducer(stateForDiscard(card("jack", 11)), { type: "discard", cardId: "jack" });
     const declined = gameReducer(jackPending, { type: "answerDaifugoEffect", activate: false });
-    expect(declined.isJBackActive).toBe(false);
+    expect(declined.players[0].jShield).toBeUndefined();
 
     const choosing = gameReducer(jackPending, { type: "answerDaifugoEffect", activate: true });
     const inspecting = gameReducer(choosing, { type: "selectJackSpecialEffect", effect: "inspectHands" });
-    expect(inspecting.isJBackActive).toBe(false);
+    expect(inspecting.players[0].jShield).toBeUndefined();
     expect(inspecting.pendingDaifugoEffect?.kind).toBe("jackInspect");
   });
 
@@ -877,7 +978,7 @@ describe("daifugo game state", () => {
     expect(resolved.queenVanishedRanks).toEqual(beforeInspect.queenVanishedRanks);
   });
 
-  it("CPU J activation temporarily chooses J-back instead of information browsing", () => {
+  it("standard CPU J activation does not choose J shield", () => {
     const cpuState = {
       ...stateForDiscard(card("jack", 11)),
       players: stateForDiscard(card("jack", 11)).players.map((candidate, index) =>
@@ -888,7 +989,8 @@ describe("daifugo game state", () => {
     const resolved = gameReducer(jackPending, { type: "answerDaifugoEffect", activate: true });
 
     expect(resolved.pendingDaifugoEffect).toBeNull();
-    expect(resolved.isJBackActive).toBe(true);
+    expect(resolved.players[0].jShield).toBeUndefined();
+    expect(resolved.isJBackActive).toBe(false);
   });
 
   it("normal tactical CPU J activation gains an enhancement right instead of toggling J-back", () => {

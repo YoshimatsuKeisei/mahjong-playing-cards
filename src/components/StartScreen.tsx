@@ -105,7 +105,7 @@ const DAIFUGO_EFFECT_LABELS: Array<{
   { key: "eightExtraTurn", shortLabel: "8", label: "追加ターン" },
   { key: "nineReverse", shortLabel: "9", label: "逆回り" },
   { key: "tenSwapDraw", shortLabel: "10", label: "捨てて引く" },
-  { key: "jackBack", shortLabel: "J", label: "Jバック" },
+  { key: "jackBack", shortLabel: "J", label: "Jシールド" },
   { key: "queenNumberVanish", shortLabel: "Q", label: "数字全消去" },
 ];
 
