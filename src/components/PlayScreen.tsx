@@ -279,7 +279,6 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
   const isFiveEnhancedTargetSelect = pendingDaifugoEffect?.kind === "fiveEnhancedTargetSelect";
   const isEnhancedTargetSelect = isSevenEnhancedTargetSelect || isFiveEnhancedTargetSelect;
   const isQueenSelect = pendingDaifugoEffect?.kind === "queenSelect";
-  const isQueenWinConfirm = pendingDaifugoEffect?.kind === "queenWinConfirm";
   const isJackSelect = pendingDaifugoEffect?.kind === "jackSelect";
   const isJackShieldSelect = pendingDaifugoEffect?.kind === "jackShieldSelect";
   const isJackInspect = pendingDaifugoEffect?.kind === "jackInspect";
@@ -303,7 +302,6 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
     isFiveEnhancementSplash ||
     isFiveEnhancedTargetSelect ||
     isQueenSelect ||
-    isQueenWinConfirm ||
     isJackSelect ||
     isJackShieldSelect ||
     isJackInspect ||
@@ -494,11 +492,6 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
       return;
     }
 
-    if (state.pendingDaifugoEffect?.kind === "queenWinConfirm") {
-      scheduleCpuAction(() => dispatch({ type: "answerQueenWin", takeWin: true }), CPU_DECISION_DELAY_MS);
-      return;
-    }
-
     if (state.pendingDaifugoEffect?.kind === "effectDraw") {
       scheduleCpuAction(() => dispatch({ type: "drawForDaifugoEffect" }), CPU_AFTER_DRAW_DELAY_MS);
       return;
@@ -644,6 +637,20 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
       window.clearTimeout(timeoutId);
     };
   }, [visibleDaifugoEvent?.id, daifugoEventStepIndex, daifugoAnimationStep, daifugoAnimationSteps.length]);
+
+  useEffect(() => {
+    if (state.pendingDaifugoEffect?.kind !== "queenWinConfirm") return;
+    if (!state.daifugoEffectEvent) {
+      dispatch({ type: "answerQueenWin", takeWin: true });
+      return;
+    }
+    const steps = buildDaifugoAnimationSteps(state.daifugoEffectEvent, state);
+    const timeoutId = window.setTimeout(
+      () => dispatch({ type: "answerQueenWin", takeWin: true }),
+      getDaifugoAnimationTotalDuration(steps),
+    );
+    return () => window.clearTimeout(timeoutId);
+  }, [dispatch, state.daifugoEffectEvent?.id, state.pendingDaifugoEffect, state.players, state.showCpuActions]);
 
   useEffect(() => {
     if (currentPlayer?.isCpu || state.pendingDaifugoEffect?.kind !== "effectDraw" || isAnimating) return;
@@ -1481,20 +1488,6 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
             </div>
           )}
 
-          {isQueenWinConfirm && pendingDaifugoEffect.playerIndex === state.currentPlayerIndex && !currentPlayer.isCpu && (
-            <div className="daifugo-effect-panel">
-              <strong>Qの効果で上がれます。上がりますか？</strong>
-              <div className="daifugo-effect-actions">
-                <button type="button" className="primary-button" disabled={isAnimating || cpuActionInProgress} onClick={() => dispatch({ type: "answerQueenWin", takeWin: true })}>
-                  はい
-                </button>
-                <button type="button" disabled={isAnimating || cpuActionInProgress} onClick={() => dispatch({ type: "answerQueenWin", takeWin: false })}>
-                  いいえ
-                </button>
-              </div>
-            </div>
-          )}
-
           {state.phase === "draw" && !pendingDaifugoEffect && (
             <>
               <button
@@ -1798,6 +1791,15 @@ function getDaifugoStepDuration(step: DaifugoAnimationStep) {
   if (step.variant === "settle") return 360;
   if (step.variant === "draw" || step.variant === "exchange") return step.phase === "insert" ? 650 : 1550;
   return step.cards.length > 0 ? 650 : 650;
+}
+
+function getDaifugoAnimationTotalDuration(steps: DaifugoAnimationStep[]) {
+  return steps.reduce((total, step) => {
+    if (step.variant === "draw" || step.variant === "exchange") {
+      return total + getDaifugoStepDuration({ ...step, phase: "reveal" }) + getDaifugoStepDuration({ ...step, phase: "insert" });
+    }
+    return total + getDaifugoStepDuration(step);
+  }, 0);
 }
 
 function buildDaifugoAnimationStepsOld(event: NonNullable<GameState["daifugoEffectEvent"]>, state: GameState): DaifugoAnimationStep[] {

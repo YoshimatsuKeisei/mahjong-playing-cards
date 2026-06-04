@@ -1,8 +1,8 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { act } from "react";
 import { describe, expect, it, vi } from "vitest";
-import { createInitialGame } from "../game/gameState";
+import { createInitialGame, gameReducer } from "../game/gameState";
+import { createDebugDaifugoState } from "../App";
 import type { Card, GameState } from "../types";
 import PlayScreen from "./PlayScreen";
 
@@ -495,6 +495,27 @@ describe("PlayScreen round display", () => {
 
     expect(screen.getByText("Player 2、Player 3をスキップ！次の手番はPlayer 4です。")).toBeInTheDocument();
     expect(screen.queryByText("次のプレイヤーへ交代してください。")).not.toBeInTheDocument();
+  });
+
+  it("confirms a Q after-effect win only after the Q discard and draw animation finishes", async () => {
+    vi.useFakeTimers();
+    const dispatch = vi.fn();
+    const scenario = createDebugDaifugoState("queenAfterEffectWin");
+    const state = gameReducer(scenario, { type: "selectQueenVanishRank", rank: 9 });
+
+    render(<PlayScreen state={state} dispatch={dispatch} currentRound={1} />);
+
+    expect(state.pendingDaifugoEffect).toMatchObject({ kind: "queenWinConfirm" });
+    expect(screen.getByText("Q効果発動により、9が捨てられます")).toBeInTheDocument();
+    expect(screen.queryByText("Qの効果で上がれます。上がりますか？")).not.toBeInTheDocument();
+    expect(dispatch).not.toHaveBeenCalledWith({ type: "answerQueenWin", takeWin: true });
+
+    await act(async () => {
+      await vi.runAllTimersAsync();
+    });
+
+    expect(dispatch).toHaveBeenCalledWith({ type: "answerQueenWin", takeWin: true });
+    vi.useRealTimers();
   });
 
   it("shows a full-size shuffled ten-card row for J information browsing", () => {

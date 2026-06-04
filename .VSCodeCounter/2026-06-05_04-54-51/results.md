@@ -1,19 +1,19 @@
 # Summary
 
-Date : 2026-05-31 09:14:25
+Date : 2026-06-05 04:54:51
 
 Directory c:\\Users\\jingc\\Documents\\8番出口
 
-Total : 70 files,  19556 codes, 158 comments, 2231 blanks, all 21945 lines
+Total : 73 files,  23296 codes, 158 comments, 2597 blanks, all 26051 lines
 
 Summary / [Details](details.md) / [Diff Summary](diff.md) / [Diff Details](diff-details.md)
 
 ## Languages
 | language | files | code | comment | blank | total |
 | :--- | ---: | ---: | ---: | ---: | ---: |
-| TypeScript JSX | 29 | 6,333 | 151 | 706 | 7,190 |
-| TypeScript | 31 | 5,609 | 1 | 737 | 6,347 |
-| PostCSS | 1 | 5,311 | 6 | 767 | 6,084 |
+| TypeScript | 34 | 9,273 | 1 | 1,098 | 10,372 |
+| TypeScript JSX | 29 | 6,366 | 151 | 707 | 7,224 |
+| PostCSS | 1 | 5,354 | 6 | 771 | 6,131 |
 | JSON | 3 | 2,219 | 0 | 3 | 2,222 |
 | YAML | 1 | 28 | 0 | 7 | 35 |
 | JSON with Comments | 1 | 22 | 0 | 1 | 23 |
@@ -24,17 +24,17 @@ Summary / [Details](details.md) / [Diff Summary](diff.md) / [Diff Details](diff-
 ## Directories
 | path | files | code | comment | blank | total |
 | :--- | ---: | ---: | ---: | ---: | ---: |
-| . | 70 | 19,556 | 158 | 2,231 | 21,945 |
+| . | 73 | 23,296 | 158 | 2,597 | 26,051 |
 | . (Files) | 8 | 2,268 | 0 | 13 | 2,281 |
 | .github | 1 | 28 | 0 | 7 | 35 |
 | .github\\workflows | 1 | 28 | 0 | 7 | 35 |
 | scripts | 1 | 16 | 0 | 3 | 19 |
-| src | 60 | 17,244 | 158 | 2,208 | 19,610 |
-| src (Files) | 5 | 6,467 | 7 | 850 | 7,324 |
-| src\\components | 27 | 5,450 | 151 | 641 | 6,242 |
+| src | 63 | 20,984 | 158 | 2,574 | 23,716 |
+| src (Files) | 5 | 6,524 | 7 | 855 | 7,386 |
+| src\\components | 27 | 5,487 | 151 | 642 | 6,280 |
 | src\\data | 1 | 26 | 0 | 4 | 30 |
-| src\\game | 18 | 4,669 | 0 | 636 | 5,305 |
-| src\\sim | 8 | 626 | 0 | 75 | 701 |
+| src\\game | 21 | 6,673 | 0 | 859 | 7,532 |
+| src\\sim | 8 | 2,268 | 0 | 212 | 2,480 |
 | src\\test | 1 | 6 | 0 | 2 | 8 |
 
 Summary / [Details](details.md) / [Diff Summary](diff.md) / [Diff Details](diff-details.md)

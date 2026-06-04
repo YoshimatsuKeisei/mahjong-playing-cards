@@ -955,6 +955,11 @@ function resolveQueenNumberVanish(state: GameState, rank: number): GameState {
   };
 
   if (winningResult.canWin) {
+    console.info("[Q after-effect win check]", {
+      player: user.id,
+      canWin: true,
+      reason: "completedByQReplacementDraw",
+    });
     return {
       ...nextState,
       players: replacePlayer(players, pending.playerIndex, { ...user, winningResult }),
@@ -965,7 +970,7 @@ function resolveQueenNumberVanish(state: GameState, rank: number): GameState {
         winningResult,
         continue: { ...pending.continue, shouldConfirmReach: false, message },
       },
-      message: `${message} 上がりますか？`,
+      message: `${message} 上がりを確定します。`,
     };
   }
 
@@ -987,7 +992,12 @@ function drawOneForPlayer(state: GameState, playerIndex: number): { state: GameS
   return { state: { ...state, deck, players, drawnCard, drawnFrom: "deck" }, drawnCard };
 }
 
-function makeWinningState(state: GameState, players: Player[], winningResult = players[state.currentPlayerIndex].winningResult): GameState {
+function makeWinningState(
+  state: GameState,
+  players: Player[],
+  winningResult = players[state.currentPlayerIndex].winningResult,
+  actionSource = "normalWinWithDiscard",
+): GameState {
   if (!winningResult) return state;
   const result = makeResult(
     { ...state, players },
@@ -995,7 +1005,7 @@ function makeWinningState(state: GameState, players: Player[], winningResult = p
     state.drawnFrom === "discard" ? "ron" : "tsumo",
     winningResult,
     state.drawnFrom === "discard" ? state.takenDiscardOwnerIndex : null,
-    "normalWinWithDiscard",
+    actionSource,
   );
   return {
     ...state,
@@ -1834,10 +1844,16 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const pending = state.pendingDaifugoEffect;
       if (!pending || pending.kind !== "queenWinConfirm") return state;
       if (action.takeWin) {
+        const winner = state.players[pending.playerIndex];
+        console.info("[Q after-effect win resolved]", {
+          winner: winner?.id,
+          method: "qEffectAfterDraw",
+        });
         return makeWinningState(
           { ...state, pendingDaifugoEffect: null, currentPlayerIndex: pending.playerIndex, drawnFrom: "deck" },
           state.players,
           pending.winningResult,
+          "qEffectAfterDraw",
         );
       }
       return continueAfterDaifugo(

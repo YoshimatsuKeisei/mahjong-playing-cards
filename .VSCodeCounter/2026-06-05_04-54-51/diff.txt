@@ -1,0 +1,52 @@
+Date : 2026-06-05 04:54:51
+Directory : c:\Users\jingc\Documents\8番出口
+Total : 21 files,  1447 codes, 0 comments, 149 blanks, all 1596 lines
+
+Languages
++----------------+------------+------------+------------+------------+------------+
+| language       | files      | code       | comment    | blank      | total      |
++----------------+------------+------------+------------+------------+------------+
+| TypeScript     |         16 |      1,371 |          0 |        144 |      1,515 |
+| PostCSS        |          1 |         43 |          0 |          4 |         47 |
+| TypeScript JSX |          4 |         33 |          0 |          1 |         34 |
++----------------+------------+------------+------------+------------+------------+
+
+Directories
++-------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| path                                                              | files      | code       | comment    | blank      | total      |
++-------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| .                                                                 |         21 |      1,447 |          0 |        149 |      1,596 |
+| src                                                               |         21 |      1,447 |          0 |        149 |      1,596 |
+| src (Files)                                                       |          3 |         50 |          0 |          4 |         54 |
+| src\components                                                    |          3 |         37 |          0 |          1 |         38 |
+| src\game                                                          |         10 |        899 |          0 |        112 |      1,011 |
+| src\sim                                                           |          5 |        461 |          0 |         32 |        493 |
++-------------------------------------------------------------------+------------+------------+------------+------------+------------+
+
+Files
++-------------------------------------------------------------------+----------------+------------+------------+------------+------------+
+| filename                                                          | language       | code       | comment    | blank      | total      |
++-------------------------------------------------------------------+----------------+------------+------------+------------+------------+
+| c:\Users\jingc\Documents\8番出口\src\App.tsx                         | TypeScript JSX |         -4 |          0 |          0 |         -4 |
+| c:\Users\jingc\Documents\8番出口\src\components\HandView.tsx         | TypeScript JSX |          4 |          0 |          0 |          4 |
+| c:\Users\jingc\Documents\8番出口\src\components\PlayScreen.tsx       | TypeScript JSX |         32 |          0 |          1 |         33 |
+| c:\Users\jingc\Documents\8番出口\src\components\PlayerArea.tsx       | TypeScript JSX |          1 |          0 |          0 |          1 |
+| c:\Users\jingc\Documents\8番出口\src\game\cpuModel.test.ts           | TypeScript     |        150 |          0 |         28 |        178 |
+| c:\Users\jingc\Documents\8番出口\src\game\cpuModelRegistry.ts        | TypeScript     |          3 |          0 |          0 |          3 |
+| c:\Users\jingc\Documents\8番出口\src\game\daifugoCpu.ts              | TypeScript     |         56 |          0 |          5 |         61 |
+| c:\Users\jingc\Documents\8番出口\src\game\gameState.test.ts          | TypeScript     |        288 |          0 |         27 |        315 |
+| c:\Users\jingc\Documents\8番出口\src\game\gameState.ts               | TypeScript     |        221 |          0 |         25 |        246 |
+| c:\Users\jingc\Documents\8番出口\src\game\masterCpu.ts               | TypeScript     |         13 |          0 |          2 |         15 |
+| c:\Users\jingc\Documents\8番出口\src\game\masterRankEstimate.test.ts | TypeScript     |         80 |          0 |          9 |         89 |
+| c:\Users\jingc\Documents\8番出口\src\game\masterRankEstimate.ts      | TypeScript     |         69 |          0 |         14 |         83 |
+| c:\Users\jingc\Documents\8番出口\src\game\standardCpu.ts             | TypeScript     |          6 |          0 |          0 |          6 |
+| c:\Users\jingc\Documents\8番出口\src\game\tacticalCpu.ts             | TypeScript     |         13 |          0 |          2 |         15 |
+| c:\Users\jingc\Documents\8番出口\src\sim\cli.ts                      | TypeScript     |         45 |          0 |          2 |         47 |
+| c:\Users\jingc\Documents\8番出口\src\sim\scenario.test.ts            | TypeScript     |         36 |          0 |          6 |         42 |
+| c:\Users\jingc\Documents\8番出口\src\sim\simulator.test.ts           | TypeScript     |        175 |          0 |         13 |        188 |
+| c:\Users\jingc\Documents\8番出口\src\sim\simulator.ts                | TypeScript     |        165 |          0 |          8 |        173 |
+| c:\Users\jingc\Documents\8番出口\src\sim\types.ts                    | TypeScript     |         40 |          0 |          3 |         43 |
+| c:\Users\jingc\Documents\8番出口\src\styles.css                      | PostCSS        |         43 |          0 |          4 |         47 |
+| c:\Users\jingc\Documents\8番出口\src\types.ts                        | TypeScript     |         11 |          0 |          0 |         11 |
+| Total                                                             |                |      1,447 |          0 |        149 |      1,596 |
++-------------------------------------------------------------------+----------------+------------+------------+------------+------------+

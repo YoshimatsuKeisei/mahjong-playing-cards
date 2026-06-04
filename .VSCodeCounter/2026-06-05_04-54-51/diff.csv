@@ -1,0 +1,23 @@
+"filename", "language", "PostCSS", "TypeScript", "TypeScript JSX", "comment", "blank", "total"
+"c:\Users\jingc\Documents\8番出口\src\App.tsx", "TypeScript JSX", 0, 0, -4, 0, 0, -4
+"c:\Users\jingc\Documents\8番出口\src\components\HandView.tsx", "TypeScript JSX", 0, 0, 4, 0, 0, 4
+"c:\Users\jingc\Documents\8番出口\src\components\PlayScreen.tsx", "TypeScript JSX", 0, 0, 32, 0, 1, 33
+"c:\Users\jingc\Documents\8番出口\src\components\PlayerArea.tsx", "TypeScript JSX", 0, 0, 1, 0, 0, 1
+"c:\Users\jingc\Documents\8番出口\src\game\cpuModel.test.ts", "TypeScript", 0, 150, 0, 0, 28, 178
+"c:\Users\jingc\Documents\8番出口\src\game\cpuModelRegistry.ts", "TypeScript", 0, 3, 0, 0, 0, 3
+"c:\Users\jingc\Documents\8番出口\src\game\daifugoCpu.ts", "TypeScript", 0, 56, 0, 0, 5, 61
+"c:\Users\jingc\Documents\8番出口\src\game\gameState.test.ts", "TypeScript", 0, 288, 0, 0, 27, 315
+"c:\Users\jingc\Documents\8番出口\src\game\gameState.ts", "TypeScript", 0, 221, 0, 0, 25, 246
+"c:\Users\jingc\Documents\8番出口\src\game\masterCpu.ts", "TypeScript", 0, 13, 0, 0, 2, 15
+"c:\Users\jingc\Documents\8番出口\src\game\masterRankEstimate.test.ts", "TypeScript", 0, 80, 0, 0, 9, 89
+"c:\Users\jingc\Documents\8番出口\src\game\masterRankEstimate.ts", "TypeScript", 0, 69, 0, 0, 14, 83
+"c:\Users\jingc\Documents\8番出口\src\game\standardCpu.ts", "TypeScript", 0, 6, 0, 0, 0, 6
+"c:\Users\jingc\Documents\8番出口\src\game\tacticalCpu.ts", "TypeScript", 0, 13, 0, 0, 2, 15
+"c:\Users\jingc\Documents\8番出口\src\sim\cli.ts", "TypeScript", 0, 45, 0, 0, 2, 47
+"c:\Users\jingc\Documents\8番出口\src\sim\scenario.test.ts", "TypeScript", 0, 36, 0, 0, 6, 42
+"c:\Users\jingc\Documents\8番出口\src\sim\simulator.test.ts", "TypeScript", 0, 175, 0, 0, 13, 188
+"c:\Users\jingc\Documents\8番出口\src\sim\simulator.ts", "TypeScript", 0, 165, 0, 0, 8, 173
+"c:\Users\jingc\Documents\8番出口\src\sim\types.ts", "TypeScript", 0, 40, 0, 0, 3, 43
+"c:\Users\jingc\Documents\8番出口\src\styles.css", "PostCSS", 43, 0, 0, 0, 4, 47
+"c:\Users\jingc\Documents\8番出口\src\types.ts", "TypeScript", 0, 11, 0, 0, 0, 11
+"Total", "-", 43, 1371, 33, 0, 149, 1596

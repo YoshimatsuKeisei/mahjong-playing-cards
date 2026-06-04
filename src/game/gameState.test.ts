@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Card, DaifugoOptions, GameState, Player } from "../types";
+import { createDebugDaifugoState } from "../App";
 import { createDefaultDaifugoOptions } from "./deck";
 import {
   gameReducer,
@@ -444,6 +445,134 @@ describe("daifugo game state", () => {
       afterDeckCount: 1,
       expectedAfterDeckCount: 1,
     });
+  });
+
+  it("keeps a Q after-effect replacement draw win pending until the Q animation can finish", () => {
+    const base = stateForDiscard(card("queen", 12), daifugoOptions({ queenNumberVanish: true }));
+    const selecting: GameState = {
+      ...base,
+      players: [
+        {
+          ...base.players[0],
+          hand: [
+            card("1s", 1, "S"),
+            card("1h", 1, "H"),
+            card("1d", 1, "D"),
+            card("2s", 2, "S"),
+            card("2h", 2, "H"),
+            card("2d", 2, "D"),
+            card("3s", 3, "S"),
+            card("4s", 4, "S"),
+            card("remove-9", 9, "H"),
+            card("key", 13, "C"),
+          ],
+        },
+        base.players[1],
+        base.players[2],
+      ],
+      deck: [card("refill-5", 5, "S"), card("pad-6", 6, "H")],
+      pendingDaifugoEffect: {
+        kind: "queenSelect",
+        effect: "queenNumberVanish",
+        playerIndex: 0,
+        continue: { shouldConfirmReach: false },
+      },
+      phase: "handoff",
+    };
+
+    const resolved = gameReducer(selecting, { type: "selectQueenVanishRank", rank: 9 });
+
+    expect(resolved.phase).toBe("handoff");
+    expect(resolved.result).toBeNull();
+    expect(resolved.pendingDaifugoEffect).toMatchObject({
+      kind: "queenWinConfirm",
+      playerIndex: 0,
+    });
+    expect(resolved.daifugoEffectEvent?.kind).toBe("queenNumberVanish");
+    expect(resolved.players[0].winningResult?.canWin).toBe(true);
+  });
+
+  it("resolves a Q after-effect win when the queued confirmation is answered", () => {
+    const scenario = createDebugDaifugoState("queenAfterEffectWin");
+    const pendingWin = gameReducer(scenario, { type: "selectQueenVanishRank", rank: 9 });
+    const resolved = gameReducer(pendingWin, { type: "answerQueenWin", takeWin: true });
+
+    expect(resolved.phase).toBe("result");
+    expect(resolved.result?.winnerIndex).toBe(0);
+    expect(resolved.result?.winType).toBe("tsumo");
+    expect(resolved.pendingDaifugoEffect).toBeNull();
+  });
+
+  it("continues normally after Q replacement draws when the Q user cannot win", () => {
+    const base = stateForDiscard(card("queen", 12), daifugoOptions({ queenNumberVanish: true }));
+    const selecting: GameState = {
+      ...base,
+      players: [{ ...base.players[0], hand: [card("remove-9", 9), card("loose-3", 3), card("loose-8", 8)] }, base.players[1], base.players[2]],
+      deck: [card("refill-5", 5, "S"), card("pad-6", 6, "H")],
+      pendingDaifugoEffect: {
+        kind: "queenSelect",
+        effect: "queenNumberVanish",
+        playerIndex: 0,
+        continue: { shouldConfirmReach: false },
+      },
+      phase: "handoff",
+    };
+
+    const resolved = gameReducer(selecting, { type: "selectQueenVanishRank", rank: 9 });
+
+    expect(resolved.phase).toBe("handoff");
+    expect(resolved.result).toBeNull();
+    expect(resolved.pendingDaifugoEffect).toBeNull();
+  });
+
+  it("does not award an immediate Q after-effect win to non-users", () => {
+    const base = stateForDiscard(card("queen", 12), daifugoOptions({ queenNumberVanish: true }));
+    const selecting: GameState = {
+      ...base,
+      players: [
+        { ...base.players[0], hand: [card("actor-remove-9", 9), card("actor-loose-3", 3), card("actor-loose-8", 8)] },
+        {
+          ...base.players[1],
+          hand: [
+            card("p2-1s", 1, "S"),
+            card("p2-1h", 1, "H"),
+            card("p2-1d", 1, "D"),
+            card("p2-2s", 2, "S"),
+            card("p2-2h", 2, "H"),
+            card("p2-2d", 2, "D"),
+            card("p2-3s", 3, "S"),
+            card("p2-4s", 4, "S"),
+            card("p2-remove-9", 9, "H"),
+            card("p2-key", 13, "C"),
+          ],
+        },
+        base.players[2],
+      ],
+      deck: [card("refill-5", 5, "S"), card("p2-refill-5", 5, "H"), card("pad-6", 6, "H")],
+      pendingDaifugoEffect: {
+        kind: "queenSelect",
+        effect: "queenNumberVanish",
+        playerIndex: 0,
+        continue: { shouldConfirmReach: false },
+      },
+      phase: "handoff",
+    };
+
+    const resolved = gameReducer(selecting, { type: "selectQueenVanishRank", rank: 9 });
+
+    expect(resolved.phase).toBe("handoff");
+    expect(resolved.result).toBeNull();
+    expect(resolved.winner).toBeNull();
+  });
+
+  it("can start the DEV scenario for a Q after-effect immediate win without changing normal play", () => {
+    const scenario = createDebugDaifugoState("queenAfterEffectWin");
+    const normal = stateForDiscard(card("queen", 12), daifugoOptions({ queenNumberVanish: true }));
+
+    expect(scenario.pendingDaifugoEffect).toMatchObject({ kind: "queenSelect", effect: "queenNumberVanish" });
+    expect(scenario.message).toContain("Q補充ドローで即上がり");
+    expect(normal.pendingDaifugoEffect).toBeNull();
+    expect(normal.phase).toBe("discard");
   });
 
   it("ignores a Q rank that has already been vanished", () => {
