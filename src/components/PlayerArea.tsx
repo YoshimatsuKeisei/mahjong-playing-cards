@@ -24,6 +24,7 @@ export default function PlayerArea({ player, isCurrent, seat, displayName, style
         <strong>{displayName ?? player.name}</strong>
         <span>{getPlayerStatus(player)}</span>
         {player.hasJEnhancementRight && <span className="j-enhancement-badge">J強化権あり</span>}
+        {player.jShield && <span className="j-shield-badge">Jシールド発動中</span>}
       </div>
     </article>
   );

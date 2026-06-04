@@ -306,7 +306,6 @@ export default function App() {
                 { label: "DEV: 成績UI / 局数制 / 順位変動あり", onClick: () => showDebugStandings("roundsRankChange") },
                 { label: "DEV: 成績UI / 目標点制 / 順位変動なし", onClick: () => showDebugStandings("targetNoRankChange") },
                 { label: "DEV: 成績UI / 持ち点制 / 減少あり", onClick: () => showDebugStandings("pointsLoss") },
-                { label: "DEV: JバックON確認", onClick: () => showDebugDaifugo("jBack") },
                 { label: "DEV: 8効果ツモ確認", onClick: () => showDebugDaifugo("eightTsumo") },
                 { label: "DEV: 8効果リーチ確認", onClick: () => showDebugDaifugo("eightReach") },
                 { label: "DEV: 10効果ツモ確認", onClick: () => showDebugDaifugo("tenTsumo") },
@@ -334,9 +333,6 @@ export default function App() {
                 { label: "DEV: 強化5逆回り確認", onClick: () => showDebugDaifugo("jEnhancedFiveReverse") },
                 { label: "DEV: J情報閲覧3人戦", onClick: () => showDebugDaifugo("jackInspect3") },
                 { label: "DEV: J情報閲覧5人戦", onClick: () => showDebugDaifugo("jackInspect5") },
-                { label: "DEV: Jバック開始", onClick: () => showDebugDaifugo("jBackStart") },
-                { label: "DEV: Jバック解除", onClick: () => showDebugDaifugo("jBackToggleOff") },
-                { label: "DEV: 8使用後Jバック維持", onClick: () => showDebugDaifugo("eightKeepsJBack") },
                 { label: "DEV: CPU J暫定処理", onClick: () => showDebugDaifugo("cpuJack") },
               ]
             : undefined
@@ -748,7 +744,7 @@ function createDebugDaifugoState(caseName: DebugDaifugoCase): GameState {
       deck: [debugCard("e8-dev-draw", 4, "C"), debugCard("e8-dev-pad", 8, "D")],
       drawnCard: effectCard,
       drawnFrom: "deck",
-      message: "DEV: Jバック中に8を使ってもJバックが維持されます。",
+      message: "DEV: 旧J効果確認用の互換ケースです。",
     });
   }
 
@@ -764,7 +760,7 @@ function createDebugDaifugoState(caseName: DebugDaifugoCase): GameState {
       deck: [debugCard("cpu-j-dev-draw", 4, "C"), debugCard("cpu-j-dev-pad", 8, "D")],
       drawnCard: effectCard,
       drawnFrom: "deck",
-      message: "DEV: CPUがJ効果を発動すると暫定でJバックを選びます。",
+      message: "DEV: CPUはJシールドを選ばず、既存の自動J処理へ進みます。",
     });
   }
 

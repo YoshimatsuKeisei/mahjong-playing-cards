@@ -13,7 +13,7 @@ export type DaifugoEffectId =
   | "tenSwapDraw"
   | "jackBack"
   | "queenNumberVanish";
-export type JackSpecialEffectId = "inspectHands" | "jBack" | "enhanceFiveOrSeven";
+export type JackSpecialEffectId = "inspectHands" | "jShield" | "enhanceFiveOrSeven";
 
 export interface DaifugoOptions {
   enabled: boolean;
@@ -126,6 +126,13 @@ export type PendingDaifugoEffect =
       continue: PendingDaifugoContinue;
     }
   | {
+      kind: "jackShieldSelect";
+      effect: "jackBack";
+      playerIndex: number;
+      selectableRanks: number[];
+      continue: PendingDaifugoContinue;
+    }
+  | {
       kind: "jackInspect";
       effect: "jackBack";
       playerIndex: number;
@@ -160,6 +167,10 @@ export interface Player {
   hasCalled: boolean;
   isReach: boolean;
   hasJEnhancementRight?: boolean;
+  jShield?: {
+    rank: number;
+    cardIds: string[];
+  };
   winningResult?: WinningResult;
 }
 

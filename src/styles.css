@@ -2170,6 +2170,20 @@ h2 {
   white-space: nowrap;
 }
 
+.seat-label .j-shield-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(210, 234, 255, 0.72);
+  border-radius: 999px;
+  background: rgba(32, 71, 104, 0.78);
+  color: #eef8ff;
+  padding: 2px 7px;
+  font-size: 11px;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
 .seat-cards {
   grid-area: cards;
   display: grid;
@@ -4035,6 +4049,7 @@ h2 {
 }
 
 .card-button {
+  position: relative;
   flex: 0 0 auto;
   min-height: auto;
   border: 0;
@@ -4062,6 +4077,38 @@ h2 {
   cursor: not-allowed;
   filter: grayscale(0.72) brightness(0.72);
   opacity: 0.48;
+}
+
+.card-button.shielded-card {
+  cursor: not-allowed;
+  filter: drop-shadow(0 0 10px rgba(238, 248, 255, 0.62));
+}
+
+.card-button.shielded-card .playing-card {
+  border-color: #dff4ff;
+  box-shadow:
+    inset 0 0 0 2px rgba(223, 244, 255, 0.48),
+    0 0 18px rgba(168, 220, 255, 0.48),
+    0 10px 18px rgba(23, 33, 28, 0.22);
+}
+
+.card-button.shielded-card::after {
+  position: absolute;
+  left: 50%;
+  top: -0.72rem;
+  z-index: 2;
+  content: "Jシールド";
+  border: 1px solid rgba(210, 234, 255, 0.72);
+  border-radius: 999px;
+  background: rgba(12, 38, 59, 0.86);
+  color: #eef8ff;
+  padding: 1px 6px;
+  font-size: 0.62rem;
+  font-weight: 900;
+  line-height: 1.1;
+  white-space: nowrap;
+  transform: translateX(-50%);
+  pointer-events: none;
 }
 
 .hand-card.meld-highlight-card .playing-card {

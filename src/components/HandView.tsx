@@ -9,6 +9,7 @@ interface HandViewProps {
   selectedCardId?: string | null;
   discardingCardId?: string | null;
   selectableCardIds?: string[] | null;
+  disabledCardIds?: string[] | null;
   disabled?: boolean;
   onCardClick?: (card: Card) => void;
 }
@@ -19,12 +20,14 @@ export default function HandView({
   selectedCardId,
   discardingCardId,
   selectableCardIds,
+  disabledCardIds,
   disabled = false,
   onCardClick,
 }: HandViewProps) {
   const sortedCards = sortCardsForHand(getUniqueCardsById(cards));
   const meldCardIds = getMeldCardIds(sortedCards);
   const selectableSet = selectableCardIds ? new Set(selectableCardIds) : null;
+  const disabledSet = disabledCardIds ? new Set(disabledCardIds) : null;
   const center = (sortedCards.length - 1) / 2;
 
   return (
@@ -39,11 +42,12 @@ export default function HandView({
             selectedCardId === card.id ? "selected-card" : "",
             discardingCardId === card.id ? "discarding-card" : "",
             selectableSet && !selectableSet.has(card.id) ? "unselectable-card" : "",
+            disabledSet && disabledSet.has(card.id) ? "shielded-card" : "",
           ]
             .filter(Boolean)
             .join(" ")}
           key={card.id}
-          disabled={disabled || (selectableSet !== null && !selectableSet.has(card.id))}
+          disabled={disabled || (selectableSet !== null && !selectableSet.has(card.id)) || (disabledSet !== null && disabledSet.has(card.id))}
           style={getHandCardStyle(index, center)}
           aria-label={`discard ${formatSuit(card.suit)}${formatRank(card.rank)}`}
           onClick={() => onCardClick?.(card)}
