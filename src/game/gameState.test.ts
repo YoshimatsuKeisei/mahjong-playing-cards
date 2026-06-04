@@ -1092,6 +1092,181 @@ describe("daifugo game state", () => {
     expect(resolved.message).toContain("completed J information browsing");
   });
 
+  it("junior and standard CPU always use J information browsing after J-back removal", () => {
+    for (const cpuModelId of ["easy", "standard"] as const) {
+      const base = stateForDiscard(card("jack", 11));
+      const cpuState = {
+        ...base,
+        players: base.players.map((candidate, index) =>
+          index === 0
+            ? {
+                ...candidate,
+                isCpu: true,
+                type: "cpu" as const,
+                cpuModelId,
+                hand: [card("jack", 11), card("q1", 12), card("q2", 12, "H"), card("q3", 12, "D")],
+              }
+            : candidate,
+        ),
+      };
+      const jackPending = gameReducer(cpuState, { type: "discard", cardId: "jack" });
+      const resolved = gameReducer(jackPending, { type: "answerDaifugoEffect", activate: true });
+
+      expect(resolved.pendingDaifugoEffect).toBeNull();
+      expect(resolved.players[0].hasJEnhancementRight).toBeFalsy();
+      expect(resolved.players[0].jShield).toBeUndefined();
+      expect(resolved.message).toContain("completed J information browsing");
+    }
+  });
+
+  it("master CPU takes a J enhancement right in normal play when 5/7/Q are unavailable but not vanished", () => {
+    const base = stateForDiscard(card("jack", 11));
+    const cpuState = {
+      ...base,
+      players: base.players.map((candidate, index) =>
+        index === 0
+          ? {
+              ...candidate,
+              isCpu: true,
+              type: "cpu" as const,
+              cpuModelId: "master" as const,
+              hand: [card("jack", 11), card("k1", 13), card("k2", 13, "H"), card("k3", 13, "D")],
+            }
+          : candidate,
+      ),
+    };
+    const jackPending = gameReducer(cpuState, { type: "discard", cardId: "jack" });
+    const resolved = gameReducer(jackPending, { type: "answerDaifugoEffect", activate: true });
+
+    expect(resolved.players[0].hasJEnhancementRight).toBe(true);
+    expect(resolved.players[0].jShield).toBeUndefined();
+  });
+
+  it("master CPU uses J shield in normal play when enhancement is already active and picks the highest priority triple", () => {
+    const base = stateForDiscard(card("jack", 11));
+    const cpuState = {
+      ...base,
+      queenVanishedRanks: [5, 7, 12],
+      players: base.players.map((candidate, index) =>
+        index === 0
+          ? {
+              ...candidate,
+              isCpu: true,
+              type: "cpu" as const,
+              cpuModelId: "master" as const,
+              hasJEnhancementRight: true,
+              hand: [
+                card("jack", 11),
+                card("q1", 12),
+                card("q2", 12, "H"),
+                card("q3", 12, "D"),
+                card("s1", 7),
+                card("s2", 7, "H"),
+                card("s3", 7, "D"),
+              ],
+            }
+          : candidate,
+      ),
+    };
+    const jackPending = gameReducer(cpuState, { type: "discard", cardId: "jack" });
+    const resolved = gameReducer(jackPending, { type: "answerDaifugoEffect", activate: true });
+
+    expect(resolved.players[0].jShield).toEqual({ rank: 12, cardIds: ["q1", "q2", "q3"] });
+  });
+
+  it("master CPU uses information browsing for adjacent reach when Q is available and 5/7 are unavailable", () => {
+    const base = stateForDiscard(card("jack", 11));
+    const cpuState = {
+      ...base,
+      players: base.players.map((candidate, index) => {
+        if (index === 0) {
+          return {
+            ...candidate,
+            isCpu: true,
+            type: "cpu" as const,
+            cpuModelId: "master" as const,
+            hand: [card("jack", 11), card("q1", 12), card("q2", 12, "H"), card("q3", 12, "D")],
+          };
+        }
+        return index === 1 ? { ...candidate, isReach: true } : candidate;
+      }),
+    };
+    const jackPending = gameReducer(cpuState, { type: "discard", cardId: "jack" });
+    const resolved = gameReducer(jackPending, { type: "answerDaifugoEffect", activate: true });
+
+    expect(resolved.players[0].jShield).toBeUndefined();
+    expect(resolved.players[0].hasJEnhancementRight).toBeFalsy();
+    expect(resolved.message).toContain("completed J information browsing");
+  });
+
+  it("master CPU treats the next player in the current direction as adjacent for J shield decisions", () => {
+    const base = stateForDiscard(card("jack", 11));
+    const cpuState = {
+      ...base,
+      direction: "counterclockwise" as const,
+      players: base.players.map((candidate, index) => {
+        if (index === 0) {
+          return {
+            ...candidate,
+            isCpu: true,
+            type: "cpu" as const,
+            cpuModelId: "master" as const,
+            hand: [card("jack", 11), card("a1", 1), card("a2", 1, "H"), card("a3", 1, "D")],
+          };
+        }
+        return index === 2
+          ? { ...candidate, openMelds: [[card("two-call-1", 1)], [card("two-call-2", 2)]] }
+          : candidate;
+      }),
+      queenVanishedRanks: [5, 7, 12],
+    };
+    const jackPending = gameReducer(cpuState, { type: "discard", cardId: "jack" });
+    const resolved = gameReducer(jackPending, { type: "answerDaifugoEffect", activate: true });
+
+    expect(resolved.players[0].jShield).toEqual({ rank: 1, cardIds: ["a1", "a2", "a3"] });
+    expect(resolved.players[0].hasJEnhancementRight).toBeFalsy();
+  });
+
+  it("master CPU falls back to information browsing when self is two-call or no same-rank triple remains", () => {
+    const cases = [
+      {
+        playerPatch: {
+          openMelds: [[card("open-1", 1)], [card("open-2", 2)]],
+          hand: [card("jack", 11), card("q1", 12), card("q2", 12, "H"), card("q3", 12, "D")],
+        },
+      },
+      {
+        playerPatch: {
+          hand: [card("jack", 11), card("j2", 11, "H"), card("j3", 11, "D"), card("k1", 13), card("k2", 13, "H")],
+        },
+      },
+    ];
+
+    for (const { playerPatch } of cases) {
+      const base = stateForDiscard(card("jack", 11));
+      const cpuState = {
+        ...base,
+        players: base.players.map((candidate, index) =>
+          index === 0
+            ? {
+                ...candidate,
+                ...playerPatch,
+                isCpu: true,
+                type: "cpu" as const,
+                cpuModelId: "master" as const,
+                hasJEnhancementRight: true,
+              }
+            : candidate,
+        ),
+      };
+      const jackPending = gameReducer(cpuState, { type: "discard", cardId: "jack" });
+      const resolved = gameReducer(jackPending, { type: "answerDaifugoEffect", activate: true });
+
+      expect(resolved.players[0].jShield).toBeUndefined();
+      expect(resolved.message).toContain("completed J information browsing");
+    }
+  });
+
   it("tactical CPU automatically uses enhanced 5 to skip a remote reach player", () => {
     const base = stateForFivePlayerDiscard(card("five", 5), "clockwise", daifugoOptions({ fiveSkip: true }));
     const cpuState = {

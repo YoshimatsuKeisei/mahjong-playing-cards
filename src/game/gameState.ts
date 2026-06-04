@@ -1057,6 +1057,78 @@ function resolveJackShieldEffect(state: GameState, rank: number): GameState {
   );
 }
 
+const MASTER_J_SHIELD_RANK_PRIORITY = [12, 7, 5, 11, 8, 10, 9, 13, 6, 4, 3, 2, 1];
+
+function logMasterJShieldMetric(metric: string, detail: Record<string, unknown> = {}) {
+  console.info("[master J shield]", { [metric]: 1, ...detail });
+}
+
+function countCardsByRank(cards: Card[]): Map<number, Card[]> {
+  const cardsByRank = new Map<number, Card[]>();
+  for (const card of cards) {
+    cardsByRank.set(card.rank, [...(cardsByRank.get(card.rank) ?? []), card]);
+  }
+  return cardsByRank;
+}
+
+function chooseMasterJShieldTarget(player: Player): { rank: number; cardIds: string[] } | null {
+  const cardsByRank = countCardsByRank(player.hand);
+  for (const rank of MASTER_J_SHIELD_RANK_PRIORITY) {
+    const cards = cardsByRank.get(rank) ?? [];
+    if (cards.length >= 3) {
+      return { rank, cardIds: cards.slice(0, 3).map((card) => card.id) };
+    }
+  }
+  return null;
+}
+
+function resolveMasterJackShieldEffect(
+  state: GameState,
+  playerIndex: number,
+  continueState: PendingDaifugoContinue,
+  target: { rank: number; cardIds: string[] },
+): GameState {
+  const player = state.players[playerIndex];
+  if (!player) return state;
+  const players = replacePlayer(state.players, playerIndex, {
+    ...player,
+    jShield: target,
+  });
+  logMasterJShieldMetric("masterJShieldUsedCount", { playerIndex });
+  logMasterJShieldMetric("masterJShieldTargetRankCount", { rank: target.rank });
+  return continueAfterDaifugo(
+    {
+      ...state,
+      players,
+      pendingDaifugoEffect: null,
+    },
+    {
+      ...continueState,
+      shouldConfirmReach: false,
+      message: `${player.name}がJシールドを発動しました。`,
+    },
+  );
+}
+
+function tryResolveMasterJackShieldEffect(state: GameState, playerIndex: number, continueState: PendingDaifugoContinue): GameState | null {
+  const player = state.players[playerIndex];
+  if (!player) return null;
+  if (player.openMelds.length >= 2) {
+    logMasterJShieldMetric("masterJShieldSkippedTwoCallSelfCount", { playerIndex });
+    return null;
+  }
+  if (findPossibleMelds(player.hand).length === 0) {
+    logMasterJShieldMetric("masterJShieldSkippedNoCompletedMeldCount", { playerIndex });
+    return null;
+  }
+  const target = chooseMasterJShieldTarget(player);
+  if (!target) {
+    logMasterJShieldMetric("masterJShieldSkippedNoCompletedMeldCount", { playerIndex });
+    return null;
+  }
+  return resolveMasterJackShieldEffect(state, playerIndex, continueState, target);
+}
+
 function startJackInspectEffect(state: GameState, playerIndex: number, continueState: PendingDaifugoContinue): GameState {
   const targetPlayerIndexes = getJackInspectTargetPlayerIndexes(state, playerIndex);
   const playerName = state.players[playerIndex]?.name ?? "プレイヤー";
@@ -1111,8 +1183,67 @@ function resolveCpuJackInspectEffect(state: GameState, playerIndex: number, cont
   );
 }
 
+function hasUsableRank(player: Player, state: GameState, rank: number): boolean {
+  if ((state.queenVanishedRanks ?? []).includes(rank)) return false;
+  return player.hand.some((card) => card.rank === rank);
+}
+
+function resolveMasterCpuJackSpecialEffect(state: GameState, playerIndex: number, continueState: PendingDaifugoContinue): GameState {
+  const player = state.players[playerIndex];
+  if (!player) return state;
+  const hasFive = hasUsableRank(player, state, 5);
+  const hasSeven = hasUsableRank(player, state, 7);
+  const hasQueen = hasUsableRank(player, state, 12);
+  const vanishedRanks = new Set(state.queenVanishedRanks ?? []);
+  const lacksFiveOrSeven = !hasFive && !hasSeven;
+  const lacksFiveSevenQueen = lacksFiveOrSeven && !hasQueen;
+  const shouldPreferShieldOverEnhancement = player.hasJEnhancementRight || (vanishedRanks.has(5) && vanishedRanks.has(7));
+  const shieldOrInspect = () => tryResolveMasterJackShieldEffect(state, playerIndex, continueState) ?? resolveCpuJackInspectEffect(state, playerIndex, continueState);
+  const enhanceOrFallback = () => {
+    if (!shouldPreferShieldOverEnhancement && !player.hasJEnhancementRight) {
+      return resolveJackEnhancementRightEffect(state, playerIndex, continueState);
+    }
+    return shieldOrInspect();
+  };
+
+  const nextPlayerIndex = getNextPlayerIndex(playerIndex, state.players.length, state.direction);
+  const adjacentReach = state.players[nextPlayerIndex]?.isReach === true;
+  const remoteReach = getReachPlayerIndexes(state, playerIndex).some((index) => index !== nextPlayerIndex);
+  const adjacentTwoCall = state.players[nextPlayerIndex]?.openMelds.length >= 2;
+  const remoteTwoCall = getTwoCallPlayerIndexes(state, playerIndex).some((index) => index !== nextPlayerIndex);
+
+  if (adjacentReach) {
+    if (lacksFiveOrSeven && hasQueen) return resolveCpuJackInspectEffect(state, playerIndex, continueState);
+    if (lacksFiveSevenQueen) return shieldOrInspect();
+    return resolveCpuJackInspectEffect(state, playerIndex, continueState);
+  }
+
+  if (remoteReach) {
+    if (lacksFiveOrSeven && hasQueen) return resolveCpuJackInspectEffect(state, playerIndex, continueState);
+    if (lacksFiveSevenQueen) return enhanceOrFallback();
+    return resolveCpuJackInspectEffect(state, playerIndex, continueState);
+  }
+
+  if (adjacentTwoCall) {
+    if (lacksFiveSevenQueen) return shieldOrInspect();
+    return resolveCpuJackInspectEffect(state, playerIndex, continueState);
+  }
+
+  if (remoteTwoCall) {
+    if (lacksFiveSevenQueen) return enhanceOrFallback();
+    return resolveCpuJackInspectEffect(state, playerIndex, continueState);
+  }
+
+  if (lacksFiveSevenQueen) return enhanceOrFallback();
+  return resolveCpuJackInspectEffect(state, playerIndex, continueState);
+}
+
 function resolveCpuJackSpecialEffect(state: GameState, playerIndex: number, continueState: PendingDaifugoContinue): GameState {
   const player = state.players[playerIndex];
+  if (player?.cpuModelId === "master") {
+    return resolveMasterCpuJackSpecialEffect(state, playerIndex, continueState);
+  }
+
   const isTacticalJack =
     isThreatAwareCpuModel(player?.cpuModelId) &&
     state.daifugoOptions.enabled &&
