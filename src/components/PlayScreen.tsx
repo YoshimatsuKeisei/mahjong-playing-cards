@@ -33,6 +33,7 @@ interface PlayScreenProps {
   dispatch: Dispatch<GameAction>;
   currentRound?: number;
   onExitToHome?: () => void;
+  disableLocalCpuAutomation?: boolean;
 }
 
 type AnimationPhase = "idle" | "drawingFromDeck" | "revealingDrawnCard" | "movingDrawnCardToHand" | "discardingCard";
@@ -228,7 +229,7 @@ const measuredAnchorLayouts: Record<number, Array<{ left: string; top: string; w
   ],
 };
 
-export default function PlayScreen({ state, dispatch, currentRound, onExitToHome }: PlayScreenProps) {
+export default function PlayScreen({ state, dispatch, currentRound, onExitToHome, disableLocalCpuAutomation = false }: PlayScreenProps) {
   const currentPlayer = state.players[state.currentPlayerIndex];
   const reachOptions = getReachWinningOptions(state);
   const discardSources = getAvailableDiscardSources(state);
@@ -426,7 +427,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
       return;
     }
 
-    if (!isCpuTurn || !currentPlayer || state.phase === "handoff" || state.phase === "result") {
+    if (disableLocalCpuAutomation || !isCpuTurn || !currentPlayer || state.phase === "handoff" || state.phase === "result") {
       cpuTimeoutsRef.current.forEach(window.clearTimeout);
       cpuTimeoutsRef.current = [];
       setCpuActionInProgress(false);
@@ -574,7 +575,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
       }
       setCpuActionInProgress(false);
     }
-  }, [currentPlayer, dispatch, isCpuTurn, isDaifugoEventPlaying, state]);
+  }, [currentPlayer, disableLocalCpuAutomation, dispatch, isCpuTurn, isDaifugoEventPlaying, state]);
 
   useEffect(() => {
     if (selectedDiscardId && !handPlayer.hand.some((card) => card.id === selectedDiscardId)) {
