@@ -51,6 +51,53 @@ export interface SimulationPlayerSummary {
   proUsedJForEnhancement: number;
   proUsedJForView: number;
   proUsedJBackFallback: number;
+  jShieldUsed: number;
+  jShieldUsedByHuman: number;
+  jShieldUsedByCpu: number;
+  jShieldUsedByMaster: number;
+  jShieldUsedForSequence: number;
+  jShieldUsedForSameRank: number;
+  jShieldBlockedQ: number;
+  jShieldBlocked7: number;
+  jShieldConsumed: number;
+  jShieldSequencePartialBrokenByQ: number;
+  masterJSelectedEnhance: number;
+  masterJSelectedViewHand: number;
+  masterJSelectedShield: number;
+  masterJShieldUsedInNormalSituation: number;
+  masterJShieldSkippedNoCompletedMeld: number;
+  masterJShieldSkippedNoShieldableSequence: number;
+  masterJShieldSkippedNoShieldableSameRankMeld: number;
+  masterJShieldSkippedAlreadySequenceShielded: number;
+  masterJShieldSkippedSelfTwoCall: number;
+  masterJShieldSkippedSevenAndQEliminated: number;
+  masterJShieldSkippedWouldBreakProtectedMeld: number;
+  masterJShieldFallbackToViewHand: number;
+}
+
+export interface SimulationJShieldSummary {
+  jShieldUsedCount: number;
+  jShieldUsedByHumanCount: number;
+  jShieldUsedByCpuCount: number;
+  jShieldUsedByMasterCount: number;
+  jShieldUsedForSequenceMeldCount: number;
+  jShieldUsedForSameRankMeldCount: number;
+  jShieldBlockedQCount: number;
+  jShieldBlocked7Count: number;
+  jShieldConsumedCount: number;
+  jShieldSequencePartialBrokenByQCount: number;
+  masterJSelectedEnhanceCount: number;
+  masterJSelectedViewHandCount: number;
+  masterJSelectedShieldCount: number;
+  masterJShieldUsedInNormalSituationCount: number;
+  masterJShieldSkippedNoCompletedMeldCount: number;
+  masterJShieldSkippedNoShieldableSequenceCount: number;
+  masterJShieldSkippedNoShieldableSameRankMeldCount: number;
+  masterJShieldSkippedAlreadySequenceShieldedCount: number;
+  masterJShieldSkippedSelfTwoCallCount: number;
+  masterJShieldSkippedSevenAndQEliminatedCount: number;
+  masterJShieldSkippedWouldBreakProtectedMeldCount: number;
+  masterJShieldFallbackToViewHandCount: number;
 }
 
 export interface SimulationNumberStats {
@@ -129,6 +176,22 @@ export interface SimulationFiveTargetEvent {
   threatCouldBeSkipped: boolean;
 }
 
+export interface SimulationJShieldDetailEvent {
+  game: number;
+  seed: number;
+  step: number;
+  turn: number;
+  player: string;
+  event: string;
+  decision?: "enhance" | "viewHand" | "jShield";
+  reason?: string;
+  shieldType?: "sequence" | "sameRank";
+  target?: string;
+  rank?: string;
+  cardIds?: string[];
+  remainingShieldedRanks?: string[];
+}
+
 export interface SimulationDetailEvent {
   game: number;
   seed: number;
@@ -153,9 +216,11 @@ export interface SimulationSummary {
   violations: SimulationViolation[];
   details: SimulationDetailEvent[];
   fiveTargetEvents: SimulationFiveTargetEvent[];
+  jShieldDetails: SimulationJShieldDetailEvent[];
   gameSeeds: number[];
   startPlayerIndexes: number[];
   results: GameResult[];
+  jShieldSummary: SimulationJShieldSummary;
   turnTiming: SimulationTurnTimingSummary[];
   turnTimingSanity: SimulationTurnTimingSanityCheck;
 }

@@ -1404,8 +1404,8 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
 
           {isJackShieldSelect && pendingDaifugoEffect.playerIndex === state.currentPlayerIndex && !currentPlayer.isCpu && (
             <div className="daifugo-effect-panel jack-shield-panel">
-              <strong>Jシールドで守る数字を選んでください</strong>
-              <span className="hint">発動時点で持っている同じ数字のカードだけを1回保護します。</span>
+              <strong>Jシールドで守る役を選んでください</strong>
+              <span className="hint">発動時点で完成している同数字役または階段役のカードだけを保護します。</span>
               <div className="rank-choice-grid">
                 {pendingDaifugoEffect.selectableRanks.map((rank) => (
                   <button
@@ -1416,6 +1416,17 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
                     onClick={() => dispatch({ type: "selectJackShieldRank", rank })}
                   >
                     {formatRankLabel(rank)}
+                  </button>
+                ))}
+                {(pendingDaifugoEffect.selectableRuns ?? []).map((run) => (
+                  <button
+                    type="button"
+                    className="rank-choice-button"
+                    key={run.key}
+                    disabled={isAnimating || cpuActionInProgress}
+                    onClick={() => dispatch({ type: "selectJackShieldRun", key: run.key })}
+                  >
+                    {run.label}
                   </button>
                 ))}
               </div>
@@ -2162,7 +2173,13 @@ function getHistoryAnchorStyle(playerCount: number, index: number): CSSPropertie
 function getPlayerStatus(player: GameState["players"][number], revealShieldRank = false) {
   const statuses = [player.isReach ? "リーチ中" : player.hasCalled ? "鳴き済み" : "通常"];
   if (player.jShield) {
-    statuses.push(revealShieldRank ? `Jシールド:${formatRankLabel(player.jShield.rank)}` : "Jシールド発動中");
+    const label =
+      player.jShield.kind === "run"
+        ? player.jShield.label ?? player.jShield.ranks?.map(formatRankLabel).join("")
+        : player.jShield.rank
+          ? formatRankLabel(player.jShield.rank)
+          : "";
+    statuses.push(revealShieldRank && label ? `Jシールド:${label}` : "Jシールド発動中");
   }
   return statuses.join(" / ");
 }

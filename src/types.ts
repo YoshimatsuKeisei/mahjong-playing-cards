@@ -130,6 +130,12 @@ export type PendingDaifugoEffect =
       effect: "jackBack";
       playerIndex: number;
       selectableRanks: number[];
+      selectableRuns?: Array<{
+        key: string;
+        label: string;
+        ranks: number[];
+        cardIds: string[];
+      }>;
       continue: PendingDaifugoContinue;
     }
   | {
@@ -168,7 +174,10 @@ export interface Player {
   isReach: boolean;
   hasJEnhancementRight?: boolean;
   jShield?: {
-    rank: number;
+    kind?: "rank" | "run";
+    rank?: number;
+    ranks?: number[];
+    label?: string;
     cardIds: string[];
   };
   winningResult?: WinningResult;

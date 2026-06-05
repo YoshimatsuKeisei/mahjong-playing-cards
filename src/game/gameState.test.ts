@@ -5,6 +5,7 @@ import { createDefaultDaifugoOptions } from "./deck";
 import {
   gameReducer,
   getEnhancedFiveTurnOptions,
+  getJackShieldRunOptions,
   getNextPlayerIndex,
   getQueenVanishRankOptions,
   getSevenExchangeCandidateCards,
@@ -899,6 +900,46 @@ describe("daifugo game state", () => {
     });
   });
 
+  it("shows completed run melds as J shield options but hides incomplete runs", () => {
+    const target = player(1, [
+      card("3s", 3, "S"),
+      card("4s", 4, "S"),
+      card("5s", 5, "S"),
+      card("10h", 10, "H"),
+      card("11h", 11, "H"),
+    ]);
+
+    expect(getJackShieldRunOptions(target).map((option) => option.label)).toEqual(["345"]);
+  });
+
+  it("allows a human player to select a completed run for J shield", () => {
+    const base = stateForDiscard(card("jack", 11));
+    const choosing: GameState = {
+      ...base,
+      players: replacePlayerForTest(base.players, 0, {
+        ...base.players[0],
+        hand: [card("3s", 3, "S"), card("4s", 4, "S"), card("5s", 5, "S"), card("loose", 9, "H")],
+      }),
+      pendingDaifugoEffect: {
+        kind: "jackSelect",
+        effect: "jackBack",
+        playerIndex: 0,
+        continue: { shouldConfirmReach: false },
+      },
+    };
+    const refreshed = gameReducer(choosing, { type: "selectJackSpecialEffect", effect: "jShield" });
+    if (refreshed.pendingDaifugoEffect?.kind !== "jackShieldSelect") throw new Error("Expected J shield selection");
+
+    const shielded = gameReducer(refreshed, { type: "selectJackShieldRun", key: refreshed.pendingDaifugoEffect.selectableRuns?.[0]?.key ?? "" });
+
+    expect(shielded.players[0].jShield).toEqual({
+      kind: "run",
+      ranks: [3, 4, 5],
+      label: "345",
+      cardIds: ["3s", "4s", "5s"],
+    });
+  });
+
   it("prevents normal discard of a shielded card", () => {
     const jackPending = gameReducer(stateForDiscard(card("jack", 11)), { type: "discard", cardId: "jack" });
     const choosing = gameReducer(jackPending, { type: "answerDaifugoEffect", activate: true });
@@ -947,6 +988,70 @@ describe("daifugo game state", () => {
     expect(resolved.players[1].discardPile.some((item) => item.id === "target-5")).toBe(true);
   });
 
+  it("keeps only the attacked card during Q number vanish and partially consumes a run J shield", () => {
+    const base = stateForDiscard(card("queen", 12), daifugoOptions({ queenNumberVanish: true }));
+    const selecting: GameState = {
+      ...base,
+      players: [
+        {
+          ...base.players[0],
+          hand: [card("3s", 3, "S"), card("4s", 4, "S"), card("5s", 5, "S")],
+          jShield: { kind: "run", ranks: [3, 4, 5], label: "345", cardIds: ["3s", "4s", "5s"] },
+        },
+        { ...base.players[1], hand: [card("target-4", 4)] },
+        base.players[2],
+      ],
+      deck: [card("draw-a", 1), card("draw-b", 2)],
+      pendingDaifugoEffect: {
+        kind: "queenSelect",
+        effect: "queenNumberVanish",
+        playerIndex: 1,
+        continue: { shouldConfirmReach: false },
+      },
+    };
+
+    const resolved = gameReducer(selecting, { type: "selectQueenVanishRank", rank: 4 });
+
+    expect(resolved.players[0].hand.some((item) => item.id === "4s")).toBe(true);
+    expect(resolved.players[0].jShield?.cardIds.sort()).toEqual(["3s", "5s"]);
+    expect(resolved.players[1].hand.some((item) => item.id === "target-4")).toBe(false);
+  });
+
+  it("uses run-shielded cards in winning checks", () => {
+    const base = stateForDiscard(card("x", 9));
+    const winningState: GameState = {
+      ...base,
+      phase: "discard",
+      players: [
+        {
+          ...base.players[0],
+          hand: [
+            card("3s", 3, "S"),
+            card("4s", 4, "S"),
+            card("5s", 5, "S"),
+            card("7a", 7, "S"),
+            card("7b", 7, "H"),
+            card("7c", 7, "D"),
+            card("9a", 9, "S"),
+            card("9b", 9, "H"),
+            card("9c", 9, "D"),
+            card("key", 13, "C"),
+            card("discard-me", 6, "C"),
+          ],
+          jShield: { kind: "run", ranks: [3, 4, 5], label: "345", cardIds: ["3s", "4s"] },
+        },
+        base.players[1],
+        base.players[2],
+      ],
+      drawnCard: card("key", 13, "C"),
+    };
+
+    const resolved = gameReducer(winningState, { type: "winWithDiscard", discardCardId: "discard-me" });
+
+    expect(resolved.phase).toBe("result");
+    expect(resolved.result?.winningResult.melds.some((meld) => meld.map((item) => item.id).sort().join("|") === "3s|4s|5s")).toBe(true);
+  });
+
   it("uses a decoy card when 7 exchange selects a shielded card", () => {
     const base = stateForDiscard(card("seven", 7), daifugoOptions({ sevenExchange: true }));
     const selecting: GameState = {
@@ -977,6 +1082,18 @@ describe("daifugo game state", () => {
     expect(resolved.players[0].jShield).toBeUndefined();
     expect(resolved.players[1].hand.some((item) => item.id === "decoy-4")).toBe(true);
     expect(resolved.players[1].hand.some((item) => item.id === "protected-9")).toBe(false);
+  });
+
+  it("excludes run-shielded cards from 7 exchange candidates", () => {
+    const target = player(1, [
+      card("3s", 3, "S"),
+      card("4s", 4, "S"),
+      card("5s", 5, "S"),
+      card("loose", 9, "H"),
+    ]);
+    const shielded = { ...target, jShield: { kind: "run" as const, ranks: [3, 4, 5], label: "345", cardIds: ["3s", "4s", "5s"] } };
+
+    expect(getSevenExchangeCandidateCards(shielded).map((item) => item.id)).toEqual(["loose"]);
   });
 
   it("does not start J shield when J special effect is declined or information browsing is selected", () => {
@@ -1248,7 +1365,7 @@ describe("daifugo game state", () => {
     }
   });
 
-  it("master CPU takes a J enhancement right in normal play when 5/7/Q are unavailable but not vanished", () => {
+  it("master CPU uses J shield in normal play before taking a J enhancement right when a shield target exists", () => {
     const base = stateForDiscard(card("jack", 11));
     const cpuState = {
       ...base,
@@ -1267,15 +1384,114 @@ describe("daifugo game state", () => {
     const jackPending = gameReducer(cpuState, { type: "discard", cardId: "jack" });
     const resolved = gameReducer(jackPending, { type: "answerDaifugoEffect", activate: true });
 
-    expect(resolved.players[0].hasJEnhancementRight).toBe(true);
+    expect(resolved.players[0].hasJEnhancementRight).toBeFalsy();
+    expect(resolved.players[0].jShield).toEqual({ rank: 13, cardIds: ["k1", "k2", "k3"] });
+  });
+
+  it("master CPU takes a J enhancement right in normal play when both 5 and 7 are held", () => {
+    const base = stateForDiscard(card("jack", 11));
+    const cpuState = {
+      ...base,
+      players: base.players.map((candidate, index) =>
+        index === 0
+          ? {
+              ...candidate,
+              isCpu: true,
+              type: "cpu" as const,
+              cpuModelId: "master" as const,
+              hand: [
+                card("jack", 11),
+                card("q1", 12),
+                card("q2", 12, "H"),
+                card("q3", 12, "D"),
+                card("five", 5),
+                card("seven", 7),
+              ],
+            }
+          : candidate,
+      ),
+    };
+    const jackPending = gameReducer(cpuState, { type: "discard", cardId: "jack" });
+    const resolved = gameReducer(jackPending, { type: "answerDaifugoEffect", activate: true });
+
     expect(resolved.players[0].jShield).toBeUndefined();
+    expect(resolved.players[0].hasJEnhancementRight).toBe(true);
+  });
+
+  it("master CPU uses J shield in normal play when only 5 is held", () => {
+    const base = stateForDiscard(card("jack", 11));
+    const cpuState = {
+      ...base,
+      players: base.players.map((candidate, index) =>
+        index === 0
+          ? {
+              ...candidate,
+              isCpu: true,
+              type: "cpu" as const,
+              cpuModelId: "master" as const,
+              hand: [card("jack", 11), card("q1", 12), card("q2", 12, "H"), card("q3", 12, "D"), card("five", 5)],
+            }
+          : candidate,
+      ),
+    };
+    const jackPending = gameReducer(cpuState, { type: "discard", cardId: "jack" });
+    const resolved = gameReducer(jackPending, { type: "answerDaifugoEffect", activate: true });
+
+    expect(resolved.players[0].jShield).toEqual({ rank: 12, cardIds: ["q1", "q2", "q3"] });
+    expect(resolved.players[0].hasJEnhancementRight).toBeFalsy();
+  });
+
+  it("master CPU uses J shield in normal play when only 7 is held", () => {
+    const base = stateForDiscard(card("jack", 11));
+    const cpuState = {
+      ...base,
+      players: base.players.map((candidate, index) =>
+        index === 0
+          ? {
+              ...candidate,
+              isCpu: true,
+              type: "cpu" as const,
+              cpuModelId: "master" as const,
+              hand: [card("jack", 11), card("q1", 12), card("q2", 12, "H"), card("q3", 12, "D"), card("seven", 7)],
+            }
+          : candidate,
+      ),
+    };
+    const jackPending = gameReducer(cpuState, { type: "discard", cardId: "jack" });
+    const resolved = gameReducer(jackPending, { type: "answerDaifugoEffect", activate: true });
+
+    expect(resolved.players[0].jShield).toEqual({ rank: 12, cardIds: ["q1", "q2", "q3"] });
+    expect(resolved.players[0].hasJEnhancementRight).toBeFalsy();
   });
 
   it("master CPU uses J shield in normal play when enhancement is already active and picks the highest priority triple", () => {
     const base = stateForDiscard(card("jack", 11));
     const cpuState = {
       ...base,
-      queenVanishedRanks: [5, 7, 12],
+      queenVanishedRanks: [5, 7],
+      players: base.players.map((candidate, index) =>
+        index === 0
+          ? {
+              ...candidate,
+              isCpu: true,
+              type: "cpu" as const,
+              cpuModelId: "master" as const,
+              hasJEnhancementRight: true,
+              hand: [card("jack", 11), card("k1", 13), card("k2", 13, "H"), card("k3", 13, "D")],
+            }
+          : candidate,
+      ),
+    };
+    const jackPending = gameReducer(cpuState, { type: "discard", cardId: "jack" });
+    const resolved = gameReducer(jackPending, { type: "answerDaifugoEffect", activate: true });
+
+    expect(resolved.players[0].jShield).toEqual({ rank: 13, cardIds: ["k1", "k2", "k3"] });
+  });
+
+  it("master CPU prioritizes completed runs over same-rank melds for J shield", () => {
+    const base = stateForDiscard(card("jack", 11));
+    const cpuState = {
+      ...base,
       players: base.players.map((candidate, index) =>
         index === 0
           ? {
@@ -1286,12 +1502,12 @@ describe("daifugo game state", () => {
               hasJEnhancementRight: true,
               hand: [
                 card("jack", 11),
-                card("q1", 12),
-                card("q2", 12, "H"),
-                card("q3", 12, "D"),
-                card("s1", 7),
-                card("s2", 7, "H"),
-                card("s3", 7, "D"),
+                card("k1", 13),
+                card("k2", 13, "H"),
+                card("k3", 13, "D"),
+                card("7s", 7, "S"),
+                card("8s", 8, "S"),
+                card("9s", 9, "S"),
               ],
             }
           : candidate,
@@ -1300,7 +1516,79 @@ describe("daifugo game state", () => {
     const jackPending = gameReducer(cpuState, { type: "discard", cardId: "jack" });
     const resolved = gameReducer(jackPending, { type: "answerDaifugoEffect", activate: true });
 
-    expect(resolved.players[0].jShield).toEqual({ rank: 12, cardIds: ["q1", "q2", "q3"] });
+    expect(resolved.players[0].jShield).toEqual({ kind: "run", ranks: [7, 8, 9], label: "789", cardIds: ["7s", "8s", "9s"] });
+  });
+
+  it("master CPU does not use J shield when spending J would break a protected run", () => {
+    const base = stateForDiscard(card("jack", 11));
+    const cpuState = {
+      ...base,
+      players: base.players.map((candidate, index) =>
+        index === 0
+          ? {
+              ...candidate,
+              isCpu: true,
+              type: "cpu" as const,
+              cpuModelId: "master" as const,
+              hand: [card("jack", 11), card("10s", 10, "S"), card("js", 11, "S"), card("qs", 12, "S")],
+            }
+          : candidate,
+      ),
+    };
+    const jackPending = gameReducer(cpuState, { type: "discard", cardId: "jack" });
+    const resolved = gameReducer(jackPending, { type: "answerDaifugoEffect", activate: true });
+
+    expect(resolved.players[0].jShield).toBeUndefined();
+    expect(resolved.message).toContain("completed J information browsing");
+  });
+
+  it("master CPU does not use another J shield while a run shield is already active", () => {
+    const base = stateForDiscard(card("jack", 11));
+    const cpuState = {
+      ...base,
+      players: base.players.map((candidate, index) =>
+        index === 0
+          ? {
+              ...candidate,
+              isCpu: true,
+              type: "cpu" as const,
+              cpuModelId: "master" as const,
+              hasJEnhancementRight: true,
+              jShield: { kind: "run" as const, ranks: [3, 4, 5], label: "345", cardIds: ["old-3", "old-4", "old-5"] },
+              hand: [card("jack", 11), card("q1", 12), card("q2", 12, "H"), card("q3", 12, "D")],
+            }
+          : candidate,
+      ),
+    };
+    const jackPending = gameReducer(cpuState, { type: "discard", cardId: "jack" });
+    const resolved = gameReducer(jackPending, { type: "answerDaifugoEffect", activate: true });
+
+    expect(resolved.players[0].jShield).toEqual(cpuState.players[0].jShield);
+    expect(resolved.message).toContain("completed J information browsing");
+  });
+
+  it("master CPU does not use J shield when both 7 and Q have vanished", () => {
+    const base = stateForDiscard(card("jack", 11));
+    const cpuState = {
+      ...base,
+      queenVanishedRanks: [7, 12],
+      players: base.players.map((candidate, index) =>
+        index === 0
+          ? {
+              ...candidate,
+              isCpu: true,
+              type: "cpu" as const,
+              cpuModelId: "master" as const,
+              hasJEnhancementRight: true,
+              hand: [card("jack", 11), card("3s", 3, "S"), card("4s", 4, "S"), card("5s", 5, "S")],
+            }
+          : candidate,
+      ),
+    };
+    const jackPending = gameReducer(cpuState, { type: "discard", cardId: "jack" });
+    const resolved = gameReducer(jackPending, { type: "answerDaifugoEffect", activate: true });
+
+    expect(resolved.players[0].jShield).toBeUndefined();
   });
 
   it("master CPU uses information browsing for adjacent reach when Q is available and 5/7 are unavailable", () => {
@@ -1347,7 +1635,7 @@ describe("daifugo game state", () => {
           ? { ...candidate, openMelds: [[card("two-call-1", 1)], [card("two-call-2", 2)]] }
           : candidate;
       }),
-      queenVanishedRanks: [5, 7, 12],
+      queenVanishedRanks: [5, 7],
     };
     const jackPending = gameReducer(cpuState, { type: "discard", cardId: "jack" });
     const resolved = gameReducer(jackPending, { type: "answerDaifugoEffect", activate: true });

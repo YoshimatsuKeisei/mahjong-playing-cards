@@ -127,6 +127,7 @@ export function chooseDaifugoSevenExchangeCardForModel(
   role: DaifugoExchangeRole,
 ): Card | null {
   if (modelId === "easy") return chooseJuniorDaifugoCard(candidates, context.currentPlayer.hand);
+  if (modelId === "master" && role === "initiator") return chooseMasterSevenExchangeCard(context, candidates);
   if ((modelId === "tactical" || modelId === "master") && role === "initiator") return chooseTacticalSevenExchangeCard(context, candidates);
   return chooseStandardDaifugoCard(context, candidates);
 }
@@ -253,6 +254,22 @@ function chooseTacticalSevenExchangeCard(context: CpuDecisionContext, candidates
           a.card.id.localeCompare(b.card.id),
       )[0]?.card ?? fallback
   );
+}
+
+function chooseMasterSevenExchangeCard(context: CpuDecisionContext, candidates: Card[]): Card | null {
+  if (candidates.length === 0) return null;
+  const candidateIds = new Set(candidates.map((card) => card.id));
+  const meldIds = new Set(findPossibleMelds(context.currentPlayer.hand).flat().map((card) => card.id));
+  const nonMeldCandidates = candidates.filter((card) => !meldIds.has(card.id));
+  const pool = nonMeldCandidates.length > 0 ? nonMeldCandidates : candidates;
+  const tacticalChoice = chooseTacticalSevenExchangeCard(context, pool);
+  if (tacticalChoice && candidateIds.has(tacticalChoice.id)) return tacticalChoice;
+  return [...pool].sort(
+    (a, b) =>
+      getSevenExchangePreservationRisk(a, context.currentPlayer.hand) - getSevenExchangePreservationRisk(b, context.currentPlayer.hand) ||
+      scoreStandardDaifugoCard(b, context.currentPlayer.hand) - scoreStandardDaifugoCard(a, context.currentPlayer.hand) ||
+      a.id.localeCompare(b.id),
+  )[0] ?? null;
 }
 
 function getSevenExchangePreservationRisk(card: Card, hand: Card[]): number {

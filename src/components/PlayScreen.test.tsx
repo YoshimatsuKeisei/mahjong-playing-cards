@@ -546,6 +546,28 @@ describe("PlayScreen round display", () => {
     randomSpy.mockRestore();
   });
 
+  it("shows completed run options in the J shield target picker", () => {
+    const baseState = createInitialGame(3, "clockwise");
+    const state: GameState = {
+      ...baseState,
+      phase: "handoff",
+      pendingDaifugoEffect: {
+        kind: "jackShieldSelect",
+        effect: "jackBack",
+        playerIndex: 0,
+        selectableRanks: [7],
+        selectableRuns: [{ key: "3s|4s|5s", label: "345", ranks: [3, 4, 5], cardIds: ["3s", "4s", "5s"] }],
+        continue: { shouldConfirmReach: false },
+      },
+      players: baseState.players.map((player, index) => (index === 0 ? { ...player, isCpu: false, type: "human" as const } : player)),
+    };
+
+    render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} />);
+
+    expect(screen.getByRole("button", { name: "7" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "345" })).toBeInTheDocument();
+  });
+
   it("marks the selected J information card for the draw-style reveal animation", () => {
     const baseState = createInitialGame(3, "clockwise");
     const revealedCardId = baseState.players[1].hand[0].id;

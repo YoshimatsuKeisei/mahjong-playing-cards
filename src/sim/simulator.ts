@@ -3,6 +3,7 @@ import { createDefaultDaifugoOptions } from "../game/deck";
 import { createCpuDecisionContext } from "../game/cpuTypes";
 import { createInitialGame, gameReducer, getEnhancedFiveTurnOptions, getNextPlayerIndex, type GameAction } from "../game/gameState";
 import { getDisplayedPlayerLosses, getResultLoserIndexes } from "../game/matchState";
+import { findPossibleMelds, isRun } from "../game/rules";
 import { doesNineReverseIncreaseReachDistance, doesNineReverseIncreaseTwoCallDistance, getTacticalDiscardScores } from "../game/tacticalCpu";
 import { createMasterRankEstimate, formatEstimatedUnseenByRank } from "../game/masterRankEstimate";
 import { chooseHeadlessCpuAction } from "./headlessCpuDriver";
@@ -11,6 +12,8 @@ import type {
   SimulationConfig,
   SimulationDetailEvent,
   SimulationFiveTargetEvent,
+  SimulationJShieldDetailEvent,
+  SimulationJShieldSummary,
   SimulationNumberStats,
   SimulationPlayerSummary,
   SimulationSummary,
@@ -108,6 +111,28 @@ export function makePlayerSummary(playerIndex: number, config: SimulationConfig)
     proUsedJForEnhancement: 0,
     proUsedJForView: 0,
     proUsedJBackFallback: 0,
+    jShieldUsed: 0,
+    jShieldUsedByHuman: 0,
+    jShieldUsedByCpu: 0,
+    jShieldUsedByMaster: 0,
+    jShieldUsedForSequence: 0,
+    jShieldUsedForSameRank: 0,
+    jShieldBlockedQ: 0,
+    jShieldBlocked7: 0,
+    jShieldConsumed: 0,
+    jShieldSequencePartialBrokenByQ: 0,
+    masterJSelectedEnhance: 0,
+    masterJSelectedViewHand: 0,
+    masterJSelectedShield: 0,
+    masterJShieldUsedInNormalSituation: 0,
+    masterJShieldSkippedNoCompletedMeld: 0,
+    masterJShieldSkippedNoShieldableSequence: 0,
+    masterJShieldSkippedNoShieldableSameRankMeld: 0,
+    masterJShieldSkippedAlreadySequenceShielded: 0,
+    masterJShieldSkippedSelfTwoCall: 0,
+    masterJShieldSkippedSevenAndQEliminated: 0,
+    masterJShieldSkippedWouldBreakProtectedMeld: 0,
+    masterJShieldFallbackToViewHand: 0,
   };
 }
 
@@ -122,6 +147,10 @@ function getTwoCallPlayerIndexes(state: GameState, actorIndex: number): number[]
 function getThreatPlayerIndexes(state: GameState, actorIndex: number): number[] {
   const reachPlayerIndexes = getReachPlayerIndexes(state, actorIndex);
   return reachPlayerIndexes.length > 0 ? reachPlayerIndexes : getTwoCallPlayerIndexes(state, actorIndex);
+}
+
+function isNormalJShieldSituation(state: GameState, actorIndex: number): boolean {
+  return getReachPlayerIndexes(state, actorIndex).length === 0 && getTwoCallPlayerIndexes(state, actorIndex).length === 0;
 }
 
 function getPlayerNames(state: GameState, indexes: number[]): string[] {
@@ -512,6 +541,131 @@ function collectTacticalNineUsage(
   }
 }
 
+type MasterJShieldSkipReason =
+  | "masterJShieldSkippedNoCompletedMeld"
+  | "masterJShieldSkippedNoShieldableSequence"
+  | "masterJShieldSkippedNoShieldableSameRankMeld"
+  | "masterJShieldSkippedAlreadySequenceShielded"
+  | "masterJShieldSkippedSelfTwoCall"
+  | "masterJShieldSkippedSevenAndQEliminated"
+  | "masterJShieldSkippedWouldBreakProtectedMeld";
+
+function formatRank(rank: number): string {
+  if (rank === 1) return "A";
+  if (rank === 11) return "J";
+  if (rank === 12) return "Q";
+  if (rank === 13) return "K";
+  return String(rank);
+}
+
+function getShieldType(shield: GameState["players"][number]["jShield"] | undefined): "sequence" | "sameRank" | undefined {
+  if (!shield) return undefined;
+  return shield.kind === "run" ? "sequence" : "sameRank";
+}
+
+function formatShieldTarget(shield: GameState["players"][number]["jShield"] | undefined): string | undefined {
+  if (!shield) return undefined;
+  if (shield.kind === "run") return shield.label ?? shield.ranks?.map(formatRank).join("");
+  return shield.rank === undefined ? undefined : formatRank(shield.rank);
+}
+
+function didPlayerGainJShield(state: GameState, nextState: GameState, playerIndex: number): boolean {
+  const before = state.players[playerIndex]?.jShield;
+  const after = nextState.players[playerIndex]?.jShield;
+  if (!after) return false;
+  if (!before) return true;
+  return before.cardIds.join("|") !== after.cardIds.join("|") || before.kind !== after.kind || before.rank !== after.rank || before.label !== after.label;
+}
+
+function getJShieldCardIds(player: GameState["players"][number] | undefined): Set<string> {
+  return new Set(player?.jShield?.cardIds ?? []);
+}
+
+function getJShieldConsumedCardIds(beforePlayer: GameState["players"][number] | undefined, afterPlayer: GameState["players"][number] | undefined): string[] {
+  const beforeIds = getJShieldCardIds(beforePlayer);
+  const afterIds = getJShieldCardIds(afterPlayer);
+  return [...beforeIds].filter((cardId) => !afterIds.has(cardId));
+}
+
+function pushJShieldDetail(
+  config: SimulationConfig,
+  details: SimulationJShieldDetailEvent[],
+  game: number,
+  seed: number,
+  step: number,
+  turn: number,
+  state: GameState,
+  playerIndex: number,
+  detail: Omit<SimulationJShieldDetailEvent, "game" | "seed" | "step" | "turn" | "player">,
+) {
+  if (config.logLevel !== "detail") return;
+  details.push({
+    game,
+    seed,
+    step,
+    turn,
+    player: state.players[playerIndex]?.name ?? `player-${playerIndex + 1}`,
+    ...detail,
+  });
+}
+
+function hasShieldableSequence(player: GameState["players"][number]): boolean {
+  return findPossibleMelds(player.hand).some(isRun);
+}
+
+function hasShieldableSameRankMeld(player: GameState["players"][number]): boolean {
+  const counts = new Map<number, number>();
+  for (const card of player.hand) counts.set(card.rank, (counts.get(card.rank) ?? 0) + 1);
+  return [...counts.entries()].some(([rank, count]) => count >= 3 && (rank !== 11 || count >= 4));
+}
+
+function wouldBreakJRun(player: GameState["players"][number]): boolean {
+  const jCount = player.hand.filter((card) => card.rank === 11).length;
+  return jCount <= 1 && findPossibleMelds(player.hand).some((meld) => isRun(meld) && meld.some((card) => card.rank === 11));
+}
+
+function classifyMasterJShieldSkipReason(state: GameState, actorIndex: number): MasterJShieldSkipReason {
+  const player = state.players[actorIndex];
+  if (!player) return "masterJShieldSkippedNoCompletedMeld";
+  if (player.openMelds.length >= 2) return "masterJShieldSkippedSelfTwoCall";
+  if (player.jShield?.kind === "run") return "masterJShieldSkippedAlreadySequenceShielded";
+  const vanishedRanks = new Set(state.queenVanishedRanks ?? []);
+  if (vanishedRanks.has(7) && vanishedRanks.has(12)) return "masterJShieldSkippedSevenAndQEliminated";
+  const melds = findPossibleMelds(player.hand);
+  if (melds.length === 0) return "masterJShieldSkippedNoCompletedMeld";
+  const hasSequence = hasShieldableSequence(player);
+  const hasSameRank = hasShieldableSameRankMeld(player);
+  if (!hasSequence && wouldBreakJRun(player)) return "masterJShieldSkippedWouldBreakProtectedMeld";
+  if (!hasSequence) return "masterJShieldSkippedNoShieldableSequence";
+  if (!hasSameRank) return "masterJShieldSkippedNoShieldableSameRankMeld";
+  return "masterJShieldSkippedWouldBreakProtectedMeld";
+}
+
+function incrementMasterJShieldSkip(summary: SimulationPlayerSummary, reason: MasterJShieldSkipReason) {
+  switch (reason) {
+    case "masterJShieldSkippedNoCompletedMeld":
+      summary.masterJShieldSkippedNoCompletedMeld += 1;
+      return;
+    case "masterJShieldSkippedNoShieldableSequence":
+      summary.masterJShieldSkippedNoShieldableSequence += 1;
+      return;
+    case "masterJShieldSkippedNoShieldableSameRankMeld":
+      summary.masterJShieldSkippedNoShieldableSameRankMeld += 1;
+      return;
+    case "masterJShieldSkippedAlreadySequenceShielded":
+      summary.masterJShieldSkippedAlreadySequenceShielded += 1;
+      return;
+    case "masterJShieldSkippedSelfTwoCall":
+      summary.masterJShieldSkippedSelfTwoCall += 1;
+      return;
+    case "masterJShieldSkippedSevenAndQEliminated":
+      summary.masterJShieldSkippedSevenAndQEliminated += 1;
+      return;
+    case "masterJShieldSkippedWouldBreakProtectedMeld":
+      summary.masterJShieldSkippedWouldBreakProtectedMeld += 1;
+  }
+}
+
 function collectTacticalJackUsage(
   config: SimulationConfig,
   game: number,
@@ -523,9 +677,36 @@ function collectTacticalJackUsage(
   actorIndex: number,
   summary: SimulationPlayerSummary,
   violations: SimulationViolation[],
+  jShieldDetails: SimulationJShieldDetailEvent[],
 ) {
+  const isMaster = state.players[actorIndex]?.cpuModelId === "master";
   if (!state.players[actorIndex]?.hasJEnhancementRight && nextState.players[actorIndex]?.hasJEnhancementRight) {
     summary.proUsedJForEnhancement += 1;
+    if (isMaster) {
+      summary.masterJSelectedEnhance += 1;
+      pushJShieldDetail(config, jShieldDetails, game, seed, step, turn, state, actorIndex, {
+        event: "masterJDecision",
+        decision: "enhance",
+        reason: "selectedEnhancement",
+      });
+    }
+    return;
+  }
+  if (didPlayerGainJShield(state, nextState, actorIndex)) {
+    if (isMaster) {
+      summary.masterJSelectedShield += 1;
+      if (isNormalJShieldSituation(state, actorIndex)) {
+        summary.masterJShieldUsedInNormalSituation += 1;
+      }
+      const shield = nextState.players[actorIndex]?.jShield;
+      pushJShieldDetail(config, jShieldDetails, game, seed, step, turn, nextState, actorIndex, {
+        event: "masterJDecision",
+        decision: "jShield",
+        shieldType: getShieldType(shield),
+        target: formatShieldTarget(shield),
+        reason: getShieldType(shield) === "sequence" ? "sequenceShieldSelected" : "sameRankShieldSelected",
+      });
+    }
     return;
   }
   if (state.isJBackActive !== nextState.isJBackActive) {
@@ -534,6 +715,110 @@ function collectTacticalJackUsage(
     return;
   }
   summary.proUsedJForView += 1;
+  if (isMaster) {
+    const reason = classifyMasterJShieldSkipReason(state, actorIndex);
+    incrementMasterJShieldSkip(summary, reason);
+    summary.masterJSelectedViewHand += 1;
+    summary.masterJShieldFallbackToViewHand += 1;
+    pushJShieldDetail(config, jShieldDetails, game, seed, step, turn, state, actorIndex, {
+      event: "masterJDecision",
+      decision: "viewHand",
+      reason,
+    });
+  }
+}
+
+function collectJShieldUsage(
+  config: SimulationConfig,
+  game: number,
+  seed: number,
+  step: number,
+  turn: number,
+  state: GameState,
+  action: GameAction,
+  nextState: GameState,
+  players: SimulationPlayerSummary[],
+  jShieldDetails: SimulationJShieldDetailEvent[],
+) {
+  const isShieldAction =
+    action.type === "selectJackShieldRank" ||
+    action.type === "selectJackShieldRun" ||
+    (action.type === "answerDaifugoEffect" && state.pendingDaifugoEffect?.kind === "confirm" && state.pendingDaifugoEffect.effect === "jackBack");
+  if (!isShieldAction) return;
+  state.players.forEach((beforePlayer, playerIndex) => {
+    const afterPlayer = nextState.players[playerIndex];
+    if (!afterPlayer || !didPlayerGainJShield(state, nextState, playerIndex)) return;
+    const shield = afterPlayer.jShield;
+    if (!shield) return;
+    const summary = players[playerIndex];
+    summary.jShieldUsed += 1;
+    if (afterPlayer.isCpu) {
+      summary.jShieldUsedByCpu += 1;
+    } else {
+      summary.jShieldUsedByHuman += 1;
+    }
+    if (afterPlayer.cpuModelId === "master") {
+      summary.jShieldUsedByMaster += 1;
+    }
+    if (getShieldType(shield) === "sequence") {
+      summary.jShieldUsedForSequence += 1;
+    } else {
+      summary.jShieldUsedForSameRank += 1;
+    }
+    pushJShieldDetail(config, jShieldDetails, game, seed, step, turn, nextState, playerIndex, {
+      event: "J Shield used",
+      shieldType: getShieldType(shield),
+      target: formatShieldTarget(shield),
+      cardIds: shield.cardIds,
+    });
+  });
+}
+
+function collectJShieldDefense(
+  config: SimulationConfig,
+  game: number,
+  seed: number,
+  step: number,
+  turn: number,
+  state: GameState,
+  action: GameAction,
+  nextState: GameState,
+  players: SimulationPlayerSummary[],
+  jShieldDetails: SimulationJShieldDetailEvent[],
+) {
+  state.players.forEach((beforePlayer, playerIndex) => {
+    const consumedCardIds = getJShieldConsumedCardIds(beforePlayer, nextState.players[playerIndex]);
+    if (consumedCardIds.length === 0) return;
+    const summary = players[playerIndex];
+    summary.jShieldConsumed += 1;
+    const beforeType = getShieldType(beforePlayer.jShield);
+    if (action.type === "selectQueenVanishRank") {
+      summary.jShieldBlockedQ += 1;
+      const afterShield = nextState.players[playerIndex]?.jShield;
+      if (beforeType === "sequence" && afterShield) {
+        summary.jShieldSequencePartialBrokenByQ += 1;
+      }
+      pushJShieldDetail(config, jShieldDetails, game, seed, step, turn, nextState, playerIndex, {
+        event: "J Shield blocked Q",
+        rank: formatRank(action.rank),
+        shieldType: beforeType,
+        remainingShieldedRanks: nextState.players[playerIndex]?.jShield?.cardIds.map((cardId) => {
+          const card = nextState.players[playerIndex]?.hand.find((candidate) => candidate.id === cardId);
+          return card ? formatRank(card.rank) : cardId;
+        }),
+      });
+      return;
+    }
+    if (state.pendingDaifugoEffect?.kind === "sevenExchange" && nextState.daifugoEffectEvent?.kind === "sevenExchange") {
+      summary.jShieldBlocked7 += 1;
+      pushJShieldDetail(config, jShieldDetails, game, seed, step, turn, nextState, playerIndex, {
+        event: "J Shield blocked 7",
+        shieldType: beforeType,
+        target: formatShieldTarget(beforePlayer.jShield),
+        cardIds: consumedCardIds,
+      });
+    }
+  });
 }
 
 export function collectEffectTelemetry(
@@ -548,8 +833,11 @@ export function collectEffectTelemetry(
   players: SimulationPlayerSummary[],
   violations: SimulationViolation[],
   fiveTargetEvents: SimulationFiveTargetEvent[] = [],
+  jShieldDetails: SimulationJShieldDetailEvent[] = [],
 ) {
   collectTacticalDecisionTurn(state, action, players);
+  collectJShieldUsage(config, game, seed, step, turn, state, action, nextState, players, jShieldDetails);
+  collectJShieldDefense(config, game, seed, step, turn, state, action, nextState, players, jShieldDetails);
   const pending = state.pendingDaifugoEffect;
   if (!pending || pending.kind !== "confirm" || action.type !== "answerDaifugoEffect" || !action.activate) {
     if (pending?.kind === "queenSelect") {
@@ -577,7 +865,7 @@ export function collectEffectTelemetry(
       collectTacticalNineUsage(config, game, seed, step, turn, state, actorIndex, summary, violations);
       return;
     case "jackBack":
-      collectTacticalJackUsage(config, game, seed, step, turn, state, nextState, actorIndex, summary, violations);
+      collectTacticalJackUsage(config, game, seed, step, turn, state, nextState, actorIndex, summary, violations, jShieldDetails);
   }
 }
 
@@ -606,6 +894,37 @@ function collectResult(result: GameResult, players: SimulationPlayerSummary[], c
 
   players[result.winnerIndex].tsumoCount += 1;
   players[result.winnerIndex].winCount += 1;
+}
+
+function sumPlayers(players: SimulationPlayerSummary[], selector: (player: SimulationPlayerSummary) => number): number {
+  return players.reduce((total, player) => total + selector(player), 0);
+}
+
+function createJShieldSummary(players: SimulationPlayerSummary[]): SimulationJShieldSummary {
+  return {
+    jShieldUsedCount: sumPlayers(players, (player) => player.jShieldUsed),
+    jShieldUsedByHumanCount: sumPlayers(players, (player) => player.jShieldUsedByHuman),
+    jShieldUsedByCpuCount: sumPlayers(players, (player) => player.jShieldUsedByCpu),
+    jShieldUsedByMasterCount: sumPlayers(players, (player) => player.jShieldUsedByMaster),
+    jShieldUsedForSequenceMeldCount: sumPlayers(players, (player) => player.jShieldUsedForSequence),
+    jShieldUsedForSameRankMeldCount: sumPlayers(players, (player) => player.jShieldUsedForSameRank),
+    jShieldBlockedQCount: sumPlayers(players, (player) => player.jShieldBlockedQ),
+    jShieldBlocked7Count: sumPlayers(players, (player) => player.jShieldBlocked7),
+    jShieldConsumedCount: sumPlayers(players, (player) => player.jShieldConsumed),
+    jShieldSequencePartialBrokenByQCount: sumPlayers(players, (player) => player.jShieldSequencePartialBrokenByQ),
+    masterJSelectedEnhanceCount: sumPlayers(players, (player) => player.masterJSelectedEnhance),
+    masterJSelectedViewHandCount: sumPlayers(players, (player) => player.masterJSelectedViewHand),
+    masterJSelectedShieldCount: sumPlayers(players, (player) => player.masterJSelectedShield),
+    masterJShieldUsedInNormalSituationCount: sumPlayers(players, (player) => player.masterJShieldUsedInNormalSituation),
+    masterJShieldSkippedNoCompletedMeldCount: sumPlayers(players, (player) => player.masterJShieldSkippedNoCompletedMeld),
+    masterJShieldSkippedNoShieldableSequenceCount: sumPlayers(players, (player) => player.masterJShieldSkippedNoShieldableSequence),
+    masterJShieldSkippedNoShieldableSameRankMeldCount: sumPlayers(players, (player) => player.masterJShieldSkippedNoShieldableSameRankMeld),
+    masterJShieldSkippedAlreadySequenceShieldedCount: sumPlayers(players, (player) => player.masterJShieldSkippedAlreadySequenceShielded),
+    masterJShieldSkippedSelfTwoCallCount: sumPlayers(players, (player) => player.masterJShieldSkippedSelfTwoCall),
+    masterJShieldSkippedSevenAndQEliminatedCount: sumPlayers(players, (player) => player.masterJShieldSkippedSevenAndQEliminated),
+    masterJShieldSkippedWouldBreakProtectedMeldCount: sumPlayers(players, (player) => player.masterJShieldSkippedWouldBreakProtectedMeld),
+    masterJShieldFallbackToViewHandCount: sumPlayers(players, (player) => player.masterJShieldFallbackToViewHand),
+  };
 }
 
 function createDetailEvent(game: number, seed: number, step: number, turn: number, state: GameState, action: GameAction, reason?: string): SimulationDetailEvent {
@@ -701,6 +1020,7 @@ function runOneGame(
   violations: SimulationViolation[],
   details: SimulationDetailEvent[],
   fiveTargetEvents: SimulationFiveTargetEvent[],
+  jShieldDetails: SimulationJShieldDetailEvent[],
 ): SimulationGameOutcome {
   return withSeededMathRandom(seed, () => {
     let state = {
@@ -751,7 +1071,7 @@ function runOneGame(
           secondCallSelfTurnCounts[state.currentPlayerIndex] ??= selfTurnCounts[state.currentPlayerIndex];
         }
       }
-      collectEffectTelemetry(config, game, seed, step, turn, state, decision.action, nextState, players, violations, fiveTargetEvents);
+      collectEffectTelemetry(config, game, seed, step, turn, state, decision.action, nextState, players, violations, fiveTargetEvents, jShieldDetails);
       if (nextState === state) {
         violations.push({ game, seed, step, code: "stalled-action", message: `${describeAction(decision.action)} did not change state.` });
         return complete(createFallbackDeckout(players.length));
@@ -769,6 +1089,7 @@ export function runSimulation(config: SimulationConfig): SimulationSummary {
   const violations: SimulationViolation[] = [];
   const details: SimulationDetailEvent[] = [];
   const fiveTargetEvents: SimulationFiveTargetEvent[] = [];
+  const jShieldDetails: SimulationJShieldDetailEvent[] = [];
   const results: GameResult[] = [];
   const timings: SimulationGameTiming[] = [];
   const gameSeeds = Array.from({ length: config.games }, (_, index) => deriveGameSeed(config.seed, index));
@@ -784,7 +1105,7 @@ export function runSimulation(config: SimulationConfig): SimulationSummary {
     gameSeeds.forEach((gameSeed, index) => {
       const startPlayerIndex = startPlayerIndexes[index];
       players[startPlayerIndex].startPlayerCount += 1;
-      const outcome = runOneGame(config, index + 1, gameSeed, startPlayerIndex, players, violations, details, fiveTargetEvents);
+      const outcome = runOneGame(config, index + 1, gameSeed, startPlayerIndex, players, violations, details, fiveTargetEvents, jShieldDetails);
       results.push(outcome.result);
       timings.push(outcome.timing);
       collectResult(outcome.result, players, outcome.calledPlayerIndexes);
@@ -808,9 +1129,11 @@ export function runSimulation(config: SimulationConfig): SimulationSummary {
     violations,
     details,
     fiveTargetEvents,
+    jShieldDetails,
     gameSeeds,
     startPlayerIndexes,
     results,
+    jShieldSummary: createJShieldSummary(players),
     turnTiming: createTurnTimingSummary(timings),
     turnTimingSanity: createTurnTimingSanityCheck(results.length, deckoutCount, timings),
   };
