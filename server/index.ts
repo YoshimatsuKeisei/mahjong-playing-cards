@@ -3,7 +3,14 @@ import { Server, type Socket } from "socket.io";
 import { createDefaultDaifugoOptions } from "../src/game/deck";
 import { createInitialGame, gameReducer, type GameAction } from "../src/game/gameState";
 import { createPlayerViewState } from "../src/online/playerView";
-import type { ClientToServerEvents, OnlineRoomPlayer, OnlineRoomSnapshot, ServerToClientEvents } from "../src/online/types";
+import type {
+  ActionRejectedReason,
+  ClientToServerEvents,
+  OnlinePlayerViewPayload,
+  OnlineRoomPlayer,
+  OnlineRoomSnapshot,
+  ServerToClientEvents,
+} from "../src/online/types";
 import type { Direction, GameState } from "../src/types";
 
 interface ServerRoom {
@@ -14,6 +21,7 @@ interface ServerRoom {
   players: OnlineRoomPlayer[];
   socketsByPlayerId: Map<string, string>;
   state: GameState | null;
+  stateVersion: number;
   started: boolean;
 }
 
@@ -61,14 +69,18 @@ function getSocketRoom(socket: OnlineSocket): ServerRoom | null {
   return roomId ? rooms.get(roomId) ?? null : null;
 }
 
-function emitPlayerView(room: ServerRoom, playerId: string) {
-  const socketId = room.socketsByPlayerId.get(playerId);
-  if (!socketId) return;
-  io.to(socketId).emit("playerView", {
+function createPlayerViewPayload(room: ServerRoom, playerId: string): OnlinePlayerViewPayload {
+  return {
     room: snapshotRoom(room),
     playerId,
     state: room.state ? createPlayerViewState(room.state, playerId) : null,
-  });
+  };
+}
+
+function emitPlayerView(room: ServerRoom, playerId: string) {
+  const socketId = room.socketsByPlayerId.get(playerId);
+  if (!socketId) return;
+  io.to(socketId).emit("playerView", createPlayerViewPayload(room, playerId));
 }
 
 function broadcastPlayerView(room: ServerRoom) {
@@ -90,22 +102,32 @@ function leaveCurrentRoom(socket: OnlineSocket) {
   broadcastPlayerView(room);
 }
 
-function canSubmitAction(room: ServerRoom, playerId: string, action: GameAction): boolean {
-  if (!room.state) return false;
-  if (action.type === "start" || action.type === "restart") return false;
+function rejectAction(socket: OnlineSocket, room: ServerRoom | null, playerId: string | undefined, reason: ActionRejectedReason) {
+  socket.emit("actionRejected", {
+    reason,
+    expectedStateVersion: room?.state ? room.stateVersion : null,
+    playerView: room && playerId ? createPlayerViewPayload(room, playerId) : null,
+  });
+  if (room && playerId) emitPlayerView(room, playerId);
+}
+
+function validateOnlineAction(room: ServerRoom, playerId: string, action: GameAction): ActionRejectedReason | null {
+  if (!room.state || !room.started) return "room_not_playing";
+  if (action.type !== "drawFromDeck" && action.type !== "discard") return "invalid_action_for_phase";
   const playerIndex = room.state.players.findIndex((player) => player.id === playerId);
-  if (playerIndex < 0) return false;
-  if (action.type === "confirmHandoff") return true;
-  if (action.type === "answerRon") {
-    return room.state.pendingRonResult?.ronResults?.some((ron) => ron.winnerIndex === playerIndex) ?? false;
+  if (playerIndex < 0 || room.state.currentPlayerIndex !== playerIndex) return "not_your_turn";
+  if (action.type === "drawFromDeck") {
+    if (room.state.phase !== "draw" || room.state.deck.length === 0) return "invalid_action_for_phase";
+    return null;
   }
-  if (action.type === "selectSevenExchangeCard") return action.playerIndex === playerIndex;
-  const pending = room.state.pendingDaifugoEffect;
-  if (pending && "playerIndex" in pending && pending.playerIndex === playerIndex) return true;
-  return room.state.currentPlayerIndex === playerIndex;
+  if (room.state.phase !== "discard") return "invalid_action_for_phase";
+  const player = room.state.players[playerIndex];
+  if (!player.hand.some((card) => card.id === action.cardId)) return "card_not_in_hand";
+  return null;
 }
 
 function startRoomGame(room: ServerRoom) {
+  room.stateVersion = 0;
   room.state = createInitialGame(
     room.players.length,
     room.direction,
@@ -117,6 +139,7 @@ function startRoomGame(room: ServerRoom) {
   );
   room.state = {
     ...room.state,
+    stateVersion: room.stateVersion,
     players: room.state.players.map((player, index) => ({
       ...player,
       id: room.players[index].playerId,
@@ -139,6 +162,7 @@ io.on("connection", (socket) => {
       players: [],
       socketsByPlayerId: new Map(),
       state: null,
+      stateVersion: 0,
       started: false,
     };
     const player: OnlineRoomPlayer = {
@@ -210,16 +234,29 @@ io.on("connection", (socket) => {
     broadcastPlayerView(room);
   });
 
-  socket.on("submitAction", (action) => {
+  socket.on("submitAction", (payload) => {
     const room = getSocketRoom(socket);
     const playerId = socket.data.playerId;
-    if (!room || !playerId || !room.state) return;
-    if (!canSubmitAction(room, playerId, action)) {
-      socket.emit("errorMessage", "It is not your turn for that action.");
+    if (!room || !playerId) return;
+    if (!room.state || !room.started) {
+      rejectAction(socket, room, playerId, "room_not_playing");
       return;
     }
-    const nextState = gameReducer(room.state, action);
-    room.state = nextState;
+    if (payload.stateVersion !== room.stateVersion) {
+      rejectAction(socket, room, playerId, "stale_state_version");
+      return;
+    }
+    const rejection = validateOnlineAction(room, playerId, payload.action);
+    if (rejection) {
+      rejectAction(socket, room, playerId, rejection);
+      return;
+    }
+    let nextState = gameReducer(room.state, payload.action);
+    if (payload.action.type === "discard" && nextState.phase === "handoff") {
+      nextState = gameReducer(nextState, { type: "confirmHandoff" });
+    }
+    room.stateVersion += 1;
+    room.state = { ...nextState, stateVersion: room.stateVersion };
     broadcastPlayerView(room);
   });
 

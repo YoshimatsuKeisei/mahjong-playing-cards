@@ -115,10 +115,19 @@ export default function App() {
     socket.on("errorMessage", (message) => {
       setOnlineError(message);
     });
+    socket.on("actionRejected", (payload) => {
+      setOnlineError(payload.reason);
+      if (payload.playerView?.state) {
+        setOnlinePlayerId(payload.playerView.playerId);
+        setOnlineRoom(payload.playerView.room);
+        setState(payload.playerView.state);
+      }
+    });
     return () => {
       socket.off("roomUpdated");
       socket.off("playerView");
       socket.off("errorMessage");
+      socket.off("actionRejected");
     };
   }, []);
 
@@ -139,7 +148,7 @@ export default function App() {
 
   function dispatch(action: GameAction) {
     if (onlineRoom?.started) {
-      getOnlineSocket().emit("submitAction", action);
+      getOnlineSocket().emit("submitAction", { action, stateVersion: state.stateVersion ?? 0 });
       return;
     }
     setState((currentState) => {

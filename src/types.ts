@@ -257,6 +257,10 @@ export interface MatchRoundHistoryEntry {
 export interface GameState {
   players: Player[];
   deck: Card[];
+  deckRemaining?: number;
+  stateVersion?: number;
+  viewerPlayerId?: string;
+  availableActions?: string[];
   currentPlayerIndex: number;
   direction: Direction;
   daifugoOptions: DaifugoOptions;

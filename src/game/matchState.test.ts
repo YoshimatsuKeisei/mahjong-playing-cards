@@ -48,7 +48,7 @@ describe("rounds match state", () => {
     expect(secondRound.gameState.phase).toBe("draw");
     expect(secondRound.gameState.result).toBeNull();
     expect(secondRound.gameState.winner).toBeNull();
-    expect(secondRound.gameState.deck).toHaveLength(104);
+    expect(secondRound.gameState.deck).toHaveLength(64);
     expect(secondRound.gameState.players.every((player) => player.discardPile.length === 0)).toBe(true);
     expect(secondRound.gameState.players.every((player) => player.openMelds.length === 0)).toBe(true);
     expect(secondRound.gameState.players.every((player) => !player.isReach && !player.hasCalled)).toBe(true);

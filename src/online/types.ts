@@ -33,9 +33,28 @@ export interface OnlinePlayerViewPayload {
   state: GameState | null;
 }
 
+export interface SubmitActionPayload {
+  action: GameAction;
+  stateVersion: number;
+}
+
+export type ActionRejectedReason =
+  | "not_your_turn"
+  | "stale_state_version"
+  | "card_not_in_hand"
+  | "room_not_playing"
+  | "invalid_action_for_phase";
+
+export interface ActionRejectedPayload {
+  reason: ActionRejectedReason;
+  expectedStateVersion: number | null;
+  playerView: OnlinePlayerViewPayload | null;
+}
+
 export interface ServerToClientEvents {
   roomUpdated: (room: OnlineRoomSnapshot) => void;
   playerView: (payload: OnlinePlayerViewPayload) => void;
+  actionRejected: (payload: ActionRejectedPayload) => void;
   errorMessage: (message: string) => void;
 }
 
@@ -44,7 +63,7 @@ export interface ClientToServerEvents {
   joinRoom: (payload: JoinRoomPayload, ack: (response: OnlineAck) => void) => void;
   ready: (payload: { ready: boolean }) => void;
   startGame: () => void;
-  submitAction: (action: GameAction) => void;
+  submitAction: (payload: SubmitActionPayload) => void;
 }
 
 export type OnlineAck =
