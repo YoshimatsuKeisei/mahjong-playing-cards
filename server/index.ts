@@ -1,7 +1,7 @@
 import { createServer } from "node:http";
 import { Server, type Socket } from "socket.io";
 import { createDefaultDaifugoOptions } from "../src/game/deck";
-import { createInitialGame, gameReducer, type GameAction } from "../src/game/gameState";
+import { createInitialGame, gameReducer, getAvailableDiscardSources, getCallOptionsForSource, type GameAction } from "../src/game/gameState";
 import { createPlayerViewState } from "../src/online/playerView";
 import type {
   ActionRejectedReason,
@@ -113,12 +113,21 @@ function rejectAction(socket: OnlineSocket, room: ServerRoom | null, playerId: s
 
 function validateOnlineAction(room: ServerRoom, playerId: string, action: GameAction): ActionRejectedReason | null {
   if (!room.state || !room.started) return "room_not_playing";
-  if (action.type !== "drawFromDeck" && action.type !== "discard") return "invalid_action_for_phase";
+  if (action.type !== "drawFromDeck" && action.type !== "discard" && action.type !== "takeDiscard") return "invalid_action_for_phase";
   const playerIndex = room.state.players.findIndex((player) => player.id === playerId);
   if (playerIndex < 0 || room.state.currentPlayerIndex !== playerIndex) return "not_your_turn";
   if (action.type === "drawFromDeck") {
     if (room.state.phase !== "draw" || room.state.deck.length === 0) return "invalid_action_for_phase";
     return null;
+  }
+  if (action.type === "takeDiscard") {
+    if (room.state.phase !== "draw") return "invalid_action_for_phase";
+    if (!getAvailableDiscardSources(room.state).includes(action.ownerIndex)) return "invalid_action_for_phase";
+    if (!action.meld) return "invalid_action_for_phase";
+    const legalOptions = getCallOptionsForSource(room.state, action.ownerIndex);
+    const meldIds = action.meld.map((card) => card.id).sort().join("|");
+    const isLegalMeld = legalOptions.some((option) => option.map((card) => card.id).sort().join("|") === meldIds);
+    return isLegalMeld ? null : "invalid_action_for_phase";
   }
   if (room.state.phase !== "discard") return "invalid_action_for_phase";
   const player = room.state.players[playerIndex];

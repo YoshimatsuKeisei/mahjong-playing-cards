@@ -49,7 +49,7 @@ await wait(500);
 
 const initialViews = clients.map((client) => client.state.view);
 if (!initialViews.every(Boolean)) throw new Error("missing initial player views");
-if (initialViews[0].deckRemaining !== 64) throw new Error(`expected deckRemaining 64, got ${initialViews[0].deckRemaining}`);
+if (initialViews[0].deckRemaining !== 104) throw new Error(`expected deckRemaining 104, got ${initialViews[0].deckRemaining}`);
 if (!initialViews.every((view) => view.deck.length === 0)) throw new Error("client received deck contents");
 if (!initialViews[0].availableActions.includes("drawFromDeck")) throw new Error("host cannot draw");
 if (initialViews.slice(1).some((view) => view.availableActions.includes("drawFromDeck"))) {
@@ -77,12 +77,18 @@ await wait(500);
 const hostAfterDraw = clients[0].state.view;
 const p2AfterDraw = clients[1].state.view;
 if (hostAfterDraw.stateVersion !== 1) throw new Error(`draw did not increment version to 1: ${hostAfterDraw.stateVersion}`);
+if (hostAfterDraw.deckRemaining !== 103) throw new Error(`expected deckRemaining 103 after host draw, got ${hostAfterDraw.deckRemaining}`);
 if (hostAfterDraw.phase !== "discard") throw new Error(`host phase after draw should be discard: ${hostAfterDraw.phase}`);
 if (hostAfterDraw.players[0].hand.length !== 11) throw new Error("host hand did not grow to 11");
+if (!hostAfterDraw.drawnCard || !hostAfterDraw.players[0].hand.some((card) => card.id === hostAfterDraw.drawnCard.id)) {
+  throw new Error("host drawnCard does not match a card in host hand");
+}
+if (hostAfterDraw.drawnCard.id === "online-hidden-draw") throw new Error("host received placeholder drawn card");
 if (p2AfterDraw.players[0].hand.length !== 11) throw new Error("other views do not show host hand count 11");
 if (p2AfterDraw.players[0].hand.some((card) => !card.id.startsWith("hidden-hand-"))) {
   throw new Error("other player received host hand card ids");
 }
+if (p2AfterDraw.drawnCard) throw new Error("other player can see host drawn card");
 
 clients[1].socket.emit("submitAction", {
   action: { type: "drawFromDeck" },
@@ -111,6 +117,87 @@ if (!afterDiscardViews.every((view) => view.players[0].discardPile.length === 1)
 if (!afterDiscardViews[1].availableActions.includes("drawFromDeck")) throw new Error("next player cannot draw");
 if (afterDiscardViews[0].availableActions.includes("drawFromDeck")) throw new Error("previous player can still draw");
 
+clients[1].socket.emit("submitAction", {
+  action: { type: "drawFromDeck" },
+  stateVersion: afterDiscardViews[1].stateVersion,
+});
+await wait(500);
+const p2SecondDrawView = clients[1].state.view;
+if (p2SecondDrawView.deckRemaining !== 102) {
+  throw new Error(`expected deckRemaining 102 after second player draw, got ${p2SecondDrawView.deckRemaining}`);
+}
+
+function isRun(cards) {
+  if (cards.length !== 3) return false;
+  if (!cards.every((card) => card.suit === cards[0].suit)) return false;
+  const ranks = cards.map((card) => card.rank).sort((a, b) => a - b);
+  return ranks[0] + 1 === ranks[1] && ranks[1] + 1 === ranks[2];
+}
+
+function isTriple(cards) {
+  return cards.length === 3 && cards.every((card) => card.rank === cards[0].rank);
+}
+
+function findCallMeldOptions(hand, discard) {
+  const options = [];
+  for (let i = 0; i < hand.length - 1; i += 1) {
+    for (let j = i + 1; j < hand.length; j += 1) {
+      const meld = [hand[i], hand[j], discard];
+      if (isRun(meld) || isTriple(meld)) options.push(meld);
+    }
+  }
+  return options;
+}
+
+async function findAndTakeDiscard() {
+  for (let attempt = 0; attempt < 30; attempt += 1) {
+    const actorIndex = clients[0].state.view.currentPlayerIndex;
+    const actorView = clients[actorIndex].state.view;
+    if (actorView.phase === "draw") {
+      clients[actorIndex].socket.emit("submitAction", {
+        action: { type: "drawFromDeck" },
+        stateVersion: actorView.stateVersion,
+      });
+      await wait(250);
+    }
+
+    const discardActorIndex = clients[0].state.view.currentPlayerIndex;
+    const discardActorView = clients[discardActorIndex].state.view;
+    const nextPlayerIndex = (discardActorIndex + 1) % clients.length;
+    const nextHand = clients[nextPlayerIndex].state.view.players[nextPlayerIndex].hand;
+    const discardCandidates = discardActorView.players[discardActorIndex].hand;
+    const selectedDiscard =
+      discardCandidates.find((candidate) => findCallMeldOptions(nextHand, candidate).length > 0) ?? discardCandidates[0];
+    clients[discardActorIndex].socket.emit("submitAction", {
+      action: { type: "discard", cardId: selectedDiscard.id },
+      stateVersion: discardActorView.stateVersion,
+    });
+    await wait(350);
+
+    const afterDiscard = clients[nextPlayerIndex].state.view;
+    const discard = afterDiscard.players[discardActorIndex].discardPile.at(-1);
+    const meld = discard ? findCallMeldOptions(afterDiscard.players[nextPlayerIndex].hand, discard)[0] : null;
+    if (!meld) continue;
+
+    clients[nextPlayerIndex].socket.emit("submitAction", {
+      action: { type: "takeDiscard", ownerIndex: discardActorIndex, meld },
+      stateVersion: afterDiscard.stateVersion,
+    });
+    await wait(500);
+    const afterCallViews = clients.map((client) => client.state.view);
+    if (!afterCallViews.every((view) => view.players[nextPlayerIndex].openMelds.length > 0)) {
+      throw new Error("takeDiscard did not publish open meld to all views");
+    }
+    return {
+      callerIndex: nextPlayerIndex,
+      stateVersion: afterCallViews[0].stateVersion,
+    };
+  }
+  throw new Error("could not find a legal takeDiscard smoke scenario");
+}
+
+const callResult = await findAndTakeDiscard();
+
 console.log(
   JSON.stringify({
     ok: true,
@@ -118,7 +205,9 @@ console.log(
     deckRemainingStart: initialViews[0].deckRemaining,
     afterDrawVersion: hostAfterDraw.stateVersion,
     afterDiscardVersion: afterDiscardViews[0].stateVersion,
-    currentPlayerIndex: afterDiscardViews[0].currentPlayerIndex,
+    afterSecondDrawDeckRemaining: p2SecondDrawView.deckRemaining,
+    takeDiscardVersion: callResult.stateVersion,
+    takeDiscardCallerIndex: callResult.callerIndex,
   }),
 );
 

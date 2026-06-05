@@ -75,6 +75,7 @@ export function createPlayerViewState(fullState: GameState, viewerPlayerId: stri
   const availableActions: string[] = [];
   if (viewerIndex === fullState.currentPlayerIndex && fullState.phase === "draw" && fullState.deck.length > 0) {
     availableActions.push("drawFromDeck");
+    availableActions.push("takeDiscard");
   }
   if (viewerIndex === fullState.currentPlayerIndex && fullState.phase === "discard") {
     availableActions.push("discard");

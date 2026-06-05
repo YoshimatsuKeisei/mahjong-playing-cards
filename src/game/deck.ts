@@ -78,7 +78,7 @@ export function dealCards(
 
   return {
     players: players.map((player) => ({ ...player, hand: sortCards(player.hand) })),
-    deck: dealSource,
+    deck,
     currentPlayerIndex: 0,
     direction,
     daifugoOptions,

@@ -769,6 +769,10 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
   }
 
   function handleDrawFromDeck() {
+    if (isOnlineView) {
+      dispatch({ type: "drawFromDeck" });
+      return;
+    }
     animateDrawFromDeck(() => dispatch({ type: "drawFromDeck" }));
   }
 

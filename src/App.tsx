@@ -116,6 +116,7 @@ export default function App() {
       setOnlineError(message);
     });
     socket.on("actionRejected", (payload) => {
+      console.warn("[online] actionRejected", payload.reason, payload);
       setOnlineError(payload.reason);
       if (payload.playerView?.state) {
         setOnlinePlayerId(payload.playerView.playerId);
