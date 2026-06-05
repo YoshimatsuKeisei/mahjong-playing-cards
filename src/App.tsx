@@ -43,7 +43,7 @@ type AppScreen = "home" | "roomSelect" | "roomList" | "newGame" | "play" | "manu
 type ExitConfirmKind = "summary" | "home" | null;
 type DebugResultKind = "ron" | "tsumo" | "doubleRon";
 type DebugStandingsCase = "roundsNoRankChange" | "roundsRankChange" | "targetNoRankChange" | "pointsLoss";
-type DebugDaifugoCase =
+export type DebugDaifugoCase =
   | "jBack"
   | "jackSelect"
   | "jackInspect3"
@@ -75,7 +75,8 @@ type DebugDaifugoCase =
   | "queenRefillBlocked"
   | "queenNoChoices"
   | "emptyDeckDraw"
-  | "queenEndsWithEmptyDeck";
+  | "queenEndsWithEmptyDeck"
+  | "queenAfterEffectWin";
 
 export default function App() {
   const [state, setState] = useState<GameState>(initialState);
@@ -320,6 +321,7 @@ export default function App() {
                 { label: "DEV: Q候補0件不発", onClick: () => showDebugDaifugo("queenNoChoices") },
                 { label: "DEV: 山札0枚流局", onClick: () => showDebugDaifugo("emptyDeckDraw") },
                 { label: "DEV: Q後山札0枚境界", onClick: () => showDebugDaifugo("queenEndsWithEmptyDeck") },
+                { label: "DEV: Q後即上がり", onClick: () => showDebugDaifugo("queenAfterEffectWin") },
                 { label: "DEV: J特殊効果選択", onClick: () => showDebugDaifugo("jackSelect") },
                 { label: "DEV: J強化権取得", onClick: () => showDebugDaifugo("jEnhancementAcquire") },
                 { label: "DEV: J強化権重複防止", onClick: () => showDebugDaifugo("jEnhancementDuplicate") },
@@ -537,7 +539,7 @@ function createDebugDaifugoOptions() {
   };
 }
 
-function createDebugDaifugoState(caseName: DebugDaifugoCase): GameState {
+export function createDebugDaifugoState(caseName: DebugDaifugoCase): GameState {
   const isJBackCase = caseName === "jBack";
   const isEnhancedSevenCase = caseName === "jEnhancedSeven" || caseName === "jEnhancedSeven4" || caseName === "jEnhancedSeven3";
   const isEnhancedFiveCase =
@@ -887,6 +889,28 @@ function createDebugDaifugoState(caseName: DebugDaifugoCase): GameState {
       pendingDaifugoEffect: { kind: "queenSelect", effect: "queenNumberVanish", playerIndex: 0, continue: { shouldConfirmReach: false } },
       phase: "handoff",
       message: "DEV: Q完了後に山札が0枚になる境界ケースです。",
+    });
+  }
+
+  if (caseName === "queenAfterEffectWin") {
+    const qUserHand = [
+      debugCard("qaw-1s", 1, "S"),
+      debugCard("qaw-1h", 1, "H"),
+      debugCard("qaw-1d", 1, "D"),
+      debugCard("qaw-2s", 2, "S"),
+      debugCard("qaw-2h", 2, "H"),
+      debugCard("qaw-2d", 2, "D"),
+      debugCard("qaw-3s", 3, "S"),
+      debugCard("qaw-4s", 4, "S"),
+      debugCard("qaw-remove-9", 9, "H"),
+      debugCard("qaw-key", 13, "C"),
+    ];
+    return makeState({
+      players: [{ ...debugPlayer(1, qUserHand), discardPile: [debugCard("qaw-used-q", 12, "D")] }, players[1], players[2]],
+      deck: [debugCard("qaw-refill-5", 5, "S"), debugCard("qaw-pad-6", 6, "H"), debugCard("qaw-pad-7", 7, "D")],
+      pendingDaifugoEffect: { kind: "queenSelect", effect: "queenNumberVanish", playerIndex: 0, continue: { shouldConfirmReach: false } },
+      phase: "handoff",
+      message: "DEV: Q補充ドローで即上がりするケースです。9を選んでください。",
     });
   }
 

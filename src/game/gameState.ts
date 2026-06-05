@@ -22,6 +22,7 @@ import {
   findCallMeldOptions,
   findPossibleMelds,
   findWinningDiscardsAfterDraw,
+  isRun,
 } from "./rules";
 import { calculateRonScore, calculateTsumoScore } from "./scoring";
 import { chooseDaifugoSevenExchangeCardForModel } from "./daifugoCpu";
@@ -348,6 +349,26 @@ function consumeJShield(player: Player): Player {
   return nextPlayer;
 }
 
+function consumeJShieldCards(player: Player, cardIds: string[]): Player {
+  if (!player.jShield || cardIds.length === 0) return player;
+  if ((player.jShield.kind ?? "rank") !== "run") return consumeJShield(player);
+  const consumedIds = new Set(cardIds);
+  const nextCardIds = player.jShield.cardIds.filter((cardId) => !consumedIds.has(cardId));
+  if (nextCardIds.length === 0) return consumeJShield(player);
+  const nextRanks = nextCardIds
+    .map((cardId) => player.hand.find((card) => card.id === cardId)?.rank)
+    .filter((rank): rank is number => rank !== undefined);
+  return {
+    ...player,
+    jShield: {
+      ...player.jShield,
+      cardIds: nextCardIds,
+      ranks: nextRanks,
+      label: formatRunLabel(nextRanks),
+    },
+  };
+}
+
 export interface QueenVanishRankOption {
   rank: number;
   removedFromDeck: number;
@@ -364,7 +385,7 @@ export function getQueenVanishRankOptions(state: Pick<GameState, "deck" | "playe
     .map((rank) => {
       const removedFromDeck = state.deck.filter((card) => card.rank === rank).length;
       const replenishmentRequired = state.players.reduce(
-        (total, player) => total + player.hand.filter((card) => card.rank === rank).length,
+        (total, player) => total + player.hand.filter((card) => card.rank === rank && !isCardJShielded(player, card)).length,
         0,
       );
       const availableAfterVanish = state.deck.length - removedFromDeck;
@@ -898,7 +919,7 @@ function resolveQueenNumberVanish(state: GameState, rank: number): GameState {
     if (discardedCards.length > 0) discardSummaries.push(`${player.name}が${formatRank(rank)}を${discardedCards.length}枚捨てました`);
     if (drawnCards.length > 0) drawSummaries.push(`${player.name}が山札から${drawnCards.length}枚引きました`);
     return {
-      ...(shieldedCards.length > 0 ? consumeJShield(player) : player),
+      ...(shieldedCards.length > 0 ? consumeJShieldCards(player, shieldedCards.map((card) => card.id)) : player),
       hand: sortCards([...player.hand.filter((card) => card.rank !== rank), ...shieldedCards, ...drawnCards]),
       discardPile: [...player.discardPile, ...queenDiscardedCards],
     };
@@ -955,6 +976,11 @@ function resolveQueenNumberVanish(state: GameState, rank: number): GameState {
   };
 
   if (winningResult.canWin) {
+    console.info("[Q after-effect win check]", {
+      player: user.id,
+      canWin: true,
+      reason: "completedByQReplacementDraw",
+    });
     return {
       ...nextState,
       players: replacePlayer(players, pending.playerIndex, { ...user, winningResult }),
@@ -965,7 +991,7 @@ function resolveQueenNumberVanish(state: GameState, rank: number): GameState {
         winningResult,
         continue: { ...pending.continue, shouldConfirmReach: false, message },
       },
-      message: `${message} 上がりますか？`,
+      message: `${message} 上がりを確定します。`,
     };
   }
 
@@ -987,7 +1013,12 @@ function drawOneForPlayer(state: GameState, playerIndex: number): { state: GameS
   return { state: { ...state, deck, players, drawnCard, drawnFrom: "deck" }, drawnCard };
 }
 
-function makeWinningState(state: GameState, players: Player[], winningResult = players[state.currentPlayerIndex].winningResult): GameState {
+function makeWinningState(
+  state: GameState,
+  players: Player[],
+  winningResult = players[state.currentPlayerIndex].winningResult,
+  actionSource = "normalWinWithDiscard",
+): GameState {
   if (!winningResult) return state;
   const result = makeResult(
     { ...state, players },
@@ -995,7 +1026,7 @@ function makeWinningState(state: GameState, players: Player[], winningResult = p
     state.drawnFrom === "discard" ? "ron" : "tsumo",
     winningResult,
     state.drawnFrom === "discard" ? state.takenDiscardOwnerIndex : null,
-    "normalWinWithDiscard",
+    actionSource,
   );
   return {
     ...state,
@@ -1017,7 +1048,8 @@ function startJackShieldSelect(state: GameState, playerIndex: number, continueSt
   const player = state.players[playerIndex];
   if (!player || player.isCpu) return state;
   const selectableRanks = [...new Set(player.hand.map((card) => card.rank))].sort((a, b) => a - b);
-  if (selectableRanks.length === 0) return state;
+  const selectableRuns = getJackShieldRunOptions(player);
+  if (selectableRanks.length === 0 && selectableRuns.length === 0) return state;
   return {
     ...state,
     pendingDaifugoEffect: {
@@ -1025,6 +1057,7 @@ function startJackShieldSelect(state: GameState, playerIndex: number, continueSt
       effect: "jackBack",
       playerIndex,
       selectableRanks,
+      selectableRuns,
       continue: continueState,
     },
     message: `${player.name}がJシールドの対象数字を選んでいます。`,
@@ -1057,7 +1090,51 @@ function resolveJackShieldEffect(state: GameState, rank: number): GameState {
   );
 }
 
+function resolveJackShieldRunEffect(state: GameState, key: string): GameState {
+  const pending = state.pendingDaifugoEffect;
+  if (!pending || pending.kind !== "jackShieldSelect") return state;
+  const target = pending.selectableRuns?.find((candidate) => candidate.key === key);
+  if (!target) return state;
+  const player = state.players[pending.playerIndex];
+  if (!player || player.isCpu) return state;
+  const heldIds = new Set(player.hand.map((card) => card.id));
+  if (!target.cardIds.every((cardId) => heldIds.has(cardId))) return state;
+  const players = replacePlayer(state.players, pending.playerIndex, {
+    ...player,
+    jShield: { kind: "run", ranks: target.ranks, label: target.label, cardIds: target.cardIds },
+  });
+  return continueAfterDaifugo(
+    {
+      ...state,
+      players,
+      pendingDaifugoEffect: null,
+    },
+    {
+      ...pending.continue,
+      shouldConfirmReach: false,
+      message: `${player.name}がJシールドを発動しました。`,
+    },
+  );
+}
+
 const MASTER_J_SHIELD_RANK_PRIORITY = [12, 7, 5, 11, 8, 10, 9, 13, 6, 4, 3, 2, 1];
+const MASTER_J_SHIELD_RUN_PRIORITY = [
+  [10, 11, 12],
+  [11, 12, 13],
+  [9, 10, 11],
+  [7, 8, 9],
+  [8, 9, 10],
+  [6, 7, 8],
+  [5, 6, 7],
+  [4, 5, 6],
+  [3, 4, 5],
+  [1, 2, 3],
+  [2, 3, 4],
+];
+
+type JShieldTarget =
+  | { kind: "rank"; rank: number; cardIds: string[] }
+  | { kind: "run"; ranks: number[]; label: string; cardIds: string[] };
 
 function logMasterJShieldMetric(metric: string, detail: Record<string, unknown> = {}) {
   console.info("[master J shield]", { [metric]: 1, ...detail });
@@ -1071,31 +1148,100 @@ function countCardsByRank(cards: Card[]): Map<number, Card[]> {
   return cardsByRank;
 }
 
-function chooseMasterJShieldTarget(player: Player): { rank: number; cardIds: string[] } | null {
+function formatRunLabel(ranks: number[]): string {
+  return ranks.map(formatRank).join("");
+}
+
+function getCompletedRunShieldTargets(player: Player): Array<Extract<JShieldTarget, { kind: "run" }>> {
+  const targets: Array<Extract<JShieldTarget, { kind: "run" }>> = [];
+  const melds = findPossibleMelds(player.hand).filter(isRun);
+  const usedKeys = new Set<string>();
+  for (const ranks of MASTER_J_SHIELD_RUN_PRIORITY) {
+    const candidates = melds.filter((meld) => {
+      const meldRanks = meld.map((card) => card.rank).sort((a, b) => a - b);
+      return ranks.every((rank, index) => meldRanks[index] === rank);
+    });
+    for (const meld of candidates) {
+      const key = meld.map((card) => card.id).sort().join("|");
+      if (usedKeys.has(key)) continue;
+      usedKeys.add(key);
+      targets.push({
+        kind: "run",
+        ranks,
+        label: formatRunLabel(ranks),
+        cardIds: meld.map((card) => card.id),
+      });
+    }
+  }
+  return targets;
+}
+
+function getCompletedRankShieldTargets(player: Player): Array<Extract<JShieldTarget, { kind: "rank" }>> {
   const cardsByRank = countCardsByRank(player.hand);
+  const targets: Array<Extract<JShieldTarget, { kind: "rank" }>> = [];
   for (const rank of MASTER_J_SHIELD_RANK_PRIORITY) {
     const cards = cardsByRank.get(rank) ?? [];
     if (cards.length >= 3) {
-      return { rank, cardIds: cards.slice(0, 3).map((card) => card.id) };
+      targets.push({ kind: "rank", rank, cardIds: cards.slice(0, rank === 11 ? 3 : cards.length).map((card) => card.id) });
     }
   }
-  return null;
+  return targets;
+}
+
+export function getJackShieldRunOptions(player: Player): Array<{ key: string; label: string; ranks: number[]; cardIds: string[] }> {
+  return getCompletedRunShieldTargets(player).map((target) => ({
+    key: target.cardIds.join("|"),
+    label: target.label,
+    ranks: target.ranks,
+    cardIds: target.cardIds,
+  }));
+}
+
+function hasRunJShield(player: Player): boolean {
+  return player.jShield?.kind === "run";
+}
+
+function chooseMasterJShieldTarget(state: GameState, player: Player): JShieldTarget | null {
+  const vanishedRanks = new Set(state.queenVanishedRanks ?? []);
+  const mayUseRunShield = !(vanishedRanks.has(7) && vanishedRanks.has(12));
+  if (mayUseRunShield && !hasRunJShield(player)) {
+    const runTarget = getCompletedRunShieldTargets(player).find((target) => canSpendJWithoutBreakingShieldTarget(player, target));
+    if (runTarget) return runTarget;
+  }
+  return getCompletedRankShieldTargets(player).find((target) => canSpendJWithoutBreakingShieldTarget(player, target)) ?? null;
+}
+
+function canSpendJWithoutBreakingShieldTarget(player: Player, target: JShieldTarget): boolean {
+  const targetCards = target.cardIds
+    .map((cardId) => player.hand.find((card) => card.id === cardId))
+    .filter((card): card is Card => Boolean(card));
+  if (!targetCards.some((card) => card.rank === 11)) return true;
+  const jCards = player.hand.filter((card) => card.rank === 11);
+  const targetIds = new Set(target.cardIds);
+  return jCards.some((card) => !targetIds.has(card.id));
 }
 
 function resolveMasterJackShieldEffect(
   state: GameState,
   playerIndex: number,
   continueState: PendingDaifugoContinue,
-  target: { rank: number; cardIds: string[] },
+  target: JShieldTarget,
 ): GameState {
   const player = state.players[playerIndex];
   if (!player) return state;
   const players = replacePlayer(state.players, playerIndex, {
     ...player,
-    jShield: target,
+    jShield:
+      target.kind === "rank"
+        ? { rank: target.rank, cardIds: target.cardIds }
+        : { kind: "run", ranks: target.ranks, label: target.label, cardIds: target.cardIds },
   });
   logMasterJShieldMetric("masterJShieldUsedCount", { playerIndex });
-  logMasterJShieldMetric("masterJShieldTargetRankCount", { rank: target.rank });
+  if (target.kind === "rank") {
+    logMasterJShieldMetric("masterJShieldTargetRankCount", { rank: target.rank });
+  } else {
+    logMasterJShieldMetric("masterJShieldTargetRunCount", { ranks: target.ranks.join("-") });
+  }
   return continueAfterDaifugo(
     {
       ...state,
@@ -1121,7 +1267,14 @@ function tryResolveMasterJackShieldEffect(state: GameState, playerIndex: number,
     logMasterJShieldMetric("masterJShieldSkippedNoCompletedMeldCount", { playerIndex });
     return null;
   }
-  const target = chooseMasterJShieldTarget(player);
+  if (hasRunJShield(player)) {
+    return null;
+  }
+  const vanishedRanks = new Set(state.queenVanishedRanks ?? []);
+  if (vanishedRanks.has(7) && vanishedRanks.has(12)) {
+    return null;
+  }
+  const target = chooseMasterJShieldTarget(state, player);
   if (!target) {
     logMasterJShieldMetric("masterJShieldSkippedNoCompletedMeldCount", { playerIndex });
     return null;
@@ -1234,6 +1387,11 @@ function resolveMasterCpuJackSpecialEffect(state: GameState, playerIndex: number
     return resolveCpuJackInspectEffect(state, playerIndex, continueState);
   }
 
+  if (hasFive && hasSeven && !player.hasJEnhancementRight) {
+    return resolveJackEnhancementRightEffect(state, playerIndex, continueState);
+  }
+  const normalShield = tryResolveMasterJackShieldEffect(state, playerIndex, continueState);
+  if (normalShield) return normalShield;
   if (lacksFiveSevenQueen) return enhanceOrFallback();
   return resolveCpuJackInspectEffect(state, playerIndex, continueState);
 }
@@ -1464,6 +1622,7 @@ export type GameAction =
   | { type: "answerQueenWin"; takeWin: boolean }
   | { type: "selectJackSpecialEffect"; effect: JackSpecialEffectId }
   | { type: "selectJackShieldRank"; rank: number }
+  | { type: "selectJackShieldRun"; key: string }
   | { type: "inspectJackCard"; targetPlayerIndex: number; cardId: string }
   | { type: "confirmJackInspectCard" }
   | { type: "answerReachContinue"; keepReach: boolean }
@@ -1495,6 +1654,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     action.type !== "answerQueenWin" &&
     action.type !== "selectJackSpecialEffect" &&
     action.type !== "selectJackShieldRank" &&
+    action.type !== "selectJackShieldRun" &&
     action.type !== "inspectJackCard" &&
     action.type !== "confirmJackInspectCard" &&
     action.type !== "answerReachContinue" &&
@@ -1834,10 +1994,16 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const pending = state.pendingDaifugoEffect;
       if (!pending || pending.kind !== "queenWinConfirm") return state;
       if (action.takeWin) {
+        const winner = state.players[pending.playerIndex];
+        console.info("[Q after-effect win resolved]", {
+          winner: winner?.id,
+          method: "qEffectAfterDraw",
+        });
         return makeWinningState(
           { ...state, pendingDaifugoEffect: null, currentPlayerIndex: pending.playerIndex, drawnFrom: "deck" },
           state.players,
           pending.winningResult,
+          "qEffectAfterDraw",
         );
       }
       return continueAfterDaifugo(
@@ -1852,6 +2018,10 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
     case "selectJackShieldRank": {
       return resolveJackShieldEffect(state, action.rank);
+    }
+
+    case "selectJackShieldRun": {
+      return resolveJackShieldRunEffect(state, action.key);
     }
 
     case "inspectJackCard": {

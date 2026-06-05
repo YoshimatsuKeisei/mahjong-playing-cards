@@ -279,7 +279,6 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
   const isFiveEnhancedTargetSelect = pendingDaifugoEffect?.kind === "fiveEnhancedTargetSelect";
   const isEnhancedTargetSelect = isSevenEnhancedTargetSelect || isFiveEnhancedTargetSelect;
   const isQueenSelect = pendingDaifugoEffect?.kind === "queenSelect";
-  const isQueenWinConfirm = pendingDaifugoEffect?.kind === "queenWinConfirm";
   const isJackSelect = pendingDaifugoEffect?.kind === "jackSelect";
   const isJackShieldSelect = pendingDaifugoEffect?.kind === "jackShieldSelect";
   const isJackInspect = pendingDaifugoEffect?.kind === "jackInspect";
@@ -303,7 +302,6 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
     isFiveEnhancementSplash ||
     isFiveEnhancedTargetSelect ||
     isQueenSelect ||
-    isQueenWinConfirm ||
     isJackSelect ||
     isJackShieldSelect ||
     isJackInspect ||
@@ -494,11 +492,6 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
       return;
     }
 
-    if (state.pendingDaifugoEffect?.kind === "queenWinConfirm") {
-      scheduleCpuAction(() => dispatch({ type: "answerQueenWin", takeWin: true }), CPU_DECISION_DELAY_MS);
-      return;
-    }
-
     if (state.pendingDaifugoEffect?.kind === "effectDraw") {
       scheduleCpuAction(() => dispatch({ type: "drawForDaifugoEffect" }), CPU_AFTER_DRAW_DELAY_MS);
       return;
@@ -644,6 +637,20 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
       window.clearTimeout(timeoutId);
     };
   }, [visibleDaifugoEvent?.id, daifugoEventStepIndex, daifugoAnimationStep, daifugoAnimationSteps.length]);
+
+  useEffect(() => {
+    if (state.pendingDaifugoEffect?.kind !== "queenWinConfirm") return;
+    if (!state.daifugoEffectEvent) {
+      dispatch({ type: "answerQueenWin", takeWin: true });
+      return;
+    }
+    const steps = buildDaifugoAnimationSteps(state.daifugoEffectEvent, state);
+    const timeoutId = window.setTimeout(
+      () => dispatch({ type: "answerQueenWin", takeWin: true }),
+      getDaifugoAnimationTotalDuration(steps),
+    );
+    return () => window.clearTimeout(timeoutId);
+  }, [dispatch, state.daifugoEffectEvent?.id, state.pendingDaifugoEffect, state.players, state.showCpuActions]);
 
   useEffect(() => {
     if (currentPlayer?.isCpu || state.pendingDaifugoEffect?.kind !== "effectDraw" || isAnimating) return;
@@ -1397,8 +1404,8 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
 
           {isJackShieldSelect && pendingDaifugoEffect.playerIndex === state.currentPlayerIndex && !currentPlayer.isCpu && (
             <div className="daifugo-effect-panel jack-shield-panel">
-              <strong>Jシールドで守る数字を選んでください</strong>
-              <span className="hint">発動時点で持っている同じ数字のカードだけを1回保護します。</span>
+              <strong>Jシールドで守る役を選んでください</strong>
+              <span className="hint">発動時点で完成している同数字役または階段役のカードだけを保護します。</span>
               <div className="rank-choice-grid">
                 {pendingDaifugoEffect.selectableRanks.map((rank) => (
                   <button
@@ -1409,6 +1416,17 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
                     onClick={() => dispatch({ type: "selectJackShieldRank", rank })}
                   >
                     {formatRankLabel(rank)}
+                  </button>
+                ))}
+                {(pendingDaifugoEffect.selectableRuns ?? []).map((run) => (
+                  <button
+                    type="button"
+                    className="rank-choice-button"
+                    key={run.key}
+                    disabled={isAnimating || cpuActionInProgress}
+                    onClick={() => dispatch({ type: "selectJackShieldRun", key: run.key })}
+                  >
+                    {run.label}
                   </button>
                 ))}
               </div>
@@ -1476,20 +1494,6 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
                   onClick={() => dispatch({ type: "answerReachContinue", keepReach: false })}
                 >
                   通常状態に戻る
-                </button>
-              </div>
-            </div>
-          )}
-
-          {isQueenWinConfirm && pendingDaifugoEffect.playerIndex === state.currentPlayerIndex && !currentPlayer.isCpu && (
-            <div className="daifugo-effect-panel">
-              <strong>Qの効果で上がれます。上がりますか？</strong>
-              <div className="daifugo-effect-actions">
-                <button type="button" className="primary-button" disabled={isAnimating || cpuActionInProgress} onClick={() => dispatch({ type: "answerQueenWin", takeWin: true })}>
-                  はい
-                </button>
-                <button type="button" disabled={isAnimating || cpuActionInProgress} onClick={() => dispatch({ type: "answerQueenWin", takeWin: false })}>
-                  いいえ
                 </button>
               </div>
             </div>
@@ -1798,6 +1802,15 @@ function getDaifugoStepDuration(step: DaifugoAnimationStep) {
   if (step.variant === "settle") return 360;
   if (step.variant === "draw" || step.variant === "exchange") return step.phase === "insert" ? 650 : 1550;
   return step.cards.length > 0 ? 650 : 650;
+}
+
+function getDaifugoAnimationTotalDuration(steps: DaifugoAnimationStep[]) {
+  return steps.reduce((total, step) => {
+    if (step.variant === "draw" || step.variant === "exchange") {
+      return total + getDaifugoStepDuration({ ...step, phase: "reveal" }) + getDaifugoStepDuration({ ...step, phase: "insert" });
+    }
+    return total + getDaifugoStepDuration(step);
+  }, 0);
 }
 
 function buildDaifugoAnimationStepsOld(event: NonNullable<GameState["daifugoEffectEvent"]>, state: GameState): DaifugoAnimationStep[] {
@@ -2160,7 +2173,13 @@ function getHistoryAnchorStyle(playerCount: number, index: number): CSSPropertie
 function getPlayerStatus(player: GameState["players"][number], revealShieldRank = false) {
   const statuses = [player.isReach ? "リーチ中" : player.hasCalled ? "鳴き済み" : "通常"];
   if (player.jShield) {
-    statuses.push(revealShieldRank ? `Jシールド:${formatRankLabel(player.jShield.rank)}` : "Jシールド発動中");
+    const label =
+      player.jShield.kind === "run"
+        ? player.jShield.label ?? player.jShield.ranks?.map(formatRankLabel).join("")
+        : player.jShield.rank
+          ? formatRankLabel(player.jShield.rank)
+          : "";
+    statuses.push(revealShieldRank && label ? `Jシールド:${label}` : "Jシールド発動中");
   }
   return statuses.join(" / ");
 }

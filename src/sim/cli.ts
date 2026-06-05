@@ -93,6 +93,38 @@ export function formatSimulationSummary(summary: SimulationSummary): string {
       lines.push(`    proUsedJForEnhancement=${player.proUsedJForEnhancement} proUsedJForView=${player.proUsedJForView} proUsedJBackFallback=${player.proUsedJBackFallback}`);
     });
   }
+  lines.push("", "J Shield summary:", "total:");
+  lines.push(`jShieldUsedCount=${summary.jShieldSummary.jShieldUsedCount}`);
+  lines.push(`jShieldUsedByHumanCount=${summary.jShieldSummary.jShieldUsedByHumanCount}`);
+  lines.push(`jShieldUsedByCpuCount=${summary.jShieldSummary.jShieldUsedByCpuCount}`);
+  lines.push(`jShieldUsedByMasterCount=${summary.jShieldSummary.jShieldUsedByMasterCount}`);
+  lines.push(`jShieldUsedForSequenceMeldCount=${summary.jShieldSummary.jShieldUsedForSequenceMeldCount}`);
+  lines.push(`jShieldUsedForSameRankMeldCount=${summary.jShieldSummary.jShieldUsedForSameRankMeldCount}`);
+  lines.push(`jShieldBlockedQCount=${summary.jShieldSummary.jShieldBlockedQCount}`);
+  lines.push(`jShieldBlocked7Count=${summary.jShieldSummary.jShieldBlocked7Count}`);
+  lines.push(`jShieldConsumedCount=${summary.jShieldSummary.jShieldConsumedCount}`);
+  lines.push(`jShieldSequencePartialBrokenByQCount=${summary.jShieldSummary.jShieldSequencePartialBrokenByQCount}`);
+  lines.push("", "master decisions:");
+  lines.push(`masterJSelectedEnhanceCount=${summary.jShieldSummary.masterJSelectedEnhanceCount}`);
+  lines.push(`masterJSelectedViewHandCount=${summary.jShieldSummary.masterJSelectedViewHandCount}`);
+  lines.push(`masterJSelectedShieldCount=${summary.jShieldSummary.masterJSelectedShieldCount}`);
+  lines.push(`masterJShieldUsedInNormalSituationCount=${summary.jShieldSummary.masterJShieldUsedInNormalSituationCount}`);
+  lines.push(`masterJShieldSkippedNoCompletedMeldCount=${summary.jShieldSummary.masterJShieldSkippedNoCompletedMeldCount}`);
+  lines.push(`masterJShieldSkippedNoShieldableSequenceCount=${summary.jShieldSummary.masterJShieldSkippedNoShieldableSequenceCount}`);
+  lines.push(`masterJShieldSkippedNoShieldableSameRankMeldCount=${summary.jShieldSummary.masterJShieldSkippedNoShieldableSameRankMeldCount}`);
+  lines.push(`masterJShieldSkippedAlreadySequenceShieldedCount=${summary.jShieldSummary.masterJShieldSkippedAlreadySequenceShieldedCount}`);
+  lines.push(`masterJShieldSkippedSelfTwoCallCount=${summary.jShieldSummary.masterJShieldSkippedSelfTwoCallCount}`);
+  lines.push(`masterJShieldSkippedSevenAndQEliminatedCount=${summary.jShieldSummary.masterJShieldSkippedSevenAndQEliminatedCount}`);
+  lines.push(`masterJShieldSkippedWouldBreakProtectedMeldCount=${summary.jShieldSummary.masterJShieldSkippedWouldBreakProtectedMeldCount}`);
+  lines.push(`masterJShieldFallbackToViewHandCount=${summary.jShieldSummary.masterJShieldFallbackToViewHandCount}`);
+  if (summary.players.some((player) => player.jShieldUsed > 0 || player.jShieldBlockedQ > 0 || player.jShieldBlocked7 > 0)) {
+    lines.push("", "J Shield player summary:");
+    summary.players.forEach((player) => {
+      lines.push(`- ${player.player}:`);
+      lines.push(`    jShieldUsed=${player.jShieldUsed} jShieldUsedForSequence=${player.jShieldUsedForSequence} jShieldUsedForSameRank=${player.jShieldUsedForSameRank}`);
+      lines.push(`    jShieldBlockedQ=${player.jShieldBlockedQ} jShieldBlocked7=${player.jShieldBlocked7} jShieldConsumed=${player.jShieldConsumed}`);
+    });
+  }
   lines.push("", "Turn timing sanity check:");
   lines.push(`games=${summary.turnTimingSanity.games}`);
   lines.push(`deckouts=${summary.turnTimingSanity.deckouts}`);
@@ -142,6 +174,12 @@ export function formatSimulationSummary(summary: SimulationSummary): string {
     summary.fiveTargetEvents.forEach((event) => {
       lines.push(
         `[game=${event.game} seed=${event.seed} step=${event.step} turn=${event.turn}] current=${event.currentPlayer} order=[${event.turnOrder.join(",")}] selected=${event.selectedPlayer} before=${event.nextPlayerBefore5} after=${event.nextPlayerAfter5} skipped=[${event.skippedPlayers.join(",")}] reach=[${event.reachPlayers.join(",")}] twoCall=[${event.twoCallPlayers.join(",")}] threatType=${event.threatType} threat=${event.threatTarget ?? "-"} threatWasSkipped=${event.threatWasSkipped} threatCouldBeSkipped=${event.threatCouldBeSkipped}`,
+      );
+    });
+    lines.push("", "J Shield detail:");
+    summary.jShieldDetails.forEach((event) => {
+      lines.push(
+        `[game=${event.game} seed=${event.seed} step=${event.step} turn=${event.turn}] player=${event.player} event=${event.event}${event.decision ? ` decision=${event.decision}` : ""}${event.reason ? ` reason=${event.reason}` : ""}${event.shieldType ? ` shieldType=${event.shieldType}` : ""}${event.target ? ` target=${event.target}` : ""}${event.rank ? ` rank=${event.rank}` : ""}${event.cardIds ? ` cardIds=[${event.cardIds.join(",")}]` : ""}${event.remainingShieldedRanks ? ` remainingShieldedRanks=[${event.remainingShieldedRanks.join(",")}]` : ""}`,
       );
     });
   }

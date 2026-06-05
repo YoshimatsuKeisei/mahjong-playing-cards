@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { DaifugoOptions, GameState } from "../types";
+import type { Card, DaifugoOptions, GameState } from "../types";
 import { getDisplayedPlayerLosses, getResultLoserIndexes } from "../game/matchState";
 import { gameReducer } from "../game/gameState";
 import { formatSimulationSummary, parseSimulationArgs } from "./cli";
@@ -35,6 +35,20 @@ function createTelemetryFixture(logLevel: SimulationConfig["logLevel"] = "violat
     violations: [] as SimulationViolation[],
     fiveTargetEvents: [] as SimulationFiveTargetEvent[],
   };
+}
+
+function createMasterTelemetryFixture(logLevel: SimulationConfig["logLevel"] = "violations") {
+  const config = parseSimulationArgs(["--players", "master,standard,standard", "--games", "1", "--rules", "daifugo", "--seed", "1", "--logLevel", logLevel]);
+  return {
+    config,
+    players: config.playerModels.map((_, index) => makePlayerSummary(index, config)),
+    violations: [] as SimulationViolation[],
+    fiveTargetEvents: [] as SimulationFiveTargetEvent[],
+  };
+}
+
+function card(id: string, rank: number, suit: Card["suit"] = "S"): Card {
+  return { id, rank, suit };
 }
 
 function withPending(state: GameState, pendingDaifugoEffect: GameState["pendingDaifugoEffect"]): GameState {
@@ -537,5 +551,156 @@ describe("headless CPU simulation", () => {
     expect(fixture.players[0].useJ).toBe(1);
     expect(fixture.players[0].proUsedJBackFallback).toBe(1);
     expect(fixture.violations[0]).toEqual(expect.objectContaining({ code: "tactical-j-back-fallback" }));
+  });
+
+  it("records J shield usage counts by actor and shield type", () => {
+    const humanFixture = createTelemetryFixture();
+    const humanState = createCpuScenario({
+      daifugoOptions: ENABLED_DAIFUGO_OPTIONS,
+      players: [{ model: "standard" }, { model: "standard" }, { model: "standard" }],
+    });
+    humanState.players[0] = { ...humanState.players[0], type: "human", isCpu: false, cpuModelId: undefined };
+    const humanNextState: GameState = {
+      ...humanState,
+      players: humanState.players.map((player, index) => (index === 0 ? { ...player, jShield: { rank: 7, cardIds: ["7s", "7h", "7d"] } } : player)),
+    };
+
+    collectEffectTelemetry(humanFixture.config, 1, 1, 1, 1, humanState, { type: "selectJackShieldRank", rank: 7 }, humanNextState, humanFixture.players, humanFixture.violations);
+
+    expect(humanFixture.players[0].jShieldUsed).toBe(1);
+    expect(humanFixture.players[0].jShieldUsedByHuman).toBe(1);
+    expect(humanFixture.players[0].jShieldUsedForSameRank).toBe(1);
+
+    const masterFixture = createMasterTelemetryFixture();
+    const masterState = createCpuScenario({
+      daifugoOptions: ENABLED_DAIFUGO_OPTIONS,
+      players: [{ model: "master" }, { model: "standard" }, { model: "standard" }],
+    });
+    const masterNextState: GameState = {
+      ...masterState,
+      players: masterState.players.map((player, index) =>
+        index === 0 ? { ...player, jShield: { kind: "run", ranks: [3, 4, 5], label: "345", cardIds: ["3s", "4s", "5s"] } } : player,
+      ),
+    };
+
+    collectEffectTelemetry(masterFixture.config, 1, 1, 1, 1, masterState, { type: "selectJackShieldRun", key: "3s|4s|5s" }, masterNextState, masterFixture.players, masterFixture.violations);
+
+    expect(masterFixture.players[0].jShieldUsed).toBe(1);
+    expect(masterFixture.players[0].jShieldUsedByCpu).toBe(1);
+    expect(masterFixture.players[0].jShieldUsedByMaster).toBe(1);
+    expect(masterFixture.players[0].jShieldUsedForSequence).toBe(1);
+  });
+
+  it("records Q blocks and partial sequence shield breaks", () => {
+    const fixture = createTelemetryFixture();
+    const state = withPending(
+      createCpuScenario({
+        daifugoOptions: ENABLED_DAIFUGO_OPTIONS,
+        players: [
+          {
+            model: "standard",
+            hand: [card("3s", 3), card("4s", 4), card("5s", 5)],
+          },
+          { model: "standard", hand: [card("target-4", 4)] },
+          { model: "standard" },
+        ],
+        deck: [card("draw-1", 1)],
+      }),
+      { kind: "queenSelect", effect: "queenNumberVanish", playerIndex: 1, continue: { shouldConfirmReach: false } },
+    );
+    state.players[0] = {
+      ...state.players[0],
+      jShield: { kind: "run", ranks: [3, 4, 5], label: "345", cardIds: ["3s", "4s", "5s"] },
+    };
+    const action = { type: "selectQueenVanishRank", rank: 4 } as const;
+    const nextState = gameReducer(state, action);
+
+    collectEffectTelemetry(fixture.config, 1, 1, 1, 1, state, action, nextState, fixture.players, fixture.violations);
+
+    expect(fixture.players[0].jShieldBlockedQ).toBe(1);
+    expect(fixture.players[0].jShieldConsumed).toBe(1);
+    expect(fixture.players[0].jShieldSequencePartialBrokenByQ).toBe(1);
+  });
+
+  it("records 7 exchange blocks when a shield is consumed by a decoy", () => {
+    const fixture = createTelemetryFixture();
+    const state = withPending(
+      createCpuScenario({
+        daifugoOptions: ENABLED_DAIFUGO_OPTIONS,
+        players: [
+          { model: "standard", hand: [card("protected-9", 9), card("decoy-4", 4)] },
+          { model: "standard", hand: [card("target", 2)] },
+          { model: "standard" },
+        ],
+      }),
+      {
+        kind: "sevenExchange",
+        effect: "sevenExchange",
+        playerIndex: 0,
+        targetPlayerIndex: 1,
+        selections: { 0: "protected-9" },
+        continue: { shouldConfirmReach: false },
+      },
+    );
+    state.players[0] = { ...state.players[0], jShield: { rank: 9, cardIds: ["protected-9"] } };
+    const action = { type: "selectSevenExchangeCard", playerIndex: 1, cardId: "target" } as const;
+    const nextState = gameReducer(state, action);
+
+    collectEffectTelemetry(fixture.config, 1, 1, 1, 1, state, action, nextState, fixture.players, fixture.violations);
+
+    expect(fixture.players[0].jShieldBlocked7).toBe(1);
+    expect(fixture.players[0].jShieldConsumed).toBe(1);
+  });
+
+  it("records master J shield fallback to view hand with a skip reason", () => {
+    const fixture = createMasterTelemetryFixture();
+    const state = withPending(
+      createCpuScenario({
+        daifugoOptions: ENABLED_DAIFUGO_OPTIONS,
+        players: [{ model: "master", hand: [card("loose-2", 2), card("loose-5", 5)] }, { model: "standard" }, { model: "standard" }],
+      }),
+      { kind: "confirm", effect: "jackBack", playerIndex: 0, continue: { shouldConfirmReach: false } },
+    );
+    const action = { type: "answerDaifugoEffect", activate: true } as const;
+    const nextState = { ...state, pendingDaifugoEffect: null };
+
+    collectEffectTelemetry(fixture.config, 1, 1, 1, 1, state, action, nextState, fixture.players, fixture.violations);
+
+    expect(fixture.players[0].masterJSelectedViewHand).toBe(1);
+    expect(fixture.players[0].masterJShieldFallbackToViewHand).toBe(1);
+    expect(fixture.players[0].masterJShieldSkippedNoCompletedMeld).toBe(1);
+  });
+
+  it("records master J shields selected in a normal situation", () => {
+    const fixture = createMasterTelemetryFixture();
+    const state = withPending(
+      createCpuScenario({
+        daifugoOptions: ENABLED_DAIFUGO_OPTIONS,
+        players: [{ model: "master", hand: [card("k1", 13), card("k2", 13, "H"), card("k3", 13, "D")] }, { model: "standard" }, { model: "standard" }],
+      }),
+      { kind: "confirm", effect: "jackBack", playerIndex: 0, continue: { shouldConfirmReach: false } },
+    );
+    const nextState: GameState = {
+      ...state,
+      pendingDaifugoEffect: null,
+      players: state.players.map((player, index) => (index === 0 ? { ...player, jShield: { rank: 13, cardIds: ["k1", "k2", "k3"] } } : player)),
+    };
+
+    collectEffectTelemetry(fixture.config, 1, 1, 1, 1, state, { type: "answerDaifugoEffect", activate: true }, nextState, fixture.players, fixture.violations);
+
+    expect(fixture.players[0].masterJSelectedShield).toBe(1);
+    expect(fixture.players[0].masterJShieldUsedInNormalSituation).toBe(1);
+  });
+
+  it("prints J Shield summary in formatted simulation output", () => {
+    const summary = runSimulation(parseSimulationArgs(["--players", "master,standard,standard", "--games", "1", "--rules", "daifugo", "--seed", "99"]));
+    const output = formatSimulationSummary(summary);
+
+    expect(output).toContain("J Shield summary:");
+    expect(output).toContain("jShieldUsedCount=");
+    expect(output).toContain("jShieldUsedByMasterCount=");
+    expect(output).toContain("master decisions:");
+    expect(output).toContain("masterJShieldUsedInNormalSituationCount=");
+    expect(output).toContain("masterJShieldFallbackToViewHandCount=");
   });
 });

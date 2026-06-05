@@ -1,8 +1,8 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { act } from "react";
 import { describe, expect, it, vi } from "vitest";
-import { createInitialGame } from "../game/gameState";
+import { createInitialGame, gameReducer } from "../game/gameState";
+import { createDebugDaifugoState } from "../App";
 import type { Card, GameState } from "../types";
 import PlayScreen from "./PlayScreen";
 
@@ -497,6 +497,27 @@ describe("PlayScreen round display", () => {
     expect(screen.queryByText("次のプレイヤーへ交代してください。")).not.toBeInTheDocument();
   });
 
+  it("confirms a Q after-effect win only after the Q discard and draw animation finishes", async () => {
+    vi.useFakeTimers();
+    const dispatch = vi.fn();
+    const scenario = createDebugDaifugoState("queenAfterEffectWin");
+    const state = gameReducer(scenario, { type: "selectQueenVanishRank", rank: 9 });
+
+    render(<PlayScreen state={state} dispatch={dispatch} currentRound={1} />);
+
+    expect(state.pendingDaifugoEffect).toMatchObject({ kind: "queenWinConfirm" });
+    expect(screen.getByText("Q効果発動により、9が捨てられます")).toBeInTheDocument();
+    expect(screen.queryByText("Qの効果で上がれます。上がりますか？")).not.toBeInTheDocument();
+    expect(dispatch).not.toHaveBeenCalledWith({ type: "answerQueenWin", takeWin: true });
+
+    await act(async () => {
+      await vi.runAllTimersAsync();
+    });
+
+    expect(dispatch).toHaveBeenCalledWith({ type: "answerQueenWin", takeWin: true });
+    vi.useRealTimers();
+  });
+
   it("shows a full-size shuffled ten-card row for J information browsing", () => {
     const randomSpy = vi.spyOn(Math, "random").mockReturnValue(0);
     const state: GameState = {
@@ -523,6 +544,28 @@ describe("PlayScreen round display", () => {
     expect(grid?.querySelector(".playing-card.compact")).not.toBeInTheDocument();
     expect(buttons.map((button) => button.getAttribute("data-card-id"))).not.toEqual(naturalOrder);
     randomSpy.mockRestore();
+  });
+
+  it("shows completed run options in the J shield target picker", () => {
+    const baseState = createInitialGame(3, "clockwise");
+    const state: GameState = {
+      ...baseState,
+      phase: "handoff",
+      pendingDaifugoEffect: {
+        kind: "jackShieldSelect",
+        effect: "jackBack",
+        playerIndex: 0,
+        selectableRanks: [7],
+        selectableRuns: [{ key: "3s|4s|5s", label: "345", ranks: [3, 4, 5], cardIds: ["3s", "4s", "5s"] }],
+        continue: { shouldConfirmReach: false },
+      },
+      players: baseState.players.map((player, index) => (index === 0 ? { ...player, isCpu: false, type: "human" as const } : player)),
+    };
+
+    render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} />);
+
+    expect(screen.getByRole("button", { name: "7" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "345" })).toBeInTheDocument();
   });
 
   it("marks the selected J information card for the draw-style reveal animation", () => {
