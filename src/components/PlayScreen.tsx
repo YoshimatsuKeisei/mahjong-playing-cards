@@ -266,6 +266,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
   const timeoutsRef = useRef<number[]>([]);
   const cpuTimeoutsRef = useRef<number[]>([]);
   const lastCpuActionKeyRef = useRef<string | null>(null);
+  const lastOnlineDrawAnimationKeyRef = useRef<string | null>(null);
   const reachSplashTimeoutRef = useRef<number | null>(null);
   const jackInspectOrderRef = useRef(new Map<string, string[]>());
   const isAnimating = animationPhase !== "idle";
@@ -359,8 +360,12 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
   const handDrawnCardId = handPlayerIndex === state.currentPlayerIndex ? state.drawnCard?.id ?? null : null;
   const hiddenDaifugoIncomingIds =
     visibleDaifugoEvent && isDaifugoEventPlaying ? getDaifugoIncomingCardIdsForPlayer(visibleDaifugoEvent, handPlayerIndex) : new Set<string>();
+  const onlineAnimatingDrawnCardId =
+    isOnlineView && animationCard && animationPhase !== "idle" && animationPhase !== "discardingCard" ? animationCard.id : null;
   const displayedHandCards =
-    hiddenDaifugoIncomingIds.size > 0 ? handPlayer.hand.filter((card) => !hiddenDaifugoIncomingIds.has(card.id)) : handPlayer.hand;
+    hiddenDaifugoIncomingIds.size > 0 || onlineAnimatingDrawnCardId
+      ? handPlayer.hand.filter((card) => !hiddenDaifugoIncomingIds.has(card.id) && card.id !== onlineAnimatingDrawnCardId)
+      : handPlayer.hand;
   const hiddenQueenDiscardIdsByPlayer =
     visibleDaifugoEvent && isDaifugoEventPlaying ? getHiddenQueenDiscardIdsByPlayer(visibleDaifugoEvent, daifugoAnimationStep) : new Map<number, Set<string>>();
   const isSevenHandSelection = sevenSelectionPlayerIndex !== null && handPlayerIndex === sevenSelectionPlayerIndex;
@@ -593,6 +598,19 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
       setSelectedDiscardId(null);
     }
   }, [handPlayer.hand, selectedDiscardId]);
+
+  useEffect(() => {
+    if (!isOnlineView || !state.drawnCard || state.drawnFrom !== "deck" || state.phase !== "discard") return;
+    if (state.viewerPlayerId !== currentPlayer?.id) return;
+    const animationKey = `${state.stateVersion ?? 0}:${state.drawnCard.id}`;
+    if (lastOnlineDrawAnimationKeyRef.current === animationKey) return;
+    lastOnlineDrawAnimationKeyRef.current = animationKey;
+    setAnimationCard(state.drawnCard);
+    setAnimationPhase("drawingFromDeck");
+    schedule(() => setAnimationPhase("revealingDrawnCard"), 280);
+    schedule(() => setAnimationPhase("movingDrawnCardToHand"), 1550);
+    schedule(() => finishAnimation(), 2100);
+  }, [currentPlayer?.id, isOnlineView, state.drawnCard, state.drawnFrom, state.phase, state.stateVersion, state.viewerPlayerId]);
 
   useEffect(() => {
     if (state.phase === "handoff") {
@@ -896,7 +914,13 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
   }
 
   return (
-    <main className="screen play-screen">
+    <main
+      className="screen play-screen"
+      data-testid="play-screen"
+      data-current-player-id={currentPlayer?.id}
+      data-phase={state.phase}
+      data-state-version={state.stateVersion ?? ""}
+    >
       <section className={`table-scene table-${playerCount}`} aria-label={`${playerCount}人用テーブル`} ref={sceneRef}>
         {currentRound && <div className="round-scroll-banner">- {currentRound}回戦 -</div>}
         <header
@@ -911,7 +935,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
           <div className="toolbar-action">{daifugoAnimationStep?.message ?? getActionText(state)}</div>
           <div className="toolbar-deck">
             <span>山札</span>
-            <strong>{deckCount}</strong>
+            <strong data-testid="deck-remaining">{deckCount}</strong>
           </div>
           {state.daifugoOptions.enabled && (
             <div className="daifugo-status">
@@ -926,18 +950,18 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
         )}
 
         <div className="table-shape">
-          <div className={`deck-stack ${deckCount === 0 ? "empty-deck" : ""}`} aria-label={`山札 ${deckCount}枚`}>
+          <div className={`deck-stack ${deckCount === 0 ? "empty-deck" : ""}`} aria-label={`山札 ${deckCount}枚`} data-testid="deck-stack">
             <span className="deck-layer layer-one" />
             <span className="deck-layer layer-two" />
             <PlayingCard isBack compact />
-            <strong>{deckCount}</strong>
+            <strong data-testid="deck-remaining-table">{deckCount}</strong>
           </div>
         </div>
 
         {animationCard && animationPhase !== "discardingCard" && !shouldHideCpuDetails && (
-          <div className={`card-animation ${animationPhase} seat-${getSeat(playerCount, state.currentPlayerIndex)}`}>
+          <div className={`card-animation ${animationPhase} seat-${getSeat(playerCount, state.currentPlayerIndex)}`} data-testid="drawn-card-preview">
             <span className="card-animation-label">{getAnimationLabel(animationPhase)}</span>
-            <PlayingCard card={animationCard} />
+            <PlayingCard card={animationCard} testId="drawn-card" />
           </div>
         )}
 
@@ -1520,6 +1544,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
               <button
                 type="button"
                 className="primary-button"
+                data-testid="draw-from-deck-button"
                 disabled={deckCount === 0 || controlsDisabled}
                 onClick={handleDrawFromDeck}
               >
@@ -1579,7 +1604,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
               {canChooseDiscard && (
                 <>
                   <p className="hint">手札のカードを選んでから捨てます。</p>
-                  <button type="button" className="primary-button" disabled={!selectedDiscardId || controlsDisabled} onClick={handleDiscardSelected}>
+                  <button type="button" className="primary-button" data-testid="discard-button" disabled={!selectedDiscardId || controlsDisabled} onClick={handleDiscardSelected}>
                     捨てる
                   </button>
                 </>
@@ -2126,6 +2151,9 @@ function PlayerHistoryPopover({ player, showMelds }: PlayerHistoryPopoverProps) 
             {player.discardPile.map((card) => (
               <span
                 className={card.discardedByEffect === "queenNumberVanish" ? "history-q-effect-card" : ""}
+                data-testid="public-discard-card"
+                data-card-id={card.id}
+                data-card-label={formatCard(card)}
                 title={card.discardedByEffect === "queenNumberVanish" ? "Q効果で破棄" : undefined}
                 key={card.id}
               >

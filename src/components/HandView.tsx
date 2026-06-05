@@ -31,7 +31,7 @@ export default function HandView({
   const center = (sortedCards.length - 1) / 2;
 
   return (
-    <div className="hand-view">
+    <div className="hand-view" data-testid="your-hand">
       {sortedCards.map((card, index) => (
         <button
           type="button"
@@ -47,12 +47,16 @@ export default function HandView({
             .filter(Boolean)
             .join(" ")}
           key={card.id}
+          data-testid="hand-card"
+          data-card-id={card.id}
+          data-card-rank={formatRank(card.rank)}
+          data-card-label={formatCard(card)}
           disabled={disabled || (selectableSet !== null && !selectableSet.has(card.id)) || (disabledSet !== null && disabledSet.has(card.id))}
           style={getHandCardStyle(index, center)}
           aria-label={`discard ${formatSuit(card.suit)}${formatRank(card.rank)}`}
           onClick={() => onCardClick?.(card)}
         >
-          <PlayingCard card={card} isDrawn={drawnCardId === card.id} />
+          <PlayingCard card={card} isDrawn={drawnCardId === card.id} testId="hand-playing-card" />
         </button>
       ))}
     </div>

@@ -30,7 +30,7 @@ export default function DiscardPile({ cards, area, highlightLatest = null }: Dis
   const visibleCards = cards.slice(-5);
 
   return (
-    <div className={`pile discard-area discard-area--${area}`}>
+    <div className={`pile discard-area discard-area--${area}`} data-testid={`discard-pile-${area}`}>
       <div className="discard-stack" style={getStackStyle(visibleCards.length, area)}>
         {visibleCards.length > 0 &&
           visibleCards.map((card, index) => (
@@ -45,9 +45,11 @@ export default function DiscardPile({ cards, area, highlightLatest = null }: Dis
                 .filter(Boolean)
                 .join(" ")}
               key={card.id}
+              data-testid="discard-card"
+              data-card-id={card.id}
               style={getCardStyle(area, index, visibleCards.length)}
             >
-              <PlayingCard card={card} compact />
+              <PlayingCard card={card} compact testId="discard-playing-card" />
             </span>
           ))}
       </div>

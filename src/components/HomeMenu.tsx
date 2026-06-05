@@ -20,6 +20,7 @@ export default function HomeMenu({ disabled = false, onSelect }: HomeMenuProps) 
         <button
           type="button"
           className="home-menu-button"
+          data-testid={`home-menu-${item.target}`}
           disabled={disabled}
           key={item.target}
           onClick={() => onSelect(item.target)}

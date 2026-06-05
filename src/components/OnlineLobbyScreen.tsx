@@ -39,7 +39,7 @@ export default function OnlineLobbyScreen({
           <div className="online-room-form">
             <label className="field">
               <span>名前</span>
-              <input value={playerName} onChange={(event) => setPlayerName(event.target.value)} />
+              <input data-testid="player-name-input" value={playerName} onChange={(event) => setPlayerName(event.target.value)} />
             </label>
             <label className="field">
               <span>人数</span>
@@ -51,22 +51,22 @@ export default function OnlineLobbyScreen({
                 ))}
               </select>
             </label>
-            <button type="button" className="primary-button" onClick={() => onCreateRoom(playerName, maxPlayers)}>
+            <button type="button" className="primary-button" data-testid="create-room-button" onClick={() => onCreateRoom(playerName, maxPlayers)}>
               部屋を作る
             </button>
 
             <label className="field">
               <span>部屋ID</span>
-              <input value={roomId} onChange={(event) => setRoomId(event.target.value.toUpperCase())} />
+              <input data-testid="room-id-input" value={roomId} onChange={(event) => setRoomId(event.target.value.toUpperCase())} />
             </label>
-            <button type="button" onClick={() => onJoinRoom(roomId, playerName)}>
+            <button type="button" data-testid="join-room-button" onClick={() => onJoinRoom(roomId, playerName)}>
               部屋に入る
             </button>
           </div>
         ) : (
           <div className="online-room-form">
             <div className="empty-room-list">
-              <strong>Room ID: {room.roomId}</strong>
+              <strong data-testid="room-id">Room ID: {room.roomId}</strong>
               <span>
                 {room.players.length}/{room.maxPlayers} players
               </span>
@@ -83,12 +83,12 @@ export default function OnlineLobbyScreen({
               ))}
             </div>
             {!isHost && currentPlayer && (
-              <button type="button" className="primary-button" onClick={() => onReady(!currentPlayer.ready)}>
+              <button type="button" className="primary-button" data-testid="ready-button" onClick={() => onReady(!currentPlayer.ready)}>
                 {currentPlayer.ready ? "準備を解除" : "Ready"}
               </button>
             )}
             {isHost && (
-              <button type="button" className="primary-button" disabled={!canStart} onClick={onStartGame}>
+              <button type="button" className="primary-button" data-testid="start-game-button" disabled={!canStart} onClick={onStartGame}>
                 Start Game
               </button>
             )}

@@ -27,12 +27,13 @@ const sideLayout: Record<"left" | "right", SideLayoutConfig> = {
 
 export default function MeldArea({ melds, area = "self" }: MeldAreaProps) {
   return (
-    <div className="meld-area">
+    <div className="meld-area" data-testid={`meld-area-${area}`}>
       {melds.length > 0 && (
         <div className="meld-sets">
           {melds.map((meld, index) => (
             <div
               className="meld meld-row"
+              data-testid="open-meld"
               key={`${index}-${meld.map((card) => card.id).join("-")}`}
               style={getMeldStyle(area, index)}
             >

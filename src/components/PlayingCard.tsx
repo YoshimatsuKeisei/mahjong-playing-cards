@@ -5,9 +5,10 @@ interface PlayingCardProps {
   isDrawn?: boolean;
   isBack?: boolean;
   compact?: boolean;
+  testId?: string;
 }
 
-export default function PlayingCard({ card, isDrawn = false, isBack = false, compact = false }: PlayingCardProps) {
+export default function PlayingCard({ card, isDrawn = false, isBack = false, compact = false, testId }: PlayingCardProps) {
   if (isBack || !card) {
     return (
       <span className={`playing-card card-back ${compact ? "compact" : ""}`} aria-label="裏向きのカード">
@@ -21,9 +22,16 @@ export default function PlayingCard({ card, isDrawn = false, isBack = false, com
   const suit = formatSuit(card.suit);
 
   return (
-    <span className={`playing-card ${red ? "red" : "black"} ${isDrawn ? "drawn" : ""} ${compact ? "compact" : ""}`}>
+    <span
+      className={`playing-card ${red ? "red" : "black"} ${isDrawn ? "drawn" : ""} ${compact ? "compact" : ""}`}
+      data-testid={testId}
+      data-card-id={card.id}
+      data-card-rank={rank}
+      data-card-suit={card.suit}
+      data-card-label={formatCard(card)}
+    >
       <span className="card-corner top-corner">
-        <strong>{rank}</strong>
+        <strong data-testid={testId ? `${testId}-rank` : undefined}>{rank}</strong>
         <span>{suit}</span>
       </span>
       <span className="card-face-center" aria-hidden="true">
