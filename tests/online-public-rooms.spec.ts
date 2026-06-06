@@ -18,6 +18,76 @@ test("room select routes creation to settings and joining to public room list", 
   await expect(page.getByTestId("room-id-input")).toHaveCount(0);
 });
 
+test("creating a room from the room creation screen opens the existing online lobby", async ({ page }) => {
+  await page.goto("/");
+  await page.getByTestId("home-menu-newGame").click();
+  await page.getByTestId("local-create-room-choice").click();
+
+  await page.getByTestId("offline-start-button").click();
+
+  await expect(page.getByTestId("online-lobby-screen")).toBeVisible();
+  await expect(page.getByTestId("online-lobby-title")).toBeVisible();
+  await expect(page.getByTestId("start-game-button")).toBeVisible();
+  await expect(page.getByTestId("room-id")).toHaveCount(0);
+  await expect(page.getByTestId("room-id-input")).toHaveCount(0);
+
+  await page.getByTestId("online-lobby-back-button").click();
+  await expect(page.getByRole("heading", { name: "ルーム選択" })).toBeVisible();
+});
+
+test("waiting rooms are removed when the host leaves and updated when a guest leaves", async () => {
+  const host = await connectSocket();
+  const guest = await connectSocket();
+  const roomName = `Phase55 Leave ${Date.now()}`;
+
+  try {
+    const created = await emitAck(host, "createRoom", makeCreatePayload(roomName, { humanPlayers: 3, cpuPlayers: 1, cpuModelIds: ["tactical"] }));
+    expect(created.ok).toBe(true);
+    const joined = await emitAck(guest, "joinRoom", { roomId: created.roomId, playerName: "Guest" });
+    expect(joined.ok).toBe(true);
+
+    await waitForPublicRoom(host, roomName, (room) => room.joinedHumanPlayers === 2);
+    guest.emit("leaveRoom");
+    await waitForPublicRoom(host, roomName, (room) => room.joinedHumanPlayers === 1);
+
+    host.emit("leaveRoom");
+    await waitForRoomMissing(guest, roomName);
+  } finally {
+    host.close();
+    guest.close();
+  }
+});
+
+test("waiting rooms do not become zombies when sockets disconnect", async () => {
+  const host = await connectSocket();
+  const guest = await connectSocket();
+  const hostDisconnectName = `Phase55 Host Disconnect ${Date.now()}`;
+  const guestDisconnectName = `Phase55 Guest Disconnect ${Date.now()}`;
+
+  try {
+    const hostDisconnectRoom = await emitAck(host, "createRoom", makeCreatePayload(hostDisconnectName, { humanPlayers: 3, cpuPlayers: 1 }));
+    expect(hostDisconnectRoom.ok).toBe(true);
+    host.close();
+    await waitForRoomMissing(guest, hostDisconnectName);
+
+    const nextHost = await connectSocket();
+    try {
+      const guestDisconnectRoom = await emitAck(nextHost, "createRoom", makeCreatePayload(guestDisconnectName, { humanPlayers: 3, cpuPlayers: 1 }));
+      expect(guestDisconnectRoom.ok).toBe(true);
+      const joined = await emitAck(guest, "joinRoom", { roomId: guestDisconnectRoom.roomId, playerName: "Guest" });
+      expect(joined.ok).toBe(true);
+      await waitForPublicRoom(nextHost, guestDisconnectName, (room) => room.joinedHumanPlayers === 2);
+      guest.close();
+      await waitForPublicRoom(nextHost, guestDisconnectName, (room) => room.joinedHumanPlayers === 1);
+    } finally {
+      nextHost.close();
+    }
+  } finally {
+    host.close();
+    guest.close();
+  }
+});
+
 test("public room list filters, sorts, exposes only public metadata, and joins without room id input", async ({ page }) => {
   const host = await connectSocket();
   const lateHost = await connectSocket();
@@ -32,7 +102,16 @@ test("public room list filters, sorts, exposes only public metadata, and joins w
     const early = await emitAck(host, "createRoom", makeCreatePayload(earlyName, { humanPlayers: 3, cpuPlayers: 1, cpuModelIds: ["tactical"] }));
     expect(early.ok).toBe(true);
     await new Promise((resolve) => setTimeout(resolve, 20));
-    const late = await emitAck(lateHost, "createRoom", makeCreatePayload(lateName, { humanPlayers: 4, cpuPlayers: 0, cpuModelIds: [] }));
+    const late = await emitAck(
+      lateHost,
+      "createRoom",
+      makeCreatePayload(lateName, {
+        humanPlayers: 4,
+        cpuPlayers: 0,
+        cpuModelIds: [],
+        daifugoOptions: { ...createDefaultDaifugoOptions(), enabled: false },
+      }),
+    );
     expect(late.ok).toBe(true);
     const hiddenPrivate = await emitAck(privateHost, "createRoom", makeCreatePayload(privateName, { visibility: "private" }));
     expect(hiddenPrivate.ok).toBe(true);
@@ -60,17 +139,37 @@ test("public room list filters, sorts, exposes only public metadata, and joins w
 
     const cards = page.getByTestId("public-room-card").filter({ hasText: earlyName });
     await expect(cards).toHaveCount(1);
+    const cardBackground = await cards.evaluate((card) => getComputedStyle(card).backgroundImage);
+    expect(cardBackground).toContain("rgb");
+    await expect(cards.getByText("ルーム名", { exact: true })).toBeVisible();
+    await expect(cards.getByText("人数", { exact: true })).toBeVisible();
+    await expect(cards.getByText("試合形式", { exact: true })).toBeVisible();
+    await expect(cards.getByText("詳細", { exact: true })).toBeVisible();
+    await expect(cards.getByText("追加ルール", { exact: true })).toBeVisible();
+    await expect(cards.getByText("募集人数", { exact: true })).toBeVisible();
     await expect(cards.getByTestId("public-room-name")).toHaveText(earlyName);
-    await expect(cards).toContainText("4人対戦");
-    await expect(cards).toContainText("局数制 10局");
-    await expect(cards).toContainText("大富豪あり（5, 7, 8, 9, 10, J, Q）");
+    await expect(cards).toContainText("4人プレイ");
+    await expect(cards).toContainText("局数制");
+    await expect(cards).toContainText("10局");
+    const extraRules = cards.getByTestId("public-room-extra-rules");
+    await expect(extraRules).toContainText("大富豪あり");
+    for (const label of ["5", "7", "8", "9", "10", "J", "Q"]) {
+      await expect(extraRules).toContainText(label);
+    }
     await expect(cards.getByTestId("public-room-recruitment")).toHaveText("募集人数 1/3人");
     await expect(cards.getByTestId("public-room-cpu")).toHaveText("CPU(Pro)1体");
     await expect(cards).not.toContainText(early.roomId);
     await expect(page.getByTestId("room-id-input")).toHaveCount(0);
 
+    const noRuleCard = page.getByTestId("public-room-card").filter({ hasText: lateName });
+    await expect(noRuleCard.getByTestId("public-room-extra-rules")).toHaveText("なし");
+    await expect(noRuleCard.getByTestId("public-room-cpu")).toHaveText("CPUなし");
+
     await cards.getByTestId("public-room-join-button").click();
+    await expect(page.getByTestId("online-lobby-screen")).toBeVisible();
     await expect(page.getByTestId("online-lobby-title")).toBeVisible();
+    await expect(page.getByTestId("ready-button")).toBeVisible();
+    await expect(page.getByTestId("start-game-button")).toHaveCount(0);
     await expect(page.getByTestId("room-id")).toHaveCount(0);
     await expect(page.getByTestId("room-id-input")).toHaveCount(0);
   } finally {
@@ -92,6 +191,29 @@ function emitAck(socket: Socket, event: string, payload?: unknown): Promise<any>
 
 function emitList(socket: Socket): Promise<OnlinePublicRoom[]> {
   return withTimeout(new Promise((resolve) => socket.emit("listPublicRooms", resolve)), "listPublicRooms ack timed out");
+}
+
+async function waitForPublicRoom(socket: Socket, roomName: string, predicate: (room: OnlinePublicRoom) => boolean) {
+  await waitForCondition(async () => {
+    const room = (await emitList(socket)).find((candidate) => candidate.roomName === roomName);
+    return Boolean(room && predicate(room));
+  }, `public room ${roomName} did not reach expected state`);
+}
+
+async function waitForRoomMissing(socket: Socket, roomName: string) {
+  await waitForCondition(async () => {
+    const room = (await emitList(socket)).find((candidate) => candidate.roomName === roomName);
+    return !room;
+  }, `public room ${roomName} was not removed`);
+}
+
+async function waitForCondition(predicate: () => Promise<boolean>, message: string) {
+  const started = Date.now();
+  while (Date.now() - started < 5_000) {
+    if (await predicate()) return;
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+  throw new Error(message);
 }
 
 function withTimeout<T>(promise: Promise<T>, message: string): Promise<T> {
@@ -124,7 +246,7 @@ function makeCreatePayload(
       cpuModelId: overrides.cpuModelId ?? "tactical",
       cpuModelIds: overrides.cpuModelIds ?? ["tactical"],
       showCpuActions: overrides.showCpuActions ?? true,
-      daifugoOptions: {
+      daifugoOptions: overrides.daifugoOptions ?? {
         ...daifugoOptions,
         enabled: true,
         effects: {

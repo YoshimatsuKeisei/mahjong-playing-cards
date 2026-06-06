@@ -141,6 +141,7 @@ export interface ActionRejectedPayload {
 export interface ServerToClientEvents {
   roomUpdated: (room: OnlineRoomSnapshot) => void;
   publicRoomsUpdated: (rooms: OnlinePublicRoom[]) => void;
+  roomClosed: () => void;
   playerView: (payload: OnlinePlayerViewPayload) => void;
   actionRejected: (payload: ActionRejectedPayload) => void;
   errorMessage: (message: string) => void;
@@ -150,6 +151,7 @@ export interface ClientToServerEvents {
   createRoom: (payload: CreateRoomPayload, ack: (response: OnlineAck) => void) => void;
   joinRoom: (payload: JoinRoomPayload, ack: (response: OnlineAck) => void) => void;
   listPublicRooms: (ack: (rooms: OnlinePublicRoom[]) => void) => void;
+  leaveRoom: () => void;
   ready: (payload: { ready: boolean }) => void;
   startGame: () => void;
   nextRound: () => void;

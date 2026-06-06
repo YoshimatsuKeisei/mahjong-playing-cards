@@ -541,7 +541,8 @@ button:disabled {
 }
 
 .room-list-panel {
-  width: min(94vw, 820px);
+  background: linear-gradient(180deg, rgba(20, 68, 47, 0.96), rgba(10, 45, 32, 0.97));
+  width: min(96vw, 1120px);
 }
 
 .empty-room-list,
@@ -600,26 +601,76 @@ button:disabled {
 }
 
 .public-room-card {
-  align-items: stretch;
+  align-items: center;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 252, 0.99), rgba(247, 250, 242, 0.98)),
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.94), transparent 45%);
+  border-color: rgba(157, 118, 34, 0.62);
+  box-shadow: 0 16px 28px rgba(8, 31, 21, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  color: #12261b;
   display: grid;
   gap: 14px;
   grid-template-columns: minmax(0, 1fr) auto;
 }
 
-.public-room-card-main {
-  align-items: flex-start;
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
+.public-room-grid {
+  align-items: stretch;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(140px, 1.5fr) minmax(82px, 0.8fr) minmax(92px, 0.9fr) minmax(96px, 0.9fr) minmax(170px, 1.35fr) minmax(130px, 1fr);
   min-width: 0;
 }
 
-.public-room-card-main span {
-  line-height: 1.45;
+.public-room-cell {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.public-room-card .public-room-column-label {
+  color: #4d401d;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 1.2;
+}
+
+.public-room-card .public-room-value {
+  color: #10251a;
+  font-weight: 900;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.public-room-rule-badges {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.public-room-card .public-room-rule-badge {
+  background: #eef7ea;
+  border: 1px solid rgba(49, 100, 61, 0.34);
+  border-radius: 999px;
+  color: #143b25;
+  font-size: 0.78rem;
+  font-weight: 900;
+  line-height: 1.1;
+  padding: 4px 7px;
+}
+
+.public-room-card .public-room-rule-badge.is-main {
+  background: #e0f0db;
+  border-color: rgba(35, 94, 49, 0.5);
+}
+
+.public-room-recruitment-cell {
+  gap: 5px;
 }
 
 .join-room-button {
-  align-self: end;
+  align-self: center;
   background: linear-gradient(180deg, #f7a33c, #c96d1f);
   border: 1px solid rgba(255, 216, 141, 0.78);
   border-radius: 8px;
@@ -642,8 +693,18 @@ button:disabled {
     grid-template-columns: 1fr;
   }
 
+  .public-room-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
   .join-room-button {
     justify-self: stretch;
+  }
+}
+
+@media (max-width: 480px) {
+  .public-room-grid {
+    grid-template-columns: 1fr;
   }
 }
 

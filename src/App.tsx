@@ -108,6 +108,13 @@ export default function App() {
     socket.on("publicRoomsUpdated", (rooms) => {
       setPublicRooms(rooms);
     });
+    socket.on("roomClosed", () => {
+      setOnlineRoom(null);
+      setOnlinePlayerId(null);
+      setOnlineError("ルームが解散されました。");
+      requestPublicRooms();
+      setScreen("roomList");
+    });
     socket.on("playerView", (payload) => {
       setOnlinePlayerId(payload.playerId);
       setOnlineRoom(payload.room);
@@ -133,6 +140,7 @@ export default function App() {
     return () => {
       socket.off("roomUpdated");
       socket.off("publicRoomsUpdated");
+      socket.off("roomClosed");
       socket.off("playerView");
       socket.off("errorMessage");
       socket.off("actionRejected");
@@ -181,7 +189,15 @@ export default function App() {
   function createOnlineRoom(playerName: string, maxPlayers: number, scenario?: OnlineScenarioId, roomSettings?: OnlineRoomCreateSettings) {
     setOnlineError(null);
     setOnlineRoomEntry(roomSettings ? "public" : "legacy");
-    getOnlineSocket().emit("createRoom", { playerName, maxPlayers, scenario, roomSettings }, (response) => {
+    const socket = getOnlineSocket();
+    if (!socket.connected) {
+      socket.connect();
+    }
+    const timeoutId = window.setTimeout(() => {
+      setOnlineError("オンラインサーバーに接続できません。サーバーを起動してからもう一度作成してください。");
+    }, 8_000);
+    socket.emit("createRoom", { playerName, maxPlayers, scenario, roomSettings }, (response) => {
+      window.clearTimeout(timeoutId);
       if (!response.ok) {
         setOnlineError(response.error);
         return;
@@ -215,9 +231,13 @@ export default function App() {
   }
 
   function leaveOnlineLobby() {
+    if (onlineRoom && !onlineRoom.started) {
+      getOnlineSocket().emit("leaveRoom");
+    }
     setOnlineRoom(null);
     setOnlinePlayerId(null);
     setOnlineError(null);
+    requestPublicRooms();
     setScreen("roomSelect");
   }
 
@@ -462,7 +482,7 @@ export default function App() {
   }
 
   if (screen === "newGame") {
-    return <StartScreen onStart={startGame} onBackHome={returnToHome} onCancel={() => setScreen("roomSelect")} />;
+    return <StartScreen onStart={startGame} onBackHome={returnToHome} onCancel={() => setScreen("roomSelect")} error={onlineError} />;
   }
 
   if (screen === "roomSelect") {

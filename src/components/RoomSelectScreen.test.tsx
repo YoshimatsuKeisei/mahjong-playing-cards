@@ -93,13 +93,55 @@ describe("RoomListScreen", () => {
 
     expect(screen.queryByTestId("room-id-input")).not.toBeInTheDocument();
     expect(screen.getByText("初心者歓迎ルーム")).toBeInTheDocument();
-    expect(screen.getByText("4人対戦")).toBeInTheDocument();
-    expect(screen.getByText("局数制 10局")).toBeInTheDocument();
-    expect(screen.getByText("大富豪あり（5, 7, 8, 9, 10, J, Q）")).toBeInTheDocument();
+    expect(screen.getByText("ルーム名")).toBeInTheDocument();
+    expect(screen.getByText("人数")).toBeInTheDocument();
+    expect(screen.getByText("試合形式")).toBeInTheDocument();
+    expect(screen.getByText("詳細")).toBeInTheDocument();
+    expect(screen.getByText("追加ルール")).toBeInTheDocument();
+    expect(screen.getByText("募集人数")).toBeInTheDocument();
+    expect(screen.getByText("4人プレイ")).toBeInTheDocument();
+    expect(screen.getByText("局数制")).toBeInTheDocument();
+    expect(screen.getByText("10局")).toBeInTheDocument();
+    const extraRules = screen.getByTestId("public-room-extra-rules");
+    expect(extraRules).toHaveTextContent("大富豪あり");
+    for (const label of ["5", "7", "8", "9", "10", "J", "Q"]) {
+      expect(extraRules).toHaveTextContent(label);
+    }
     expect(screen.getByTestId("public-room-recruitment")).toHaveTextContent("募集人数 1/3人");
     expect(screen.getByTestId("public-room-cpu")).toHaveTextContent("CPU(Pro)1体");
 
     await user.click(screen.getByRole("button", { name: "参加" }));
     expect(onJoinRoom).toHaveBeenCalledWith("ABC123");
+  });
+
+  it("shows no extra rule and CPUなし for plain human rooms", () => {
+    render(
+      <RoomListScreen
+        rooms={[
+          {
+            roomId: "PLAIN1",
+            roomName: "通常ルーム",
+            totalPlayers: 4,
+            humanPlayers: 4,
+            joinedHumanPlayers: 2,
+            cpuPlayers: 0,
+            cpuModelIds: [],
+            matchType: "targetScore",
+            targetScore: 1000,
+            daifugoOptions: createDefaultDaifugoOptions(),
+            createdAt: 1,
+          },
+        ]}
+        onJoinRoom={vi.fn()}
+        onRefresh={vi.fn()}
+        onBackHome={vi.fn()}
+        onBackToSelect={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("目標点制")).toBeInTheDocument();
+    expect(screen.getByText("1000点目標")).toBeInTheDocument();
+    expect(screen.getByTestId("public-room-extra-rules")).toHaveTextContent("なし");
+    expect(screen.getByTestId("public-room-cpu")).toHaveTextContent("CPUなし");
   });
 });

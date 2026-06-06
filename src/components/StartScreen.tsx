@@ -26,6 +26,7 @@ interface StartScreenProps {
   onStart: (playerCount: number, direction: Direction, matchMode: MatchMode, ruleValue: number, roomSettings: RoomCreateSettings) => void;
   onBackHome: () => void;
   onCancel?: () => void;
+  error?: string | null;
 }
 
 export type MatchRuleType = "fixedRounds" | "targetScore" | "startingPoints";
@@ -109,7 +110,7 @@ const DAIFUGO_EFFECT_LABELS: Array<{
   { key: "queenNumberVanish", shortLabel: "Q", label: "数字全消去" },
 ];
 
-export default function StartScreen({ onStart, onBackHome, onCancel = onBackHome }: StartScreenProps) {
+export default function StartScreen({ onStart, onBackHome, onCancel = onBackHome, error }: StartScreenProps) {
   const [roomName, setRoomName] = useState("");
   const [playerCount, setPlayerCount] = useState<RoomTotalPlayers>(4);
   const [humanPlayerCount, setHumanPlayerCount] = useState(4);
@@ -370,6 +371,7 @@ export default function StartScreen({ onStart, onBackHome, onCancel = onBackHome
             </div>
           </div>
           {settingsError && <p className="room-error">{settingsError}</p>}
+          {error && <p className="room-error" data-testid="room-create-error">{error}</p>}
         </div>
 
         <div className={`field daifugo-options ${daifugoOptions.enabled ? "is-enabled" : "is-disabled"}`}>

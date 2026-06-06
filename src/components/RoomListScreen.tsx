@@ -1,5 +1,6 @@
 import type { OnlinePublicRoom } from "../online/types";
 import type { CpuModelId, DaifugoOptions, MatchMode } from "../types";
+import type { ReactNode } from "react";
 
 interface RoomListScreenProps {
   rooms?: OnlinePublicRoom[];
@@ -41,21 +42,32 @@ export default function RoomListScreen({ rooms = [], error, onJoinRoom, onRefres
           </div>
         ) : (
           <div className="room-list public-room-list" data-testid="public-room-list">
-            {rooms.map((room) => (
-              <article className="room-list-card public-room-card" data-testid="public-room-card" key={room.roomId}>
-                <div className="public-room-card-main">
-                  <strong data-testid="public-room-name">{room.roomName}</strong>
-                  <span>{room.totalPlayers}人対戦</span>
-                  <span>{formatMatchRule(room.matchType, room.roundCount, room.targetScore, room.initialPoints)}</span>
-                  <span>{formatDaifugo(room.daifugoOptions)}</span>
-                  <span data-testid="public-room-recruitment">募集人数 {room.joinedHumanPlayers}/{room.humanPlayers}人</span>
-                  <span data-testid="public-room-cpu">{formatCpu(room.cpuPlayers, room.cpuModelIds)}</span>
-                </div>
-                <button type="button" className="join-room-button" data-testid="public-room-join-button" onClick={() => onJoinRoom(room.roomId)}>
-                  参加
-                </button>
-              </article>
-            ))}
+            {rooms.map((room) => {
+              const matchRule = getMatchRuleParts(room.matchType, room.roundCount, room.targetScore, room.initialPoints);
+              return (
+                <article className="room-list-card public-room-card" data-testid="public-room-card" key={room.roomId}>
+                  <div className="public-room-grid">
+                    <PublicRoomCell label="ルーム名" value={room.roomName} testId="public-room-name" />
+                    <PublicRoomCell label="人数" value={`${room.totalPlayers}人プレイ`} />
+                    <PublicRoomCell label="試合形式" value={matchRule.typeLabel} />
+                    <PublicRoomCell label="詳細" value={matchRule.detailLabel} />
+                    <PublicRoomCell label="追加ルール" value={formatDaifugo(room.daifugoOptions)} testId="public-room-extra-rules" />
+                    <div className="public-room-cell public-room-recruitment-cell">
+                      <span className="public-room-column-label">募集人数</span>
+                      <span className="public-room-value" data-testid="public-room-recruitment">
+                        募集人数 {room.joinedHumanPlayers}/{room.humanPlayers}人
+                      </span>
+                      <span className="public-room-value" data-testid="public-room-cpu">
+                        {formatCpu(room.cpuPlayers, room.cpuModelIds)}
+                      </span>
+                    </div>
+                  </div>
+                  <button type="button" className="join-room-button" data-testid="public-room-join-button" onClick={() => onJoinRoom(room.roomId)}>
+                    参加
+                  </button>
+                </article>
+              );
+            })}
           </div>
         )}
 
@@ -77,16 +89,40 @@ export default function RoomListScreen({ rooms = [], error, onJoinRoom, onRefres
   );
 }
 
-function formatMatchRule(matchType: MatchMode, roundCount?: number, targetScore?: number, initialPoints?: number) {
-  if (matchType === "targetScore") return `目標点制 ${targetScore ?? 0}点`;
-  if (matchType === "startingPoints") return `持ち点制 持ち点${initialPoints ?? 0}点`;
-  return `局数制 ${roundCount ?? 0}局`;
+function PublicRoomCell({ label, value, testId }: { label: string; value: ReactNode; testId?: string }) {
+  return (
+    <div className="public-room-cell">
+      <span className="public-room-column-label">{label}</span>
+      <span className="public-room-value" data-testid={testId}>
+        {value}
+      </span>
+    </div>
+  );
+}
+
+function getMatchRuleParts(matchType: MatchMode, roundCount?: number, targetScore?: number, initialPoints?: number) {
+  if (matchType === "targetScore") {
+    return { typeLabel: "目標点制", detailLabel: `${targetScore ?? 0}点目標` };
+  }
+  if (matchType === "startingPoints") {
+    return { typeLabel: "持ち点制", detailLabel: `持ち点${initialPoints ?? 0}点` };
+  }
+  return { typeLabel: "局数制", detailLabel: `${roundCount ?? 0}局` };
 }
 
 function formatDaifugo(options: DaifugoOptions) {
-  if (!options.enabled) return "大富豪なし";
+  if (!options.enabled) return "なし";
   const enabledEffects = DAIFUGO_EFFECT_LABELS.filter(([key]) => options.effects[key]).map(([, label]) => label);
-  return enabledEffects.length > 0 ? `大富豪あり（${enabledEffects.join(", ")}）` : "大富豪あり";
+  return (
+    <span className="public-room-rule-badges">
+      <span className="public-room-rule-badge is-main">大富豪あり</span>
+      {enabledEffects.map((effect) => (
+        <span className="public-room-rule-badge" key={effect}>
+          {effect}
+        </span>
+      ))}
+    </span>
+  );
 }
 
 function formatCpu(cpuPlayers: number, cpuModelIds: CpuModelId[]) {

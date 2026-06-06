@@ -45,6 +45,7 @@ interface ServerRoom {
   scenario?: OnlineScenarioId;
   createdAt: number;
   roomSettings?: OnlineRoomCreateSettings;
+  nextPlayerNumber: number;
 }
 
 interface SocketData {
@@ -73,7 +74,9 @@ function createRoomId(): string {
 }
 
 function createPlayerId(room: ServerRoom): string {
-  return `player-${room.players.length + 1}`;
+  const playerId = `player-${room.nextPlayerNumber}`;
+  room.nextPlayerNumber += 1;
+  return playerId;
 }
 
 function snapshotRoom(room: ServerRoom): OnlineRoomSnapshot {
@@ -152,10 +155,49 @@ function broadcastPlayerView(room: ServerRoom) {
   broadcastPublicRooms();
 }
 
+function closeWaitingRoom(room: ServerRoom, exceptSocketId?: string) {
+  for (const socketId of room.socketsByPlayerId.values()) {
+    if (socketId === exceptSocketId) continue;
+    const roomSocket = io.sockets.sockets.get(socketId) as OnlineSocket | undefined;
+    if (!roomSocket) continue;
+    roomSocket.emit("roomClosed");
+    roomSocket.leave(room.id);
+    roomSocket.data.roomId = undefined;
+    roomSocket.data.playerId = undefined;
+  }
+  rooms.delete(room.id);
+  broadcastPublicRooms();
+}
+
+function removeWaitingPlayer(socket: OnlineSocket, room: ServerRoom, playerId: string) {
+  room.socketsByPlayerId.delete(playerId);
+  room.players = room.players.filter((player) => player.playerId !== playerId);
+  socket.leave(room.id);
+  socket.data.roomId = undefined;
+  socket.data.playerId = undefined;
+  const hostStillPresent = room.players.some((player) => player.playerId === room.hostPlayerId && room.socketsByPlayerId.has(player.playerId));
+  if (!hostStillPresent) {
+    closeWaitingRoom(room);
+    return;
+  }
+  broadcastPlayerView(room);
+}
+
 function leaveCurrentRoom(socket: OnlineSocket) {
   const room = getSocketRoom(socket);
   const playerId = socket.data.playerId;
   if (!room || !playerId) return;
+  if (!room.started) {
+    if (playerId === room.hostPlayerId) {
+      closeWaitingRoom(room, socket.id);
+      socket.leave(room.id);
+      socket.data.roomId = undefined;
+      socket.data.playerId = undefined;
+      return;
+    }
+    removeWaitingPlayer(socket, room, playerId);
+    return;
+  }
   room.socketsByPlayerId.delete(playerId);
   room.players = room.players.map((player) => (player.playerId === playerId ? { ...player, connected: false } : player));
   broadcastPlayerView(room);
@@ -446,6 +488,7 @@ io.on("connection", (socket) => {
       scenario: payload.scenario,
       createdAt: Date.now(),
       roomSettings: payload.roomSettings,
+      nextPlayerNumber: 1,
     };
     const player: OnlineRoomPlayer = {
       playerId: createPlayerId(room),
@@ -465,6 +508,10 @@ io.on("connection", (socket) => {
 
   socket.on("listPublicRooms", (ack) => {
     ack(listPublicRooms());
+  });
+
+  socket.on("leaveRoom", () => {
+    leaveCurrentRoom(socket);
   });
 
   socket.on("joinRoom", (payload, ack) => {
