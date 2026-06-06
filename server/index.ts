@@ -1,8 +1,17 @@
 import { createServer } from "node:http";
 import { Server, type Socket } from "socket.io";
 import { createDefaultDaifugoOptions } from "../src/game/deck";
-import { createInitialGame, gameReducer, getAvailableDiscardSources, getCallOptionsForSource, type GameAction } from "../src/game/gameState";
+import {
+  createInitialGame,
+  gameReducer,
+  getAvailableDiscardSources,
+  getCallOptionsForSource,
+  getWinningDiscardOptions,
+  isCardJShielded,
+  type GameAction,
+} from "../src/game/gameState";
 import { createPlayerViewState } from "../src/online/playerView";
+import { applyOnlineScenario } from "./onlineScenarios";
 import type {
   ActionRejectedReason,
   ClientToServerEvents,
@@ -10,6 +19,7 @@ import type {
   OnlineRoomPlayer,
   OnlineRoomSnapshot,
   ServerToClientEvents,
+  type OnlineScenarioId,
 } from "../src/online/types";
 import type { Direction, GameState } from "../src/types";
 
@@ -23,6 +33,7 @@ interface ServerRoom {
   state: GameState | null;
   stateVersion: number;
   started: boolean;
+  scenario?: OnlineScenarioId;
 }
 
 interface SocketData {
@@ -111,28 +122,122 @@ function rejectAction(socket: OnlineSocket, room: ServerRoom | null, playerId: s
   if (room && playerId) emitPlayerView(room, playerId);
 }
 
+const pendingEffectActions = new Set<GameAction["type"]>([
+  "answerDaifugoEffect",
+  "answerSevenEnhancement",
+  "finishSevenEnhancementSplash",
+  "selectEnhancedSevenTarget",
+  "confirmEnhancedSevenTarget",
+  "answerFiveEnhancement",
+  "finishFiveEnhancementSplash",
+  "selectEnhancedFiveTarget",
+  "confirmEnhancedFiveTarget",
+  "drawForDaifugoEffect",
+  "discardForDaifugoEffect",
+  "selectSevenExchangeCard",
+  "selectQueenVanishRank",
+  "answerQueenWin",
+  "selectJackSpecialEffect",
+  "selectJackShieldRank",
+  "selectJackShieldRun",
+  "inspectJackCard",
+  "confirmJackInspectCard",
+  "answerReachContinue",
+]);
+
+function validatePendingEffectAction(state: GameState, playerIndex: number, action: GameAction): ActionRejectedReason | null {
+  const pending = state.pendingDaifugoEffect;
+  if (!pending) return "invalid_action_for_phase";
+  if (!pendingEffectActions.has(action.type)) return "invalid_action_for_phase";
+  if ("playerIndex" in pending && pending.playerIndex !== playerIndex) {
+    if (!(pending.kind === "sevenExchange" && action.type === "selectSevenExchangeCard" && action.playerIndex === playerIndex)) {
+      return "not_your_reaction";
+    }
+  }
+
+  if (action.type === "answerDaifugoEffect") return pending.kind === "confirm" ? null : "invalid_action_for_phase";
+  if (action.type === "drawForDaifugoEffect") return pending.kind === "effectDraw" ? null : "invalid_action_for_phase";
+  if (action.type === "selectQueenVanishRank") return pending.kind === "queenSelect" ? null : "invalid_action_for_phase";
+  if (action.type === "answerQueenWin") return pending.kind === "queenWinConfirm" ? null : "invalid_tsumo_candidate";
+  if (action.type === "discardForDaifugoEffect") {
+    if (pending.kind !== "extraDiscard") return "invalid_action_for_phase";
+    const player = state.players[playerIndex];
+    const discardCard = player?.hand.find((card) => card.id === action.cardId) ?? null;
+    if (!discardCard) return "card_not_in_hand";
+    if (isCardJShielded(player, discardCard)) return "invalid_action_for_phase";
+    return null;
+  }
+  if (action.type === "selectSevenExchangeCard") {
+    if (pending.kind !== "sevenExchange") return "invalid_action_for_phase";
+    if (action.playerIndex !== playerIndex) return "not_your_reaction";
+    return null;
+  }
+  return null;
+}
+
 function validateOnlineAction(room: ServerRoom, playerId: string, action: GameAction): ActionRejectedReason | null {
   if (!room.state || !room.started) return "room_not_playing";
-  if (action.type !== "drawFromDeck" && action.type !== "discard" && action.type !== "takeDiscard") return "invalid_action_for_phase";
+  if (action.type === "start" || action.type === "restart") return "invalid_action_for_phase";
   const playerIndex = room.state.players.findIndex((player) => player.id === playerId);
-  if (playerIndex < 0 || room.state.currentPlayerIndex !== playerIndex) return "not_your_turn";
+  if (playerIndex < 0) return "room_not_playing";
+
+  if (action.type === "answerRon") {
+    if (room.state.phase !== "ronCheck" || !room.state.pendingRonResult) return "invalid_action_for_phase";
+    const canAnswer = room.state.pendingRonResult.ronResults?.some((item) => item.winnerIndex === playerIndex) ?? false;
+    return canAnswer ? null : "not_your_reaction";
+  }
+
+  if (pendingEffectActions.has(action.type)) {
+    return validatePendingEffectAction(room.state, playerIndex, action);
+  }
+
+  if (action.type === "confirmHandoff") {
+    return room.state.phase === "handoff" && !room.state.pendingDaifugoEffect ? null : "invalid_action_for_phase";
+  }
+
+  if (room.state.currentPlayerIndex !== playerIndex) return "not_your_turn";
+
   if (action.type === "drawFromDeck") {
     if (room.state.phase !== "draw" || room.state.deck.length === 0) return "invalid_action_for_phase";
     return null;
   }
   if (action.type === "takeDiscard") {
     if (room.state.phase !== "draw") return "invalid_action_for_phase";
-    if (!getAvailableDiscardSources(room.state).includes(action.ownerIndex)) return "invalid_action_for_phase";
-    if (!action.meld) return "invalid_action_for_phase";
+    if (!getAvailableDiscardSources(room.state).includes(action.ownerIndex)) return "invalid_call_candidate";
+    if (!action.meld) return "invalid_call_candidate";
     const legalOptions = getCallOptionsForSource(room.state, action.ownerIndex);
     const meldIds = action.meld.map((card) => card.id).sort().join("|");
     const isLegalMeld = legalOptions.some((option) => option.map((card) => card.id).sort().join("|") === meldIds);
-    return isLegalMeld ? null : "invalid_action_for_phase";
+    return isLegalMeld ? null : "invalid_call_candidate";
   }
+  if (action.type === "winWithDiscard") {
+    if (room.state.phase !== "discard") return "invalid_action_for_phase";
+    const legalOptions = getWinningDiscardOptions(room.state);
+    return legalOptions.some((option) => option.discardCard.id === action.discardCardId) ? null : "invalid_tsumo_candidate";
+  }
+  if (action.type === "discardDrawnOnly") {
+    if (room.state.phase !== "discard" || !room.state.drawnCard) return "invalid_action_for_phase";
+    const player = room.state.players[playerIndex];
+    if (!player.isReach || room.state.declaredReachThisTurn) return "invalid_action_for_phase";
+    if (getWinningDiscardOptions(room.state).length > 0) return "invalid_tsumo_candidate";
+    return null;
+  }
+  if (action.type === "declareReach") {
+    return room.state.phase === "discard" && room.state.drawnFrom === "deck" ? null : "invalid_action_for_phase";
+  }
+  if (action.type === "answerReachAfterDiscard") {
+    return room.state.phase === "reachConfirm" ? null : "invalid_action_for_phase";
+  }
+  if (action.type !== "discard") return "invalid_action_for_phase";
   if (room.state.phase !== "discard") return "invalid_action_for_phase";
   const player = room.state.players[playerIndex];
   if (!player.hand.some((card) => card.id === action.cardId)) return "card_not_in_hand";
   return null;
+}
+
+function advanceOnlineHandoff(nextState: GameState): GameState {
+  if (nextState.phase !== "handoff" || nextState.pendingDaifugoEffect) return nextState;
+  return gameReducer(nextState, { type: "confirmHandoff" });
 }
 
 function startRoomGame(room: ServerRoom) {
@@ -157,6 +262,8 @@ function startRoomGame(room: ServerRoom) {
       isCpu: false,
     })),
   };
+  room.state = applyOnlineScenario(room.state, room.scenario);
+  room.state = { ...room.state, stateVersion: room.stateVersion };
   room.started = true;
 }
 
@@ -173,6 +280,7 @@ io.on("connection", (socket) => {
       state: null,
       stateVersion: 0,
       started: false,
+      scenario: payload.scenario,
     };
     const player: OnlineRoomPlayer = {
       playerId: createPlayerId(room),
@@ -260,9 +368,10 @@ io.on("connection", (socket) => {
       rejectAction(socket, room, playerId, rejection);
       return;
     }
-    let nextState = gameReducer(room.state, payload.action);
-    if (payload.action.type === "discard" && nextState.phase === "handoff") {
-      nextState = gameReducer(nextState, { type: "confirmHandoff" });
+    let nextState = advanceOnlineHandoff(gameReducer(room.state, payload.action));
+    if (nextState === room.state) {
+      rejectAction(socket, room, playerId, "invalid_action_for_phase");
+      return;
     }
     room.stateVersion += 1;
     room.state = { ...nextState, stateVersion: room.stateVersion };

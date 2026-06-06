@@ -16,6 +16,7 @@ import {
   getEnhancedFiveTurnOptions,
   getReachWinningOptions,
   getSevenExchangeCandidateCards,
+  getWinningDiscardOptions,
   isCardJShielded,
   chooseCpuQueenRank,
   getQueenVanishRankOptions,
@@ -232,6 +233,7 @@ const measuredAnchorLayouts: Record<number, Array<{ left: string; top: string; w
 export default function PlayScreen({ state, dispatch, currentRound, onExitToHome, disableLocalCpuAutomation = false }: PlayScreenProps) {
   const currentPlayer = state.players[state.currentPlayerIndex];
   const reachOptions = getReachWinningOptions(state);
+  const selfWinOptions = state.winningDiscardOptions ?? getWinningDiscardOptions(state);
   const discardSources = getAvailableDiscardSources(state);
   const discardHighlights = getDiscardHighlights(state, discardSources);
   const playerCount = state.players.length;
@@ -273,7 +275,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
   const isCpuTurn = currentPlayer?.isCpu === true && state.phase !== "result";
   const shouldHideCpuDetails = !state.showCpuActions && isCpuTurn;
   const pendingDaifugoEffect = state.pendingDaifugoEffect;
-  const queenRankChoices = getQueenVanishRankOptions(state);
+  const queenRankChoices = state.queenVanishRankOptions ?? getQueenVanishRankOptions(state);
   const availableQueenRankOptions = queenRankChoices.filter((option) => option.selectable).map((option) => option.rank);
   const isDaifugoConfirm = pendingDaifugoEffect?.kind === "confirm";
   const isDaifugoExtraDiscard = pendingDaifugoEffect?.kind === "extraDiscard";
@@ -614,6 +616,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
 
   useEffect(() => {
     if (state.phase === "handoff") {
+      if (isOnlineView && !isViewerTurn) return;
       if (state.daifugoEffectEvent && isDaifugoEventPlaying) return;
       if (state.pendingDaifugoEffect) return;
       const timeoutId = window.setTimeout(() => {
@@ -624,7 +627,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
         window.clearTimeout(timeoutId);
       };
     }
-  }, [state.phase, state.daifugoEffectEvent?.id, state.pendingDaifugoEffect, isDaifugoEventPlaying, dispatch]);
+  }, [state.phase, state.daifugoEffectEvent?.id, state.pendingDaifugoEffect, isDaifugoEventPlaying, isOnlineView, isViewerTurn, dispatch]);
 
   useEffect(() => {
     if (!state.daifugoEffectEvent) return;
@@ -1040,10 +1043,10 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
                 {ronCountdown}
               </div>
               <div className="ron-check-actions">
-                <button type="button" className="primary-button" onClick={() => dispatch({ type: "answerRon", takeRon: true })}>
+                <button type="button" className="primary-button" data-testid="ron-button" onClick={() => dispatch({ type: "answerRon", takeRon: true })}>
                   はい
                 </button>
-                <button type="button" onClick={() => dispatch({ type: "answerRon", takeRon: false })}>
+                <button type="button" data-testid="reaction-pass-button" onClick={() => dispatch({ type: "answerRon", takeRon: false })}>
                   いいえ
                 </button>
               </div>
@@ -1232,13 +1235,14 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
                   リーチ
                 </button>
               )}
-              {pendingDaifugoEffect.effect === "eightExtraTurn" && currentPlayer.isReach && !state.declaredReachThisTurn && reachOptions.length > 0 && (
+              {pendingDaifugoEffect.effect === "eightExtraTurn" && currentPlayer.isReach && !state.declaredReachThisTurn && selfWinOptions.length > 0 && (
                 <div className="reach-win-options">
                   <strong>上がるために捨てるカード</strong>
-                  {reachOptions.map((option) => (
+                  {selfWinOptions.map((option) => (
                     <button
                       type="button"
                       className="primary-button"
+                      data-testid="tsumo-button"
                       key={option.discardCard.id}
                       disabled={isAnimating || isCpuTurn || cpuActionInProgress}
                       onClick={() => handleWinWithDiscard(option.discardCard)}
@@ -1391,6 +1395,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
                   <button
                     type="button"
                     className="rank-choice-button"
+                    data-testid={`queen-rank-${option.rank}`}
                     key={option.rank}
                     disabled={isAnimating || cpuActionInProgress || !option.selectable}
                     title={option.disabledReason}
@@ -1560,6 +1565,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
                       <button
                         type="button"
                         key={meld.map((card) => card.id).join("-")}
+                        data-testid="call-button"
                         disabled={controlsDisabled}
                         onClick={() => dispatch({ type: "takeDiscard", ownerIndex, meld })}
                       >
@@ -1567,6 +1573,9 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
                         {optionIndex + 1}: {meld.map(formatCard).join(" ")}
                       </button>
                     ))}
+                    <button type="button" data-testid="reaction-pass-button" disabled={controlsDisabled} onClick={handleDrawFromDeck}>
+                      Pass
+                    </button>
                   </div>
                 );
               })}
@@ -1580,23 +1589,41 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
                   リーチ
                 </button>
               )}
-              {currentPlayer.isReach && !state.declaredReachThisTurn && reachOptions.length === 0 && (
-                <button type="button" className="primary-button" disabled={controlsDisabled} onClick={handleDiscardDrawnOnly}>
+              {currentPlayer.isReach && !state.declaredReachThisTurn && selfWinOptions.length === 0 && (
+                <button type="button" className="primary-button" data-testid="discard-drawn-only-button" disabled={controlsDisabled} onClick={handleDiscardDrawnOnly}>
                   引いたカードをそのまま捨てる
                 </button>
               )}
-              {currentPlayer.isReach && !state.declaredReachThisTurn && reachOptions.length > 0 && (
+              {currentPlayer.isReach && !state.declaredReachThisTurn && selfWinOptions.length > 0 && (
                 <div className="reach-win-options">
                   <strong>上がるために捨てるカード</strong>
-                  {reachOptions.map((option) => (
+                  {selfWinOptions.map((option) => (
                     <button
                       type="button"
                       className="primary-button"
+                      data-testid="tsumo-button"
                       key={option.discardCard.id}
                       disabled={controlsDisabled}
                       onClick={() => handleWinWithDiscard(option.discardCard)}
                     >
                       上がる: {formatCard(option.discardCard)}を捨てる
+                    </button>
+                  ))}
+                </div>
+              )}
+              {!currentPlayer.isReach && selfWinOptions.length > 0 && (
+                <div className="reach-win-options">
+                  <strong>ツモ候補</strong>
+                  {selfWinOptions.map((option) => (
+                    <button
+                      type="button"
+                      className="primary-button"
+                      data-testid="tsumo-button"
+                      key={option.discardCard.id}
+                      disabled={controlsDisabled}
+                      onClick={() => handleWinWithDiscard(option.discardCard)}
+                    >
+                      ツモ: {formatCard(option.discardCard)}を捨てる
                     </button>
                   ))}
                 </div>

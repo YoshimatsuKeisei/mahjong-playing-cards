@@ -5,20 +5,20 @@ export interface OnlineGameSetup {
   roomId: string;
 }
 
-export async function openOnlineLobby(page: Page, playerName: string) {
+export async function openOnlineLobby(page: Page, playerName: string, scenario?: string) {
   page.on("console", (message) => {
     if (message.type() === "warning" || message.type() === "error") {
       console.log(`[${playerName}] ${message.type()}: ${message.text()}`);
     }
   });
-  await page.goto("/");
+  await page.goto(scenario ? `/?scenario=${encodeURIComponent(scenario)}` : "/");
   await page.getByTestId("home-menu-newGame").click();
   await page.getByTestId("online-join-room-choice").click();
   await page.getByTestId("player-name-input").fill(playerName);
 }
 
-export async function createOnlineRoom(page: Page, playerName = "Player 1") {
-  await openOnlineLobby(page, playerName);
+export async function createOnlineRoom(page: Page, playerName = "Player 1", scenario?: string) {
+  await openOnlineLobby(page, playerName, scenario);
   await page.getByTestId("create-room-button").click();
   await expect(page.getByTestId("room-id")).toBeVisible();
   const roomText = (await page.getByTestId("room-id").textContent()) ?? "";
@@ -34,9 +34,9 @@ export async function joinOnlineRoom(page: Page, roomId: string, playerName: str
   await expect(page.getByTestId("room-id")).toContainText(roomId);
 }
 
-export async function setupFourPlayerOnlineGame(browser: Browser): Promise<OnlineGameSetup> {
+export async function setupFourPlayerOnlineGame(browser: Browser, scenario?: string): Promise<OnlineGameSetup> {
   const pages = await Promise.all(Array.from({ length: 4 }, () => browser.newPage()));
-  const roomId = await createOnlineRoom(pages[0], "Player 1");
+  const roomId = await createOnlineRoom(pages[0], "Player 1", scenario);
 
   for (let index = 1; index < pages.length; index += 1) {
     await joinOnlineRoom(pages[index], roomId, `Player ${index + 1}`);

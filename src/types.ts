@@ -194,6 +194,38 @@ export interface WinningDiscardOption {
   winningResult: WinningResult;
 }
 
+export interface CallCandidateView {
+  ownerIndex: number;
+  sourceDiscard: Card;
+  meld: Card[];
+  meldType: "run" | "triple";
+}
+
+export interface RonCandidateView {
+  discarderIndex: number;
+  discardCard: Card;
+  winningResult: WinningResult;
+}
+
+export interface PlayerReactionView {
+  waiting: boolean;
+  canCall: boolean;
+  callCandidates: CallCandidateView[];
+  canRon: boolean;
+  ronCandidates: RonCandidateView[];
+  canPass: boolean;
+  targetDiscard: Card | null;
+}
+
+export interface QueenVanishRankOptionView {
+  rank: number;
+  removedFromDeck: number;
+  replenishmentRequired: number;
+  availableAfterVanish: number;
+  selectable: boolean;
+  disabledReason?: string;
+}
+
 export interface ScoreResult {
   winnerScore: number;
   playerLosses: number[];
@@ -261,6 +293,11 @@ export interface GameState {
   stateVersion?: number;
   viewerPlayerId?: string;
   availableActions?: string[];
+  canTsumo?: boolean;
+  canSelfWin?: boolean;
+  winningDiscardOptions?: WinningDiscardOption[];
+  reaction?: PlayerReactionView | null;
+  queenVanishRankOptions?: QueenVanishRankOptionView[];
   currentPlayerIndex: number;
   direction: Direction;
   daifugoOptions: DaifugoOptions;

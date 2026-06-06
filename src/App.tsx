@@ -16,7 +16,7 @@ import { calculatePointDeductions, calculateRawRoundScores } from "./game/scorin
 import { createDefaultDaifugoOptions } from "./game/deck";
 import { createDoubleRonResultFixture, createSingleRonResultFixture, createStartingPointsTsumoResultFixture } from "./game/resultFixtures";
 import { getOnlineSocket } from "./online/client";
-import type { OnlineRoomSnapshot } from "./online/types";
+import type { OnlineRoomSnapshot, OnlineScenarioId } from "./online/types";
 import type { Card, GameState, MatchMode, MatchState, Player, ProfileData } from "./types";
 import type { HomeMenuTarget } from "./components/HomeMenu";
 
@@ -159,9 +159,9 @@ export default function App() {
     });
   }
 
-  function createOnlineRoom(playerName: string, maxPlayers: number) {
+  function createOnlineRoom(playerName: string, maxPlayers: number, scenario?: OnlineScenarioId) {
     setOnlineError(null);
-    getOnlineSocket().emit("createRoom", { playerName, maxPlayers }, (response) => {
+    getOnlineSocket().emit("createRoom", { playerName, maxPlayers, scenario }, (response) => {
       if (!response.ok) {
         setOnlineError(response.error);
         return;

@@ -81,14 +81,14 @@ export default function ResultScreen({
   }, [isStandingsOpen, currentStandings]);
 
   return (
-    <main className="screen result-screen">
+    <main className="screen result-screen" data-testid="result-screen">
       <section className="result-panel result-board">
         <div className="result-round-title">{currentRound}回戦</div>
         <h1 className="result-board-title result-pop-item" style={{ animationDelay: "0s" }}>
           各プレイヤーの失点
         </h1>
 
-        <div className="player-result-list">
+        <div className="player-result-list" data-testid="result-player-list">
           {state.players.map((player, index) => {
             const breakdown = buildPlayerBreakdown(state, result, player, index);
             const label = getResultLabel(result, index);
@@ -97,6 +97,7 @@ export default function ResultScreen({
             return (
               <section
                 className={`player-result-row result-pop-item ${rowTone}`}
+                data-testid="result-player-row"
                 style={{ animationDelay: `${0.4 + index * 0.4}s` }}
                 key={player.id}
               >

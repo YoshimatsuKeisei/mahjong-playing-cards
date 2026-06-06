@@ -2340,6 +2340,13 @@ export function getReachWinningOptions(state: GameState) {
   return findWinningDiscardsAfterDraw(player.hand, state.drawnCard.id, player.openMelds, state.isJBackActive);
 }
 
+export function getWinningDiscardOptions(state: GameState) {
+  if (state.phase !== "discard" || !state.drawnCard) return [];
+  const player = state.players[state.currentPlayerIndex];
+  if (!player) return [];
+  return findWinningDiscardsAfterDraw(player.hand, state.drawnCard.id, player.openMelds, state.isJBackActive);
+}
+
 export function getAvailableDiscardSources(state: GameState): number[] {
   const current = state.players[state.currentPlayerIndex];
   if (!current || current.isReach) {

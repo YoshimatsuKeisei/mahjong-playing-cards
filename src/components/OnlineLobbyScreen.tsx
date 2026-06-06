@@ -1,11 +1,11 @@
 import { useState } from "react";
-import type { OnlineRoomSnapshot } from "../online/types";
+import type { OnlineRoomSnapshot, OnlineScenarioId } from "../online/types";
 
 interface OnlineLobbyScreenProps {
   room: OnlineRoomSnapshot | null;
   playerId: string | null;
   error: string | null;
-  onCreateRoom: (playerName: string, maxPlayers: number) => void;
+  onCreateRoom: (playerName: string, maxPlayers: number, scenario?: OnlineScenarioId) => void;
   onJoinRoom: (roomId: string, playerName: string) => void;
   onReady: (ready: boolean) => void;
   onStartGame: () => void;
@@ -25,6 +25,10 @@ export default function OnlineLobbyScreen({
   const [playerName, setPlayerName] = useState("Guest Player");
   const [roomId, setRoomId] = useState("");
   const [maxPlayers, setMaxPlayers] = useState(4);
+  const scenario =
+    import.meta.env.DEV
+      ? ((new URLSearchParams(window.location.search).get("scenario") || undefined) as OnlineScenarioId | undefined)
+      : undefined;
   const currentPlayer = room?.players.find((player) => player.playerId === playerId) ?? null;
   const isHost = Boolean(room && playerId === room.hostPlayerId);
   const canStart = Boolean(room && isHost && room.players.length >= 2 && room.players.every((player) => player.ready || player.playerId === room.hostPlayerId));
@@ -51,7 +55,7 @@ export default function OnlineLobbyScreen({
                 ))}
               </select>
             </label>
-            <button type="button" className="primary-button" data-testid="create-room-button" onClick={() => onCreateRoom(playerName, maxPlayers)}>
+            <button type="button" className="primary-button" data-testid="create-room-button" onClick={() => onCreateRoom(playerName, maxPlayers, scenario)}>
               部屋を作る
             </button>
 

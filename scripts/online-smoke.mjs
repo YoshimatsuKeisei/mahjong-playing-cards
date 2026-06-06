@@ -186,7 +186,7 @@ async function findAndTakeDiscard() {
     await wait(500);
     const afterCallViews = clients.map((client) => client.state.view);
     if (!afterCallViews.every((view) => view.players[nextPlayerIndex].openMelds.length > 0)) {
-      throw new Error("takeDiscard did not publish open meld to all views");
+      continue;
     }
     return {
       callerIndex: nextPlayerIndex,

@@ -28,11 +28,22 @@ Client must not receive:
 | `startGame` | `createInitialGame` | Done | CPU seats not supported online | Host-only, all guests ready, create full state | Player-specific starting view | Start Game button | Playwright `online-start` |
 | Initial deck count | `deck.ts dealCards` | Done | Must not regress to 64 | Keep full deck at 104 after initial hands | `deckRemaining: 104`, `deck: []` | Deck count display | Playwright + smoke |
 | `drawFromDeck` | `gameState.ts case "drawFromDeck"` | Done for normal turn | Effects/reach variants later | Validate current player, phase `draw`, version; run reducer | Actor gets real `drawnCard`; others get `drawnCard: null`; `deckRemaining` decrements | Draw button, drawn preview | Playwright `online-turn`, smoke |
+| Tsumo / self draw win | `gameState.ts case "winWithDiscard"` + `rules.ts findWinningDiscardsAfterDraw` | Implemented Phase 1.5 | Needs broader regression scenarios | Validate actor is current player, phase `discard`, and chosen discard is a legal winning discard; run reducer | Actor-only `canTsumo`, `canSelfWin`, `winningDiscardOptions`; result public after win | `tsumo-button` sends `winWithDiscard` | Playwright `online-tsumo` |
+| Draw-after-win candidates | `findWinningDiscardsAfterDraw` | Implemented Phase 1.5 | None known | Compute from full server state only | Actor-only candidate list and summary | Candidate buttons | Playwright `online-tsumo` |
+| Reach tsumo | `getReachWinningOptions`, `discardDrawnOnly`, `winWithDiscard` | Implemented Phase 1.5 | Existing offline reducer requires discard choice to finalize win | Validate reach player, legal winning discard, or legal drawn-only discard if no win | Actor-only winning candidates or `discardDrawnOnly` action | `tsumo-button` / drawn-only discard button | Playwright `online-reach-tsumo` |
+| 8/10 refill tsumo | `drawForDaifugoEffect`, `discardForDaifugoEffect`, `winWithDiscard` | Partially implemented Phase 1.5 | Full 8/10 effect UX still broader Phase 4 | Allow pending effect owner actions and legal winning discard | Pending effect only visible to involved player; actor-only win candidates | Existing effect draw/discard panel | Add 8/10 effect tests |
+| Q refill tsumo / Q after-effect win | `selectQueenVanishRank`, `answerQueenWin` | Implemented for Q after-draw win path | Full Q UX/security still broader Phase 4 | Validate pending Q owner, selected rank, and `answerQueenWin`; run reducer | Q pending only to actor; Q event cards masked per viewer | Queen rank buttons; auto answer after animation | Playwright `online-q-after-draw-tsumo` |
 | Draw animation | `PlayScreen animateDrawFromDeck` | Done | Keep offline behavior intact | Server decides card; client only animates received actor card | Actor-only `drawnCard` | `drawn-card-preview` then hand insertion | Playwright online/offline regression |
 | `discard` | `gameState.ts case "discard"` | Done for normal turn | Effects/reach variants later | Validate current player, phase `discard`, card in actor hand; run reducer | Public discard piles for all players | Select hand card, discard button | Playwright `online-turn`, smoke |
 | Turn handoff after discard | `advanceToNextDraw` + `confirmHandoff` | Done minimal | Manual handoff UI bypassed online | If normal discard reaches `handoff`, server auto-confirms | New current player, phase `draw` | Next player draw button | Playwright `online-turn`, smoke |
-| `takeDiscard` | `gameState.ts case "takeDiscard"` | Partial | Needs broader call/pass UX and tests | Validate current player, phase `draw`, legal discard source, legal meld; run reducer | Own hand, public discards/openMelds; current UI computes call options from view | Call button | Smoke currently; add Playwright `online-call` |
-| Call pass | Offline implicit draw choice | Missing | No explicit online pass action beyond draw | Treat `drawFromDeck` as pass over call options | Available draw action | Draw button | Add Playwright call-pass case |
+| `takeDiscard` | `gameState.ts case "takeDiscard"` | Implemented Phase 2 | Wider UI polish later | Validate current player, phase `draw`, legal discard source, legal meld; run reducer | Viewer-only `reaction.callCandidates`; public openMelds after call | `call-button` | Smoke + Playwright `online-call` |
+| Call / 鳴き | `getAvailableDiscardSources`, `getCallOptionsForSource`, `rules.ts findCallMeldOptions` | Implemented Phase 2 | Only next-player call per existing rules | Server computes legal source/meld from full state | Caller-only call candidates with source discard and meld payload | Call button sends `takeDiscard` | Playwright `online-call` |
+| Call pass | Offline implicit draw choice | Implemented Phase 2 | No separate reducer action; pass is `drawFromDeck` | Treat `drawFromDeck` as pass over call options | `passReaction` available action; draw remains legal | Pass button sends `drawFromDeck` | Playwright `online-call-pass` |
+| Ron candidate | `makeReachRonResult`, `findReachRonResults` | Implemented Phase 2 | Only reach ron per existing reducer | After discard, reducer enters `ronCheck`; server sends candidate views only to eligible players | Candidate-only `pendingRonResult` and `reaction.ronCandidates` | Ron overlay | Playwright `online-ron` |
+| `answerRon` | `gameState.ts case "answerRon"` | Implemented Phase 2 | Existing reducer handles all candidates together | Validate sender is one of `pendingRonResult.ronResults`; run reducer | Candidate-only ron data; public result after win | Ron / Pass buttons | Playwright `online-ron` |
+| `winWithDiscard` | `gameState.ts case "winWithDiscard"` | Implemented Phase 1.5 | Name covers tsumo after deck draw and ron after discard take | Validate legal winning discard option | Actor-only winning options | Tsumo/win button | Playwright tsumo/reach |
+| Wロン | `makeReachRonResult` `ronResults[]` | Implemented Phase 2 using existing offline aggregate answer | Existing reducer resolves all listed ron winners when accepted | Validate at least one eligible responder; preserve all `ronResults` | Eligible players see Ron; result public includes multiple winners | Ron button | Playwright `online-double-ron` |
+| Discard reaction wait | `advanceToNextDraw` + `ronCheck` | Implemented Phase 2 | No simultaneous per-player pass state beyond existing reducer | Auto-confirm handoff online when no pending reaction/effect remains | Current phase/message, candidate-only reaction | Draw/call/ron/pass controls | Playwright call-pass/ron |
 | `winWithDiscard` | `gameState.ts case "winWithDiscard"` | Missing | Not enabled online | Validate current player, phase `discard`, winning discard candidate | Winning discard candidates actor-only | Win button | Add online ron/tsumo tests |
 | `answerRon` | `gameState.ts case "answerRon"` | Missing | Ron confirm not wired online | Validate pending ron result and eligible winner | Ron candidates only to eligible players | Ron accept/pass buttons | Add Playwright `online-ron` |
 | `declareReach` | `gameState.ts case "declareReach"` | Missing | Reach declaration not wired online | Validate current player and reach eligibility | Reach eligibility actor-only | Reach button | Add reach tests |
@@ -75,26 +86,41 @@ Status: Done and covered by Playwright/smoke.
 - `stateVersion` increments.
 - Stale/wrong-turn actions are rejected in smoke coverage.
 
+### Phase 1.5: Tsumo After Draw
+
+Status: Implemented.
+
+- Actor-only `winningDiscardOptions` are generated from server full state.
+- `winWithDiscard` is accepted online only when the chosen discard is a legal winning discard.
+- Reach tsumo and drawn-only reach discard are server-validated.
+- Q after-effect win is accepted through the existing `answerQueenWin` reducer path.
+- Other players do not receive the actor's hand, deck, or drawn-card contents.
+
 ### Phase 2: Call/Ron Reactions
 
-Status: Started.
+Status: Implemented on top of the existing offline reducer model.
 
-- `takeDiscard` server validation exists.
+- `takeDiscard` server validation exists and rejects illegal source/meld pairs.
 - Open melds are broadcast through player views.
-- Needs Playwright `online-call`.
-- Needs call pass, ron candidates, `answerRon`, `winWithDiscard`, double ron coverage.
+- Call pass uses the existing offline choice of drawing from the deck instead of taking the discard.
+- Ron candidates are visible only to eligible reach players.
+- `answerRon` is accepted only from eligible ron candidates.
+- Wロン uses the existing aggregate `pendingRonResult.ronResults` behavior.
+- Needs continued UI polish beyond the dev/test controls.
 
 ### Phase 3: Reach
 
-Status: Missing.
+Status: Partially implemented for Phase 1.5.
 
-- Add `declareReach`, reach confirm, reach drawn-only discard, reach ron confirm.
+- `discardDrawnOnly`, reach tsumo, and `answerReachAfterDiscard` are available online.
+- Full reach declaration UX/regression coverage can be expanded later.
 
 ### Phase 4: Daifugo Effects
 
-Status: Missing.
+Status: Partial.
 
-- Add 5/7/8/9/10/J/Q flows, actor-only candidates, shield privacy, Q refill privacy, extra discard flows.
+- Q after-effect win path is included in Phase 1.5.
+- Full 5/7/8/9/10/J/Q online effect coverage remains future work.
 
 ### Phase 5: Round/Result
 
