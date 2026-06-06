@@ -5,6 +5,7 @@ const url = "http://localhost:3001";
 
 export interface SocketClientState {
   view: any;
+  matchState: any;
   rejected: any[];
 }
 
@@ -15,13 +16,17 @@ export interface SocketClient {
 
 export function connectSocketClient(): Promise<SocketClient> {
   const socket = io(url, { transports: ["websocket"], timeout: 2_000 });
-  const state: SocketClientState = { view: null, rejected: [] };
+  const state: SocketClientState = { view: null, matchState: null, rejected: [] };
   socket.on("playerView", (payload) => {
     state.view = payload.state;
+    state.matchState = payload.matchState;
   });
   socket.on("actionRejected", (payload) => {
     state.rejected.push(payload);
-    if (payload.playerView?.state) state.view = payload.playerView.state;
+    if (payload.playerView?.state) {
+      state.view = payload.playerView.state;
+      state.matchState = payload.playerView.matchState;
+    }
   });
   return new Promise((resolve) => socket.on("connect", () => resolve({ socket, state })));
 }

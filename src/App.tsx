@@ -106,9 +106,9 @@ export default function App() {
     socket.on("playerView", (payload) => {
       setOnlinePlayerId(payload.playerId);
       setOnlineRoom(payload.room);
+      setMatchState(payload.matchState ?? null);
       if (payload.state) {
         setState(payload.state);
-        setMatchState(null);
         setScreen("play");
       }
     });
@@ -121,6 +121,7 @@ export default function App() {
       if (payload.playerView?.state) {
         setOnlinePlayerId(payload.playerView.playerId);
         setOnlineRoom(payload.playerView.room);
+        setMatchState(payload.playerView.matchState ?? null);
         setState(payload.playerView.state);
       }
     });
@@ -277,6 +278,10 @@ export default function App() {
   }
 
   function advanceToNextRound() {
+    if (onlineRoom?.started) {
+      getOnlineSocket().emit("nextRound");
+      return;
+    }
     setMatchState((currentMatch) => {
       if (!currentMatch || !canAdvanceRound(currentMatch)) return currentMatch;
       const nextMatch = advanceRound(currentMatch);

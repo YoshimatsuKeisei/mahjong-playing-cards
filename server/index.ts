@@ -17,6 +17,7 @@ import {
 import { createPlayerViewState } from "../src/online/playerView";
 import { applyOnlineScenario } from "./onlineScenarios";
 import { canDeclareReachAfterDraw } from "../src/game/rules";
+import { advanceRound, canAdvanceRound, createMatchState, syncMatchGameState } from "../src/game/matchState";
 import type {
   ActionRejectedReason,
   ClientToServerEvents,
@@ -26,7 +27,7 @@ import type {
   ServerToClientEvents,
   type OnlineScenarioId,
 } from "../src/online/types";
-import type { Direction, GameState } from "../src/types";
+import type { Direction, GameState, MatchState } from "../src/types";
 
 interface ServerRoom {
   id: string;
@@ -36,6 +37,7 @@ interface ServerRoom {
   players: OnlineRoomPlayer[];
   socketsByPlayerId: Map<string, string>;
   state: GameState | null;
+  matchState: MatchState | null;
   stateVersion: number;
   started: boolean;
   scenario?: OnlineScenarioId;
@@ -86,10 +88,12 @@ function getSocketRoom(socket: OnlineSocket): ServerRoom | null {
 }
 
 function createPlayerViewPayload(room: ServerRoom, playerId: string): OnlinePlayerViewPayload {
+  const playerViewState = room.state ? createPlayerViewState(room.state, playerId) : null;
   return {
     room: snapshotRoom(room),
     playerId,
-    state: room.state ? createPlayerViewState(room.state, playerId) : null,
+    state: playerViewState,
+    matchState: room.matchState && playerViewState ? { ...room.matchState, gameState: playerViewState } : null,
   };
 }
 
@@ -280,7 +284,7 @@ function validateOnlineAction(room: ServerRoom, playerId: string, action: GameAc
   if (room.state.currentPlayerIndex !== playerIndex) return "not_your_turn";
 
   if (action.type === "drawFromDeck") {
-    if (room.state.phase !== "draw" || room.state.deck.length === 0) return "invalid_action_for_phase";
+    if (room.state.phase !== "draw") return "invalid_action_for_phase";
     return null;
   }
   if (action.type === "takeDiscard") {
@@ -334,15 +338,19 @@ function advanceOnlineHandoff(nextState: GameState): GameState {
 
 function startRoomGame(room: ServerRoom) {
   room.stateVersion = 0;
-  room.state = createInitialGame(
+  room.matchState = createMatchState(
+    "rounds",
     room.players.length,
     room.direction,
+    3,
+    room.id,
     room.players.length,
     "standard",
     createDefaultDaifugoOptions(),
     [],
     false,
   );
+  room.state = room.matchState.gameState;
   room.state = {
     ...room.state,
     stateVersion: room.stateVersion,
@@ -356,7 +364,28 @@ function startRoomGame(room: ServerRoom) {
   };
   room.state = applyOnlineScenario(room.state, room.scenario);
   room.state = { ...room.state, stateVersion: room.stateVersion };
+  room.matchState = room.matchState ? { ...room.matchState, gameState: room.state } : null;
   room.started = true;
+}
+
+function applyOnlineNextState(room: ServerRoom, nextState: GameState) {
+  room.stateVersion += 1;
+  room.state = { ...nextState, stateVersion: room.stateVersion };
+  room.matchState = syncMatchGameState(room.matchState, room.state);
+}
+
+function remapOnlinePlayers(room: ServerRoom, state: GameState): GameState {
+  return {
+    ...state,
+    stateVersion: room.stateVersion,
+    players: state.players.map((player, index) => ({
+      ...player,
+      id: room.players[index].playerId,
+      name: room.players[index].name,
+      type: "human",
+      isCpu: false,
+    })),
+  };
 }
 
 io.on("connection", (socket) => {
@@ -370,6 +399,7 @@ io.on("connection", (socket) => {
       players: [],
       socketsByPlayerId: new Map(),
       state: null,
+      matchState: null,
       stateVersion: 0,
       started: false,
       scenario: payload.scenario,
@@ -465,8 +495,32 @@ io.on("connection", (socket) => {
       rejectAction(socket, room, playerId, "invalid_action_for_phase");
       return;
     }
+    applyOnlineNextState(room, nextState);
+    broadcastPlayerView(room);
+  });
+
+  socket.on("nextRound", () => {
+    const room = getSocketRoom(socket);
+    const playerId = socket.data.playerId;
+    if (!room || !playerId || !room.state || !room.started || !room.matchState) return;
+    if (room.hostPlayerId !== playerId) {
+      rejectAction(socket, room, playerId, "not_host");
+      return;
+    }
+    if (room.state.phase !== "result" || !room.state.result) {
+      rejectAction(socket, room, playerId, "invalid_action_for_phase");
+      return;
+    }
+    const syncedMatch = syncMatchGameState(room.matchState, room.state);
+    if (!syncedMatch || !canAdvanceRound(syncedMatch)) {
+      rejectAction(socket, room, playerId, "invalid_action_for_phase");
+      return;
+    }
+    const nextMatch = advanceRound(syncedMatch);
     room.stateVersion += 1;
-    room.state = { ...nextState, stateVersion: room.stateVersion };
+    const nextGameState = remapOnlinePlayers(room, nextMatch.gameState);
+    room.state = nextGameState;
+    room.matchState = { ...nextMatch, gameState: nextGameState };
     broadcastPlayerView(room);
   });
 

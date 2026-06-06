@@ -1,4 +1,4 @@
-import type { Direction, GameState } from "../types";
+import type { Direction, GameState, MatchState } from "../types";
 import type { GameAction } from "../game/gameState";
 
 export type OnlineScenarioId =
@@ -22,6 +22,7 @@ export type OnlineScenarioId =
   | "online-effect-q"
   | "online-effect-q-after-win"
   | "online-effect-invalid"
+  | "online-round-deckout"
   | "online-call-basic"
   | "online-ron-basic"
   | "online-double-ron";
@@ -57,6 +58,7 @@ export interface OnlinePlayerViewPayload {
   room: OnlineRoomSnapshot;
   playerId: string;
   state: GameState | null;
+  matchState?: MatchState | null;
 }
 
 export interface SubmitActionPayload {
@@ -66,6 +68,7 @@ export interface SubmitActionPayload {
 
 export type ActionRejectedReason =
   | "not_your_reaction"
+  | "not_host"
   | "not_your_turn"
   | "stale_state_version"
   | "card_not_in_hand"
@@ -111,6 +114,7 @@ export interface ClientToServerEvents {
   joinRoom: (payload: JoinRoomPayload, ack: (response: OnlineAck) => void) => void;
   ready: (payload: { ready: boolean }) => void;
   startGame: () => void;
+  nextRound: () => void;
   submitAction: (payload: SubmitActionPayload) => void;
 }
 

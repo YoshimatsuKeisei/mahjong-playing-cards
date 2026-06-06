@@ -338,6 +338,22 @@ export function applyOnlineScenario(base: GameState, scenario: OnlineScenarioId 
     });
   }
 
+  if (scenario === "online-round-deckout") {
+    const players = replacePlayers(base, [
+      { hand: hand("deckout-p1", [1, 2, 3, 4, 5, 6, 7, 8, 10, 11]) },
+      { hand: hand("deckout-p2", [1, 2, 3, 4, 5, 6, 7, 8, 10, 11]) },
+      { hand: hand("deckout-p3", [1, 2, 3, 4, 5, 6, 7, 8, 10, 11]) },
+      { hand: hand("deckout-p4", [1, 2, 3, 4, 5, 6, 7, 8, 10, 11]) },
+    ]);
+    return baseScenario(base, {
+      players,
+      currentPlayerIndex: 0,
+      phase: "draw",
+      deck: [],
+      message: "E2E: 山札切れ局面です。",
+    });
+  }
+
   if (scenario === "online-ron-basic" || scenario === "online-double-ron") {
     const players = replacePlayers(base, [
       {
