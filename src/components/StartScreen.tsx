@@ -419,6 +419,7 @@ export default function StartScreen({ onStart, onBackHome, onCancel = onBackHome
           <button
             type="button"
             className="primary-button"
+            data-testid="offline-start-button"
             disabled={Boolean(settingsError)}
             onClick={handleCreateRoom}
           >

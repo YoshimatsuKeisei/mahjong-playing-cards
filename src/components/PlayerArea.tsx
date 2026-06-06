@@ -11,7 +11,14 @@ interface PlayerAreaProps {
 
 export default function PlayerArea({ player, isCurrent, seat, displayName, style }: PlayerAreaProps) {
   return (
-    <article className={`player-area seat-${seat} ${isCurrent ? "current" : ""}`} style={style}>
+    <article
+      className={`player-area seat-${seat} ${isCurrent ? "current" : ""}`}
+      data-testid="player-area"
+      data-player-id={player.id}
+      data-open-meld-count={player.openMelds.length}
+      data-is-reach={player.isReach ? "true" : "false"}
+      style={style}
+    >
       <div className="hooded-player" aria-hidden="true">
         <div className="hooded-head">
           <div className="hood-shadow" />

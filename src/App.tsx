@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import HomeScreen from "./components/HomeScreen";
 import ManualScreen from "./components/ManualScreen";
+import OnlineLobbyScreen from "./components/OnlineLobbyScreen";
 import PlaceholderScreen from "./components/PlaceholderScreen";
 import ProfileScreen from "./components/ProfileScreen";
 import RoomListScreen from "./components/RoomListScreen";
@@ -14,6 +15,8 @@ import { advanceRound, canAdvanceRound, createInterruptedFinalMatchState, create
 import { calculatePointDeductions, calculateRawRoundScores } from "./game/scoring";
 import { createDefaultDaifugoOptions } from "./game/deck";
 import { createDoubleRonResultFixture, createSingleRonResultFixture, createStartingPointsTsumoResultFixture } from "./game/resultFixtures";
+import { getOnlineSocket } from "./online/client";
+import type { OnlinePublicRoom, OnlineRoomCreateSettings, OnlineRoomSnapshot, OnlineScenarioId } from "./online/types";
 import type { Card, GameState, MatchMode, MatchState, Player, ProfileData } from "./types";
 import type { HomeMenuTarget } from "./components/HomeMenu";
 
@@ -39,7 +42,7 @@ const initialState: GameState = {
   message: "",
 };
 
-type AppScreen = "home" | "roomSelect" | "roomList" | "newGame" | "play" | "manual" | "moreGame" | "settings" | "profile" | "result";
+type AppScreen = "home" | "roomSelect" | "roomList" | "onlineLobby" | "newGame" | "play" | "manual" | "moreGame" | "settings" | "profile" | "result";
 type ExitConfirmKind = "summary" | "home" | null;
 type DebugResultKind = "ron" | "tsumo" | "doubleRon";
 type DebugStandingsCase = "roundsNoRankChange" | "roundsRankChange" | "targetNoRankChange" | "pointsLoss";
@@ -85,11 +88,56 @@ export default function App() {
   const [exitConfirmKind, setExitConfirmKind] = useState<ExitConfirmKind>(null);
   const [interruptedFinalMatchState, setInterruptedFinalMatchState] = useState<MatchState | null>(null);
   const [homeEntryMode, setHomeEntryMode] = useState<"initial" | "return">("initial");
+  const [onlineRoom, setOnlineRoom] = useState<OnlineRoomSnapshot | null>(null);
+  const [onlinePlayerId, setOnlinePlayerId] = useState<string | null>(null);
+  const [onlineError, setOnlineError] = useState<string | null>(null);
+  const [publicRooms, setPublicRooms] = useState<OnlinePublicRoom[]>([]);
+  const [onlineRoomEntry, setOnlineRoomEntry] = useState<"public" | "legacy">("public");
   const [profile, setProfile] = useState<ProfileData>({
     userName: "Guest Player",
     comment: "今日も一局、よろしくお願いします。",
     avatarId: "fantasy-mage",
   });
+
+  useEffect(() => {
+    const socket = getOnlineSocket();
+    socket.connect();
+    socket.on("roomUpdated", (room) => {
+      setOnlineRoom(room);
+    });
+    socket.on("publicRoomsUpdated", (rooms) => {
+      setPublicRooms(rooms);
+    });
+    socket.on("playerView", (payload) => {
+      setOnlinePlayerId(payload.playerId);
+      setOnlineRoom(payload.room);
+      setMatchState(payload.matchState ?? null);
+      if (payload.state) {
+        setState(payload.state);
+        setScreen("play");
+      }
+    });
+    socket.on("errorMessage", (message) => {
+      setOnlineError(message);
+    });
+    socket.on("actionRejected", (payload) => {
+      console.warn("[online] actionRejected", payload.reason, payload);
+      setOnlineError(payload.reason);
+      if (payload.playerView?.state) {
+        setOnlinePlayerId(payload.playerView.playerId);
+        setOnlineRoom(payload.playerView.room);
+        setMatchState(payload.playerView.matchState ?? null);
+        setState(payload.playerView.state);
+      }
+    });
+    return () => {
+      socket.off("roomUpdated");
+      socket.off("publicRoomsUpdated");
+      socket.off("playerView");
+      socket.off("errorMessage");
+      socket.off("actionRejected");
+    };
+  }, []);
 
   function returnToHome() {
     setInterruptedFinalMatchState(null);
@@ -107,6 +155,10 @@ export default function App() {
   }
 
   function dispatch(action: GameAction) {
+    if (onlineRoom?.started) {
+      getOnlineSocket().emit("submitAction", { action, stateVersion: state.stateVersion ?? 0 });
+      return;
+    }
     setState((currentState) => {
       const nextState = gameReducer(currentState, action);
       setMatchState((currentMatch) => syncMatchGameState(currentMatch, nextState));
@@ -114,21 +166,81 @@ export default function App() {
     });
   }
 
+  function getDevOnlineScenario() {
+    return import.meta.env.DEV
+      ? ((new URLSearchParams(window.location.search).get("scenario") || undefined) as OnlineScenarioId | undefined)
+      : undefined;
+  }
+
+  function requestPublicRooms() {
+    getOnlineSocket().emit("listPublicRooms", (rooms) => {
+      setPublicRooms(rooms);
+    });
+  }
+
+  function createOnlineRoom(playerName: string, maxPlayers: number, scenario?: OnlineScenarioId, roomSettings?: OnlineRoomCreateSettings) {
+    setOnlineError(null);
+    setOnlineRoomEntry(roomSettings ? "public" : "legacy");
+    getOnlineSocket().emit("createRoom", { playerName, maxPlayers, scenario, roomSettings }, (response) => {
+      if (!response.ok) {
+        setOnlineError(response.error);
+        return;
+      }
+      setOnlinePlayerId(response.playerId);
+      setOnlineRoom(response.room);
+      setScreen("onlineLobby");
+    });
+  }
+
+  function joinOnlineRoom(roomId: string, playerName: string) {
+    setOnlineError(null);
+    setOnlineRoomEntry("public");
+    getOnlineSocket().emit("joinRoom", { roomId, playerName }, (response) => {
+      if (!response.ok) {
+        setOnlineError(response.error);
+        return;
+      }
+      setOnlinePlayerId(response.playerId);
+      setOnlineRoom(response.room);
+      setScreen("onlineLobby");
+    });
+  }
+
+  function setOnlineReady(ready: boolean) {
+    getOnlineSocket().emit("ready", { ready });
+  }
+
+  function startOnlineGame() {
+    getOnlineSocket().emit("startGame");
+  }
+
+  function leaveOnlineLobby() {
+    setOnlineRoom(null);
+    setOnlinePlayerId(null);
+    setOnlineError(null);
+    setScreen("roomSelect");
+  }
+
   function startGame(playerCount: number, direction: GameState["direction"], matchMode: MatchMode, ruleValue: number, roomSettings?: RoomCreateSettings) {
     setInterruptedFinalMatchState(null);
     setExitConfirmKind(null);
+    const localRoomSettings = roomSettings;
+    if (roomSettings) {
+      createOnlineRoom(profile.userName || "Guest Player", roomSettings.humanPlayers, getDevOnlineScenario(), roomSettings);
+      return;
+    }
     if (matchMode === "rounds" || matchMode === "targetScore" || matchMode === "startingPoints") {
       const nextMatch = createMatchState(
         matchMode,
         playerCount,
         direction,
         ruleValue,
-        roomSettings?.roomName,
-        roomSettings?.humanPlayers ?? playerCount,
-        roomSettings?.cpuModelId,
-        roomSettings?.daifugoOptions,
-        roomSettings?.cpuModelIds,
-        roomSettings?.showCpuActions,
+        localRoomSettings?.roomName,
+        localRoomSettings?.humanPlayers ?? playerCount,
+        localRoomSettings?.cpuModelId,
+        localRoomSettings?.daifugoOptions,
+        localRoomSettings?.cpuModelIds,
+        localRoomSettings?.showCpuActions,
       );
       setMatchState(nextMatch);
       setState(nextMatch.gameState);
@@ -136,11 +248,11 @@ export default function App() {
       const nextState = createInitialGame(
         playerCount,
         direction,
-        roomSettings?.humanPlayers ?? playerCount,
-        roomSettings?.cpuModelId,
-        roomSettings?.daifugoOptions,
-        roomSettings?.cpuModelIds,
-        roomSettings?.showCpuActions,
+        localRoomSettings?.humanPlayers ?? playerCount,
+        localRoomSettings?.cpuModelId,
+        localRoomSettings?.daifugoOptions,
+        localRoomSettings?.cpuModelIds,
+        localRoomSettings?.showCpuActions,
       );
       setMatchState(null);
       setState(nextState);
@@ -191,6 +303,10 @@ export default function App() {
   }
 
   function advanceToNextRound() {
+    if (onlineRoom?.started) {
+      getOnlineSocket().emit("nextRound");
+      return;
+    }
     setMatchState((currentMatch) => {
       if (!currentMatch || !canAdvanceRound(currentMatch)) return currentMatch;
       const nextMatch = advanceRound(currentMatch);
@@ -350,11 +466,45 @@ export default function App() {
   }
 
   if (screen === "roomSelect") {
-    return <RoomSelectScreen onBackHome={returnToHome} onCreateRoom={() => setScreen("newGame")} onJoinRoom={() => setScreen("roomList")} />;
+    return (
+      <RoomSelectScreen
+        onBackHome={returnToHome}
+        onCreateRoom={() => setScreen("newGame")}
+        onJoinRoom={() => {
+          requestPublicRooms();
+          setScreen("roomList");
+        }}
+      />
+    );
   }
 
   if (screen === "roomList") {
-    return <RoomListScreen onBackHome={returnToHome} onBackToSelect={() => setScreen("roomSelect")} />;
+    return (
+      <RoomListScreen
+        rooms={publicRooms}
+        error={onlineError}
+        onJoinRoom={(roomId) => joinOnlineRoom(roomId, profile.userName || "Guest Player")}
+        onRefresh={requestPublicRooms}
+        onBackHome={returnToHome}
+        onBackToSelect={() => setScreen("roomSelect")}
+      />
+    );
+  }
+
+  if (screen === "onlineLobby") {
+    return (
+      <OnlineLobbyScreen
+        room={onlineRoom}
+        playerId={onlinePlayerId}
+        error={onlineError}
+        onCreateRoom={createOnlineRoom}
+        onJoinRoom={joinOnlineRoom}
+        onReady={setOnlineReady}
+        onStartGame={startOnlineGame}
+        onBack={leaveOnlineLobby}
+        showRoomId={onlineRoomEntry === "legacy"}
+      />
+    );
   }
 
   if (screen === "manual") {
@@ -454,6 +604,7 @@ export default function App() {
           : undefined
       }
       onExitToHome={requestHomeExit}
+      disableLocalCpuAutomation={Boolean(onlineRoom?.started)}
     />
     {exitConfirmKind && <ExitConfirmDialog kind={exitConfirmKind} onCancel={cancelExitConfirm} onConfirm={confirmExit} />}
     </>

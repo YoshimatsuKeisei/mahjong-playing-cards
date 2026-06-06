@@ -16,6 +16,7 @@ import {
   getEnhancedFiveTurnOptions,
   getReachWinningOptions,
   getSevenExchangeCandidateCards,
+  getWinningDiscardOptions,
   isCardJShielded,
   chooseCpuQueenRank,
   getQueenVanishRankOptions,
@@ -33,6 +34,7 @@ interface PlayScreenProps {
   dispatch: Dispatch<GameAction>;
   currentRound?: number;
   onExitToHome?: () => void;
+  disableLocalCpuAutomation?: boolean;
 }
 
 type AnimationPhase = "idle" | "drawingFromDeck" | "revealingDrawnCard" | "movingDrawnCardToHand" | "discardingCard";
@@ -228,17 +230,25 @@ const measuredAnchorLayouts: Record<number, Array<{ left: string; top: string; w
   ],
 };
 
-export default function PlayScreen({ state, dispatch, currentRound, onExitToHome }: PlayScreenProps) {
+export default function PlayScreen({ state, dispatch, currentRound, onExitToHome, disableLocalCpuAutomation = false }: PlayScreenProps) {
   const currentPlayer = state.players[state.currentPlayerIndex];
   const reachOptions = getReachWinningOptions(state);
+  const selfWinOptions = state.winningDiscardOptions ?? getWinningDiscardOptions(state);
   const discardSources = getAvailableDiscardSources(state);
   const discardHighlights = getDiscardHighlights(state, discardSources);
   const playerCount = state.players.length;
+  const deckCount = state.deckRemaining ?? state.deck.length;
+  const availableActions = new Set(state.availableActions ?? []);
+  const isOnlineView = Boolean(state.viewerPlayerId);
+  const isViewerTurn = !isOnlineView || currentPlayer?.id === state.viewerPlayerId;
+  const canUseOnlineDraw = !isOnlineView || availableActions.has("drawFromDeck");
+  const canUseOnlineDiscard = !isOnlineView || availableActions.has("discard");
   const showTableCardLayer = playerCount === 3;
   const cpuDisplayNames = buildCpuDisplayNames(state);
   const canReachAfterDraw =
     state.phase === "discard" &&
     state.drawnFrom === "deck" &&
+    selfWinOptions.length === 0 &&
     canDeclareReachAfterDraw(currentPlayer.hand, currentPlayer.hasCalled, currentPlayer.isReach);
   const canChooseDiscard = !currentPlayer.isReach || state.declaredReachThisTurn;
   const [animationPhase, setAnimationPhase] = useState<AnimationPhase>("idle");
@@ -259,13 +269,14 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
   const timeoutsRef = useRef<number[]>([]);
   const cpuTimeoutsRef = useRef<number[]>([]);
   const lastCpuActionKeyRef = useRef<string | null>(null);
+  const lastOnlineDrawAnimationKeyRef = useRef<string | null>(null);
   const reachSplashTimeoutRef = useRef<number | null>(null);
   const jackInspectOrderRef = useRef(new Map<string, string[]>());
   const isAnimating = animationPhase !== "idle";
   const isCpuTurn = currentPlayer?.isCpu === true && state.phase !== "result";
   const shouldHideCpuDetails = !state.showCpuActions && isCpuTurn;
   const pendingDaifugoEffect = state.pendingDaifugoEffect;
-  const queenRankChoices = getQueenVanishRankOptions(state);
+  const queenRankChoices = state.queenVanishRankOptions ?? getQueenVanishRankOptions(state);
   const availableQueenRankOptions = queenRankChoices.filter((option) => option.selectable).map((option) => option.rank);
   const isDaifugoConfirm = pendingDaifugoEffect?.kind === "confirm";
   const isDaifugoExtraDiscard = pendingDaifugoEffect?.kind === "extraDiscard";
@@ -291,6 +302,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
   const controlsDisabled =
     isAnimating ||
     isCpuTurn ||
+    !isViewerTurn ||
     cpuActionInProgress ||
     isDaifugoConfirm ||
     isDaifugoEffectDraw ||
@@ -338,8 +350,12 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
     pendingDaifugoEffect?.kind === "fiveEnhancedTargetSelect" && pendingDaifugoEffect.selectedTargetPlayerIndex !== undefined
       ? enhancedFiveTurnOptions.find((option) => option.playerIndex === pendingDaifugoEffect.selectedTargetPlayerIndex)
       : null;
+  const viewerPlayerIndex = state.viewerPlayerId ? state.players.findIndex((player) => player.id === state.viewerPlayerId) : -1;
   const humanPlayerIndex = state.players.findIndex((player) => !player.isCpu);
   const handPlayerIndex =
+    viewerPlayerIndex >= 0
+      ? viewerPlayerIndex
+      :
     sevenSelectionPlayerIndex ??
     (currentPlayer?.isCpu ? (humanPlayerIndex >= 0 ? humanPlayerIndex : state.currentPlayerIndex) : state.currentPlayerIndex);
   const handPlayer = state.players[handPlayerIndex] ?? currentPlayer;
@@ -347,8 +363,12 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
   const handDrawnCardId = handPlayerIndex === state.currentPlayerIndex ? state.drawnCard?.id ?? null : null;
   const hiddenDaifugoIncomingIds =
     visibleDaifugoEvent && isDaifugoEventPlaying ? getDaifugoIncomingCardIdsForPlayer(visibleDaifugoEvent, handPlayerIndex) : new Set<string>();
+  const onlineAnimatingDrawnCardId =
+    isOnlineView && animationCard && animationPhase !== "idle" && animationPhase !== "discardingCard" ? animationCard.id : null;
   const displayedHandCards =
-    hiddenDaifugoIncomingIds.size > 0 ? handPlayer.hand.filter((card) => !hiddenDaifugoIncomingIds.has(card.id)) : handPlayer.hand;
+    hiddenDaifugoIncomingIds.size > 0 || onlineAnimatingDrawnCardId
+      ? handPlayer.hand.filter((card) => !hiddenDaifugoIncomingIds.has(card.id) && card.id !== onlineAnimatingDrawnCardId)
+      : handPlayer.hand;
   const hiddenQueenDiscardIdsByPlayer =
     visibleDaifugoEvent && isDaifugoEventPlaying ? getHiddenQueenDiscardIdsByPlayer(visibleDaifugoEvent, daifugoAnimationStep) : new Map<number, Set<string>>();
   const isSevenHandSelection = sevenSelectionPlayerIndex !== null && handPlayerIndex === sevenSelectionPlayerIndex;
@@ -426,7 +446,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
       return;
     }
 
-    if (!isCpuTurn || !currentPlayer || state.phase === "handoff" || state.phase === "result") {
+    if (disableLocalCpuAutomation || !isCpuTurn || !currentPlayer || state.phase === "handoff" || state.phase === "result") {
       cpuTimeoutsRef.current.forEach(window.clearTimeout);
       cpuTimeoutsRef.current = [];
       setCpuActionInProgress(false);
@@ -438,7 +458,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
       state.phase,
       state.currentPlayerIndex,
       currentPlayer.cpuModelId ?? "standard",
-      state.deck.length,
+      deckCount,
       state.drawnCard?.id ?? "none",
       state.pendingDaifugoEffect ? `${state.pendingDaifugoEffect.kind}:${state.pendingDaifugoEffect.effect}` : "no-daifugo",
       state.players.map((player) => `${player.hand.length}:${player.discardPile.length}:${player.openMelds.length}`).join("|"),
@@ -574,7 +594,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
       }
       setCpuActionInProgress(false);
     }
-  }, [currentPlayer, dispatch, isCpuTurn, isDaifugoEventPlaying, state]);
+  }, [currentPlayer, deckCount, disableLocalCpuAutomation, dispatch, isCpuTurn, isDaifugoEventPlaying, state]);
 
   useEffect(() => {
     if (selectedDiscardId && !handPlayer.hand.some((card) => card.id === selectedDiscardId)) {
@@ -583,7 +603,21 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
   }, [handPlayer.hand, selectedDiscardId]);
 
   useEffect(() => {
+    if (!isOnlineView || !state.drawnCard || state.drawnFrom !== "deck" || state.phase !== "discard") return;
+    if (state.viewerPlayerId !== currentPlayer?.id) return;
+    const animationKey = `${state.stateVersion ?? 0}:${state.drawnCard.id}`;
+    if (lastOnlineDrawAnimationKeyRef.current === animationKey) return;
+    lastOnlineDrawAnimationKeyRef.current = animationKey;
+    setAnimationCard(state.drawnCard);
+    setAnimationPhase("drawingFromDeck");
+    schedule(() => setAnimationPhase("revealingDrawnCard"), 280);
+    schedule(() => setAnimationPhase("movingDrawnCardToHand"), 1550);
+    schedule(() => finishAnimation(), 2100);
+  }, [currentPlayer?.id, isOnlineView, state.drawnCard, state.drawnFrom, state.phase, state.stateVersion, state.viewerPlayerId]);
+
+  useEffect(() => {
     if (state.phase === "handoff") {
+      if (isOnlineView && !isViewerTurn) return;
       if (state.daifugoEffectEvent && isDaifugoEventPlaying) return;
       if (state.pendingDaifugoEffect) return;
       const timeoutId = window.setTimeout(() => {
@@ -594,7 +628,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
         window.clearTimeout(timeoutId);
       };
     }
-  }, [state.phase, state.daifugoEffectEvent?.id, state.pendingDaifugoEffect, isDaifugoEventPlaying, dispatch]);
+  }, [state.phase, state.daifugoEffectEvent?.id, state.pendingDaifugoEffect, isDaifugoEventPlaying, isOnlineView, isViewerTurn, dispatch]);
 
   useEffect(() => {
     if (!state.daifugoEffectEvent) return;
@@ -654,8 +688,12 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
 
   useEffect(() => {
     if (currentPlayer?.isCpu || state.pendingDaifugoEffect?.kind !== "effectDraw" || isAnimating) return;
+    if (isOnlineView) {
+      dispatch({ type: "drawForDaifugoEffect" });
+      return;
+    }
     animateDrawFromDeck(() => dispatch({ type: "drawForDaifugoEffect" }));
-  }, [currentPlayer?.isCpu, dispatch, isAnimating, state.pendingDaifugoEffect]);
+  }, [currentPlayer?.isCpu, dispatch, isAnimating, isOnlineView, state.pendingDaifugoEffect]);
 
   useEffect(() => {
     if (state.phase === "ronCheck") {
@@ -757,12 +795,16 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
   }
 
   function handleDrawFromDeck() {
+    if (isOnlineView) {
+      dispatch({ type: "drawFromDeck" });
+      return;
+    }
     animateDrawFromDeck(() => dispatch({ type: "drawFromDeck" }));
   }
 
   function animateDrawFromDeck(afterAnimation: () => void) {
-    if (isAnimating || state.deck.length === 0) return;
-    const card = state.deck[0];
+    if (isAnimating || deckCount === 0) return;
+    const card = state.deck[0] ?? { id: "online-hidden-draw", suit: "S" as const, rank: 1 };
     setAnimationCard(card);
     setAnimationPhase("drawingFromDeck");
     schedule(() => setAnimationPhase("revealingDrawnCard"), 280);
@@ -880,7 +922,13 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
   }
 
   return (
-    <main className="screen play-screen">
+    <main
+      className="screen play-screen"
+      data-testid="play-screen"
+      data-current-player-id={currentPlayer?.id}
+      data-phase={state.phase}
+      data-state-version={state.stateVersion ?? ""}
+    >
       <section className={`table-scene table-${playerCount}`} aria-label={`${playerCount}人用テーブル`} ref={sceneRef}>
         {currentRound && <div className="round-scroll-banner">- {currentRound}回戦 -</div>}
         <header
@@ -895,7 +943,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
           <div className="toolbar-action">{daifugoAnimationStep?.message ?? getActionText(state)}</div>
           <div className="toolbar-deck">
             <span>山札</span>
-            <strong>{state.deck.length}</strong>
+            <strong data-testid="deck-remaining">{deckCount}</strong>
           </div>
           {state.daifugoOptions.enabled && (
             <div className="daifugo-status">
@@ -910,18 +958,18 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
         )}
 
         <div className="table-shape">
-          <div className={`deck-stack ${state.deck.length === 0 ? "empty-deck" : ""}`} aria-label={`山札 ${state.deck.length}枚`}>
+          <div className={`deck-stack ${deckCount === 0 ? "empty-deck" : ""}`} aria-label={`山札 ${deckCount}枚`} data-testid="deck-stack">
             <span className="deck-layer layer-one" />
             <span className="deck-layer layer-two" />
             <PlayingCard isBack compact />
-            <strong>{state.deck.length}</strong>
+            <strong data-testid="deck-remaining-table">{deckCount}</strong>
           </div>
         </div>
 
         {animationCard && animationPhase !== "discardingCard" && !shouldHideCpuDetails && (
-          <div className={`card-animation ${animationPhase} seat-${getSeat(playerCount, state.currentPlayerIndex)}`}>
+          <div className={`card-animation ${animationPhase} seat-${getSeat(playerCount, state.currentPlayerIndex)}`} data-testid="drawn-card-preview">
             <span className="card-animation-label">{getAnimationLabel(animationPhase)}</span>
-            <PlayingCard card={animationCard} />
+            <PlayingCard card={animationCard} testId="drawn-card" />
           </div>
         )}
 
@@ -1000,10 +1048,10 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
                 {ronCountdown}
               </div>
               <div className="ron-check-actions">
-                <button type="button" className="primary-button" onClick={() => dispatch({ type: "answerRon", takeRon: true })}>
+                <button type="button" className="primary-button" data-testid="ron-button" onClick={() => dispatch({ type: "answerRon", takeRon: true })}>
                   はい
                 </button>
-                <button type="button" onClick={() => dispatch({ type: "answerRon", takeRon: false })}>
+                <button type="button" data-testid="reaction-pass-button" onClick={() => dispatch({ type: "answerRon", takeRon: false })}>
                   いいえ
                 </button>
               </div>
@@ -1174,10 +1222,16 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
             <div className="daifugo-effect-panel">
               <strong>{getDaifugoEffectText(pendingDaifugoEffect.effect)}</strong>
               <div className="daifugo-effect-actions">
-                <button type="button" className="primary-button" disabled={isAnimating || isCpuTurn} onClick={() => handleDaifugoConfirmAnswer(true)}>
+                <button
+                  type="button"
+                  className="primary-button"
+                  data-testid="effect-confirm-yes"
+                  disabled={isAnimating || isCpuTurn}
+                  onClick={() => handleDaifugoConfirmAnswer(true)}
+                >
                   はい
                 </button>
-                <button type="button" disabled={isAnimating || isCpuTurn} onClick={() => handleDaifugoConfirmAnswer(false)}>
+                <button type="button" data-testid="effect-confirm-no" disabled={isAnimating || isCpuTurn} onClick={() => handleDaifugoConfirmAnswer(false)}>
                   いいえ
                 </button>
               </div>
@@ -1188,17 +1242,18 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
             <div className="daifugo-effect-panel">
               <strong>{pendingDaifugoEffect.effect === "eightExtraTurn" ? "8の効果：追加で1枚捨ててください。" : "10の効果：追加で1枚捨ててください。"}</strong>
               {pendingDaifugoEffect.effect === "eightExtraTurn" && canReachAfterDraw && (
-                <button type="button" className="primary-button" disabled={isAnimating || isCpuTurn || cpuActionInProgress} onClick={handleDeclareReach}>
+                <button type="button" className="primary-button" data-testid="reach-button" disabled={isAnimating || isCpuTurn || cpuActionInProgress} onClick={handleDeclareReach}>
                   リーチ
                 </button>
               )}
-              {pendingDaifugoEffect.effect === "eightExtraTurn" && currentPlayer.isReach && !state.declaredReachThisTurn && reachOptions.length > 0 && (
+              {pendingDaifugoEffect.effect === "eightExtraTurn" && currentPlayer.isReach && !state.declaredReachThisTurn && selfWinOptions.length > 0 && (
                 <div className="reach-win-options">
                   <strong>上がるために捨てるカード</strong>
-                  {reachOptions.map((option) => (
+                  {selfWinOptions.map((option) => (
                     <button
                       type="button"
                       className="primary-button"
+                      data-testid="tsumo-button"
                       key={option.discardCard.id}
                       disabled={isAnimating || isCpuTurn || cpuActionInProgress}
                       onClick={() => handleWinWithDiscard(option.discardCard)}
@@ -1211,6 +1266,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
               <button
                 type="button"
                 className="primary-button"
+                data-testid="effect-extra-discard-button"
                 disabled={(!selectedDiscardId && !mustDiscardDrawnForReachDaifugo) || isAnimating || isCpuTurn || cpuActionInProgress}
                 onClick={handleDaifugoExtraDiscard}
               >
@@ -1335,6 +1391,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
               <button
                 type="button"
                 className="primary-button"
+                data-testid="seven-exchange-confirm-button"
                 disabled={!selectedDiscardId || isAnimating || cpuActionInProgress}
                 onClick={handleSevenExchangeConfirm}
               >
@@ -1351,6 +1408,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
                   <button
                     type="button"
                     className="rank-choice-button"
+                    data-testid={`queen-rank-${option.rank}`}
                     key={option.rank}
                     disabled={isAnimating || cpuActionInProgress || !option.selectable}
                     title={option.disabledReason}
@@ -1370,6 +1428,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
                 <button
                   type="button"
                   className="jack-effect-choice"
+                  data-testid="jack-effect-inspect"
                   disabled={isAnimating || cpuActionInProgress}
                   onClick={() => dispatch({ type: "selectJackSpecialEffect", effect: "inspectHands" })}
                 >
@@ -1379,6 +1438,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
                 <button
                   type="button"
                   className="jack-effect-choice"
+                  data-testid="jack-effect-shield"
                   disabled={isAnimating || cpuActionInProgress}
                   onClick={() => dispatch({ type: "selectJackSpecialEffect", effect: "jShield" })}
                 >
@@ -1388,6 +1448,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
                 <button
                   type="button"
                   className="jack-effect-choice"
+                  data-testid="jack-effect-enhance"
                   disabled={isAnimating || cpuActionInProgress || Boolean(currentPlayer.hasJEnhancementRight)}
                   onClick={() => dispatch({ type: "selectJackSpecialEffect", effect: "enhanceFiveOrSeven" })}
                 >
@@ -1411,6 +1472,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
                   <button
                     type="button"
                     className="rank-choice-button"
+                    data-testid={`jack-shield-rank-${rank}`}
                     key={rank}
                     disabled={isAnimating || cpuActionInProgress}
                     onClick={() => dispatch({ type: "selectJackShieldRank", rank })}
@@ -1452,6 +1514,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
                       <button
                         type="button"
                         className={`jack-inspect-card-button ${isRevealed ? "revealed" : ""}`}
+                        data-testid="jack-inspect-card"
                         key={card.id}
                         data-card-id={card.id}
                         disabled={Boolean(revealedCardId) || isAnimating || cpuActionInProgress}
@@ -1467,6 +1530,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
                 <button
                   type="button"
                   className="primary-button"
+                  data-testid="jack-inspect-confirm"
                   disabled={!revealedCard || isAnimating || cpuActionInProgress}
                   onClick={() => dispatch({ type: "confirmJackInspectCard" })}
                 >
@@ -1499,12 +1563,13 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
             </div>
           )}
 
-          {state.phase === "draw" && !pendingDaifugoEffect && (
+          {state.phase === "draw" && !pendingDaifugoEffect && canUseOnlineDraw && (
             <>
               <button
                 type="button"
                 className="primary-button"
-                disabled={state.deck.length === 0 || controlsDisabled}
+                data-testid="draw-from-deck-button"
+                disabled={deckCount === 0 || controlsDisabled}
                 onClick={handleDrawFromDeck}
               >
                 山札から引く
@@ -1519,6 +1584,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
                       <button
                         type="button"
                         key={meld.map((card) => card.id).join("-")}
+                        data-testid="call-button"
                         disabled={controlsDisabled}
                         onClick={() => dispatch({ type: "takeDiscard", ownerIndex, meld })}
                       >
@@ -1532,25 +1598,26 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
             </>
           )}
 
-          {state.phase === "discard" && !pendingDaifugoEffect && (
+          {state.phase === "discard" && !pendingDaifugoEffect && canUseOnlineDiscard && (
             <>
               {canReachAfterDraw && (
-                <button type="button" className="primary-button" disabled={controlsDisabled} onClick={handleDeclareReach}>
+                <button type="button" className="primary-button" data-testid="reach-button" disabled={controlsDisabled} onClick={handleDeclareReach}>
                   リーチ
                 </button>
               )}
-              {currentPlayer.isReach && !state.declaredReachThisTurn && reachOptions.length === 0 && (
-                <button type="button" className="primary-button" disabled={controlsDisabled} onClick={handleDiscardDrawnOnly}>
+              {currentPlayer.isReach && !state.declaredReachThisTurn && selfWinOptions.length === 0 && (
+                <button type="button" className="primary-button" data-testid="discard-drawn-only-button" disabled={controlsDisabled} onClick={handleDiscardDrawnOnly}>
                   引いたカードをそのまま捨てる
                 </button>
               )}
-              {currentPlayer.isReach && !state.declaredReachThisTurn && reachOptions.length > 0 && (
+              {currentPlayer.isReach && !state.declaredReachThisTurn && selfWinOptions.length > 0 && (
                 <div className="reach-win-options">
                   <strong>上がるために捨てるカード</strong>
-                  {reachOptions.map((option) => (
+                  {selfWinOptions.map((option) => (
                     <button
                       type="button"
                       className="primary-button"
+                      data-testid="tsumo-button"
                       key={option.discardCard.id}
                       disabled={controlsDisabled}
                       onClick={() => handleWinWithDiscard(option.discardCard)}
@@ -1560,10 +1627,27 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
                   ))}
                 </div>
               )}
+              {!currentPlayer.isReach && selfWinOptions.length > 0 && (
+                <div className="reach-win-options">
+                  <strong>ツモ候補</strong>
+                  {selfWinOptions.map((option) => (
+                    <button
+                      type="button"
+                      className="primary-button"
+                      data-testid="tsumo-button"
+                      key={option.discardCard.id}
+                      disabled={controlsDisabled}
+                      onClick={() => handleWinWithDiscard(option.discardCard)}
+                    >
+                      ツモ: {formatCard(option.discardCard)}を捨てる
+                    </button>
+                  ))}
+                </div>
+              )}
               {canChooseDiscard && (
                 <>
                   <p className="hint">手札のカードを選んでから捨てます。</p>
-                  <button type="button" className="primary-button" disabled={!selectedDiscardId || controlsDisabled} onClick={handleDiscardSelected}>
+                  <button type="button" className="primary-button" data-testid="discard-button" disabled={!selectedDiscardId || controlsDisabled} onClick={handleDiscardSelected}>
                     捨てる
                   </button>
                 </>
@@ -2110,6 +2194,9 @@ function PlayerHistoryPopover({ player, showMelds }: PlayerHistoryPopoverProps) 
             {player.discardPile.map((card) => (
               <span
                 className={card.discardedByEffect === "queenNumberVanish" ? "history-q-effect-card" : ""}
+                data-testid="public-discard-card"
+                data-card-id={card.id}
+                data-card-label={formatCard(card)}
                 title={card.discardedByEffect === "queenNumberVanish" ? "Q効果で破棄" : undefined}
                 key={card.id}
               >
