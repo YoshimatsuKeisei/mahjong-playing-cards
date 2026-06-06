@@ -10,6 +10,7 @@ interface OnlineLobbyScreenProps {
   onReady: (ready: boolean) => void;
   onStartGame: () => void;
   onBack: () => void;
+  showRoomId?: boolean;
 }
 
 export default function OnlineLobbyScreen({
@@ -21,6 +22,7 @@ export default function OnlineLobbyScreen({
   onReady,
   onStartGame,
   onBack,
+  showRoomId = true,
 }: OnlineLobbyScreenProps) {
   const [playerName, setPlayerName] = useState("Guest Player");
   const [roomId, setRoomId] = useState("");
@@ -70,7 +72,7 @@ export default function OnlineLobbyScreen({
         ) : (
           <div className="online-room-form">
             <div className="empty-room-list">
-              <strong data-testid="room-id">Room ID: {room.roomId}</strong>
+              {showRoomId ? <strong data-testid="room-id">Room ID: {room.roomId}</strong> : <strong data-testid="online-lobby-title">参加ロビー</strong>}
               <span>
                 {room.players.length}/{room.maxPlayers} players
               </span>

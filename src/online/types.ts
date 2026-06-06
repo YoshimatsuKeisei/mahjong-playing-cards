@@ -1,4 +1,4 @@
-import type { Direction, GameState, MatchState } from "../types";
+import type { CpuModelId, DaifugoOptions, Direction, GameState, MatchMode, MatchState } from "../types";
 import type { GameAction } from "../game/gameState";
 
 export type OnlineScenarioId =
@@ -42,11 +42,47 @@ export interface OnlineRoomSnapshot {
   started: boolean;
 }
 
+export type OnlineRoomVisibility = "private" | "public";
+
+export interface OnlineRoomCreateSettings {
+  roomName: string;
+  totalPlayers: number;
+  humanPlayers: number;
+  cpuPlayers: number;
+  matchType: MatchMode;
+  visibility: OnlineRoomVisibility;
+  roundCount?: number;
+  targetScore?: number;
+  initialPoints?: number;
+  turnDirection: Direction;
+  cpuModelId: CpuModelId;
+  cpuModelIds: CpuModelId[];
+  showCpuActions: boolean;
+  daifugoOptions: DaifugoOptions;
+}
+
+export interface OnlinePublicRoom {
+  roomId: string;
+  roomName: string;
+  totalPlayers: number;
+  humanPlayers: number;
+  joinedHumanPlayers: number;
+  cpuPlayers: number;
+  cpuModelIds: CpuModelId[];
+  matchType: MatchMode;
+  roundCount?: number;
+  targetScore?: number;
+  initialPoints?: number;
+  daifugoOptions: DaifugoOptions;
+  createdAt: number;
+}
+
 export interface CreateRoomPayload {
   playerName: string;
   maxPlayers?: number;
   direction?: Direction;
   scenario?: OnlineScenarioId;
+  roomSettings?: OnlineRoomCreateSettings;
 }
 
 export interface JoinRoomPayload {
@@ -104,6 +140,7 @@ export interface ActionRejectedPayload {
 
 export interface ServerToClientEvents {
   roomUpdated: (room: OnlineRoomSnapshot) => void;
+  publicRoomsUpdated: (rooms: OnlinePublicRoom[]) => void;
   playerView: (payload: OnlinePlayerViewPayload) => void;
   actionRejected: (payload: ActionRejectedPayload) => void;
   errorMessage: (message: string) => void;
@@ -112,6 +149,7 @@ export interface ServerToClientEvents {
 export interface ClientToServerEvents {
   createRoom: (payload: CreateRoomPayload, ack: (response: OnlineAck) => void) => void;
   joinRoom: (payload: JoinRoomPayload, ack: (response: OnlineAck) => void) => void;
+  listPublicRooms: (ack: (rooms: OnlinePublicRoom[]) => void) => void;
   ready: (payload: { ready: boolean }) => void;
   startGame: () => void;
   nextRound: () => void;

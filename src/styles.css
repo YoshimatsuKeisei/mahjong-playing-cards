@@ -595,6 +595,58 @@ button:disabled {
   font-weight: 900;
 }
 
+.public-room-list {
+  gap: 14px;
+}
+
+.public-room-card {
+  align-items: stretch;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.public-room-card-main {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+}
+
+.public-room-card-main span {
+  line-height: 1.45;
+}
+
+.join-room-button {
+  align-self: end;
+  background: linear-gradient(180deg, #f7a33c, #c96d1f);
+  border: 1px solid rgba(255, 216, 141, 0.78);
+  border-radius: 8px;
+  box-shadow: 0 10px 18px rgba(60, 28, 7, 0.28);
+  color: #fff7dc;
+  cursor: pointer;
+  font-weight: 900;
+  min-height: 42px;
+  min-width: 86px;
+  padding: 10px 18px;
+}
+
+.join-room-button:hover {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+}
+
+@media (max-width: 640px) {
+  .public-room-card {
+    grid-template-columns: 1fr;
+  }
+
+  .join-room-button {
+    justify-self: stretch;
+  }
+}
+
 .room-subtitle {
   margin: 0 0 0.25rem;
   color: #315846;

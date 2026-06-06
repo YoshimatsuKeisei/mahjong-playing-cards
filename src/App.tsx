@@ -16,7 +16,7 @@ import { calculatePointDeductions, calculateRawRoundScores } from "./game/scorin
 import { createDefaultDaifugoOptions } from "./game/deck";
 import { createDoubleRonResultFixture, createSingleRonResultFixture, createStartingPointsTsumoResultFixture } from "./game/resultFixtures";
 import { getOnlineSocket } from "./online/client";
-import type { OnlineRoomSnapshot, OnlineScenarioId } from "./online/types";
+import type { OnlinePublicRoom, OnlineRoomCreateSettings, OnlineRoomSnapshot, OnlineScenarioId } from "./online/types";
 import type { Card, GameState, MatchMode, MatchState, Player, ProfileData } from "./types";
 import type { HomeMenuTarget } from "./components/HomeMenu";
 
@@ -91,6 +91,8 @@ export default function App() {
   const [onlineRoom, setOnlineRoom] = useState<OnlineRoomSnapshot | null>(null);
   const [onlinePlayerId, setOnlinePlayerId] = useState<string | null>(null);
   const [onlineError, setOnlineError] = useState<string | null>(null);
+  const [publicRooms, setPublicRooms] = useState<OnlinePublicRoom[]>([]);
+  const [onlineRoomEntry, setOnlineRoomEntry] = useState<"public" | "legacy">("public");
   const [profile, setProfile] = useState<ProfileData>({
     userName: "Guest Player",
     comment: "今日も一局、よろしくお願いします。",
@@ -102,6 +104,9 @@ export default function App() {
     socket.connect();
     socket.on("roomUpdated", (room) => {
       setOnlineRoom(room);
+    });
+    socket.on("publicRoomsUpdated", (rooms) => {
+      setPublicRooms(rooms);
     });
     socket.on("playerView", (payload) => {
       setOnlinePlayerId(payload.playerId);
@@ -127,6 +132,7 @@ export default function App() {
     });
     return () => {
       socket.off("roomUpdated");
+      socket.off("publicRoomsUpdated");
       socket.off("playerView");
       socket.off("errorMessage");
       socket.off("actionRejected");
@@ -160,9 +166,22 @@ export default function App() {
     });
   }
 
-  function createOnlineRoom(playerName: string, maxPlayers: number, scenario?: OnlineScenarioId) {
+  function getDevOnlineScenario() {
+    return import.meta.env.DEV
+      ? ((new URLSearchParams(window.location.search).get("scenario") || undefined) as OnlineScenarioId | undefined)
+      : undefined;
+  }
+
+  function requestPublicRooms() {
+    getOnlineSocket().emit("listPublicRooms", (rooms) => {
+      setPublicRooms(rooms);
+    });
+  }
+
+  function createOnlineRoom(playerName: string, maxPlayers: number, scenario?: OnlineScenarioId, roomSettings?: OnlineRoomCreateSettings) {
     setOnlineError(null);
-    getOnlineSocket().emit("createRoom", { playerName, maxPlayers, scenario }, (response) => {
+    setOnlineRoomEntry(roomSettings ? "public" : "legacy");
+    getOnlineSocket().emit("createRoom", { playerName, maxPlayers, scenario, roomSettings }, (response) => {
       if (!response.ok) {
         setOnlineError(response.error);
         return;
@@ -175,6 +194,7 @@ export default function App() {
 
   function joinOnlineRoom(roomId: string, playerName: string) {
     setOnlineError(null);
+    setOnlineRoomEntry("public");
     getOnlineSocket().emit("joinRoom", { roomId, playerName }, (response) => {
       if (!response.ok) {
         setOnlineError(response.error);
@@ -204,18 +224,23 @@ export default function App() {
   function startGame(playerCount: number, direction: GameState["direction"], matchMode: MatchMode, ruleValue: number, roomSettings?: RoomCreateSettings) {
     setInterruptedFinalMatchState(null);
     setExitConfirmKind(null);
+    const localRoomSettings = roomSettings;
+    if (roomSettings) {
+      createOnlineRoom(profile.userName || "Guest Player", roomSettings.humanPlayers, getDevOnlineScenario(), roomSettings);
+      return;
+    }
     if (matchMode === "rounds" || matchMode === "targetScore" || matchMode === "startingPoints") {
       const nextMatch = createMatchState(
         matchMode,
         playerCount,
         direction,
         ruleValue,
-        roomSettings?.roomName,
-        roomSettings?.humanPlayers ?? playerCount,
-        roomSettings?.cpuModelId,
-        roomSettings?.daifugoOptions,
-        roomSettings?.cpuModelIds,
-        roomSettings?.showCpuActions,
+        localRoomSettings?.roomName,
+        localRoomSettings?.humanPlayers ?? playerCount,
+        localRoomSettings?.cpuModelId,
+        localRoomSettings?.daifugoOptions,
+        localRoomSettings?.cpuModelIds,
+        localRoomSettings?.showCpuActions,
       );
       setMatchState(nextMatch);
       setState(nextMatch.gameState);
@@ -223,11 +248,11 @@ export default function App() {
       const nextState = createInitialGame(
         playerCount,
         direction,
-        roomSettings?.humanPlayers ?? playerCount,
-        roomSettings?.cpuModelId,
-        roomSettings?.daifugoOptions,
-        roomSettings?.cpuModelIds,
-        roomSettings?.showCpuActions,
+        localRoomSettings?.humanPlayers ?? playerCount,
+        localRoomSettings?.cpuModelId,
+        localRoomSettings?.daifugoOptions,
+        localRoomSettings?.cpuModelIds,
+        localRoomSettings?.showCpuActions,
       );
       setMatchState(null);
       setState(nextState);
@@ -441,11 +466,29 @@ export default function App() {
   }
 
   if (screen === "roomSelect") {
-    return <RoomSelectScreen onBackHome={returnToHome} onCreateRoom={() => setScreen("newGame")} onJoinRoom={() => setScreen("onlineLobby")} />;
+    return (
+      <RoomSelectScreen
+        onBackHome={returnToHome}
+        onCreateRoom={() => setScreen("newGame")}
+        onJoinRoom={() => {
+          requestPublicRooms();
+          setScreen("roomList");
+        }}
+      />
+    );
   }
 
   if (screen === "roomList") {
-    return <RoomListScreen onBackHome={returnToHome} onBackToSelect={() => setScreen("roomSelect")} />;
+    return (
+      <RoomListScreen
+        rooms={publicRooms}
+        error={onlineError}
+        onJoinRoom={(roomId) => joinOnlineRoom(roomId, profile.userName || "Guest Player")}
+        onRefresh={requestPublicRooms}
+        onBackHome={returnToHome}
+        onBackToSelect={() => setScreen("roomSelect")}
+      />
+    );
   }
 
   if (screen === "onlineLobby") {
@@ -459,6 +502,7 @@ export default function App() {
         onReady={setOnlineReady}
         onStartGame={startOnlineGame}
         onBack={leaveOnlineLobby}
+        showRoomId={onlineRoomEntry === "legacy"}
       />
     );
   }

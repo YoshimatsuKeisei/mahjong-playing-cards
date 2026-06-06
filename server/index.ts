@@ -21,11 +21,13 @@ import { advanceRound, canAdvanceRound, createMatchState, syncMatchGameState } f
 import type {
   ActionRejectedReason,
   ClientToServerEvents,
+  OnlinePublicRoom,
+  OnlineRoomCreateSettings,
   OnlinePlayerViewPayload,
   OnlineRoomPlayer,
   OnlineRoomSnapshot,
   ServerToClientEvents,
-  type OnlineScenarioId,
+  OnlineScenarioId,
 } from "../src/online/types";
 import type { Direction, GameState, MatchState } from "../src/types";
 
@@ -41,6 +43,8 @@ interface ServerRoom {
   stateVersion: number;
   started: boolean;
   scenario?: OnlineScenarioId;
+  createdAt: number;
+  roomSettings?: OnlineRoomCreateSettings;
 }
 
 interface SocketData {
@@ -82,6 +86,40 @@ function snapshotRoom(room: ServerRoom): OnlineRoomSnapshot {
   };
 }
 
+function listPublicRooms(): OnlinePublicRoom[] {
+  return Array.from(rooms.values())
+    .filter((room) => {
+      const settings = room.roomSettings;
+      if (!settings || settings.visibility !== "public") return false;
+      if (room.started) return false;
+      if (settings.humanPlayers <= 1) return false;
+      return room.players.length < settings.humanPlayers;
+    })
+    .sort((left, right) => left.createdAt - right.createdAt)
+    .map((room) => {
+      const settings = room.roomSettings!;
+      return {
+        roomId: room.id,
+        roomName: settings.roomName,
+        totalPlayers: settings.totalPlayers,
+        humanPlayers: settings.humanPlayers,
+        joinedHumanPlayers: room.players.length,
+        cpuPlayers: settings.cpuPlayers,
+        cpuModelIds: settings.cpuModelIds.slice(0, settings.cpuPlayers),
+        matchType: settings.matchType,
+        roundCount: settings.roundCount,
+        targetScore: settings.targetScore,
+        initialPoints: settings.initialPoints,
+        daifugoOptions: settings.daifugoOptions,
+        createdAt: room.createdAt,
+      };
+    });
+}
+
+function broadcastPublicRooms() {
+  io.emit("publicRoomsUpdated", listPublicRooms());
+}
+
 function getSocketRoom(socket: OnlineSocket): ServerRoom | null {
   const roomId = socket.data.roomId;
   return roomId ? rooms.get(roomId) ?? null : null;
@@ -111,6 +149,7 @@ function broadcastPlayerView(room: ServerRoom) {
     io.to(socketId).emit("roomUpdated", snapshot);
     emitPlayerView(room, player.playerId);
   }
+  broadcastPublicRooms();
 }
 
 function leaveCurrentRoom(socket: OnlineSocket) {
@@ -389,13 +428,15 @@ function remapOnlinePlayers(room: ServerRoom, state: GameState): GameState {
 }
 
 io.on("connection", (socket) => {
+  socket.emit("publicRoomsUpdated", listPublicRooms());
+
   socket.on("createRoom", (payload, ack) => {
     const roomId = createRoomId();
     const room: ServerRoom = {
       id: roomId,
       hostPlayerId: "player-1",
-      maxPlayers: payload.maxPlayers ?? 4,
-      direction: payload.direction ?? "clockwise",
+      maxPlayers: payload.roomSettings?.humanPlayers ?? payload.maxPlayers ?? 4,
+      direction: payload.roomSettings?.turnDirection ?? payload.direction ?? "clockwise",
       players: [],
       socketsByPlayerId: new Map(),
       state: null,
@@ -403,6 +444,8 @@ io.on("connection", (socket) => {
       stateVersion: 0,
       started: false,
       scenario: payload.scenario,
+      createdAt: Date.now(),
+      roomSettings: payload.roomSettings,
     };
     const player: OnlineRoomPlayer = {
       playerId: createPlayerId(room),
@@ -418,6 +461,10 @@ io.on("connection", (socket) => {
     socket.join(roomId);
     ack({ ok: true, roomId, playerId: player.playerId, room: snapshotRoom(room), state: null });
     broadcastPlayerView(room);
+  });
+
+  socket.on("listPublicRooms", (ack) => {
+    ack(listPublicRooms());
   });
 
   socket.on("joinRoom", (payload, ack) => {
