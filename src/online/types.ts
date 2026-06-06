@@ -4,6 +4,12 @@ import type { GameAction } from "../game/gameState";
 export type OnlineScenarioId =
   | "online-tsumo-basic"
   | "online-reach-tsumo"
+  | "online-reach-declare"
+  | "online-reach-draw-tsumo"
+  | "online-reach-discard-drawn-only"
+  | "online-reach-discard-ron"
+  | "online-reach-invalid-discard"
+  | "online-reach-cannot-call"
   | "online-q-after-draw-tsumo"
   | "online-call-basic"
   | "online-ron-basic"
@@ -56,7 +62,14 @@ export type ActionRejectedReason =
   | "invalid_action_for_phase"
   | "invalid_call_candidate"
   | "invalid_ron_candidate"
-  | "invalid_tsumo_candidate";
+  | "invalid_tsumo_candidate"
+  | "invalid_reach_candidate"
+  | "already_reached"
+  | "cannot_reach_after_call"
+  | "reach_hand_locked"
+  | "discard_drawn_only_required"
+  | "invalid_action_for_reach_phase"
+  | "reach_player_cannot_call";
 
 export interface ActionRejectedPayload {
   reason: ActionRejectedReason;

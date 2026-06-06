@@ -1231,7 +1231,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
             <div className="daifugo-effect-panel">
               <strong>{pendingDaifugoEffect.effect === "eightExtraTurn" ? "8の効果：追加で1枚捨ててください。" : "10の効果：追加で1枚捨ててください。"}</strong>
               {pendingDaifugoEffect.effect === "eightExtraTurn" && canReachAfterDraw && (
-                <button type="button" className="primary-button" disabled={isAnimating || isCpuTurn || cpuActionInProgress} onClick={handleDeclareReach}>
+                <button type="button" className="primary-button" data-testid="reach-button" disabled={isAnimating || isCpuTurn || cpuActionInProgress} onClick={handleDeclareReach}>
                   リーチ
                 </button>
               )}
@@ -1585,7 +1585,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
           {state.phase === "discard" && !pendingDaifugoEffect && canUseOnlineDiscard && (
             <>
               {canReachAfterDraw && (
-                <button type="button" className="primary-button" disabled={controlsDisabled} onClick={handleDeclareReach}>
+                <button type="button" className="primary-button" data-testid="reach-button" disabled={controlsDisabled} onClick={handleDeclareReach}>
                   リーチ
                 </button>
               )}

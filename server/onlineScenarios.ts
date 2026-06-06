@@ -44,6 +44,41 @@ function winningWaitHand(prefix: string, junkRank = 9): Card[] {
   ]);
 }
 
+function reachDeclareHand(prefix: string): { hand: Card[]; drawnCard: Card } {
+  const drawnCard = card(`${prefix}-drawn`, 10, "C");
+  return {
+    drawnCard,
+    hand: sortCards([
+      card(`${prefix}-1s`, 1, "S"),
+      card(`${prefix}-1h`, 1, "H"),
+      card(`${prefix}-1d`, 1, "D"),
+      card(`${prefix}-2s`, 2, "S"),
+      card(`${prefix}-2h`, 2, "H"),
+      card(`${prefix}-2d`, 2, "D"),
+      card(`${prefix}-4s`, 4, "S"),
+      card(`${prefix}-5s`, 5, "S"),
+      card(`${prefix}-7d`, 7, "D"),
+      card(`${prefix}-9h`, 9, "H"),
+      drawnCard,
+    ]),
+  };
+}
+
+function nonWinningReachHand(prefix: string): Card[] {
+  return sortCards([
+    card(`${prefix}-3s`, 3, "S"),
+    card(`${prefix}-3h`, 3, "H"),
+    card(`${prefix}-3d`, 3, "D"),
+    card(`${prefix}-4s`, 4, "S"),
+    card(`${prefix}-4h`, 4, "H"),
+    card(`${prefix}-4d`, 4, "D"),
+    card(`${prefix}-6s`, 6, "S"),
+    card(`${prefix}-7h`, 7, "H"),
+    card(`${prefix}-9d`, 9, "D"),
+    card(`${prefix}-10c`, 10, "C"),
+  ]);
+}
+
 function fullDiscardHand(prefix: string, discardRank = 13): Card[] {
   return sortCards([
     card(`${prefix}-4s`, 4, "S"),
@@ -102,11 +137,11 @@ function baseScenario(base: GameState, updates: Partial<GameState> & { players: 
 export function applyOnlineScenario(base: GameState, scenario: OnlineScenarioId | undefined): GameState {
   if (!scenario) return base;
 
-  if (scenario === "online-tsumo-basic" || scenario === "online-reach-tsumo") {
+  if (scenario === "online-tsumo-basic" || scenario === "online-reach-tsumo" || scenario === "online-reach-draw-tsumo") {
     const players = replacePlayers(base, [
       {
         hand: winningWaitHand("tsumo-p1"),
-        isReach: scenario === "online-reach-tsumo",
+        isReach: scenario !== "online-tsumo-basic",
       },
     ]);
     return baseScenario(base, {
@@ -114,7 +149,60 @@ export function applyOnlineScenario(base: GameState, scenario: OnlineScenarioId 
       currentPlayerIndex: 0,
       phase: "draw",
       deck: deck(scenario, [card(`${scenario}-draw-key`, 13, "C")]),
-      message: scenario === "online-reach-tsumo" ? "E2E: リーチ中ツモ待ち局面です。" : "E2E: 通常ツモ待ち局面です。",
+      message: scenario === "online-tsumo-basic" ? "E2E: 通常ツモ待ち局面です。" : "E2E: リーチ中ツモ待ち局面です。",
+    });
+  }
+
+  if (scenario === "online-reach-declare") {
+    const reach = reachDeclareHand("reach-declare-p1");
+    const players = replacePlayers(base, [{ hand: reach.hand }]);
+    return baseScenario(base, {
+      players,
+      currentPlayerIndex: 0,
+      phase: "discard",
+      drawnCard: reach.drawnCard,
+      drawnFrom: "deck",
+      message: "E2E: リーチ宣言可能局面です。",
+    });
+  }
+
+  if (scenario === "online-reach-discard-drawn-only" || scenario === "online-reach-invalid-discard") {
+    const players = replacePlayers(base, [{ hand: nonWinningReachHand("reach-discard-p1"), isReach: true }]);
+    return baseScenario(base, {
+      players,
+      currentPlayerIndex: 0,
+      phase: "draw",
+      deck: deck(scenario, [card("reach-drawn-only-card", 7, "D")]),
+      message: "E2E: リーチ中に上がれないドロー局面です。",
+    });
+  }
+
+  if (scenario === "online-reach-discard-ron") {
+    const players = replacePlayers(base, [
+      { hand: nonWinningReachHand("reach-ron-p1"), isReach: true },
+      { hand: winningWaitHand("reach-ron-p2"), isReach: true },
+    ]);
+    return baseScenario(base, {
+      players,
+      currentPlayerIndex: 0,
+      phase: "draw",
+      deck: deck(scenario, [card("reach-ron-drawn-k", 13, "C")]),
+      message: "E2E: リーチ捨て牌ロン局面です。",
+    });
+  }
+
+  if (scenario === "online-reach-cannot-call") {
+    const discard = card("reach-call-source-5s", 5, "S");
+    const players = replacePlayers(base, [
+      { discardPile: [discard] },
+      { hand: hand("reach-call-p2", [5, 5, 1, 2, 3, 7, 8, 9, 11, 13]), isReach: true },
+    ]);
+    return baseScenario(base, {
+      players,
+      currentPlayerIndex: 1,
+      lastDiscarderIndex: 0,
+      phase: "draw",
+      message: "E2E: リーチ中プレイヤーは鳴けない局面です。",
     });
   }
 

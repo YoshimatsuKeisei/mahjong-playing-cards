@@ -12,6 +12,7 @@ import {
 } from "../src/game/gameState";
 import { createPlayerViewState } from "../src/online/playerView";
 import { applyOnlineScenario } from "./onlineScenarios";
+import { canDeclareReachAfterDraw } from "../src/game/rules";
 import type {
   ActionRejectedReason,
   ClientToServerEvents,
@@ -203,6 +204,7 @@ function validateOnlineAction(room: ServerRoom, playerId: string, action: GameAc
   }
   if (action.type === "takeDiscard") {
     if (room.state.phase !== "draw") return "invalid_action_for_phase";
+    if (room.state.players[playerIndex]?.isReach) return "reach_player_cannot_call";
     if (!getAvailableDiscardSources(room.state).includes(action.ownerIndex)) return "invalid_call_candidate";
     if (!action.meld) return "invalid_call_candidate";
     const legalOptions = getCallOptionsForSource(room.state, action.ownerIndex);
@@ -218,12 +220,17 @@ function validateOnlineAction(room: ServerRoom, playerId: string, action: GameAc
   if (action.type === "discardDrawnOnly") {
     if (room.state.phase !== "discard" || !room.state.drawnCard) return "invalid_action_for_phase";
     const player = room.state.players[playerIndex];
-    if (!player.isReach || room.state.declaredReachThisTurn) return "invalid_action_for_phase";
+    if (!player.isReach) return "invalid_action_for_reach_phase";
+    if (room.state.declaredReachThisTurn) return "invalid_action_for_reach_phase";
     if (getWinningDiscardOptions(room.state).length > 0) return "invalid_tsumo_candidate";
     return null;
   }
   if (action.type === "declareReach") {
-    return room.state.phase === "discard" && room.state.drawnFrom === "deck" ? null : "invalid_action_for_phase";
+    if (room.state.phase !== "discard" || room.state.drawnFrom !== "deck") return "invalid_action_for_phase";
+    const player = room.state.players[playerIndex];
+    if (player.isReach) return "already_reached";
+    if (player.hasCalled) return "cannot_reach_after_call";
+    return canDeclareReachAfterDraw(player.hand, player.hasCalled, player.isReach) ? null : "invalid_reach_candidate";
   }
   if (action.type === "answerReachAfterDiscard") {
     return room.state.phase === "reachConfirm" ? null : "invalid_action_for_phase";
@@ -232,6 +239,9 @@ function validateOnlineAction(room: ServerRoom, playerId: string, action: GameAc
   if (room.state.phase !== "discard") return "invalid_action_for_phase";
   const player = room.state.players[playerIndex];
   if (!player.hand.some((card) => card.id === action.cardId)) return "card_not_in_hand";
+  if (player.isReach && !room.state.declaredReachThisTurn) {
+    return action.cardId === room.state.drawnCard?.id ? "discard_drawn_only_required" : "reach_hand_locked";
+  }
   return null;
 }
 

@@ -295,6 +295,7 @@ export interface GameState {
   availableActions?: string[];
   canTsumo?: boolean;
   canSelfWin?: boolean;
+  canReach?: boolean;
   winningDiscardOptions?: WinningDiscardOption[];
   reaction?: PlayerReactionView | null;
   queenVanishRankOptions?: QueenVanishRankOptionView[];

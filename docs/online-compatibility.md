@@ -46,9 +46,18 @@ Client must not receive:
 | Discard reaction wait | `advanceToNextDraw` + `ronCheck` | Implemented Phase 2 | No simultaneous per-player pass state beyond existing reducer | Auto-confirm handoff online when no pending reaction/effect remains | Current phase/message, candidate-only reaction | Draw/call/ron/pass controls | Playwright call-pass/ron |
 | `winWithDiscard` | `gameState.ts case "winWithDiscard"` | Missing | Not enabled online | Validate current player, phase `discard`, winning discard candidate | Winning discard candidates actor-only | Win button | Add online ron/tsumo tests |
 | `answerRon` | `gameState.ts case "answerRon"` | Missing | Ron confirm not wired online | Validate pending ron result and eligible winner | Ron candidates only to eligible players | Ron accept/pass buttons | Add Playwright `online-ron` |
-| `declareReach` | `gameState.ts case "declareReach"` | Missing | Reach declaration not wired online | Validate current player and reach eligibility | Reach eligibility actor-only | Reach button | Add reach tests |
-| `answerReachAfterDiscard` | `gameState.ts case "answerReachAfterDiscard"` | Missing | Reach confirmation not wired online | Validate phase `reachConfirm` and actor | Reach confirm pending actor-only | Confirm buttons | Add reach tests |
-| `discardDrawnOnly` | `gameState.ts case "discardDrawnOnly"` | Missing | Needed for reach | Validate reach player, drawn card only | Drawn card actor-only | Discard drawn button | Add reach tests |
+| Reach candidate / リーチ候補 | `rules.ts canDeclareReachAfterDraw` | Implemented Phase 3 | None known | Compute eligibility from full server state only | Actor-only `canReach` and `availableActions: declareReach` | `reach-button` | Playwright `online-reach-declare` |
+| `declareReach` / リーチ宣言 | `gameState.ts case "declareReach"` | Implemented Phase 3 | None known | Validate current player, phase `discard`, drawn-from-deck, not called, not already reached, and reach eligibility | Public `player.isReach`; actor-only candidate before declaration | Reach button sends `declareReach` | Playwright `online-reach-declare` |
+| Reach state public view | `Player.isReach` | Implemented Phase 3 | None known | Preserve public reach flag in all player views | `players[].isReach`, status label/data attr; masked hands remain masked | Public seat status | Playwright `online-reach-declare` |
+| Reach hand lock | `gameState.ts discard guards` | Implemented Phase 3 | Explicit online reject reasons added | Reject normal `discard` while reached and not declared this turn | `discardDrawnOnly` only when applicable | Hide normal discard path; server rejects direct action | Playwright `online-reach-invalid-discard` |
+| Reach draw | `gameState.ts case "drawFromDeck"` | Implemented Phase 3 | None known | Validate current reach player, phase `draw`, version; run reducer | Actor-only drawn card; public deck count | Draw button | Playwright reach draw tests |
+| Reach tsumo | `getReachWinningOptions`, `getWinningDiscardOptions`, `winWithDiscard` | Implemented Phase 3 | Existing reducer finalizes via discard choice | Validate legal winning discard option | Actor-only `winningDiscardOptions` / `canTsumo` | `tsumo-button` | Playwright `online-reach-draw-tsumo` |
+| `discardDrawnOnly` | `gameState.ts case "discardDrawnOnly"` | Implemented Phase 3 | None known | Validate reach player, drawn card exists, no winning option, not declaration turn | Actor-only `availableActions: discardDrawnOnly`; drawn card visible only to actor | `discard-drawn-only-button` | Playwright `online-reach-discard-drawn-only` |
+| Reach discard restriction | `gameState.ts case "discard"` | Implemented Phase 3 | None known | Reject direct normal discard with `reach_hand_locked` or `discard_drawn_only_required` | Latest safe player view after reject | Console/actionRejected | Playwright `online-reach-invalid-discard` |
+| Reach call restriction | `getAvailableDiscardSources`, `getCallOptionsForSource` | Implemented Phase 3 | None known | Do not create call candidates for reached player; reject direct `takeDiscard` with `reach_player_cannot_call` | No call candidates for reached viewer | No call button | Playwright `online-reach-cannot-call` |
+| Reach ron check | `makeReachRonResult`, `answerRon` | Implemented Phase 3 via Phase 2 | None known | After reach discard, keep `ronCheck` if candidates exist; validate eligible responder | Candidate-only Ron view | Ron button | Playwright `online-reach-discard-ron` |
+| Reach after discard reaction | `discardDrawnOnly` -> `advanceToNextDraw` / `ronCheck` | Implemented Phase 3 | None known | Auto-confirm handoff only when no pending reaction/effect remains | Public discard pile and current phase | Ron/pass or next draw | Playwright `online-reach-discard-ron`, discard-drawn-only |
+| Reach round end | `winWithDiscard`, `answerRon`, scoring | Implemented Phase 3 via existing result flow | None known | Preserve existing result scoring and Wロン behavior | Public result; hidden hands masked | Result screen | Playwright reach tsumo/ron |
 | `answerDaifugoEffect` | `gameState.ts case "answerDaifugoEffect"` | Missing | Effect confirm not wired online | Validate pending effect owner | Pending effect actor-only | Effect yes/no buttons | Add effect tests |
 | `discardForDaifugoEffect` | `gameState.ts case "discardForDaifugoEffect"` | Missing | Needed for 8/10 | Validate pending extra discard and candidate card | Candidate cards actor-only | Extra discard button | Add 8/10 tests |
 | `drawForDaifugoEffect` | `gameState.ts case "drawForDaifugoEffect"` | Missing | Needed for 8/10/Q refill | Validate pending draw owner/effect | Actor-only drawn cards when visible | Effect draw flow | Add effect tests |
@@ -110,10 +119,14 @@ Status: Implemented on top of the existing offline reducer model.
 
 ### Phase 3: Reach
 
-Status: Partially implemented for Phase 1.5.
+Status: Implemented.
 
-- `discardDrawnOnly`, reach tsumo, and `answerReachAfterDiscard` are available online.
-- Full reach declaration UX/regression coverage can be expanded later.
+- `canReach` and `declareReach` are actor-only before declaration.
+- `player.isReach` is public after declaration.
+- Reach hand lock is enforced on the server, including direct invalid `discard` rejection.
+- Reach draw branches into `winWithDiscard` candidates or `discardDrawnOnly`.
+- Reached players cannot call; direct `takeDiscard` is rejected.
+- Reach discards feed the existing Phase 2 ron/Wロン flow.
 
 ### Phase 4: Daifugo Effects
 

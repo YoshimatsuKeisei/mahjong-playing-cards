@@ -1,6 +1,6 @@
 import type { Card, DaifugoEffectEvent, GameResult, GameState, PendingDaifugoEffect, Player, PlayerReactionView, WinningResult } from "../types";
 import { getAvailableDiscardSources, getCallOptionsForSource, getQueenVanishRankOptions, getWinningDiscardOptions } from "../game/gameState";
-import { isRun } from "../game/rules";
+import { canDeclareReachAfterDraw, isRun } from "../game/rules";
 
 function maskCards(cards: Card[], visible: boolean, ownerIndex: number): Card[] {
   if (visible) return cards;
@@ -132,6 +132,13 @@ export function createPlayerViewState(fullState: GameState, viewerPlayerId: stri
   const winningDiscardOptions =
     viewerIndex === fullState.currentPlayerIndex && fullState.phase === "discard" ? getWinningDiscardOptions(fullState) : [];
   const reaction = viewerIndex >= 0 ? createReactionView(fullState, viewerIndex) : null;
+  const viewerPlayer = fullState.players[viewerIndex];
+  const canReach =
+    viewerIndex === fullState.currentPlayerIndex &&
+    fullState.phase === "discard" &&
+    fullState.drawnFrom === "deck" &&
+    Boolean(viewerPlayer) &&
+    canDeclareReachAfterDraw(viewerPlayer.hand, viewerPlayer.hasCalled, viewerPlayer.isReach);
   if (viewerIndex === fullState.currentPlayerIndex && fullState.phase === "draw" && fullState.deck.length > 0) {
     availableActions.push("drawFromDeck");
     if (reaction?.canCall) {
@@ -144,6 +151,9 @@ export function createPlayerViewState(fullState: GameState, viewerPlayerId: stri
     if (winningDiscardOptions.length > 0) {
       availableActions.push("winWithDiscard");
       availableActions.push("tsumo");
+    }
+    if (canReach) {
+      availableActions.push("declareReach");
     }
     const player = fullState.players[viewerIndex];
     if (player?.isReach && !fullState.declaredReachThisTurn && winningDiscardOptions.length === 0) {
@@ -179,6 +189,7 @@ export function createPlayerViewState(fullState: GameState, viewerPlayerId: stri
     availableActions,
     canTsumo: canSelfWin && fullState.drawnFrom === "deck",
     canSelfWin,
+    canReach,
     winningDiscardOptions,
     reaction,
     queenVanishRankOptions:
