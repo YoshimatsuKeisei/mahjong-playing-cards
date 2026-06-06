@@ -137,6 +137,7 @@ export function createPlayerViewState(fullState: GameState, viewerPlayerId: stri
     viewerIndex === fullState.currentPlayerIndex &&
     fullState.phase === "discard" &&
     fullState.drawnFrom === "deck" &&
+    winningDiscardOptions.length === 0 &&
     Boolean(viewerPlayer) &&
     canDeclareReachAfterDraw(viewerPlayer.hand, viewerPlayer.hasCalled, viewerPlayer.isReach);
   if (viewerIndex === fullState.currentPlayerIndex && fullState.phase === "draw" && fullState.deck.length > 0) {

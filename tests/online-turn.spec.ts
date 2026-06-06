@@ -52,6 +52,7 @@ test("offline draw animation still shows the drawn card before it enters the han
   await page.getByTestId("offline-start-button").click();
   await expect(page.getByTestId("play-screen")).toBeVisible();
   await expect(page.getByTestId("deck-remaining").first()).toHaveText("104");
+  await expect(page.getByRole("button", { name: "Pass" })).toHaveCount(0);
 
   const before = await getCardLabels(page);
   await page.getByTestId("draw-from-deck-button").click();

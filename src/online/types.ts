@@ -63,6 +63,7 @@ export type ActionRejectedReason =
   | "invalid_call_candidate"
   | "invalid_ron_candidate"
   | "invalid_tsumo_candidate"
+  | "tsumo_available_reach_not_allowed"
   | "invalid_reach_candidate"
   | "already_reached"
   | "cannot_reach_after_call"

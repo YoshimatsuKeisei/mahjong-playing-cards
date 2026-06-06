@@ -227,6 +227,7 @@ function validateOnlineAction(room: ServerRoom, playerId: string, action: GameAc
   }
   if (action.type === "declareReach") {
     if (room.state.phase !== "discard" || room.state.drawnFrom !== "deck") return "invalid_action_for_phase";
+    if (getWinningDiscardOptions(room.state).length > 0) return "tsumo_available_reach_not_allowed";
     const player = room.state.players[playerIndex];
     if (player.isReach) return "already_reached";
     if (player.hasCalled) return "cannot_reach_after_call";

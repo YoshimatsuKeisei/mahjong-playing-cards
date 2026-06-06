@@ -248,6 +248,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
   const canReachAfterDraw =
     state.phase === "discard" &&
     state.drawnFrom === "deck" &&
+    selfWinOptions.length === 0 &&
     canDeclareReachAfterDraw(currentPlayer.hand, currentPlayer.hasCalled, currentPlayer.isReach);
   const canChooseDiscard = !currentPlayer.isReach || state.declaredReachThisTurn;
   const [animationPhase, setAnimationPhase] = useState<AnimationPhase>("idle");
@@ -1573,9 +1574,6 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
                         {optionIndex + 1}: {meld.map(formatCard).join(" ")}
                       </button>
                     ))}
-                    <button type="button" data-testid="reaction-pass-button" disabled={controlsDisabled} onClick={handleDrawFromDeck}>
-                      Pass
-                    </button>
                   </div>
                 );
               })}

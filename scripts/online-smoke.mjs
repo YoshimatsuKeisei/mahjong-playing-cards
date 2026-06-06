@@ -28,6 +28,31 @@ function emitAck(socket, event, payload) {
   return new Promise((resolve) => socket.emit(event, payload, resolve));
 }
 
+async function setupFourPlayerRoom(labelPrefix, scenario) {
+  const roomClients = ["P1", "P2", "P3", "P4"].map((label) => connectClient(`${labelPrefix}-${label}`));
+  await Promise.all(roomClients.map(({ socket }) => new Promise((resolve) => socket.on("connect", resolve))));
+
+  const payload = { playerName: "Player 1", maxPlayers: 4 };
+  if (scenario) payload.scenario = scenario;
+  const createdRoom = await emitAck(roomClients[0].socket, "createRoom", payload);
+  if (!createdRoom.ok) throw new Error(createdRoom.error);
+
+  for (let index = 1; index < 4; index += 1) {
+    const joined = await emitAck(roomClients[index].socket, "joinRoom", {
+      roomId: createdRoom.roomId,
+      playerName: `Player ${index + 1}`,
+    });
+    if (!joined.ok) throw new Error(joined.error);
+    roomClients[index].socket.emit("ready", { ready: true });
+  }
+
+  await wait(300);
+  roomClients[0].socket.emit("startGame");
+  await wait(500);
+  if (!roomClients.every((client) => client.state.view)) throw new Error(`${labelPrefix}: missing started player views`);
+  return { clients: roomClients, roomId: createdRoom.roomId };
+}
+
 const clients = ["P1", "P2", "P3", "P4"].map(connectClient);
 await Promise.all(clients.map(({ socket }) => new Promise((resolve) => socket.on("connect", resolve))));
 
@@ -106,8 +131,20 @@ clients[0].socket.emit("submitAction", {
 });
 await wait(500);
 
-const afterDiscardViews = clients.map((client) => client.state.view);
-if (!afterDiscardViews.every((view) => view.stateVersion === 2)) throw new Error("discard did not broadcast version 2");
+let afterDiscardViews = clients.map((client) => client.state.view);
+if (afterDiscardViews.some((view) => view.phase === "ronCheck")) {
+  for (const client of clients) {
+    if (client.state.view.availableActions.includes("answerRon")) {
+      client.socket.emit("submitAction", {
+        action: { type: "answerRon", takeRon: false },
+        stateVersion: client.state.view.stateVersion,
+      });
+    }
+  }
+  await wait(500);
+  afterDiscardViews = clients.map((client) => client.state.view);
+}
+if (!afterDiscardViews.every((view) => view.stateVersion >= 2)) throw new Error("discard did not broadcast version 2 or later");
 if (!afterDiscardViews.every((view) => view.currentPlayerIndex === 1 && view.phase === "draw")) {
   throw new Error("turn did not advance to player 2 draw");
 }
@@ -196,7 +233,24 @@ async function findAndTakeDiscard() {
   throw new Error("could not find a legal takeDiscard smoke scenario");
 }
 
-const callResult = await findAndTakeDiscard();
+const callSmoke = await setupFourPlayerRoom("CallSmoke", "online-call-basic");
+const callClients = callSmoke.clients;
+const caller = callClients[1];
+const callCandidate = caller.state.view.reaction?.callCandidates?.[0];
+if (!callCandidate) throw new Error("fixed takeDiscard smoke scenario did not expose a call candidate");
+caller.socket.emit("submitAction", {
+  action: { type: "takeDiscard", ownerIndex: callCandidate.ownerIndex, meld: callCandidate.meld },
+  stateVersion: caller.state.view.stateVersion,
+});
+await wait(500);
+const callViews = callClients.map((client) => client.state.view);
+if (!callViews.every((view) => view.players[1].openMelds.length > 0)) {
+  throw new Error("fixed takeDiscard smoke scenario did not publish open melds");
+}
+const callResult = {
+  callerIndex: 1,
+  stateVersion: callViews[0].stateVersion,
+};
 
 console.log(
   JSON.stringify({
@@ -212,3 +266,4 @@ console.log(
 );
 
 clients.forEach(({ socket }) => socket.close());
+callClients.forEach(({ socket }) => socket.close());
