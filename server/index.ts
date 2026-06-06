@@ -4,9 +4,13 @@ import { createDefaultDaifugoOptions } from "../src/game/deck";
 import {
   createInitialGame,
   gameReducer,
+  getEnhancedFiveTurnOptions,
   getAvailableDiscardSources,
   getCallOptionsForSource,
+  getJackShieldRunOptions,
   getWinningDiscardOptions,
+  getQueenVanishRankOptions,
+  getSevenExchangeCandidateCards,
   isCardJShielded,
   type GameAction,
 } from "../src/game/gameState";
@@ -157,20 +161,97 @@ function validatePendingEffectAction(state: GameState, playerIndex: number, acti
   }
 
   if (action.type === "answerDaifugoEffect") return pending.kind === "confirm" ? null : "invalid_action_for_phase";
+  if (action.type === "answerSevenEnhancement") return pending.kind === "sevenEnhancementConfirm" ? null : "invalid_action_for_phase";
+  if (action.type === "finishSevenEnhancementSplash") return pending.kind === "sevenEnhancementSplash" ? null : "invalid_action_for_phase";
+  if (action.type === "selectEnhancedSevenTarget") {
+    if (pending.kind !== "sevenEnhancedTargetSelect") return "invalid_action_for_phase";
+    return action.targetPlayerIndex !== pending.playerIndex && Boolean(state.players[action.targetPlayerIndex])
+      ? null
+      : "invalid_seven_exchange_target";
+  }
+  if (action.type === "confirmEnhancedSevenTarget") {
+    if (pending.kind !== "sevenEnhancedTargetSelect") return "invalid_action_for_phase";
+    return pending.selectedTargetPlayerIndex !== undefined &&
+      pending.selectedTargetPlayerIndex !== pending.playerIndex &&
+      Boolean(state.players[pending.selectedTargetPlayerIndex])
+      ? null
+      : "invalid_seven_exchange_target";
+  }
+  if (action.type === "answerFiveEnhancement") return pending.kind === "fiveEnhancementConfirm" ? null : "invalid_action_for_phase";
+  if (action.type === "finishFiveEnhancementSplash") return pending.kind === "fiveEnhancementSplash" ? null : "invalid_action_for_phase";
+  if (action.type === "selectEnhancedFiveTarget") {
+    if (pending.kind !== "fiveEnhancedTargetSelect") return "invalid_action_for_phase";
+    const option = getEnhancedFiveTurnOptions(state, pending.playerIndex).find((candidate) => candidate.playerIndex === action.targetPlayerIndex);
+    return option?.selectable ? null : "invalid_five_skip_target";
+  }
+  if (action.type === "confirmEnhancedFiveTarget") {
+    if (pending.kind !== "fiveEnhancedTargetSelect") return "invalid_action_for_phase";
+    return pending.selectedTargetPlayerIndex !== undefined && Boolean(state.players[pending.selectedTargetPlayerIndex])
+      ? null
+      : "invalid_five_skip_target";
+  }
   if (action.type === "drawForDaifugoEffect") return pending.kind === "effectDraw" ? null : "invalid_action_for_phase";
-  if (action.type === "selectQueenVanishRank") return pending.kind === "queenSelect" ? null : "invalid_action_for_phase";
+  if (action.type === "selectQueenVanishRank") {
+    if (pending.kind !== "queenSelect") return "invalid_q_effect_phase";
+    const option = getQueenVanishRankOptions(state).find((candidate) => candidate.rank === action.rank);
+    return option?.selectable ? null : "q_rank_not_selectable";
+  }
   if (action.type === "answerQueenWin") return pending.kind === "queenWinConfirm" ? null : "invalid_tsumo_candidate";
   if (action.type === "discardForDaifugoEffect") {
     if (pending.kind !== "extraDiscard") return "invalid_action_for_phase";
     const player = state.players[playerIndex];
     const discardCard = player?.hand.find((card) => card.id === action.cardId) ?? null;
-    if (!discardCard) return "card_not_in_hand";
-    if (isCardJShielded(player, discardCard)) return "invalid_action_for_phase";
+    if (!discardCard) return "invalid_effect_discard_card";
+    if (isCardJShielded(player, discardCard)) return "shielded_card_cannot_exchange";
+    if (
+      pending.effect === "eightExtraTurn" &&
+      player?.isReach &&
+      !state.declaredReachThisTurn &&
+      action.cardId !== state.drawnCard?.id
+    ) {
+      return "discard_drawn_only_required";
+    }
     return null;
   }
   if (action.type === "selectSevenExchangeCard") {
     if (pending.kind !== "sevenExchange") return "invalid_action_for_phase";
     if (action.playerIndex !== playerIndex) return "not_your_reaction";
+    const player = state.players[playerIndex];
+    const selected = player?.hand.find((card) => card.id === action.cardId) ?? null;
+    if (!selected) return "invalid_seven_exchange_card";
+    if (isCardJShielded(player, selected)) return "shielded_card_cannot_exchange";
+    const candidates = getSevenExchangeCandidateCards(player, playerIndex === pending.playerIndex);
+    if (!candidates.some((card) => card.id === action.cardId)) return "invalid_seven_exchange_card";
+    return null;
+  }
+  if (action.type === "selectJackSpecialEffect") {
+    if (pending.kind !== "jackSelect") return "invalid_action_for_phase";
+    return ["inspectHands", "jShield", "enhanceFiveOrSeven"].includes(action.effect) ? null : "invalid_j_effect_choice";
+  }
+  if (action.type === "selectJackShieldRank") {
+    if (pending.kind !== "jackShieldSelect") return "invalid_action_for_phase";
+    return pending.selectableRanks.includes(action.rank) ? null : "invalid_j_shield_target";
+  }
+  if (action.type === "selectJackShieldRun") {
+    if (pending.kind !== "jackShieldSelect") return "invalid_action_for_phase";
+    return getJackShieldRunOptions(state.players[playerIndex]).some((run) => run.key === action.key) ? null : "invalid_j_shield_target";
+  }
+  if (action.type === "inspectJackCard") {
+    if (pending.kind !== "jackInspect") return "invalid_action_for_phase";
+    const targetPlayerIndex = pending.targetPlayerIndexes[pending.currentTargetOffset];
+    if (targetPlayerIndex !== action.targetPlayerIndex) return "invalid_j_view_target";
+    const targetPlayer = state.players[targetPlayerIndex];
+    if (!targetPlayer?.hand.some((card) => card.id === action.cardId)) return "invalid_j_view_target";
+    if (pending.revealedCardIds[targetPlayerIndex]) return "invalid_action_for_phase";
+    return null;
+  }
+  if (action.type === "confirmJackInspectCard") {
+    if (pending.kind !== "jackInspect") return "invalid_action_for_phase";
+    const targetPlayerIndex = pending.targetPlayerIndexes[pending.currentTargetOffset];
+    return targetPlayerIndex !== undefined && Boolean(pending.revealedCardIds[targetPlayerIndex]) ? null : "invalid_action_for_phase";
+  }
+  if (action.type === "answerReachContinue") {
+    if (pending.kind !== "reachContinueConfirm") return "invalid_action_for_phase";
     return null;
   }
   return null;

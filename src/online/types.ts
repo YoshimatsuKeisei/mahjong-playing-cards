@@ -11,6 +11,17 @@ export type OnlineScenarioId =
   | "online-reach-invalid-discard"
   | "online-reach-cannot-call"
   | "online-q-after-draw-tsumo"
+  | "online-effect-5"
+  | "online-effect-7"
+  | "online-effect-8"
+  | "online-effect-9"
+  | "online-effect-10"
+  | "online-effect-j-enhance"
+  | "online-effect-j-view"
+  | "online-effect-j-shield"
+  | "online-effect-q"
+  | "online-effect-q-after-win"
+  | "online-effect-invalid"
   | "online-call-basic"
   | "online-ron-basic"
   | "online-double-ron";
@@ -70,7 +81,17 @@ export type ActionRejectedReason =
   | "reach_hand_locked"
   | "discard_drawn_only_required"
   | "invalid_action_for_reach_phase"
-  | "reach_player_cannot_call";
+  | "reach_player_cannot_call"
+  | "invalid_seven_exchange_target"
+  | "invalid_seven_exchange_card"
+  | "shielded_card_cannot_exchange"
+  | "invalid_five_skip_target"
+  | "invalid_j_effect_choice"
+  | "invalid_j_view_target"
+  | "invalid_j_shield_target"
+  | "invalid_q_effect_phase"
+  | "q_rank_not_selectable"
+  | "invalid_effect_discard_card";
 
 export interface ActionRejectedPayload {
   reason: ActionRejectedReason;

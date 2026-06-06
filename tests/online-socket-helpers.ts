@@ -56,6 +56,13 @@ export async function setupSocketRoom(scenario: string) {
   return clients;
 }
 
+export function submitSocketAction(client: SocketClient, action: any, stateVersion = client.state.view.stateVersion) {
+  client.socket.emit("submitAction", {
+    action,
+    stateVersion,
+  });
+}
+
 export function closeSocketClients(clients: SocketClient[]) {
   clients.forEach((client) => client.socket.close());
 }

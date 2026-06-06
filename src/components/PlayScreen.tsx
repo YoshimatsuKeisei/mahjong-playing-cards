@@ -688,8 +688,12 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
 
   useEffect(() => {
     if (currentPlayer?.isCpu || state.pendingDaifugoEffect?.kind !== "effectDraw" || isAnimating) return;
+    if (isOnlineView) {
+      dispatch({ type: "drawForDaifugoEffect" });
+      return;
+    }
     animateDrawFromDeck(() => dispatch({ type: "drawForDaifugoEffect" }));
-  }, [currentPlayer?.isCpu, dispatch, isAnimating, state.pendingDaifugoEffect]);
+  }, [currentPlayer?.isCpu, dispatch, isAnimating, isOnlineView, state.pendingDaifugoEffect]);
 
   useEffect(() => {
     if (state.phase === "ronCheck") {
@@ -1218,10 +1222,16 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
             <div className="daifugo-effect-panel">
               <strong>{getDaifugoEffectText(pendingDaifugoEffect.effect)}</strong>
               <div className="daifugo-effect-actions">
-                <button type="button" className="primary-button" disabled={isAnimating || isCpuTurn} onClick={() => handleDaifugoConfirmAnswer(true)}>
+                <button
+                  type="button"
+                  className="primary-button"
+                  data-testid="effect-confirm-yes"
+                  disabled={isAnimating || isCpuTurn}
+                  onClick={() => handleDaifugoConfirmAnswer(true)}
+                >
                   はい
                 </button>
-                <button type="button" disabled={isAnimating || isCpuTurn} onClick={() => handleDaifugoConfirmAnswer(false)}>
+                <button type="button" data-testid="effect-confirm-no" disabled={isAnimating || isCpuTurn} onClick={() => handleDaifugoConfirmAnswer(false)}>
                   いいえ
                 </button>
               </div>
@@ -1256,6 +1266,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
               <button
                 type="button"
                 className="primary-button"
+                data-testid="effect-extra-discard-button"
                 disabled={(!selectedDiscardId && !mustDiscardDrawnForReachDaifugo) || isAnimating || isCpuTurn || cpuActionInProgress}
                 onClick={handleDaifugoExtraDiscard}
               >
@@ -1380,6 +1391,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
               <button
                 type="button"
                 className="primary-button"
+                data-testid="seven-exchange-confirm-button"
                 disabled={!selectedDiscardId || isAnimating || cpuActionInProgress}
                 onClick={handleSevenExchangeConfirm}
               >
@@ -1416,6 +1428,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
                 <button
                   type="button"
                   className="jack-effect-choice"
+                  data-testid="jack-effect-inspect"
                   disabled={isAnimating || cpuActionInProgress}
                   onClick={() => dispatch({ type: "selectJackSpecialEffect", effect: "inspectHands" })}
                 >
@@ -1425,6 +1438,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
                 <button
                   type="button"
                   className="jack-effect-choice"
+                  data-testid="jack-effect-shield"
                   disabled={isAnimating || cpuActionInProgress}
                   onClick={() => dispatch({ type: "selectJackSpecialEffect", effect: "jShield" })}
                 >
@@ -1434,6 +1448,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
                 <button
                   type="button"
                   className="jack-effect-choice"
+                  data-testid="jack-effect-enhance"
                   disabled={isAnimating || cpuActionInProgress || Boolean(currentPlayer.hasJEnhancementRight)}
                   onClick={() => dispatch({ type: "selectJackSpecialEffect", effect: "enhanceFiveOrSeven" })}
                 >
@@ -1457,6 +1472,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
                   <button
                     type="button"
                     className="rank-choice-button"
+                    data-testid={`jack-shield-rank-${rank}`}
                     key={rank}
                     disabled={isAnimating || cpuActionInProgress}
                     onClick={() => dispatch({ type: "selectJackShieldRank", rank })}
@@ -1498,6 +1514,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
                       <button
                         type="button"
                         className={`jack-inspect-card-button ${isRevealed ? "revealed" : ""}`}
+                        data-testid="jack-inspect-card"
                         key={card.id}
                         data-card-id={card.id}
                         disabled={Boolean(revealedCardId) || isAnimating || cpuActionInProgress}
@@ -1513,6 +1530,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
                 <button
                   type="button"
                   className="primary-button"
+                  data-testid="jack-inspect-confirm"
                   disabled={!revealedCard || isAnimating || cpuActionInProgress}
                   onClick={() => dispatch({ type: "confirmJackInspectCard" })}
                 >

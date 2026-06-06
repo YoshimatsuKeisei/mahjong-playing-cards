@@ -12,6 +12,19 @@ function maskCards(cards: Card[], visible: boolean, ownerIndex: number): Card[] 
   }));
 }
 
+function maskCardsForJackInspect(cards: Card[], revealedCardId: string | null): Card[] {
+  return cards.map((card) =>
+    card.id === revealedCardId
+      ? card
+      : {
+          id: card.id,
+          suit: "S",
+          rank: 0,
+          discardedByEffect: card.discardedByEffect,
+        },
+  );
+}
+
 function maskWinningResult(result: WinningResult | undefined, visible: boolean): WinningResult | undefined {
   if (!result) return undefined;
   if (visible) return result;
@@ -22,10 +35,10 @@ function maskWinningResult(result: WinningResult | undefined, visible: boolean):
   };
 }
 
-function maskPlayer(player: Player, visible: boolean, ownerIndex: number): Player {
+function maskPlayer(player: Player, visible: boolean, ownerIndex: number, jackInspectRevealedCardId?: string | null): Player {
   return {
     ...player,
-    hand: maskCards(player.hand, visible, ownerIndex),
+    hand: jackInspectRevealedCardId !== undefined ? maskCardsForJackInspect(player.hand, jackInspectRevealedCardId) : maskCards(player.hand, visible, ownerIndex),
     winningResult: maskWinningResult(player.winningResult, visible),
     jShield: visible ? player.jShield : undefined,
   };
@@ -76,11 +89,18 @@ function isPendingEffectVisible(pending: PendingDaifugoEffect | null, viewerInde
   if (!pending) return false;
   if ("playerIndex" in pending && pending.playerIndex === viewerIndex) return true;
   if (pending.kind === "sevenExchange" && pending.targetPlayerIndex === viewerIndex) return true;
-  if (pending.kind === "jackInspect") {
-    const targetPlayerIndex = pending.targetPlayerIndexes[pending.currentTargetOffset];
-    return targetPlayerIndex === viewerIndex;
-  }
   return false;
+}
+
+function maskPendingDaifugoEffect(pending: PendingDaifugoEffect | null, viewerIndex: number): PendingDaifugoEffect | null {
+  if (!isPendingEffectVisible(pending, viewerIndex)) return null;
+  if (pending?.kind === "sevenExchange") {
+    return {
+      ...pending,
+      selections: pending.selections[viewerIndex] ? { [viewerIndex]: pending.selections[viewerIndex] } : {},
+    };
+  }
+  return pending;
 }
 
 function createReactionView(fullState: GameState, viewerIndex: number): PlayerReactionView | null {
@@ -180,6 +200,11 @@ export function createPlayerViewState(fullState: GameState, viewerPlayerId: stri
   const canSelfWin = winningDiscardOptions.length > 0;
   const visiblePendingRon =
     viewerIndex >= 0 && reaction?.canRon ? maskGameResult(fullState.pendingRonResult, viewerIndex) : null;
+  const visiblePendingDaifugoEffect = maskPendingDaifugoEffect(fullState.pendingDaifugoEffect, viewerIndex);
+  const jackInspectTargetIndex =
+    fullState.pendingDaifugoEffect?.kind === "jackInspect" && fullState.pendingDaifugoEffect.playerIndex === viewerIndex
+      ? fullState.pendingDaifugoEffect.targetPlayerIndexes[fullState.pendingDaifugoEffect.currentTargetOffset]
+      : null;
 
   return {
     ...fullState,
@@ -198,8 +223,17 @@ export function createPlayerViewState(fullState: GameState, viewerPlayerId: stri
         ? getQueenVanishRankOptions(fullState)
         : undefined,
     drawnCard: fullState.currentPlayerIndex === viewerIndex ? fullState.drawnCard : null,
-    pendingDaifugoEffect: isPendingEffectVisible(fullState.pendingDaifugoEffect, viewerIndex) ? fullState.pendingDaifugoEffect : null,
-    players: fullState.players.map((player, index) => maskPlayer(player, index === viewerIndex, index)),
+    pendingDaifugoEffect: visiblePendingDaifugoEffect,
+    players: fullState.players.map((player, index) =>
+      maskPlayer(
+        player,
+        index === viewerIndex,
+        index,
+        index === jackInspectTargetIndex && fullState.pendingDaifugoEffect?.kind === "jackInspect"
+          ? fullState.pendingDaifugoEffect.revealedCardIds[index] ?? null
+          : undefined,
+      ),
+    ),
     result: maskGameResult(fullState.result, viewerIndex),
     pendingRonResult: visiblePendingRon,
     daifugoEffectEvent: maskDaifugoEvent(fullState.daifugoEffectEvent, viewerIndex),

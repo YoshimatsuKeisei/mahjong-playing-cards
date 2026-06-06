@@ -95,6 +95,38 @@ function fullDiscardHand(prefix: string, discardRank = 13): Card[] {
   ]);
 }
 
+function effectDiscardHand(prefix: string, effectRank: number): Card[] {
+  return sortCards([
+    card(`${prefix}-1s`, 1, "S"),
+    card(`${prefix}-2s`, 2, "S"),
+    card(`${prefix}-3s`, 3, "S"),
+    card(`${prefix}-4h`, 4, "H"),
+    card(`${prefix}-6h`, 6, "H"),
+    card(`${prefix}-7d`, 7, "D"),
+    card(`${prefix}-8c`, 8, "C"),
+    card(`${prefix}-9d`, 9, "D"),
+    card(`${prefix}-10h`, 10, "H"),
+    card(`${prefix}-13c`, 13, "C"),
+    card(`${prefix}-effect-${effectRank}`, effectRank, "S"),
+  ]);
+}
+
+function jackShieldHand(prefix: string): Card[] {
+  return sortCards([
+    card(`${prefix}-5s`, 5, "S"),
+    card(`${prefix}-5h`, 5, "H"),
+    card(`${prefix}-5d`, 5, "D"),
+    card(`${prefix}-1s`, 1, "S"),
+    card(`${prefix}-2s`, 2, "S"),
+    card(`${prefix}-3s`, 3, "S"),
+    card(`${prefix}-4h`, 4, "H"),
+    card(`${prefix}-8c`, 8, "C"),
+    card(`${prefix}-9d`, 9, "D"),
+    card(`${prefix}-13c`, 13, "C"),
+    card(`${prefix}-effect-11`, 11, "S"),
+  ]);
+}
+
 function replacePlayers(base: GameState, updates: Array<Partial<Player>>): Player[] {
   return base.players.map((player, index) => ({
     ...player,
@@ -118,7 +150,12 @@ function baseScenario(base: GameState, updates: Partial<GameState> & { players: 
       ...createDefaultDaifugoOptions(),
       enabled: true,
       effects: {
-        ...createDefaultDaifugoOptions().effects,
+        fiveSkip: true,
+        sevenExchange: true,
+        eightExtraTurn: true,
+        nineReverse: true,
+        tenSwapDraw: true,
+        jackBack: true,
         queenNumberVanish: true,
       },
     },
@@ -223,6 +260,81 @@ export function applyOnlineScenario(base: GameState, scenario: OnlineScenarioId 
       lastDiscarderIndex: 0,
       phase: "draw",
       message: "E2E: プレイヤー2が鳴ける局面です。",
+    });
+  }
+
+  if (
+    scenario === "online-effect-5" ||
+    scenario === "online-effect-7" ||
+    scenario === "online-effect-8" ||
+    scenario === "online-effect-9" ||
+    scenario === "online-effect-10" ||
+    scenario === "online-effect-j-enhance" ||
+    scenario === "online-effect-j-view" ||
+    scenario === "online-effect-j-shield" ||
+    scenario === "online-effect-q" ||
+    scenario === "online-effect-invalid"
+  ) {
+    const rankByScenario: Record<string, number> = {
+      "online-effect-5": 5,
+      "online-effect-7": 7,
+      "online-effect-8": 8,
+      "online-effect-9": 9,
+      "online-effect-10": 10,
+      "online-effect-j-enhance": 11,
+      "online-effect-j-view": 11,
+      "online-effect-j-shield": 11,
+      "online-effect-q": 12,
+      "online-effect-invalid": 12,
+    };
+    const effectRank = rankByScenario[scenario];
+    const p1Hand = scenario === "online-effect-j-shield" ? jackShieldHand("effect-p1") : effectDiscardHand("effect-p1", effectRank);
+    const players = replacePlayers(base, [
+      { hand: p1Hand },
+      { hand: hand("effect-p2", [1, 2, 3, 4, 5, 6, 7, 8, 10, 13]) },
+      { hand: hand("effect-p3", [1, 2, 3, 4, 5, 6, 8, 9, 10, 13]) },
+      { hand: hand("effect-p4", [1, 2, 3, 4, 5, 6, 7, 9, 10, 13]) },
+    ]);
+    return baseScenario(base, {
+      players,
+      currentPlayerIndex: 0,
+      phase: "discard",
+      deck: deckWithoutRanks(`effect-${effectRank}`, [effectRank], [card(`effect-${effectRank}-drawn`, 6, "C")]),
+      message: `E2E: ${effectRank}効果カードを捨てられる局面です。`,
+    });
+  }
+
+  if (scenario === "online-effect-q-after-win") {
+    const qUserHand = [
+      card("eqw-1s", 1, "S"),
+      card("eqw-1h", 1, "H"),
+      card("eqw-1d", 1, "D"),
+      card("eqw-2s", 2, "S"),
+      card("eqw-2h", 2, "H"),
+      card("eqw-2d", 2, "D"),
+      card("eqw-3s", 3, "S"),
+      card("eqw-4s", 4, "S"),
+      card("eqw-remove-9", 9, "H"),
+      card("eqw-key", 13, "C"),
+    ];
+    const players = replacePlayers(base, [
+      {
+        hand: sortCards(qUserHand),
+        discardPile: [card("eqw-used-q", 12, "D")],
+      },
+    ]);
+    return baseScenario(base, {
+      players,
+      currentPlayerIndex: 0,
+      phase: "handoff",
+      deck: deckWithoutRanks("effect-q-after-win", [9], [card("eqw-refill-5", 5, "S")]),
+      pendingDaifugoEffect: {
+        kind: "queenSelect",
+        effect: "queenNumberVanish",
+        playerIndex: 0,
+        continue: { shouldConfirmReach: false },
+      },
+      message: "E2E: Phase 4 Q補充後上がり局面です。",
     });
   }
 

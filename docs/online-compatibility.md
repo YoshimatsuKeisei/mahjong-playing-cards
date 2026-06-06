@@ -38,7 +38,7 @@ Client must not receive:
 | Turn handoff after discard | `advanceToNextDraw` + `confirmHandoff` | Done minimal | Manual handoff UI bypassed online | If normal discard reaches `handoff`, server auto-confirms | New current player, phase `draw` | Next player draw button | Playwright `online-turn`, smoke |
 | `takeDiscard` | `gameState.ts case "takeDiscard"` | Implemented Phase 2 | Wider UI polish later | Validate current player, phase `draw`, legal discard source, legal meld; run reducer | Viewer-only `reaction.callCandidates`; public openMelds after call | `call-button` | Smoke + Playwright `online-call` |
 | Call / 鳴き | `getAvailableDiscardSources`, `getCallOptionsForSource`, `rules.ts findCallMeldOptions` | Implemented Phase 2 | Only next-player call per existing rules | Server computes legal source/meld from full state | Caller-only call candidates with source discard and meld payload | Call button sends `takeDiscard` | Playwright `online-call` |
-| Call pass | Offline implicit draw choice | Implemented Phase 2 | No separate reducer action; pass is `drawFromDeck` | Treat `drawFromDeck` as pass over call options | `passReaction` available action; draw remains legal | Pass button sends `drawFromDeck` | Playwright `online-call-pass` |
+| Call pass | Offline implicit draw choice | Implemented Phase 2, UI cleaned before Phase 4 | No visible Pass button by design | Treat `drawFromDeck` as pass over call options | Draw remains legal; no player-facing `Pass` UI | Existing draw button | Playwright `online-call-pass` |
 | Ron candidate | `makeReachRonResult`, `findReachRonResults` | Implemented Phase 2 | Only reach ron per existing reducer | After discard, reducer enters `ronCheck`; server sends candidate views only to eligible players | Candidate-only `pendingRonResult` and `reaction.ronCandidates` | Ron overlay | Playwright `online-ron` |
 | `answerRon` | `gameState.ts case "answerRon"` | Implemented Phase 2 | Existing reducer handles all candidates together | Validate sender is one of `pendingRonResult.ronResults`; run reducer | Candidate-only ron data; public result after win | Ron / Pass buttons | Playwright `online-ron` |
 | `winWithDiscard` | `gameState.ts case "winWithDiscard"` | Implemented Phase 1.5 | Name covers tsumo after deck draw and ron after discard take | Validate legal winning discard option | Actor-only winning options | Tsumo/win button | Playwright tsumo/reach |
@@ -58,17 +58,22 @@ Client must not receive:
 | Reach ron check | `makeReachRonResult`, `answerRon` | Implemented Phase 3 via Phase 2 | None known | After reach discard, keep `ronCheck` if candidates exist; validate eligible responder | Candidate-only Ron view | Ron button | Playwright `online-reach-discard-ron` |
 | Reach after discard reaction | `discardDrawnOnly` -> `advanceToNextDraw` / `ronCheck` | Implemented Phase 3 | None known | Auto-confirm handoff only when no pending reaction/effect remains | Public discard pile and current phase | Ron/pass or next draw | Playwright `online-reach-discard-ron`, discard-drawn-only |
 | Reach round end | `winWithDiscard`, `answerRon`, scoring | Implemented Phase 3 via existing result flow | None known | Preserve existing result scoring and Wロン behavior | Public result; hidden hands masked | Result screen | Playwright reach tsumo/ron |
-| `answerDaifugoEffect` | `gameState.ts case "answerDaifugoEffect"` | Missing | Effect confirm not wired online | Validate pending effect owner | Pending effect actor-only | Effect yes/no buttons | Add effect tests |
-| `discardForDaifugoEffect` | `gameState.ts case "discardForDaifugoEffect"` | Missing | Needed for 8/10 | Validate pending extra discard and candidate card | Candidate cards actor-only | Extra discard button | Add 8/10 tests |
-| `drawForDaifugoEffect` | `gameState.ts case "drawForDaifugoEffect"` | Missing | Needed for 8/10/Q refill | Validate pending draw owner/effect | Actor-only drawn cards when visible | Effect draw flow | Add effect tests |
-| 5 effect | `applyDaifugoEffect` / `resolveNormalFiveSkip` | Missing | Not online-enabled | Validate confirm and run reducer | Pending/effect result, next turn | Effect confirm | Add effect tests |
-| 7 effect | `startSevenExchange` / `resolveSevenExchange` | Missing | Not online-enabled | Validate selections from both players | Candidate cards only to selecting player | Exchange card picker | Add effect tests |
-| 8 effect | `applyDaifugoEffect` + extra discard | Missing | Not online-enabled | Validate effect flow and extra discard | Actor-only draw/discard candidates | Effect draw/discard UI | Add effect tests |
-| 9 effect | `applyDaifugoEffect` reverse | Missing | Not online-enabled | Validate confirm and direction change | Direction public | Effect confirm | Add effect tests |
-| 10 effect | `applyDaifugoEffect` + extra discard/draw | Missing | Not online-enabled | Validate effect flow | Actor-only extra discard/draw | Extra discard UI | Add effect tests |
-| J inspect | `resolveJackSpecialEffect` | Missing | Not online-enabled | Validate selection and reveal only allowed cards | Revealed cards actor-only | Inspect UI | Add J tests |
-| J shield | `resolveJackShieldEffect` / run effect | Missing | Not online-enabled | Validate shield target from actor hand | Own shield detail only; public shield status only | Shield target UI | Add J tests |
-| Q vanish | `resolveQueenNumberVanish` | Missing | Not online-enabled | Validate selected rank and refill | Own discarded/drawn card details only; public counts | Queen rank UI | Add Q tests |
+| 5 skip | `createPendingDaifugoEffect` / `answerDaifugoEffect` / `resolveNormalFiveSkip` | Implemented Phase 4 | None known | Validate pending owner and confirm action; reducer owns skip target and next turn | Actor-only pending confirm; public next current player/message | Effect yes/no buttons | `online-effect-5` |
+| Enhanced 5 skip | `answerFiveEnhancement`, `selectEnhancedFiveTarget`, `confirmEnhancedFiveTarget` | Implemented Phase 4 validation path | UI covered by existing panel; focused E2E still minimal | Validate J enhancement owner, legal target, and confirm | Actor-only target selection; public turn result | Enhanced 5 target UI | Invalid effect coverage |
+| 7 exchange | `startSevenExchange`, `selectSevenExchangeCard`, `resolveSevenExchange` | Implemented Phase 4 | None known | Validate pending participant, legal own card, J shield restriction | Only selecting player sees own card candidates/selections; others see counts only | Exchange card picker | `online-effect-7` |
+| Enhanced 7 exchange | `answerSevenEnhancement`, `selectEnhancedSevenTarget`, `confirmEnhancedSevenTarget` | Implemented Phase 4 validation path | UI covered by existing panel; focused E2E still minimal | Validate J enhancement owner, legal target, and confirm | Actor-only target selection and own card choice | Enhanced 7 target UI | Invalid effect coverage |
+| 8 draw and extra discard | `answerDaifugoEffect`, `drawForDaifugoEffect`, `discardForDaifugoEffect` | Implemented Phase 4 | None known | Validate pending owner, effect draw, legal extra discard | Actor-only drawn card and extra discard pending; public discard after action | Effect draw/discard panel | `online-effect-8` |
+| 9 reverse | `answerDaifugoEffect` / reverse handling | Implemented Phase 4 | None known | Validate pending owner and confirm; reducer owns direction | Public `direction`, current player, message | Effect yes/no buttons | `online-effect-9` |
+| 10 draw and extra discard | `answerDaifugoEffect`, `drawForDaifugoEffect`, `discardForDaifugoEffect` | Implemented Phase 4 | Existing reducer immediately continues after 10 draw when no win | Validate pending owner, effect draw, legal extra discard | Actor-only pending/action data; deck hidden | Effect discard/draw flow | `online-effect-10` |
+| J enhancement | `selectJackSpecialEffect("enhanceFiveOrSeven")` | Implemented Phase 4 | None known | Validate pending J owner and legal effect choice | Actor-only J choice; public enhancement flag | J effect choice buttons | `online-effect-j` |
+| J hand view | `selectJackSpecialEffect("inspectHands")`, `inspectJackCard`, `confirmJackInspectCard` | Implemented Phase 4 | None known | Validate pending owner, legal target/card, reveal only selected card | Inspector-only target card ids and revealed card; other views hidden | Inspect buttons and confirm | `online-effect-j` |
+| J shield | `selectJackSpecialEffect("jShield")`, `selectJackShieldRank`, `selectJackShieldRun` | Implemented Phase 4 | None known | Validate pending owner and legal shield target | Owner-only shield detail; others receive no target detail | Shield rank/run buttons | `online-effect-j` |
+| Q number vanish | `selectQueenVanishRank`, `resolveQueenNumberVanish` | Implemented Phase 4 | None known | Validate pending Q owner and server-computed selectable rank | Actor-only rank options; masked Q event details per viewer | Queen rank buttons | `online-effect-q` |
+| Q replacement draw | `resolveQueenNumberVanish` | Implemented Phase 4 | None known | Reducer owns discard/refill; server masks event | Affected player sees own drawn cards only; others see counts/no contents | Existing Q event display | `online-effect-q` |
+| Q after-effect win | `answerQueenWin` | Implemented and re-verified Phase 4 | None known | Validate pending Q win owner | Actor-only win confirm; public result after answer | Existing Q win auto/confirm | `online-effect-q-after-win` |
+| `discardForDaifugoEffect` | `gameState.ts case "discardForDaifugoEffect"` | Implemented Phase 4 | None known | Validate pending extra discard owner and candidate card | Actor-only extra discard action; public discard pile after reducer | Extra discard button | `online-effect-8`, `online-effect-10`, invalid effect |
+| Effect selection / pending effect | All pending effect cases | Implemented Phase 4 | None known | Reject action from non-owner/non-participant/wrong phase | Pending effect visible only to involved viewer | Existing effect panels | Phase 4 effect specs |
+| Invalid effect action reject | Online-only validation before reducer | Implemented Phase 4 | None known | Reject stale/wrong owner/invalid card/rank/target | Latest safe PlayerViewState after reject | Console/actionRejected | `online-effect-invalid` |
 | Deckout | `deckoutResult` | Missing online test | May work through reducer but not verified | Allow reducer result and broadcast | Public result | Result UI | Add deckout test |
 | Round end | `matchState.ts` | Missing online | Match flow not online-enabled | Server-side match state needed | Round result view | Next round UI | Add round tests |
 | Score calculation | `scoring.ts` | Missing online test | Single-game result not fully wired online | Use existing scoring through reducer/result | Public result; hidden hands safe | Result UI | Add result tests |
@@ -130,10 +135,12 @@ Status: Implemented.
 
 ### Phase 4: Daifugo Effects
 
-Status: Partial.
+Status: Implemented with focused Phase 4 coverage.
 
-- Q after-effect win path is included in Phase 1.5.
-- Full 5/7/8/9/10/J/Q online effect coverage remains future work.
+- 5 skip, 7 exchange, 8 extra draw/discard, 9 reverse, 10 extra discard/draw, J enhancement/inspect/shield, and Q vanish are routed through server-authoritative `submitAction`.
+- Pending effect views are actor/participant scoped, with 7 selections and Q/J details masked per viewer.
+- Invalid effect actions now return specific `actionRejected` reasons.
+- Q after-effect win remains covered and was re-verified for Phase 4.
 
 ### Phase 5: Round/Result
 
