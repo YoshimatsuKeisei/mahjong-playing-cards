@@ -1969,6 +1969,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const pending = state.pendingDaifugoEffect;
       if (!pending || pending.kind !== "sevenExchange") return state;
       if (action.playerIndex !== pending.playerIndex && action.playerIndex !== pending.targetPlayerIndex) return state;
+      if (pending.selections[action.playerIndex]) return state;
       const player = state.players[action.playerIndex];
       const candidates = getSevenExchangeCandidateCards(player, action.playerIndex === pending.playerIndex);
       if (!candidates.some((card) => card.id === action.cardId)) return state;

@@ -335,13 +335,36 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
       ? { ...rawDaifugoAnimationStep, phase: daifugoDrawPhase }
       : rawDaifugoAnimationStep;
   const isDaifugoEventPlaying = Boolean(daifugoAnimationStep);
+  const sevenExchangeParticipantIndexes =
+    pendingDaifugoEffect?.kind === "sevenExchange" ? [pendingDaifugoEffect.playerIndex, pendingDaifugoEffect.targetPlayerIndex] : [];
+  const viewerIsSevenExchangeParticipant = sevenExchangeParticipantIndexes.includes(viewerPlayerIndex);
+  const viewerHasSelectedSevenExchangeCard =
+    pendingDaifugoEffect?.kind === "sevenExchange" && viewerIsSevenExchangeParticipant ? Boolean(pendingDaifugoEffect.selections[viewerPlayerIndex]) : false;
+  const firstUnselectedSevenExchangePlayerIndex =
+    pendingDaifugoEffect?.kind === "sevenExchange"
+      ? sevenExchangeParticipantIndexes.find((playerIndex) => !pendingDaifugoEffect.selections[playerIndex] && !state.players[playerIndex]?.isCpu) ?? null
+      : null;
   const sevenSelectionPlayerIndex =
     pendingDaifugoEffect?.kind === "sevenExchange"
-      ? [pendingDaifugoEffect.playerIndex, pendingDaifugoEffect.targetPlayerIndex].find(
-          (playerIndex) => !pendingDaifugoEffect.selections[playerIndex] && !state.players[playerIndex]?.isCpu,
-        ) ?? null
+      ? isOnlineView
+        ? viewerIsSevenExchangeParticipant && !viewerHasSelectedSevenExchangeCard
+          ? viewerPlayerIndex
+          : null
+        : firstUnselectedSevenExchangePlayerIndex
       : null;
   const sevenSelectionPlayer = sevenSelectionPlayerIndex !== null ? state.players[sevenSelectionPlayerIndex] : null;
+  const sevenExchangeActor =
+    pendingDaifugoEffect?.kind === "sevenExchange" ? state.players[pendingDaifugoEffect.playerIndex] : null;
+  const sevenExchangeTarget =
+    pendingDaifugoEffect?.kind === "sevenExchange" ? state.players[pendingDaifugoEffect.targetPlayerIndex] : null;
+  const sevenExchangeWaitingNames =
+    pendingDaifugoEffect?.kind === "sevenExchange"
+      ? sevenExchangeParticipantIndexes
+          .filter((playerIndex) => !pendingDaifugoEffect.selections[playerIndex])
+          .map((playerIndex) => state.players[playerIndex]?.name)
+          .filter(Boolean)
+          .join("、")
+      : "";
   const sevenSelectionCandidates =
     pendingDaifugoEffect?.kind === "sevenExchange" && sevenSelectionPlayer
       ? getSevenExchangeCandidateCards(sevenSelectionPlayer, sevenSelectionPlayerIndex === pendingDaifugoEffect.playerIndex)
@@ -374,10 +397,10 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
   const hiddenQueenDiscardIdsByPlayer =
     visibleDaifugoEvent && isDaifugoEventPlaying ? getHiddenQueenDiscardIdsByPlayer(visibleDaifugoEvent, daifugoAnimationStep) : new Map<number, Set<string>>();
   const isSevenHandSelection = sevenSelectionPlayerIndex !== null && handPlayerIndex === sevenSelectionPlayerIndex;
-  const canActOnSevenExchangeSelection = isSevenHandSelection && isViewerRequiredActionPlayer;
+  const canActOnSevenExchangeSelection = isSevenHandSelection && (!isOnlineView || viewerIsSevenExchangeParticipant) && !viewerHasSelectedSevenExchangeCard;
   const shouldShowActionPanel =
     !shouldHideCpuDetails ||
-    sevenSelectionPlayerIndex !== null ||
+    isSevenExchange ||
     (pendingDaifugoEffect?.kind === "sevenEnhancementConfirm" && !state.players[pendingDaifugoEffect.playerIndex]?.isCpu) ||
     (pendingDaifugoEffect?.kind === "sevenEnhancedTargetSelect" && !state.players[pendingDaifugoEffect.playerIndex]?.isCpu) ||
     (pendingDaifugoEffect?.kind === "fiveEnhancementConfirm" && !state.players[pendingDaifugoEffect.playerIndex]?.isCpu) ||
@@ -604,6 +627,12 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
       setSelectedDiscardId(null);
     }
   }, [handPlayer.hand, selectedDiscardId]);
+
+  useEffect(() => {
+    if (selectedDiscardId && isSevenExchange && !canActOnSevenExchangeSelection) {
+      setSelectedDiscardId(null);
+    }
+  }, [canActOnSevenExchangeSelection, isSevenExchange, selectedDiscardId]);
 
   useEffect(() => {
     if (!isOnlineView || !state.drawnCard || state.drawnFrom !== "deck" || state.phase !== "discard") return;
@@ -1390,27 +1419,33 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
             </div>
           )}
 
-          {isSevenExchange && sevenSelectionPlayer && (
+          {isSevenExchange && (
             <div className="daifugo-effect-panel seven-exchange-panel">
               <strong>
                 {canActOnSevenExchangeSelection
-                  ? "相手に渡すカードを手札から1枚選んでください。"
-                  : `${sevenSelectionPlayer.name}が相手に渡すカードを選択しています。`}
+                  ? "相手に渡すカードを1枚選択してください。"
+                  : viewerIsSevenExchangeParticipant && viewerHasSelectedSevenExchangeCard
+                    ? `${sevenExchangeWaitingNames || "相手"}が渡すカードを選択しています。`
+                    : `${sevenExchangeActor?.name ?? "プレイヤー"}と${sevenExchangeTarget?.name ?? "相手"}が互いに渡すカードを選択しています。`}
               </strong>
               {canActOnSevenExchangeSelection ? (
                 <span className="hint">カードをクリックして選択、もう一度クリックするかボタンで確定します。</span>
+              ) : viewerIsSevenExchangeParticipant && viewerHasSelectedSevenExchangeCard ? (
+                <span className="hint">あなたの選択は完了しました。相手の選択を待っています。</span>
               ) : (
-                <span className="hint">入力対象のプレイヤーを待っています。</span>
+                <span className="hint">この交換は読み取り専用です。</span>
               )}
-              <button
-                type="button"
-                className="primary-button"
-                data-testid="seven-exchange-confirm-button"
-                disabled={!canActOnSevenExchangeSelection || !selectedDiscardId || isAnimating || cpuActionInProgress}
-                onClick={handleSevenExchangeConfirm}
-              >
-                このカードを渡す
-              </button>
+              {canActOnSevenExchangeSelection && (
+                <button
+                  type="button"
+                  className="primary-button"
+                  data-testid="seven-exchange-confirm-button"
+                  disabled={!selectedDiscardId || isAnimating || cpuActionInProgress}
+                  onClick={handleSevenExchangeConfirm}
+                >
+                  このカードを渡す
+                </button>
+              )}
             </div>
           )}
 
@@ -2368,9 +2403,20 @@ function getActionText(state: GameState, viewerPlayerId?: string) {
   const isViewerRequiredActionPlayer = !viewerPlayerId || (requiredActionPlayerIndex !== null && viewerIndex === requiredActionPlayerIndex);
 
   if (pending?.kind === "sevenExchange") {
-    return isViewerRequiredActionPlayer
-      ? "相手に渡すカードを手札から1枚選んでください。"
-      : `${requiredPlayer?.name ?? "プレイヤー"}が相手に渡すカードを選択しています。`;
+    const participantIndexes = [pending.playerIndex, pending.targetPlayerIndex];
+    const viewerIsParticipant = participantIndexes.includes(viewerIndex);
+    const viewerHasSelected = viewerIsParticipant ? Boolean(pending.selections[viewerIndex]) : false;
+    const waitingNames = participantIndexes
+      .filter((playerIndex) => !pending.selections[playerIndex])
+      .map((playerIndex) => state.players[playerIndex]?.name)
+      .filter(Boolean)
+      .join("、");
+    const actor = state.players[pending.playerIndex];
+    const target = state.players[pending.targetPlayerIndex];
+    if (!viewerPlayerId && requiredPlayer) return `${requiredPlayer.name}が渡すカードを選択しています。`;
+    if (viewerIsParticipant && !viewerHasSelected) return "相手に渡すカードを1枚選択してください。";
+    if (viewerIsParticipant && viewerHasSelected) return `${waitingNames || "相手"}が渡すカードを選択しています。`;
+    return `${actor?.name ?? "プレイヤー"}と${target?.name ?? "相手"}が互いに渡すカードを選択しています。`;
   }
   if (pending?.kind === "queenSelect") {
     return isViewerRequiredActionPlayer

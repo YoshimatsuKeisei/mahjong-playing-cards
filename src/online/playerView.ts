@@ -79,7 +79,7 @@ function maskDaifugoEvent(event: DaifugoEffectEvent | null | undefined, viewerIn
     })),
     queenDiscardResults: event.queenDiscardResults?.map((item) => ({
       ...item,
-      discardedCards: item.playerIndex === viewerIndex ? item.discardedCards : [],
+      discardedCards: item.discardedCards,
       drawnCards: item.playerIndex === viewerIndex ? item.drawnCards : [],
     })),
   };
@@ -87,8 +87,8 @@ function maskDaifugoEvent(event: DaifugoEffectEvent | null | undefined, viewerIn
 
 function isPendingEffectVisible(pending: PendingDaifugoEffect | null, viewerIndex: number): boolean {
   if (!pending) return false;
+  if (pending.kind === "sevenExchange") return true;
   if ("playerIndex" in pending && pending.playerIndex === viewerIndex) return true;
-  if (pending.kind === "sevenExchange" && pending.targetPlayerIndex === viewerIndex) return true;
   return false;
 }
 
@@ -192,12 +192,16 @@ export function createPlayerViewState(fullState: GameState, viewerPlayerId: stri
     availableActions.push("passReaction");
   }
   if (fullState.pendingDaifugoEffect && isPendingEffectVisible(fullState.pendingDaifugoEffect, viewerIndex)) {
-    availableActions.push(fullState.pendingDaifugoEffect.kind);
-    if (fullState.pendingDaifugoEffect.kind === "queenWinConfirm") availableActions.push("answerQueenWin");
-    if (fullState.pendingDaifugoEffect.kind === "confirm") availableActions.push("answerDaifugoEffect");
-    if (fullState.pendingDaifugoEffect.kind === "effectDraw") availableActions.push("drawForDaifugoEffect");
-    if (fullState.pendingDaifugoEffect.kind === "extraDiscard") availableActions.push("discardForDaifugoEffect");
-    if (fullState.pendingDaifugoEffect.kind === "queenSelect") availableActions.push("selectQueenVanishRank");
+    const pending = fullState.pendingDaifugoEffect;
+    const isSevenParticipant = pending.kind === "sevenExchange" && (pending.playerIndex === viewerIndex || pending.targetPlayerIndex === viewerIndex);
+    if (pending.kind !== "sevenExchange" || isSevenParticipant) {
+      availableActions.push(pending.kind);
+    }
+    if (pending.kind === "queenWinConfirm") availableActions.push("answerQueenWin");
+    if (pending.kind === "confirm") availableActions.push("answerDaifugoEffect");
+    if (pending.kind === "effectDraw") availableActions.push("drawForDaifugoEffect");
+    if (pending.kind === "extraDiscard") availableActions.push("discardForDaifugoEffect");
+    if (pending.kind === "queenSelect") availableActions.push("selectQueenVanishRank");
   }
 
   const canSelfWin = winningDiscardOptions.length > 0;

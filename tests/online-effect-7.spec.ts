@@ -13,17 +13,23 @@ test("online 7 effect exchanges cards without leaking other hands", async () => 
   await waitForSocket(() => host.state.view.pendingDaifugoEffect?.kind === "sevenExchange", "7 did not enter exchange");
 
   expect(target.state.view.pendingDaifugoEffect?.kind).toBe("sevenExchange");
-  expect(clients[2].state.view.pendingDaifugoEffect).toBeNull();
+  expect(clients[2].state.view.pendingDaifugoEffect?.kind).toBe("sevenExchange");
   expect(target.state.view.players[0].hand.every((card: any) => String(card.id).startsWith("hidden-hand-"))).toBe(true);
 
-  const hostCard = host.state.view.players[0].hand[0];
-  const versionBeforeHostSelection = target.state.view.stateVersion;
-  submitSocketAction(host, { type: "selectSevenExchangeCard", playerIndex: 0, cardId: hostCard.id });
-  await waitForSocket(() => target.state.view.stateVersion > versionBeforeHostSelection, "target did not receive exchange view");
-  expect(target.state.view.pendingDaifugoEffect.selections[0]).toBe("__selected__");
+  const outsiderCard = clients[2].state.view.players[2].hand[0];
+  submitSocketAction(clients[2], { type: "selectSevenExchangeCard", playerIndex: 2, cardId: outsiderCard.id });
+  await waitForSocket(() => clients[2].state.rejected.length > 0, "third-party 7 exchange selection was not rejected");
+  expect(clients[2].state.rejected.at(-1).reason).toBe("not_your_reaction");
 
   const targetCard = target.state.view.players[1].hand[0];
+  const versionBeforeTargetSelection = host.state.view.stateVersion;
   submitSocketAction(target, { type: "selectSevenExchangeCard", playerIndex: 1, cardId: targetCard.id });
+  await waitForSocket(() => host.state.view.stateVersion > versionBeforeTargetSelection, "host did not receive target exchange view");
+  expect(host.state.view.pendingDaifugoEffect.selections[1]).toBe("__selected__");
+  expect(host.state.view.pendingDaifugoEffect.selections[0]).toBeUndefined();
+
+  const hostCard = host.state.view.players[0].hand[0];
+  submitSocketAction(host, { type: "selectSevenExchangeCard", playerIndex: 0, cardId: hostCard.id });
   await waitForSocket(() => host.state.view.daifugoEffectEvent?.kind === "sevenExchange", "7 exchange did not resolve");
   expect(clients.every((client) => client.state.view.players[0].hand.length === 10)).toBe(true);
   expect(clients.every((client) => client.state.view.players[1].hand.length === 10)).toBe(true);

@@ -304,6 +304,8 @@ function validatePendingEffectAction(state: GameState, playerIndex: number, acti
   if (action.type === "selectSevenExchangeCard") {
     if (pending.kind !== "sevenExchange") return "invalid_action_for_phase";
     if (action.playerIndex !== playerIndex) return "not_your_reaction";
+    if (playerIndex !== pending.playerIndex && playerIndex !== pending.targetPlayerIndex) return "not_your_reaction";
+    if (pending.selections[playerIndex]) return "invalid_seven_exchange_card";
     const player = state.players[playerIndex];
     const selected = player?.hand.find((card) => card.id === action.cardId) ?? null;
     if (!selected) return "invalid_seven_exchange_card";
