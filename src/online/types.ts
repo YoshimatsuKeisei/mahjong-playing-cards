@@ -38,6 +38,8 @@ export interface OnlineRoomSnapshot {
   roomId: string;
   hostPlayerId: string;
   maxPlayers: number;
+  totalPlayers: number;
+  cpuPlayers: number;
   players: OnlineRoomPlayer[];
   started: boolean;
 }

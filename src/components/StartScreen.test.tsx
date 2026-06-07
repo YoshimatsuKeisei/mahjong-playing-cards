@@ -99,20 +99,20 @@ describe("StartScreen room settings validation", () => {
     expect(screen.queryByText("CPUの強さ")).not.toBeInTheDocument();
   });
 
-  it("shows per-CPU model selectors for CPU rooms and passes the selected models", async () => {
+  it("disables CPU composition choices while online CPU support is paused", async () => {
     const user = userEvent.setup();
     const onStart = vi.fn();
     render(<StartScreen onStart={onStart} onBackHome={vi.fn()} />);
 
     expect(screen.queryByText("CPU設定")).not.toBeInTheDocument();
+    expect(screen.getByTestId("online-cpu-disabled-notice")).toHaveTextContent("オンラインCPU対戦は現在調整中です");
+    expect(screen.getByRole("button", { name: /Player 3.*CPU 1/ })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Player 2.*CPU 2/ })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Player 1.*CPU 3/ })).toBeDisabled();
 
     await user.click(screen.getByRole("button", { name: /Player 3.*CPU 1/ }));
 
-    expect(screen.getByText("CPU設定")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "junior-CPU" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "standard-CPU" })).toHaveClass("selected");
-
-    await user.click(screen.getByRole("button", { name: "pro-CPU" }));
+    expect(screen.queryByText("CPU設定")).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "作成" }));
 
     expect(onStart).toHaveBeenCalledWith(
@@ -121,16 +121,16 @@ describe("StartScreen room settings validation", () => {
       "rounds",
       10,
       expect.objectContaining({
-        cpuModelId: "tactical",
-        cpuModelIds: ["tactical"],
-        cpuPlayers: 1,
-        humanPlayers: 3,
+        cpuModelId: "standard",
+        cpuModelIds: [],
+        cpuPlayers: 0,
+        humanPlayers: 4,
         showCpuActions: true,
       }),
     );
   });
 
-  it("toggles visibility with a switch and forces private when only the host and CPU fill the room", async () => {
+  it("toggles visibility with a switch and keeps CPU compositions disabled", async () => {
     const user = userEvent.setup();
     render(<StartScreen onStart={vi.fn()} onBackHome={vi.fn()} />);
 
@@ -154,16 +154,9 @@ describe("StartScreen room settings validation", () => {
     await user.click(visibilitySwitch);
     expect(visibilitySwitch).toHaveAttribute("aria-checked", "true");
 
-    await user.click(screen.getByRole("button", { name: "Player 1人 + CPU 3体" }));
-
-    expect(visibilitySwitch).toBeDisabled();
-    expect(visibilitySwitch).toHaveAttribute("aria-checked", "false");
-    expect(visibilitySwitch).toHaveClass("is-private");
-    expect(screen.getByText("参加枠がないためPrivate固定です")).toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: "Player 2人 + CPU 2体" }));
-
+    expect(screen.getByRole("button", { name: "Player 1人 + CPU 3体" })).toBeDisabled();
     expect(visibilitySwitch).toBeEnabled();
+    expect(visibilitySwitch).toHaveAttribute("aria-checked", "true");
   });
 
   it("shows an error and disables create when the target score is out of range", async () => {
@@ -263,7 +256,6 @@ describe("StartScreen room settings validation", () => {
     render(<StartScreen onStart={onStart} onBackHome={vi.fn()} />);
 
     await user.type(screen.getByLabelText("ルーム名"), "初心者歓迎ルーム");
-    await user.click(screen.getByRole("button", { name: "Player 2人 + CPU 2体" }));
     await user.click(screen.getAllByRole("switch")[0]);
     await user.click(screen.getByRole("button", { name: "作成" }));
 
@@ -273,9 +265,9 @@ describe("StartScreen room settings validation", () => {
       "rounds",
       10,
       expect.objectContaining({
-        cpuPlayers: 2,
-        humanPlayers: 2,
-        cpuModelIds: ["standard", "standard"],
+        cpuPlayers: 0,
+        humanPlayers: 4,
+        cpuModelIds: [],
         roomName: "初心者歓迎ルーム",
         totalPlayers: 4,
         visibility: "public",

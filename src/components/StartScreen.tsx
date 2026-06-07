@@ -130,6 +130,7 @@ export default function StartScreen({ onStart, onBackHome, onCancel = onBackHome
   const cpuPlayerCount = playerCount - humanPlayerCount;
   const cpuModelId = cpuModelIds[0] ?? DEFAULT_CPU_MODEL_ID;
   const canSelectPublic = humanPlayerCount >= 2;
+  const onlineCpuNotice = "オンラインCPU対戦は現在調整中です。オンラインルームは人間プレイヤーのみで作成してください。";
 
   useEffect(() => {
     if (!canSelectPublic && visibility === "public") {
@@ -257,6 +258,8 @@ export default function StartScreen({ onStart, onBackHome, onCancel = onBackHome
                 <button
                   type="button"
                   className={humanPlayerCount === humanCount ? "selected" : ""}
+                  disabled={cpuCount > 0}
+                  title={cpuCount > 0 ? onlineCpuNotice : undefined}
                   onClick={() => setHumanPlayerCount(humanCount)}
                   key={humanCount}
                 >
@@ -265,6 +268,7 @@ export default function StartScreen({ onStart, onBackHome, onCancel = onBackHome
               );
             })}
           </div>
+          <small data-testid="online-cpu-disabled-notice">{onlineCpuNotice}</small>
         </div>
 
         {cpuPlayerCount > 0 && (

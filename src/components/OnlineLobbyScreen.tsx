@@ -33,7 +33,13 @@ export default function OnlineLobbyScreen({
       : undefined;
   const currentPlayer = room?.players.find((player) => player.playerId === playerId) ?? null;
   const isHost = Boolean(room && playerId === room.hostPlayerId);
-  const canStart = Boolean(room && isHost && room.players.length >= 2 && room.players.every((player) => player.ready || player.playerId === room.hostPlayerId));
+  const canStart = Boolean(
+    room &&
+      isHost &&
+      room.totalPlayers >= 2 &&
+      room.players.length >= room.maxPlayers &&
+      room.players.every((player) => player.ready || player.playerId === room.hostPlayerId),
+  );
 
   return (
     <main className="screen room-choice-screen">

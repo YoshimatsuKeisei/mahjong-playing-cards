@@ -84,6 +84,8 @@ function snapshotRoom(room: ServerRoom): OnlineRoomSnapshot {
     roomId: room.id,
     hostPlayerId: room.hostPlayerId,
     maxPlayers: room.maxPlayers,
+    totalPlayers: room.roomSettings?.totalPlayers ?? room.maxPlayers,
+    cpuPlayers: room.roomSettings?.cpuPlayers ?? 0,
     players: room.players,
     started: room.started,
   };
@@ -94,6 +96,7 @@ function listPublicRooms(): OnlinePublicRoom[] {
     .filter((room) => {
       const settings = room.roomSettings;
       if (!settings || settings.visibility !== "public") return false;
+      if (settings.cpuPlayers > 0) return false;
       if (room.started) return false;
       if (settings.humanPlayers <= 1) return false;
       return room.players.length < settings.humanPlayers;
@@ -418,31 +421,31 @@ function advanceOnlineHandoff(nextState: GameState): GameState {
 }
 
 function startRoomGame(room: ServerRoom) {
+  const settings = room.roomSettings;
+  const matchMode = settings?.matchType ?? "rounds";
+  const ruleValue =
+    matchMode === "targetScore"
+      ? settings?.targetScore ?? 3
+      : matchMode === "startingPoints"
+        ? settings?.initialPoints ?? 3
+        : settings?.roundCount ?? 3;
+  const totalPlayers = settings?.totalPlayers ?? room.players.length;
+  const humanPlayers = settings?.humanPlayers ?? room.players.length;
   room.stateVersion = 0;
   room.matchState = createMatchState(
-    "rounds",
-    room.players.length,
+    matchMode,
+    totalPlayers,
     room.direction,
-    3,
-    room.id,
-    room.players.length,
-    "standard",
-    createDefaultDaifugoOptions(),
-    [],
+    ruleValue,
+    settings?.roomName ?? room.id,
+    humanPlayers,
+    settings?.cpuModelId ?? "standard",
+    settings?.daifugoOptions ?? createDefaultDaifugoOptions(),
+    settings?.cpuModelIds ?? [],
     false,
   );
   room.state = room.matchState.gameState;
-  room.state = {
-    ...room.state,
-    stateVersion: room.stateVersion,
-    players: room.state.players.map((player, index) => ({
-      ...player,
-      id: room.players[index].playerId,
-      name: room.players[index].name,
-      type: "human",
-      isCpu: false,
-    })),
-  };
+  room.state = remapOnlinePlayers(room, room.state);
   room.state = applyOnlineScenario(room.state, room.scenario);
   room.state = { ...room.state, stateVersion: room.stateVersion };
   room.matchState = room.matchState ? { ...room.matchState, gameState: room.state } : null;
@@ -459,13 +462,25 @@ function remapOnlinePlayers(room: ServerRoom, state: GameState): GameState {
   return {
     ...state,
     stateVersion: room.stateVersion,
-    players: state.players.map((player, index) => ({
-      ...player,
-      id: room.players[index].playerId,
-      name: room.players[index].name,
-      type: "human",
-      isCpu: false,
-    })),
+    players: state.players.map((player, index) => {
+      if (!player.isCpu) {
+        const onlinePlayer = room.players[index];
+        return {
+          ...player,
+          id: onlinePlayer?.playerId ?? player.id,
+          name: onlinePlayer?.name ?? player.name,
+          type: "human",
+          isCpu: false,
+        };
+      }
+      return {
+        ...player,
+        id: `cpu-${index + 1}`,
+        name: `CPU ${index + 1}`,
+        type: "cpu",
+        isCpu: true,
+      };
+    }),
   };
 }
 
@@ -473,6 +488,10 @@ io.on("connection", (socket) => {
   socket.emit("publicRoomsUpdated", listPublicRooms());
 
   socket.on("createRoom", (payload, ack) => {
+    if ((payload.roomSettings?.cpuPlayers ?? 0) > 0) {
+      ack({ ok: false, error: "オンラインCPU対戦は現在調整中です。CPUなしでルームを作成してください。" });
+      return;
+    }
     const roomId = createRoomId();
     const room: ServerRoom = {
       id: roomId,
@@ -559,7 +578,16 @@ io.on("connection", (socket) => {
       socket.emit("errorMessage", "Only the host can start the game.");
       return;
     }
-    if (room.players.length < 2 || !room.players.every((player) => player.ready || player.playerId === room.hostPlayerId)) {
+    const totalSeats = room.roomSettings?.totalPlayers ?? room.maxPlayers;
+    if ((room.roomSettings?.cpuPlayers ?? 0) > 0 || room.state?.players.some((player) => player.isCpu)) {
+      socket.emit("errorMessage", "オンラインCPU対戦は現在調整中です。CPUなしのルームのみ開始できます。");
+      return;
+    }
+    if (
+      totalSeats < 2 ||
+      room.players.length < room.maxPlayers ||
+      !room.players.every((player) => player.ready || player.playerId === room.hostPlayerId)
+    ) {
       socket.emit("errorMessage", "Need at least two players, and all guests must be ready.");
       return;
     }

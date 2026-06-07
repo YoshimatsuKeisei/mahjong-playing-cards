@@ -605,6 +605,8 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
   useEffect(() => {
     if (!isOnlineView || !state.drawnCard || state.drawnFrom !== "deck" || state.phase !== "discard") return;
     if (state.viewerPlayerId !== currentPlayer?.id) return;
+    if (state.pendingDaifugoEffect) return;
+    if (!availableActions.has("discard") && !availableActions.has("discardDrawnOnly")) return;
     const animationKey = `${state.stateVersion ?? 0}:${state.drawnCard.id}`;
     if (lastOnlineDrawAnimationKeyRef.current === animationKey) return;
     lastOnlineDrawAnimationKeyRef.current = animationKey;
@@ -613,7 +615,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
     schedule(() => setAnimationPhase("revealingDrawnCard"), 280);
     schedule(() => setAnimationPhase("movingDrawnCardToHand"), 1550);
     schedule(() => finishAnimation(), 2100);
-  }, [currentPlayer?.id, isOnlineView, state.drawnCard, state.drawnFrom, state.phase, state.stateVersion, state.viewerPlayerId]);
+  }, [availableActions, currentPlayer?.id, isOnlineView, state.drawnCard, state.drawnFrom, state.pendingDaifugoEffect, state.phase, state.stateVersion, state.viewerPlayerId]);
 
   useEffect(() => {
     if (state.phase === "handoff") {

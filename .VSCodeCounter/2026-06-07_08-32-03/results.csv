@@ -1,0 +1,118 @@
+"filename", "language", "Log", "JSON", "TypeScript", "JSON with Comments", "PostCSS", "TypeScript JSX", "HTML", "Markdown", "JavaScript", "YAML", "comment", "blank", "total"
+"c:\Users\jingc\Documents\8番出口\.github\workflows\ci.yml", "YAML", 0, 0, 0, 0, 0, 0, 0, 0, 0, 28, 0, 7, 35
+"c:\Users\jingc\Documents\8番出口\docs\online-compatibility.md", "Markdown", 0, 0, 0, 0, 0, 0, 0, 124, 0, 0, 0, 27, 151
+"c:\Users\jingc\Documents\8番出口\index.html", "HTML", 0, 0, 0, 0, 0, 0, 12, 0, 0, 0, 0, 1, 13
+"c:\Users\jingc\Documents\8番出口\package-lock.json", "JSON", 0, 3012, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 3013
+"c:\Users\jingc\Documents\8番出口\package.json", "JSON", 0, 40, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 41
+"c:\Users\jingc\Documents\8番出口\playwright.config.ts", "TypeScript", 0, 0, 34, 0, 0, 0, 0, 0, 0, 0, 0, 2, 36
+"c:\Users\jingc\Documents\8番出口\scripts\online-smoke.mjs", "JavaScript", 0, 0, 0, 0, 0, 0, 0, 0, 240, 0, 0, 30, 270
+"c:\Users\jingc\Documents\8番出口\scripts\sim.mjs", "JavaScript", 0, 0, 0, 0, 0, 0, 0, 0, 16, 0, 0, 3, 19
+"c:\Users\jingc\Documents\8番出口\server\index.ts", "TypeScript", 0, 0, 614, 0, 0, 0, 0, 0, 0, 0, 0, 43, 657
+"c:\Users\jingc\Documents\8番出口\server\onlineScenarios.ts", "TypeScript", 0, 0, 397, 0, 0, 0, 0, 0, 0, 0, 0, 27, 424
+"c:\Users\jingc\Documents\8番出口\src\App.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 1055, 0, 0, 0, 0, 0, 73, 1128
+"c:\Users\jingc\Documents\8番出口\src\components\AvatarGallery.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 34, 0, 0, 0, 0, 0, 4, 38
+"c:\Users\jingc\Documents\8番出口\src\components\AvatarPreview.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 44, 0, 0, 0, 0, 0, 8, 52
+"c:\Users\jingc\Documents\8番出口\src\components\DiscardPile.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 106, 0, 0, 0, 0, 0, 14, 120
+"c:\Users\jingc\Documents\8番出口\src\components\FinalResultScreen.test.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 108, 0, 0, 0, 0, 0, 22, 130
+"c:\Users\jingc\Documents\8番出口\src\components\FinalResultScreen.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 273, 0, 0, 0, 0, 0, 30, 303
+"c:\Users\jingc\Documents\8番出口\src\components\HandView.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 87, 0, 0, 0, 0, 0, 9, 96
+"c:\Users\jingc\Documents\8番出口\src\components\HomeMenu.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 30, 0, 0, 0, 0, 0, 4, 34
+"c:\Users\jingc\Documents\8番出口\src\components\HomeScreen.test.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 25, 0, 0, 0, 0, 0, 5, 30
+"c:\Users\jingc\Documents\8番出口\src\components\HomeScreen.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 45, 0, 0, 0, 0, 0, 6, 51
+"c:\Users\jingc\Documents\8番出口\src\components\ManualScreen.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 123, 0, 0, 0, 0, 0, 7, 130
+"c:\Users\jingc\Documents\8番出口\src\components\MeldArea.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 62, 0, 0, 0, 0, 0, 10, 72
+"c:\Users\jingc\Documents\8番出口\src\components\OnlineLobbyScreen.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 113, 0, 0, 0, 0, 0, 8, 121
+"c:\Users\jingc\Documents\8番出口\src\components\PlaceholderScreen.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 19, 0, 0, 0, 0, 0, 2, 21
+"c:\Users\jingc\Documents\8番出口\src\components\PlayScreen.test.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 554, 0, 0, 0, 0, 0, 105, 659
+"c:\Users\jingc\Documents\8番出口\src\components\PlayScreen.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 2100, 0, 0, 0, 0, 151, 143, 2394
+"c:\Users\jingc\Documents\8番出口\src\components\PlayScreenQueen.test.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 54, 0, 0, 0, 0, 0, 5, 59
+"c:\Users\jingc\Documents\8番出口\src\components\PlayerArea.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 41, 0, 0, 0, 0, 0, 4, 45
+"c:\Users\jingc\Documents\8番出口\src\components\PlayingCard.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 56, 0, 0, 0, 0, 0, 8, 64
+"c:\Users\jingc\Documents\8番出口\src\components\ProfileScreen.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 93, 0, 0, 0, 0, 0, 10, 103
+"c:\Users\jingc\Documents\8番出口\src\components\ResultScreen.test.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 267, 0, 0, 0, 0, 0, 62, 329
+"c:\Users\jingc\Documents\8番出口\src\components\ResultScreen.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 484, 0, 0, 0, 0, 0, 54, 538
+"c:\Users\jingc\Documents\8番出口\src\components\ResultStandingsPanel.test.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 83, 0, 0, 0, 0, 0, 13, 96
+"c:\Users\jingc\Documents\8番出口\src\components\ResultStandingsPanel.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 195, 0, 0, 0, 0, 0, 17, 212
+"c:\Users\jingc\Documents\8番出口\src\components\RoomListScreen.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 128, 0, 0, 0, 0, 0, 12, 140
+"c:\Users\jingc\Documents\8番出口\src\components\RoomSelectScreen.test.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 131, 0, 0, 0, 0, 0, 17, 148
+"c:\Users\jingc\Documents\8番出口\src\components\RoomSelectScreen.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 30, 0, 0, 0, 0, 0, 4, 34
+"c:\Users\jingc\Documents\8番出口\src\components\StartScreen.test.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 232, 0, 0, 0, 0, 0, 54, 286
+"c:\Users\jingc\Documents\8番出口\src\components\StartScreen.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 428, 0, 0, 0, 0, 0, 35, 463
+"c:\Users\jingc\Documents\8番出口\src\data\avatars.ts", "TypeScript", 0, 0, 26, 0, 0, 0, 0, 0, 0, 0, 0, 4, 30
+"c:\Users\jingc\Documents\8番出口\src\game\cpu.ts", "TypeScript", 0, 0, 19, 0, 0, 0, 0, 0, 0, 0, 0, 2, 21
+"c:\Users\jingc\Documents\8番出口\src\game\cpuModel.test.ts", "TypeScript", 0, 0, 493, 0, 0, 0, 0, 0, 0, 0, 0, 92, 585
+"c:\Users\jingc\Documents\8番出口\src\game\cpuModelRegistry.ts", "TypeScript", 0, 0, 25, 0, 0, 0, 0, 0, 0, 0, 0, 6, 31
+"c:\Users\jingc\Documents\8番出口\src\game\cpuTypes.ts", "TypeScript", 0, 0, 40, 0, 0, 0, 0, 0, 0, 0, 0, 6, 46
+"c:\Users\jingc\Documents\8番出口\src\game\daifugoCpu.ts", "TypeScript", 0, 0, 286, 0, 0, 0, 0, 0, 0, 0, 0, 46, 332
+"c:\Users\jingc\Documents\8番出口\src\game\deck.test.ts", "TypeScript", 0, 0, 58, 0, 0, 0, 0, 0, 0, 0, 0, 18, 76
+"c:\Users\jingc\Documents\8番出口\src\game\deck.ts", "TypeScript", 0, 0, 103, 0, 0, 0, 0, 0, 0, 0, 0, 13, 116
+"c:\Users\jingc\Documents\8番出口\src\game\easyCpu.ts", "TypeScript", 0, 0, 93, 0, 0, 0, 0, 0, 0, 0, 0, 19, 112
+"c:\Users\jingc\Documents\8番出口\src\game\gameState.test.ts", "TypeScript", 0, 0, 2064, 0, 0, 0, 0, 0, 0, 0, 0, 224, 2288
+"c:\Users\jingc\Documents\8番出口\src\game\gameState.ts", "TypeScript", 0, 0, 2178, 0, 0, 0, 0, 0, 0, 0, 0, 200, 2378
+"c:\Users\jingc\Documents\8番出口\src\game\masterCpu.ts", "TypeScript", 0, 0, 13, 0, 0, 0, 0, 0, 0, 0, 0, 2, 15
+"c:\Users\jingc\Documents\8番出口\src\game\masterRankEstimate.test.ts", "TypeScript", 0, 0, 80, 0, 0, 0, 0, 0, 0, 0, 0, 9, 89
+"c:\Users\jingc\Documents\8番出口\src\game\masterRankEstimate.ts", "TypeScript", 0, 0, 69, 0, 0, 0, 0, 0, 0, 0, 0, 14, 83
+"c:\Users\jingc\Documents\8番出口\src\game\matchState.test.ts", "TypeScript", 0, 0, 184, 0, 0, 0, 0, 0, 0, 0, 0, 37, 221
+"c:\Users\jingc\Documents\8番出口\src\game\matchState.ts", "TypeScript", 0, 0, 166, 0, 0, 0, 0, 0, 0, 0, 0, 19, 185
+"c:\Users\jingc\Documents\8番出口\src\game\resultFixtures.ts", "TypeScript", 0, 0, 161, 0, 0, 0, 0, 0, 0, 0, 0, 10, 171
+"c:\Users\jingc\Documents\8番出口\src\game\rules.ts", "TypeScript", 0, 0, 146, 0, 0, 0, 0, 0, 0, 0, 0, 37, 183
+"c:\Users\jingc\Documents\8番出口\src\game\scoring.test.ts", "TypeScript", 0, 0, 190, 0, 0, 0, 0, 0, 0, 0, 0, 23, 213
+"c:\Users\jingc\Documents\8番出口\src\game\scoring.ts", "TypeScript", 0, 0, 156, 0, 0, 0, 0, 0, 0, 0, 0, 37, 193
+"c:\Users\jingc\Documents\8番出口\src\game\standardCpu.ts", "TypeScript", 0, 0, 86, 0, 0, 0, 0, 0, 0, 0, 0, 17, 103
+"c:\Users\jingc\Documents\8番出口\src\game\tacticalCpu.ts", "TypeScript", 0, 0, 622, 0, 0, 0, 0, 0, 0, 0, 0, 80, 702
+"c:\Users\jingc\Documents\8番出口\src\main.tsx", "TypeScript JSX", 0, 0, 0, 0, 0, 9, 0, 0, 0, 0, 0, 2, 11
+"c:\Users\jingc\Documents\8番出口\src\online\client.ts", "TypeScript", 0, 0, 11, 0, 0, 0, 0, 0, 0, 0, 0, 3, 14
+"c:\Users\jingc\Documents\8番出口\src\online\playerView.ts", "TypeScript", 0, 0, 228, 0, 0, 0, 0, 0, 0, 0, 0, 15, 243
+"c:\Users\jingc\Documents\8番出口\src\online\types.ts", "TypeScript", 0, 0, 159, 0, 0, 0, 0, 0, 0, 0, 0, 16, 175
+"c:\Users\jingc\Documents\8番出口\src\sim\cli.ts", "TypeScript", 0, 0, 195, 0, 0, 0, 0, 0, 0, 0, 0, 10, 205
+"c:\Users\jingc\Documents\8番出口\src\sim\headlessCpuDriver.ts", "TypeScript", 0, 0, 84, 0, 0, 0, 0, 0, 0, 0, 0, 9, 93
+"c:\Users\jingc\Documents\8番出口\src\sim\scenario.test.ts", "TypeScript", 0, 0, 524, 0, 0, 0, 0, 0, 0, 0, 0, 75, 599
+"c:\Users\jingc\Documents\8番出口\src\sim\scenario.ts", "TypeScript", 0, 0, 63, 0, 0, 0, 0, 0, 0, 0, 0, 5, 68
+"c:\Users\jingc\Documents\8番出口\src\sim\seededRandom.ts", "TypeScript", 0, 0, 28, 0, 0, 0, 0, 0, 0, 0, 0, 3, 31
+"c:\Users\jingc\Documents\8番出口\src\sim\simulator.test.ts", "TypeScript", 0, 0, 635, 0, 0, 0, 0, 0, 0, 0, 0, 72, 707
+"c:\Users\jingc\Documents\8番出口\src\sim\simulator.ts", "TypeScript", 0, 0, 1074, 0, 0, 0, 0, 0, 0, 0, 0, 67, 1141
+"c:\Users\jingc\Documents\8番出口\src\sim\types.ts", "TypeScript", 0, 0, 214, 0, 0, 0, 0, 0, 0, 0, 0, 13, 227
+"c:\Users\jingc\Documents\8番出口\src\styles.css", "PostCSS", 0, 0, 0, 0, 5451, 0, 0, 0, 0, 0, 6, 787, 6244
+"c:\Users\jingc\Documents\8番出口\src\test\setup.ts", "TypeScript", 0, 0, 6, 0, 0, 0, 0, 0, 0, 0, 0, 2, 8
+"c:\Users\jingc\Documents\8番出口\src\types.ts", "TypeScript", 0, 0, 338, 0, 0, 0, 0, 0, 0, 0, 0, 23, 361
+"c:\Users\jingc\Documents\8番出口\src\vite-env.d.ts", "TypeScript", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1
+"c:\Users\jingc\Documents\8番出口\tests\online-call-pass.spec.ts", "TypeScript", 0, 0, 14, 0, 0, 0, 0, 0, 0, 0, 0, 5, 19
+"c:\Users\jingc\Documents\8番出口\tests\online-call.spec.ts", "TypeScript", 0, 0, 19, 0, 0, 0, 0, 0, 0, 0, 0, 5, 24
+"c:\Users\jingc\Documents\8番出口\tests\online-double-ron.spec.ts", "TypeScript", 0, 0, 16, 0, 0, 0, 0, 0, 0, 0, 0, 6, 22
+"c:\Users\jingc\Documents\8番出口\tests\online-effect-10.spec.ts", "TypeScript", 0, 0, 19, 0, 0, 0, 0, 0, 0, 0, 0, 6, 25
+"c:\Users\jingc\Documents\8番出口\tests\online-effect-5.spec.ts", "TypeScript", 0, 0, 16, 0, 0, 0, 0, 0, 0, 0, 0, 5, 21
+"c:\Users\jingc\Documents\8番出口\tests\online-effect-7.spec.ts", "TypeScript", 0, 0, 26, 0, 0, 0, 0, 0, 0, 0, 0, 7, 33
+"c:\Users\jingc\Documents\8番出口\tests\online-effect-8.spec.ts", "TypeScript", 0, 0, 20, 0, 0, 0, 0, 0, 0, 0, 0, 6, 26
+"c:\Users\jingc\Documents\8番出口\tests\online-effect-9.spec.ts", "TypeScript", 0, 0, 14, 0, 0, 0, 0, 0, 0, 0, 0, 5, 19
+"c:\Users\jingc\Documents\8番出口\tests\online-effect-invalid.spec.ts", "TypeScript", 0, 0, 45, 0, 0, 0, 0, 0, 0, 0, 0, 8, 53
+"c:\Users\jingc\Documents\8番出口\tests\online-effect-j.spec.ts", "TypeScript", 0, 0, 43, 0, 0, 0, 0, 0, 0, 0, 0, 13, 56
+"c:\Users\jingc\Documents\8番出口\tests\online-effect-q.spec.ts", "TypeScript", 0, 0, 30, 0, 0, 0, 0, 0, 0, 0, 0, 10, 40
+"c:\Users\jingc\Documents\8番出口\tests\online-helpers.ts", "TypeScript", 0, 0, 56, 0, 0, 0, 0, 0, 0, 0, 0, 10, 66
+"c:\Users\jingc\Documents\8番出口\tests\online-human-stability.spec.ts", "TypeScript", 0, 0, 93, 0, 0, 0, 0, 0, 0, 0, 0, 6, 99
+"c:\Users\jingc\Documents\8番出口\tests\online-next-round.spec.ts", "TypeScript", 0, 0, 20, 0, 0, 0, 0, 0, 0, 0, 0, 6, 26
+"c:\Users\jingc\Documents\8番出口\tests\online-public-rooms.spec.ts", "TypeScript", 0, 0, 238, 0, 0, 0, 0, 0, 0, 0, 0, 33, 271
+"c:\Users\jingc\Documents\8番出口\tests\online-q-after-draw-tsumo.spec.ts", "TypeScript", 0, 0, 12, 0, 0, 0, 0, 0, 0, 0, 0, 5, 17
+"c:\Users\jingc\Documents\8番出口\tests\online-reach-cannot-call.spec.ts", "TypeScript", 0, 0, 17, 0, 0, 0, 0, 0, 0, 0, 0, 6, 23
+"c:\Users\jingc\Documents\8番出口\tests\online-reach-declare.spec.ts", "TypeScript", 0, 0, 18, 0, 0, 0, 0, 0, 0, 0, 0, 5, 23
+"c:\Users\jingc\Documents\8番出口\tests\online-reach-discard-drawn-only.spec.ts", "TypeScript", 0, 0, 19, 0, 0, 0, 0, 0, 0, 0, 0, 5, 24
+"c:\Users\jingc\Documents\8番出口\tests\online-reach-discard-ron.spec.ts", "TypeScript", 0, 0, 17, 0, 0, 0, 0, 0, 0, 0, 0, 6, 23
+"c:\Users\jingc\Documents\8番出口\tests\online-reach-draw-tsumo.spec.ts", "TypeScript", 0, 0, 14, 0, 0, 0, 0, 0, 0, 0, 0, 5, 19
+"c:\Users\jingc\Documents\8番出口\tests\online-reach-invalid-discard.spec.ts", "TypeScript", 0, 0, 20, 0, 0, 0, 0, 0, 0, 0, 0, 6, 26
+"c:\Users\jingc\Documents\8番出口\tests\online-reach-tsumo.spec.ts", "TypeScript", 0, 0, 14, 0, 0, 0, 0, 0, 0, 0, 0, 5, 19
+"c:\Users\jingc\Documents\8番出口\tests\online-ron.spec.ts", "TypeScript", 0, 0, 16, 0, 0, 0, 0, 0, 0, 0, 0, 6, 22
+"c:\Users\jingc\Documents\8番出口\tests\online-round-deckout.spec.ts", "TypeScript", 0, 0, 15, 0, 0, 0, 0, 0, 0, 0, 0, 5, 20
+"c:\Users\jingc\Documents\8番出口\tests\online-round-double-ron.spec.ts", "TypeScript", 0, 0, 18, 0, 0, 0, 0, 0, 0, 0, 0, 5, 23
+"c:\Users\jingc\Documents\8番出口\tests\online-round-ron.spec.ts", "TypeScript", 0, 0, 17, 0, 0, 0, 0, 0, 0, 0, 0, 5, 22
+"c:\Users\jingc\Documents\8番出口\tests\online-round-security.spec.ts", "TypeScript", 0, 0, 22, 0, 0, 0, 0, 0, 0, 0, 0, 8, 30
+"c:\Users\jingc\Documents\8番出口\tests\online-round-tsumo.spec.ts", "TypeScript", 0, 0, 17, 0, 0, 0, 0, 0, 0, 0, 0, 5, 22
+"c:\Users\jingc\Documents\8番出口\tests\online-security-reaction.spec.ts", "TypeScript", 0, 0, 82, 0, 0, 0, 0, 0, 0, 0, 0, 12, 94
+"c:\Users\jingc\Documents\8番出口\tests\online-socket-helpers.ts", "TypeScript", 0, 0, 64, 0, 0, 0, 0, 0, 0, 0, 0, 10, 74
+"c:\Users\jingc\Documents\8番出口\tests\online-start.spec.ts", "TypeScript", 0, 0, 20, 0, 0, 0, 0, 0, 0, 0, 0, 6, 26
+"c:\Users\jingc\Documents\8番出口\tests\online-tsumo.spec.ts", "TypeScript", 0, 0, 37, 0, 0, 0, 0, 0, 0, 0, 0, 10, 47
+"c:\Users\jingc\Documents\8番出口\tests\online-turn.spec.ts", "TypeScript", 0, 0, 55, 0, 0, 0, 0, 0, 0, 0, 0, 10, 65
+"c:\Users\jingc\Documents\8番出口\tsconfig.json", "JSON with Comments", 0, 0, 0, 22, 0, 0, 0, 0, 0, 0, 0, 1, 23
+"c:\Users\jingc\Documents\8番出口\tsconfig.node.json", "JSON", 0, 9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 10
+"c:\Users\jingc\Documents\8番出口\vite-5173.log", "Log", 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 11
+"c:\Users\jingc\Documents\8番出口\vite-dev.out.log", "Log", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1
+"c:\Users\jingc\Documents\8番出口\vite.config.ts", "TypeScript", 0, 0, 10, 0, 0, 0, 0, 0, 0, 0, 0, 2, 12
+"Total", "-", 6, 3061, 13035, 22, 5451, 7009, 12, 124, 256, 28, 158, 3170, 32332

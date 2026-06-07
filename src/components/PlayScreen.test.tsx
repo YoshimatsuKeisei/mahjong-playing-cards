@@ -1,4 +1,4 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { createInitialGame, gameReducer } from "../game/gameState";
@@ -654,5 +654,47 @@ describe("PlayScreen round display", () => {
 
     expect(screen.getAllByText("まだ捨てていません").length).toBeGreaterThan(0);
     expect(screen.getAllByText("まだ鳴いていません").length).toBeGreaterThan(0);
+  });
+
+  it("does not play the online deck draw animation while an effect confirmation is pending", async () => {
+    const base = createInitialGame(4, "clockwise");
+    const state: GameState = {
+      ...base,
+      viewerPlayerId: base.players[0].id,
+      availableActions: ["answerDaifugoEffect"],
+      stateVersion: 4,
+      phase: "discard",
+      drawnCard: base.players[0].hand[0],
+      drawnFrom: "deck",
+      pendingDaifugoEffect: {
+        kind: "confirm",
+        effect: "sevenExchange",
+        playerIndex: 0,
+        continue: { shouldConfirmReach: false },
+      },
+    };
+
+    render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} disableLocalCpuAutomation />);
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(screen.queryByTestId("drawn-card-preview")).not.toBeInTheDocument();
+  });
+
+  it("plays the online deck draw animation for an explicit deck draw discard state", async () => {
+    const base = createInitialGame(4, "clockwise");
+    const state: GameState = {
+      ...base,
+      viewerPlayerId: base.players[0].id,
+      availableActions: ["discard"],
+      stateVersion: 2,
+      phase: "discard",
+      drawnCard: base.players[0].hand[0],
+      drawnFrom: "deck",
+      pendingDaifugoEffect: null,
+    };
+
+    render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} disableLocalCpuAutomation />);
+
+    await waitFor(() => expect(screen.getByTestId("drawn-card-preview")).toBeInTheDocument());
   });
 });
