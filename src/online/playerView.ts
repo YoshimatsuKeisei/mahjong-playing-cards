@@ -35,19 +35,26 @@ function maskWinningResult(result: WinningResult | undefined, visible: boolean):
   };
 }
 
-function maskPlayer(player: Player, visible: boolean, ownerIndex: number, jackInspectRevealedCardId?: string | null): Player {
+function maskPlayer(
+  player: Player,
+  visible: boolean,
+  ownerIndex: number,
+  jackInspectRevealedCardId?: string | null,
+  revealPublicResultCards = false,
+): Player {
+  const showCards = visible || revealPublicResultCards;
   return {
     ...player,
-    hand: jackInspectRevealedCardId !== undefined ? maskCardsForJackInspect(player.hand, jackInspectRevealedCardId) : maskCards(player.hand, visible, ownerIndex),
-    winningResult: maskWinningResult(player.winningResult, visible),
+    hand: jackInspectRevealedCardId !== undefined && !revealPublicResultCards ? maskCardsForJackInspect(player.hand, jackInspectRevealedCardId) : maskCards(player.hand, showCards, ownerIndex),
+    winningResult: maskWinningResult(player.winningResult, showCards),
     jShield: visible ? player.jShield : undefined,
   };
 }
 
-function maskGameResult(result: GameResult | null, viewerIndex: number): GameResult | null {
+function maskGameResult(result: GameResult | null, viewerIndex: number, revealPublicResult = false): GameResult | null {
   if (!result) return null;
   const viewerWon = result.winnerIndex === viewerIndex || result.ronResults?.some((ron) => ron.winnerIndex === viewerIndex);
-  if (viewerWon || result.winType === "deckout") return result;
+  if (revealPublicResult || viewerWon || result.winType === "deckout") return result;
   return {
     ...result,
     winningResult: {
@@ -239,11 +246,18 @@ export function createPlayerViewState(fullState: GameState, viewerPlayerId: stri
         index === jackInspectTargetIndex && fullState.pendingDaifugoEffect?.kind === "jackInspect"
           ? fullState.pendingDaifugoEffect.revealedCardIds[index] ?? null
           : undefined,
+        fullState.phase === "result",
       ),
     ),
-    result: maskGameResult(fullState.result, viewerIndex),
+    result: maskGameResult(fullState.result, viewerIndex, fullState.phase === "result"),
     pendingRonResult: visiblePendingRon,
     daifugoEffectEvent: maskDaifugoEvent(fullState.daifugoEffectEvent, viewerIndex),
+    daifugoDeckDrawEvent: fullState.daifugoDeckDrawEvent
+      ? {
+          ...fullState.daifugoDeckDrawEvent,
+          drawnCard: fullState.daifugoDeckDrawEvent.playerIndex === viewerIndex ? fullState.daifugoDeckDrawEvent.drawnCard : null,
+        }
+      : null,
     showCpuActions: false,
   };
 }

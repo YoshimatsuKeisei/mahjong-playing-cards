@@ -264,6 +264,14 @@ export interface DaifugoEffectEvent {
   reachReleasedPlayerIndexes?: number[];
 }
 
+export interface DaifugoDeckDrawEvent {
+  id: string;
+  playerIndex: number;
+  effect: "eightExtraTurn" | "tenSwapDraw";
+  drawSource: "deck";
+  drawnCard: Card | null;
+}
+
 export interface GameResult {
   winnerIndex: number;
   winType: WinType;
@@ -313,6 +321,7 @@ export interface GameState {
   result: GameResult | null;
   pendingRonResult: GameResult | null;
   daifugoEffectEvent?: DaifugoEffectEvent | null;
+  daifugoDeckDrawEvent?: DaifugoDeckDrawEvent | null;
   queenVanishedRanks?: number[];
   declaredReachThisTurn: boolean;
   message: string;

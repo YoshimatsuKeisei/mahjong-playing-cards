@@ -2068,6 +2068,12 @@ describe("daifugo game state", () => {
     expect(resolved.phase).toBe("handoff");
     expect(resolved.players[0].hand.length).toBe(handBefore);
     expect(resolved.deck.length).toBe(deckBefore - 1);
+    expect(resolved.daifugoDeckDrawEvent).toMatchObject({
+      playerIndex: 0,
+      effect: "tenSwapDraw",
+      drawSource: "deck",
+      drawnCard: expect.any(Object),
+    });
   });
 
   it("adds the drawn card to hand after the 8 effect draw", () => {
@@ -2077,6 +2083,12 @@ describe("daifugo game state", () => {
 
     expect(extra.players[0].hand.some((item) => item.id === "deck-1")).toBe(true);
     expect(extra.drawnCard?.id).toBe("deck-1");
+    expect(extra.daifugoDeckDrawEvent).toMatchObject({
+      playerIndex: 0,
+      effect: "eightExtraTurn",
+      drawSource: "deck",
+      drawnCard: expect.objectContaining({ id: "deck-1" }),
+    });
     expect(extra.pendingDaifugoEffect?.kind).toBe("extraDiscard");
   });
 

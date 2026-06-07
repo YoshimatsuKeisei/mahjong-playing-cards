@@ -254,6 +254,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
   const canChooseDiscard = !currentPlayer.isReach || state.declaredReachThisTurn;
   const [animationPhase, setAnimationPhase] = useState<AnimationPhase>("idle");
   const [animationCard, setAnimationCard] = useState<Card | null>(null);
+  const [animationPlayerIndex, setAnimationPlayerIndex] = useState<number | null>(null);
   const [selectedDiscardId, setSelectedDiscardId] = useState<string | null>(null);
   const [discardingCardId, setDiscardingCardId] = useState<string | null>(null);
   const [reachSplashPlayerName, setReachSplashPlayerName] = useState<string | null>(null);
@@ -445,6 +446,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
   useEffect(() => {
     setAnimationPhase("idle");
     setAnimationCard(null);
+    setAnimationPlayerIndex(null);
     setDiscardingCardId(null);
     timeoutsRef.current.forEach(window.clearTimeout);
     timeoutsRef.current = [];
@@ -635,7 +637,22 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
   }, [canActOnSevenExchangeSelection, isSevenExchange, selectedDiscardId]);
 
   useEffect(() => {
-    if (!isOnlineView || !state.drawnCard || state.drawnFrom !== "deck" || state.phase !== "discard") return;
+    if (!isOnlineView) return;
+    const deckDrawEvent = state.daifugoDeckDrawEvent;
+    if (deckDrawEvent?.drawnCard && deckDrawEvent.playerIndex === viewerPlayerIndex) {
+      const animationKey = deckDrawEvent.id;
+      if (lastOnlineDrawAnimationKeyRef.current === animationKey) return;
+      lastOnlineDrawAnimationKeyRef.current = animationKey;
+      setAnimationCard(deckDrawEvent.drawnCard);
+      setAnimationPlayerIndex(deckDrawEvent.playerIndex);
+      setAnimationPhase("drawingFromDeck");
+      schedule(() => setAnimationPhase("revealingDrawnCard"), 280);
+      schedule(() => setAnimationPhase("movingDrawnCardToHand"), 1550);
+      schedule(() => finishAnimation(), 2100);
+      return;
+    }
+
+    if (!state.drawnCard || state.drawnFrom !== "deck" || state.phase !== "discard") return;
     if (state.viewerPlayerId !== currentPlayer?.id) return;
     if (state.pendingDaifugoEffect) return;
     if (!availableActions.has("discard") && !availableActions.has("discardDrawnOnly")) return;
@@ -643,11 +660,25 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
     if (lastOnlineDrawAnimationKeyRef.current === animationKey) return;
     lastOnlineDrawAnimationKeyRef.current = animationKey;
     setAnimationCard(state.drawnCard);
+    setAnimationPlayerIndex(state.currentPlayerIndex);
     setAnimationPhase("drawingFromDeck");
     schedule(() => setAnimationPhase("revealingDrawnCard"), 280);
     schedule(() => setAnimationPhase("movingDrawnCardToHand"), 1550);
     schedule(() => finishAnimation(), 2100);
-  }, [availableActions, currentPlayer?.id, isOnlineView, state.drawnCard, state.drawnFrom, state.pendingDaifugoEffect, state.phase, state.stateVersion, state.viewerPlayerId]);
+  }, [
+    availableActions,
+    currentPlayer?.id,
+    isOnlineView,
+    state.currentPlayerIndex,
+    state.daifugoDeckDrawEvent,
+    state.drawnCard,
+    state.drawnFrom,
+    state.pendingDaifugoEffect,
+    state.phase,
+    state.stateVersion,
+    state.viewerPlayerId,
+    viewerPlayerIndex,
+  ]);
 
   useEffect(() => {
     if (state.phase === "handoff") {
@@ -825,6 +856,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
   function finishAnimation() {
     setAnimationPhase("idle");
     setAnimationCard(null);
+    setAnimationPlayerIndex(null);
     setDiscardingCardId(null);
   }
 
@@ -840,6 +872,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
     if (isAnimating || deckCount === 0) return;
     const card = state.deck[0] ?? { id: "online-hidden-draw", suit: "S" as const, rank: 1 };
     setAnimationCard(card);
+    setAnimationPlayerIndex(state.currentPlayerIndex);
     setAnimationPhase("drawingFromDeck");
     schedule(() => setAnimationPhase("revealingDrawnCard"), 280);
     schedule(() => setAnimationPhase("movingDrawnCardToHand"), 1550);
@@ -1002,7 +1035,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
         </div>
 
         {animationCard && animationPhase !== "discardingCard" && !shouldHideCpuDetails && (
-          <div className={`card-animation ${animationPhase} seat-${getSeat(playerCount, state.currentPlayerIndex)}`} data-testid="drawn-card-preview">
+          <div className={`card-animation ${animationPhase} seat-${getSeat(playerCount, animationPlayerIndex ?? state.currentPlayerIndex)}`} data-testid="drawn-card-preview">
             <span className="card-animation-label">{getAnimationLabel(animationPhase)}</span>
             <PlayingCard card={animationCard} testId="drawn-card" />
           </div>

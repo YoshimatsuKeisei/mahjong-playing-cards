@@ -698,6 +698,66 @@ describe("PlayScreen round display", () => {
     await waitFor(() => expect(screen.getByTestId("drawn-card-preview")).toBeInTheDocument());
   });
 
+  it("plays the online daifugo 8/10 deck draw animation from the explicit draw event", async () => {
+    const base = createInitialGame(4, "clockwise");
+    const drawnCard = base.players[0].hand[0];
+    const state: GameState = {
+      ...base,
+      viewerPlayerId: base.players[0].id,
+      availableActions: ["discardForDaifugoEffect"],
+      stateVersion: 5,
+      phase: "discard",
+      drawnCard,
+      drawnFrom: "deck",
+      pendingDaifugoEffect: {
+        kind: "extraDiscard",
+        effect: "eightExtraTurn",
+        playerIndex: 0,
+      },
+      daifugoDeckDrawEvent: {
+        id: "daifugo-deck-draw-eightExtraTurn-0-test",
+        playerIndex: 0,
+        effect: "eightExtraTurn",
+        drawSource: "deck",
+        drawnCard,
+      },
+    };
+
+    render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} disableLocalCpuAutomation />);
+
+    await waitFor(() => expect(screen.getByTestId("drawn-card-preview")).toBeInTheDocument());
+  });
+
+  it("does not play another player's online daifugo deck draw animation without the card body", async () => {
+    const base = createInitialGame(4, "clockwise");
+    const state: GameState = {
+      ...base,
+      viewerPlayerId: base.players[1].id,
+      availableActions: [],
+      stateVersion: 5,
+      phase: "discard",
+      drawnCard: null,
+      drawnFrom: "deck",
+      pendingDaifugoEffect: {
+        kind: "extraDiscard",
+        effect: "eightExtraTurn",
+        playerIndex: 0,
+      },
+      daifugoDeckDrawEvent: {
+        id: "daifugo-deck-draw-eightExtraTurn-0-test",
+        playerIndex: 0,
+        effect: "eightExtraTurn",
+        drawSource: "deck",
+        drawnCard: null,
+      },
+    };
+
+    render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} disableLocalCpuAutomation />);
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(screen.queryByTestId("drawn-card-preview")).not.toBeInTheDocument();
+  });
+
   it("lets an online seven-exchange participant select before the other participant has selected", async () => {
     vi.useFakeTimers();
     const dispatch = vi.fn();

@@ -195,6 +195,7 @@ function deckoutResult(state: GameState, players: Player[]): GameState {
     result,
     pendingRonResult: null,
     pendingDaifugoEffect: null,
+    daifugoDeckDrawEvent: null,
     declaredReachThisTurn: false,
     message: "山札がなくなりました。この局は流局です。",
   };
@@ -1879,10 +1880,20 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       if (!pending || pending.kind !== "effectDraw" || pending.playerIndex !== state.currentPlayerIndex) return state;
       const drawn = drawOneForPlayer(state, state.currentPlayerIndex);
       if (!drawn.drawnCard) return deckoutResult({ ...drawn.state, pendingDaifugoEffect: null }, drawn.state.players);
+      const drawnState = {
+        ...drawn.state,
+        daifugoDeckDrawEvent: {
+          id: `daifugo-deck-draw-${pending.effect}-${state.currentPlayerIndex}-${drawn.drawnCard.id}`,
+          playerIndex: state.currentPlayerIndex,
+          effect: pending.effect,
+          drawSource: "deck" as const,
+          drawnCard: drawn.drawnCard,
+        },
+      };
 
       if (pending.effect === "eightExtraTurn") {
         return {
-          ...drawn.state,
+          ...drawnState,
           phase: "discard",
           pendingDaifugoEffect: {
             kind: "extraDiscard",
@@ -1894,19 +1905,19 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         };
       }
 
-      const player = drawn.state.players[state.currentPlayerIndex];
-      const winningResult = checkWinningHandWithOpenMelds(player.hand, player.openMelds, drawn.state.isJBackActive);
+      const player = drawnState.players[state.currentPlayerIndex];
+      const winningResult = checkWinningHandWithOpenMelds(player.hand, player.openMelds, drawnState.isJBackActive);
       if (winningResult.canWin) {
         const nextPlayer = { ...player, winningResult };
-        const players = replacePlayer(drawn.state.players, state.currentPlayerIndex, nextPlayer);
-        return makeWinningState({ ...drawn.state, pendingDaifugoEffect: null }, players, winningResult);
+        const players = replacePlayer(drawnState.players, state.currentPlayerIndex, nextPlayer);
+        return makeWinningState({ ...drawnState, pendingDaifugoEffect: null }, players, winningResult);
       }
 
       if (canDeclareReach(player.hand, player.hasCalled, player.isReach)) {
-        return reachConfirmState({ ...drawn.state, pendingDaifugoEffect: null }, drawn.state.players);
+        return reachConfirmState({ ...drawnState, pendingDaifugoEffect: null }, drawnState.players);
       }
 
-      return continueAfterDaifugo({ ...drawn.state, pendingDaifugoEffect: null }, pending.continue, drawn.state.players);
+      return continueAfterDaifugo({ ...drawnState, pendingDaifugoEffect: null }, pending.continue, drawnState.players);
     }
 
     case "discardForDaifugoEffect": {
