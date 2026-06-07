@@ -95,9 +95,12 @@ function isPendingEffectVisible(pending: PendingDaifugoEffect | null, viewerInde
 function maskPendingDaifugoEffect(pending: PendingDaifugoEffect | null, viewerIndex: number): PendingDaifugoEffect | null {
   if (!isPendingEffectVisible(pending, viewerIndex)) return null;
   if (pending?.kind === "sevenExchange") {
+    const selections = Object.fromEntries(
+      Object.entries(pending.selections).map(([playerIndex, cardId]) => [playerIndex, Number(playerIndex) === viewerIndex ? cardId : "__selected__"]),
+    );
     return {
       ...pending,
-      selections: pending.selections[viewerIndex] ? { [viewerIndex]: pending.selections[viewerIndex] } : {},
+      selections,
     };
   }
   return pending;

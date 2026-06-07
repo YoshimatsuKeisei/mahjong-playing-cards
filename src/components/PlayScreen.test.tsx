@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { createInitialGame, gameReducer } from "../game/gameState";
@@ -696,5 +696,74 @@ describe("PlayScreen round display", () => {
     render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} disableLocalCpuAutomation />);
 
     await waitFor(() => expect(screen.getByTestId("drawn-card-preview")).toBeInTheDocument());
+  });
+
+  it("lets the online seven-exchange required player select a card even when they are not the current turn player", async () => {
+    vi.useFakeTimers();
+    const dispatch = vi.fn();
+    const base = createInitialGame(4, "clockwise");
+    const state: GameState = {
+      ...base,
+      viewerPlayerId: base.players[1].id,
+      stateVersion: 7,
+      currentPlayerIndex: 0,
+      phase: "discard",
+      players: base.players.map((player, index) => ({ ...player, name: ["Alice", "Bob", "Carol", "Dave"][index] })),
+      pendingDaifugoEffect: {
+        kind: "sevenExchange",
+        effect: "sevenExchange",
+        playerIndex: 0,
+        targetPlayerIndex: 1,
+        selections: { 0: "__selected__" },
+        continue: { shouldConfirmReach: false },
+      },
+    };
+
+    try {
+      render(<PlayScreen state={state} dispatch={dispatch} currentRound={1} disableLocalCpuAutomation />);
+
+      expect(screen.getAllByText("相手に渡すカードを手札から1枚選んでください。").length).toBeGreaterThan(0);
+      const selectableCard = screen.getAllByTestId("hand-card").find((button) => !(button as HTMLButtonElement).disabled) as HTMLButtonElement | undefined;
+      expect(selectableCard).toBeTruthy();
+      fireEvent.click(selectableCard!);
+      expect(selectableCard).toHaveClass("selected-card");
+      const confirm = screen.getByTestId("seven-exchange-confirm-button");
+      expect(confirm).toBeEnabled();
+      fireEvent.click(confirm);
+      act(() => vi.advanceTimersByTime(650));
+      expect(dispatch).toHaveBeenCalledWith({
+        type: "selectSevenExchangeCard",
+        playerIndex: 1,
+        cardId: selectableCard!.dataset.cardId,
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("keeps non-required online viewers read-only during seven exchange", () => {
+    const base = createInitialGame(4, "clockwise");
+    const state: GameState = {
+      ...base,
+      viewerPlayerId: base.players[2].id,
+      stateVersion: 7,
+      currentPlayerIndex: 0,
+      phase: "discard",
+      players: base.players.map((player, index) => ({ ...player, name: ["Alice", "Bob", "Carol", "Dave"][index] })),
+      pendingDaifugoEffect: {
+        kind: "sevenExchange",
+        effect: "sevenExchange",
+        playerIndex: 0,
+        targetPlayerIndex: 1,
+        selections: { 0: "__selected__" },
+        continue: { shouldConfirmReach: false },
+      },
+    };
+
+    render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} disableLocalCpuAutomation />);
+
+    expect(screen.getAllByText("Bobが相手に渡すカードを選択しています。").length).toBeGreaterThan(0);
+    expect(screen.getAllByTestId("hand-card").every((button) => (button as HTMLButtonElement).disabled)).toBe(true);
+    expect(screen.getByTestId("seven-exchange-confirm-button")).toBeDisabled();
   });
 });

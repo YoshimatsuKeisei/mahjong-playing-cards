@@ -20,7 +20,7 @@ test("online 7 effect exchanges cards without leaking other hands", async () => 
   const versionBeforeHostSelection = target.state.view.stateVersion;
   submitSocketAction(host, { type: "selectSevenExchangeCard", playerIndex: 0, cardId: hostCard.id });
   await waitForSocket(() => target.state.view.stateVersion > versionBeforeHostSelection, "target did not receive exchange view");
-  expect(target.state.view.pendingDaifugoEffect.selections[0]).toBeUndefined();
+  expect(target.state.view.pendingDaifugoEffect.selections[0]).toBe("__selected__");
 
   const targetCard = target.state.view.players[1].hand[0];
   submitSocketAction(target, { type: "selectSevenExchangeCard", playerIndex: 1, cardId: targetCard.id });

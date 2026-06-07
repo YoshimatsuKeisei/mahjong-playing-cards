@@ -232,6 +232,7 @@ const measuredAnchorLayouts: Record<number, Array<{ left: string; top: string; w
 
 export default function PlayScreen({ state, dispatch, currentRound, onExitToHome, disableLocalCpuAutomation = false }: PlayScreenProps) {
   const currentPlayer = state.players[state.currentPlayerIndex];
+  const viewerPlayerIndex = state.viewerPlayerId ? state.players.findIndex((player) => player.id === state.viewerPlayerId) : -1;
   const reachOptions = getReachWinningOptions(state);
   const selfWinOptions = state.winningDiscardOptions ?? getWinningDiscardOptions(state);
   const discardSources = getAvailableDiscardSources(state);
@@ -282,6 +283,8 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
   const isDaifugoExtraDiscard = pendingDaifugoEffect?.kind === "extraDiscard";
   const isDaifugoEffectDraw = pendingDaifugoEffect?.kind === "effectDraw";
   const isSevenExchange = pendingDaifugoEffect?.kind === "sevenExchange";
+  const requiredActionPlayerIndex = getRequiredActionPlayerIndex(state);
+  const isViewerRequiredActionPlayer = !isOnlineView || (requiredActionPlayerIndex !== null && viewerPlayerIndex === requiredActionPlayerIndex);
   const isSevenEnhancementConfirm = pendingDaifugoEffect?.kind === "sevenEnhancementConfirm";
   const isSevenEnhancementSplash = pendingDaifugoEffect?.kind === "sevenEnhancementSplash";
   const isSevenEnhancedTargetSelect = pendingDaifugoEffect?.kind === "sevenEnhancedTargetSelect";
@@ -350,7 +353,6 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
     pendingDaifugoEffect?.kind === "fiveEnhancedTargetSelect" && pendingDaifugoEffect.selectedTargetPlayerIndex !== undefined
       ? enhancedFiveTurnOptions.find((option) => option.playerIndex === pendingDaifugoEffect.selectedTargetPlayerIndex)
       : null;
-  const viewerPlayerIndex = state.viewerPlayerId ? state.players.findIndex((player) => player.id === state.viewerPlayerId) : -1;
   const humanPlayerIndex = state.players.findIndex((player) => !player.isCpu);
   const handPlayerIndex =
     viewerPlayerIndex >= 0
@@ -372,6 +374,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
   const hiddenQueenDiscardIdsByPlayer =
     visibleDaifugoEvent && isDaifugoEventPlaying ? getHiddenQueenDiscardIdsByPlayer(visibleDaifugoEvent, daifugoAnimationStep) : new Map<number, Set<string>>();
   const isSevenHandSelection = sevenSelectionPlayerIndex !== null && handPlayerIndex === sevenSelectionPlayerIndex;
+  const canActOnSevenExchangeSelection = isSevenHandSelection && isViewerRequiredActionPlayer;
   const shouldShowActionPanel =
     !shouldHideCpuDetails ||
     sevenSelectionPlayerIndex !== null ||
@@ -851,7 +854,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
   }
 
   function handleSevenExchangeConfirm() {
-    if (sevenSelectionPlayerIndex === null || !sevenSelectionPlayer || !selectedDiscardId) return;
+    if (!canActOnSevenExchangeSelection || sevenSelectionPlayerIndex === null || !sevenSelectionPlayer || !selectedDiscardId) return;
     const card = sevenSelectionPlayer.hand.find((item) => item.id === selectedDiscardId);
     if (!card || !sevenSelectionCandidateIds.includes(card.id)) return;
     animateDiscard(card, () => dispatch({ type: "selectSevenExchangeCard", playerIndex: sevenSelectionPlayerIndex, cardId: card.id }));
@@ -870,6 +873,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
 
   function handleHandCardClick(card: Card) {
     if (isSevenHandSelection) {
+      if (!canActOnSevenExchangeSelection) return;
       if (!sevenSelectionCandidateIds.includes(card.id)) return;
       if (selectedDiscardId === card.id) {
         animateDiscard(card, () => dispatch({ type: "selectSevenExchangeCard", playerIndex: sevenSelectionPlayerIndex!, cardId: card.id }));
@@ -942,7 +946,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
             <strong>{cpuDisplayNames.get(state.currentPlayerIndex) ?? currentPlayer.name}</strong>
             <em>{getPlayerStatus(currentPlayer, true)}</em>
           </div>
-          <div className="toolbar-action">{daifugoAnimationStep?.message ?? getActionText(state)}</div>
+          <div className="toolbar-action">{daifugoAnimationStep?.message ?? getActionText(state, state.viewerPlayerId)}</div>
           <div className="toolbar-deck">
             <span>山札</span>
             <strong data-testid="deck-remaining">{deckCount}</strong>
@@ -1277,7 +1281,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
             </div>
           )}
 
-          {isFiveEnhancementConfirm && pendingDaifugoEffect.playerIndex === state.currentPlayerIndex && !currentPlayer.isCpu && (
+          {isFiveEnhancementConfirm && isViewerRequiredActionPlayer && !state.players[pendingDaifugoEffect.playerIndex]?.isCpu && (
             <div className="daifugo-effect-panel seven-enhancement-panel">
               <strong>J強化を使用しますか？</strong>
               <span className="hint">次に手番を渡す相手を選び、途中のプレイヤーをスキップできます。</span>
@@ -1301,7 +1305,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
             </div>
           )}
 
-          {isFiveEnhancedTargetSelect && pendingDaifugoEffect.playerIndex === state.currentPlayerIndex && !currentPlayer.isCpu && (
+          {isFiveEnhancedTargetSelect && isViewerRequiredActionPlayer && !state.players[pendingDaifugoEffect.playerIndex]?.isCpu && (
             <div className="daifugo-effect-panel enhanced-target-select-panel five-enhancement-panel">
               <strong>次の手番を渡すプレイヤーを選択してください</strong>
               <span className="hint">選択したプレイヤーまでの間にいる相手をスキップします。</span>
@@ -1335,7 +1339,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
             </div>
           )}
 
-          {isSevenEnhancementConfirm && pendingDaifugoEffect.playerIndex === state.currentPlayerIndex && !currentPlayer.isCpu && (
+          {isSevenEnhancementConfirm && isViewerRequiredActionPlayer && !state.players[pendingDaifugoEffect.playerIndex]?.isCpu && (
             <div className="daifugo-effect-panel seven-enhancement-panel">
               <strong>J強化を使用しますか？</strong>
               <span className="hint">7の交換相手を自由に選択できます。</span>
@@ -1359,7 +1363,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
             </div>
           )}
 
-          {isSevenEnhancedTargetSelect && pendingDaifugoEffect.playerIndex === state.currentPlayerIndex && !currentPlayer.isCpu && (
+          {isSevenEnhancedTargetSelect && isViewerRequiredActionPlayer && !state.players[pendingDaifugoEffect.playerIndex]?.isCpu && (
             <div className="daifugo-effect-panel enhanced-target-select-panel seven-enhancement-panel">
               <strong>交換相手を選択してください</strong>
               <span className="hint">J強化により、任意の相手とカードを交換できます。</span>
@@ -1388,13 +1392,21 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
 
           {isSevenExchange && sevenSelectionPlayer && (
             <div className="daifugo-effect-panel seven-exchange-panel">
-              <strong>{sevenSelectionPlayer.name}：相手に渡すカードを手札から1枚選んでください。</strong>
-              <span className="hint">カードをクリックして選択、もう一度クリックするかボタンで確定します。</span>
+              <strong>
+                {canActOnSevenExchangeSelection
+                  ? "相手に渡すカードを手札から1枚選んでください。"
+                  : `${sevenSelectionPlayer.name}が相手に渡すカードを選択しています。`}
+              </strong>
+              {canActOnSevenExchangeSelection ? (
+                <span className="hint">カードをクリックして選択、もう一度クリックするかボタンで確定します。</span>
+              ) : (
+                <span className="hint">入力対象のプレイヤーを待っています。</span>
+              )}
               <button
                 type="button"
                 className="primary-button"
                 data-testid="seven-exchange-confirm-button"
-                disabled={!selectedDiscardId || isAnimating || cpuActionInProgress}
+                disabled={!canActOnSevenExchangeSelection || !selectedDiscardId || isAnimating || cpuActionInProgress}
                 onClick={handleSevenExchangeConfirm}
               >
                 このカードを渡す
@@ -1402,7 +1414,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
             </div>
           )}
 
-          {isQueenSelect && pendingDaifugoEffect.playerIndex === state.currentPlayerIndex && !currentPlayer.isCpu && (
+          {isQueenSelect && isViewerRequiredActionPlayer && !state.players[pendingDaifugoEffect.playerIndex]?.isCpu && (
             <div className="daifugo-effect-panel queen-effect-panel">
               <strong>Qの効果：消す数字を選んでください。</strong>
               <div className="rank-choice-grid">
@@ -1423,7 +1435,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
             </div>
           )}
 
-          {isJackSelect && pendingDaifugoEffect.playerIndex === state.currentPlayerIndex && !currentPlayer.isCpu && (
+          {isJackSelect && isViewerRequiredActionPlayer && !state.players[pendingDaifugoEffect.playerIndex]?.isCpu && (
             <div className="daifugo-effect-panel jack-effect-panel">
               <strong>J特殊効果を選択してください</strong>
               <div className="jack-effect-choice-list">
@@ -1465,7 +1477,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
             </div>
           )}
 
-          {isJackShieldSelect && pendingDaifugoEffect.playerIndex === state.currentPlayerIndex && !currentPlayer.isCpu && (
+          {isJackShieldSelect && isViewerRequiredActionPlayer && !state.players[pendingDaifugoEffect.playerIndex]?.isCpu && (
             <div className="daifugo-effect-panel jack-shield-panel">
               <strong>Jシールドで守る役を選んでください</strong>
               <span className="hint">発動時点で完成している同数字役または階段役のカードだけを保護します。</span>
@@ -1497,7 +1509,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
             </div>
           )}
 
-          {isJackInspect && pendingDaifugoEffect.playerIndex === state.currentPlayerIndex && !currentPlayer.isCpu && (() => {
+          {isJackInspect && isViewerRequiredActionPlayer && !state.players[pendingDaifugoEffect.playerIndex]?.isCpu && (() => {
             const targetPlayerIndex = pendingDaifugoEffect.targetPlayerIndexes[pendingDaifugoEffect.currentTargetOffset];
             const targetPlayer = targetPlayerIndex !== undefined ? state.players[targetPlayerIndex] : null;
             const revealedCardId = targetPlayerIndex !== undefined ? pendingDaifugoEffect.revealedCardIds[targetPlayerIndex] : undefined;
@@ -1690,11 +1702,11 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
             drawnCardId={handDrawnCardId}
             selectedCardId={selectedDiscardId}
             discardingCardId={discardingCardId}
-            selectableCardIds={isSevenHandSelection ? sevenSelectionCandidateIds : null}
+            selectableCardIds={canActOnSevenExchangeSelection ? sevenSelectionCandidateIds : null}
             disabledCardIds={handShieldedCardIds}
             disabled={
               isSevenHandSelection
-                ? isAnimating || cpuActionInProgress
+                ? !canActOnSevenExchangeSelection || isAnimating || cpuActionInProgress
                 : handPlayerIndex !== state.currentPlayerIndex ||
                   state.phase !== "discard" ||
                   (!isDaifugoExtraDiscard && !canChooseDiscard) ||
@@ -2339,29 +2351,83 @@ function getRonRemainingCards(hand: Card[], ronCard: Card | null, melds: Card[][
   });
 }
 
-function getActionText(state: GameState) {
-  if (state.pendingDaifugoEffect?.kind === "sevenExchange") return state.message;
-  if (state.pendingDaifugoEffect?.kind === "queenSelect") return "Qの効果で消す数字を選んでいます。";
-  if (state.pendingDaifugoEffect?.kind === "queenWinConfirm") return "Qの効果後の上がりを確認しています。";
-  if (state.pendingDaifugoEffect?.kind === "jackSelect") return "J特殊効果を選択しています。";
-  if (state.pendingDaifugoEffect?.kind === "jackShieldSelect") return "Jシールドの対象数字を選択しています。";
-  if (state.pendingDaifugoEffect?.kind === "jackInspect") return "J効果で相手の手札を確認しています。";
-  if (state.pendingDaifugoEffect?.kind === "reachContinueConfirm") return state.pendingDaifugoEffect.message;
-  if (state.pendingDaifugoEffect?.kind === "confirm") return getDaifugoEffectText(state.pendingDaifugoEffect.effect);
-  if (state.pendingDaifugoEffect?.kind === "extraDiscard") {
-    return state.pendingDaifugoEffect.effect === "eightExtraTurn"
+function getRequiredActionPlayerIndex(state: GameState): number | null {
+  const pending = state.pendingDaifugoEffect;
+  if (!pending) return null;
+  if (pending.kind === "sevenExchange") {
+    return [pending.playerIndex, pending.targetPlayerIndex].find((playerIndex) => !pending.selections[playerIndex] && !state.players[playerIndex]?.isCpu) ?? null;
+  }
+  return "playerIndex" in pending ? pending.playerIndex : null;
+}
+
+function getActionText(state: GameState, viewerPlayerId?: string) {
+  const pending = state.pendingDaifugoEffect;
+  const viewerIndex = viewerPlayerId ? state.players.findIndex((player) => player.id === viewerPlayerId) : -1;
+  const requiredActionPlayerIndex = getRequiredActionPlayerIndex(state);
+  const requiredPlayer = requiredActionPlayerIndex !== null ? state.players[requiredActionPlayerIndex] : null;
+  const isViewerRequiredActionPlayer = !viewerPlayerId || (requiredActionPlayerIndex !== null && viewerIndex === requiredActionPlayerIndex);
+
+  if (pending?.kind === "sevenExchange") {
+    return isViewerRequiredActionPlayer
+      ? "相手に渡すカードを手札から1枚選んでください。"
+      : `${requiredPlayer?.name ?? "プレイヤー"}が相手に渡すカードを選択しています。`;
+  }
+  if (pending?.kind === "queenSelect") {
+    return isViewerRequiredActionPlayer
+      ? "Qの効果で消す数字を選んでください。"
+      : `${requiredPlayer?.name ?? "プレイヤー"}がQの効果で消す数字を選択しています。`;
+  }
+  if (pending?.kind === "queenWinConfirm") {
+    return isViewerRequiredActionPlayer
+      ? "Qの効果後の上がりを確認してください。"
+      : `${requiredPlayer?.name ?? "プレイヤー"}がQの効果後の上がりを確認しています。`;
+  }
+  if (pending?.kind === "jackSelect") {
+    return isViewerRequiredActionPlayer
+      ? "J特殊効果を選択してください。"
+      : `${requiredPlayer?.name ?? "プレイヤー"}がJ特殊効果を選択しています。`;
+  }
+  if (pending?.kind === "jackShieldSelect") {
+    return isViewerRequiredActionPlayer
+      ? "Jシールドの対象数字を選択してください。"
+      : `${requiredPlayer?.name ?? "プレイヤー"}がJシールドの対象数字を選択しています。`;
+  }
+  if (pending?.kind === "jackInspect") {
+    return isViewerRequiredActionPlayer
+      ? "J効果で相手の手札を確認してください。"
+      : `${requiredPlayer?.name ?? "プレイヤー"}がJ効果で相手の手札を確認しています。`;
+  }
+  if (pending?.kind === "reachContinueConfirm") {
+    return isViewerRequiredActionPlayer ? pending.message : `${requiredPlayer?.name ?? "プレイヤー"}がリーチ継続を確認しています。`;
+  }
+  if (pending?.kind === "confirm") {
+    return isViewerRequiredActionPlayer ? getDaifugoEffectText(pending.effect) : `${requiredPlayer?.name ?? "プレイヤー"}が効果を選択しています。`;
+  }
+  if (pending?.kind === "extraDiscard") {
+    if (!isViewerRequiredActionPlayer) return `${requiredPlayer?.name ?? "プレイヤー"}が捨てるカードを選択しています。`;
+    return pending.effect === "eightExtraTurn"
       ? "8の効果で追加行動中です。"
       : "10の効果で追加の捨て札を選んでいます。";
   }
-  if (state.pendingDaifugoEffect?.kind === "effectDraw") {
-    return state.pendingDaifugoEffect.effect === "eightExtraTurn" ? "8の効果で山札から引いています。" : "10の効果で山札から引いています。";
+  if (pending?.kind === "effectDraw") {
+    return isViewerRequiredActionPlayer
+      ? pending.effect === "eightExtraTurn" ? "8の効果で山札から引いてください。" : "10の効果で山札から引いてください。"
+      : `${requiredPlayer?.name ?? "プレイヤー"}が効果で山札から引いています。`;
   }
   const currentPlayer = state.players[state.currentPlayerIndex];
+  const isViewerTurn = !viewerPlayerId || currentPlayer?.id === viewerPlayerId;
   if (currentPlayer?.isCpu) {
     if (state.phase === "draw") return `${currentPlayer.name}（CPU）が引くカードを選んでいます。`;
     if (state.phase === "discard") return `${currentPlayer.name}（CPU）が捨てるカードを選んでいます。`;
     if (state.phase === "reachConfirm") return `${currentPlayer.name}（CPU）がリーチを確認しています。`;
     if (state.phase === "ronCheck") return `${currentPlayer.name}（CPU）がロンを確認しています。`;
+  }
+
+  if (!isViewerTurn && currentPlayer) {
+    if (state.phase === "draw") return `${currentPlayer.name}が山札または捨て札から選択しています。`;
+    if (state.phase === "discard") return `${currentPlayer.name}が捨てるカードを選択しています。`;
+    if (state.phase === "reachConfirm") return `${currentPlayer.name}がリーチを確認しています。`;
+    if (state.phase === "ronCheck") return `${currentPlayer.name}がロンを確認しています。`;
   }
 
   if (state.phase === "draw") return "山札または直前の捨て札から1枚取ってください。";
