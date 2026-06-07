@@ -278,6 +278,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
   const lastOnlineDrawAnimationKeyRef = useRef<string | null>(null);
   const reachSplashTimeoutRef = useRef<number | null>(null);
   const lastDaifugoSplashKeyRef = useRef<string | null>(null);
+  const previousReachFlagsRef = useRef<boolean[] | null>(null);
   const jackInspectOrderRef = useRef(new Map<string, string[]>());
   const isAnimating = animationPhase !== "idle";
   const isCpuTurn = currentPlayer?.isCpu === true && state.phase !== "result";
@@ -473,6 +474,17 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
   }, [dispatch, pendingDaifugoEffect?.kind, pendingDaifugoEffect?.playerIndex, state.players]);
 
   useEffect(() => {
+    const previousReachFlags = previousReachFlagsRef.current;
+    const currentReachFlags = state.players.map((player) => player.isReach);
+    previousReachFlagsRef.current = currentReachFlags;
+    if (!previousReachFlags) return;
+
+    const reachedPlayerIndex = currentReachFlags.findIndex((isReach, index) => isReach && !previousReachFlags[index]);
+    if (reachedPlayerIndex < 0) return;
+    showReachSplash(state.players[reachedPlayerIndex]?.name ?? "プレイヤー");
+  }, [state.players]);
+
+  useEffect(() => {
     const pending = state.pendingDaifugoEffect;
     if (!pending) return;
     const splash =
@@ -482,11 +494,13 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
           ? { playerIndex: pending.playerIndex, call: "数字消去!!" }
           : null;
     if (!splash) return;
-    const key = `${pending.kind}:${pending.playerIndex}:${state.stateVersion ?? 0}`;
+    const targetKey = pending.kind === "sevenExchange" ? pending.targetPlayerIndex : "";
+    const discardCountsKey = state.players.map((player) => player.discardPile.length).join("|");
+    const key = `${pending.kind}:${pending.playerIndex}:${targetKey}:${state.currentPlayerIndex}:${discardCountsKey}`;
     if (lastDaifugoSplashKeyRef.current === key) return;
     lastDaifugoSplashKeyRef.current = key;
     showReachSplash(state.players[splash.playerIndex]?.name ?? "プレイヤー", splash.call);
-  }, [state.pendingDaifugoEffect, state.players, state.stateVersion]);
+  }, [state.currentPlayerIndex, state.pendingDaifugoEffect, state.players]);
 
   useEffect(() => {
     if (isDaifugoEventPlaying) {
@@ -628,9 +642,6 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
         () => {
           const declareReach = cpuModel.chooseReachDeclaration?.(cpuContext) ?? false;
           dispatch({ type: "answerReachAfterDiscard", declareReach });
-          if (declareReach) {
-            showReachSplash(currentPlayer.name);
-          }
         },
         CPU_DECISION_DELAY_MS,
       );
@@ -993,14 +1004,10 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
 
   function handleDeclareReach() {
     dispatch({ type: "declareReach" });
-    showReachSplash(currentPlayer.name);
   }
 
   function handleReachConfirmAnswer(declareReach: boolean) {
     dispatch({ type: "answerReachAfterDiscard", declareReach });
-    if (declareReach) {
-      showReachSplash(currentPlayer.name);
-    }
   }
 
   return (

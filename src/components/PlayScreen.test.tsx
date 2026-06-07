@@ -859,6 +859,39 @@ describe("PlayScreen round display", () => {
     expect(container.querySelector(".action-panel")).not.toBeInTheDocument();
   });
 
+  it("shows the reach center splash when public reach status changes for online viewers", () => {
+    const base = createInitialGame(4, "clockwise");
+    const players = base.players.map((player, index) => ({
+      ...player,
+      id: `p${index + 1}`,
+      name: `Player ${index + 1}`,
+      isReach: false,
+    }));
+    const state: GameState = {
+      ...base,
+      viewerPlayerId: "p2",
+      players,
+    };
+    const { container, rerender } = render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} disableLocalCpuAutomation />);
+
+    expect(container.querySelector(".reach-splash")).not.toBeInTheDocument();
+
+    rerender(
+      <PlayScreen
+        state={{
+          ...state,
+          players: players.map((player, index) => (index === 0 ? { ...player, isReach: true } : player)),
+        }}
+        dispatch={vi.fn()}
+        currentRound={1}
+        disableLocalCpuAutomation
+      />,
+    );
+
+    expect(container.querySelector(".reach-splash")).toHaveTextContent("Player 1");
+    expect(container.querySelector(".reach-splash")).toHaveTextContent("リーチ!!");
+  });
+
   it("shows table discard and meld placement only for three-player games", () => {
     const { rerender } = render(<PlayScreen state={createInitialGame(3, "clockwise")} dispatch={vi.fn()} currentRound={1} />);
 
