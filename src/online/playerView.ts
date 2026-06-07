@@ -103,7 +103,15 @@ function maskDaifugoEvent(event: DaifugoEffectEvent | null | undefined, viewerIn
 function isPendingEffectVisible(pending: PendingDaifugoEffect | null, viewerIndex: number): boolean {
   if (!pending) return false;
   if (pending.kind === "sevenExchange") return true;
+  if (pending.kind === "queenSelect") return true;
   if ("playerIndex" in pending && pending.playerIndex === viewerIndex) return true;
+  return false;
+}
+
+function isPendingEffectActionable(pending: PendingDaifugoEffect | null, viewerIndex: number): boolean {
+  if (!pending) return false;
+  if (pending.kind === "sevenExchange") return pending.playerIndex === viewerIndex || pending.targetPlayerIndex === viewerIndex;
+  if ("playerIndex" in pending) return pending.playerIndex === viewerIndex;
   return false;
 }
 
@@ -206,7 +214,7 @@ export function createPlayerViewState(fullState: GameState, viewerPlayerId: stri
     availableActions.push("answerRon");
     availableActions.push("passReaction");
   }
-  if (fullState.pendingDaifugoEffect && isPendingEffectVisible(fullState.pendingDaifugoEffect, viewerIndex)) {
+  if (fullState.pendingDaifugoEffect && isPendingEffectActionable(fullState.pendingDaifugoEffect, viewerIndex)) {
     const pending = fullState.pendingDaifugoEffect;
     const isSevenParticipant = pending.kind === "sevenExchange" && (pending.playerIndex === viewerIndex || pending.targetPlayerIndex === viewerIndex);
     if (pending.kind !== "sevenExchange" || isSevenParticipant) {

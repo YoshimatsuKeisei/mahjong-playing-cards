@@ -686,10 +686,38 @@ describe("PlayScreen round display", () => {
 
     render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} disableLocalCpuAutomation />);
 
-    expect(screen.getByRole("button", { name: "Player 2" })).toHaveClass("enhanced-target-seat--4-3", "self");
-    expect(screen.getByRole("button", { name: "Player 3" })).toHaveClass("enhanced-target-seat--4-4");
-    expect(screen.getByRole("button", { name: "Player 4" })).toHaveClass("enhanced-target-seat--4-1");
-    expect(screen.getByRole("button", { name: "Player 1" })).toHaveClass("enhanced-target-seat--4-2");
+    expect(screen.getByRole("button", { name: "Player 2" })).toHaveClass("enhanced-target-seat--4-1", "self");
+    expect(screen.getByRole("button", { name: "Player 3" })).toHaveClass("enhanced-target-seat--4-2");
+    expect(screen.getByRole("button", { name: "Player 4" })).toHaveClass("enhanced-target-seat--4-3");
+    expect(screen.getByRole("button", { name: "Player 1" })).toHaveClass("enhanced-target-seat--4-4");
+  });
+
+  it("maps three-player enhanced target table clockwise from the online viewer", () => {
+    const base = createInitialGame(3, "clockwise");
+    const state: GameState = {
+      ...base,
+      viewerPlayerId: "p2",
+      phase: "handoff",
+      pendingDaifugoEffect: {
+        kind: "sevenEnhancedTargetSelect",
+        effect: "sevenExchange",
+        playerIndex: 1,
+        continue: { shouldConfirmReach: false },
+      },
+      players: base.players.map((player, index) => ({
+        ...player,
+        id: `p${index + 1}`,
+        name: `Player ${index + 1}`,
+        type: "human",
+        isCpu: false,
+      })),
+    };
+
+    render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} disableLocalCpuAutomation />);
+
+    expect(screen.getByRole("button", { name: "Player 2" })).toHaveClass("enhanced-target-seat--3-1", "self");
+    expect(screen.getByRole("button", { name: "Player 3" })).toHaveClass("enhanced-target-seat--3-2");
+    expect(screen.getByRole("button", { name: "Player 1" })).toHaveClass("enhanced-target-seat--3-3");
   });
 
   it("shows only the online viewer's own Q bomber discard cards in the center animation", () => {
@@ -759,6 +787,76 @@ describe("PlayScreen round display", () => {
     expect(qCards).toHaveLength(2);
     expect(qCards.every((button) => !(button as HTMLButtonElement).disabled)).toBe(true);
     expect(nonPairCards.every((button) => (button as HTMLButtonElement).disabled && button.classList.contains("unselectable-card"))).toBe(true);
+  });
+
+  it("hides the bottom action panel for online viewers who are not involved in seven exchange", () => {
+    const base = createInitialGame(4, "clockwise");
+    const state: GameState = {
+      ...base,
+      viewerPlayerId: "p3",
+      phase: "discard",
+      currentPlayerIndex: 0,
+      players: base.players.map((player, index) => ({
+        ...player,
+        id: `p${index + 1}`,
+        name: `Player ${index + 1}`,
+      })),
+      pendingDaifugoEffect: {
+        kind: "sevenExchange",
+        effect: "sevenExchange",
+        playerIndex: 0,
+        targetPlayerIndex: 1,
+        selections: {},
+        continue: { shouldConfirmReach: false },
+      },
+    };
+
+    const { container } = render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} disableLocalCpuAutomation />);
+
+    expect(container.querySelector(".action-panel")).not.toBeInTheDocument();
+  });
+
+  it("shows seven exchange and Q bomber center splash for uninvolved online viewers", () => {
+    const base = createInitialGame(4, "clockwise");
+    const players = base.players.map((player, index) => ({
+      ...player,
+      id: `p${index + 1}`,
+      name: `Player ${index + 1}`,
+    }));
+    const sevenState: GameState = {
+      ...base,
+      viewerPlayerId: "p3",
+      phase: "handoff",
+      players,
+      pendingDaifugoEffect: {
+        kind: "sevenExchange",
+        effect: "sevenExchange",
+        playerIndex: 0,
+        targetPlayerIndex: 1,
+        selections: {},
+        continue: { shouldConfirmReach: false },
+      },
+    };
+    const { container, rerender } = render(<PlayScreen state={sevenState} dispatch={vi.fn()} currentRound={1} disableLocalCpuAutomation />);
+
+    expect(container.querySelector(".reach-splash")).toHaveTextContent("Player 1");
+    expect(container.querySelector(".reach-splash")).toHaveTextContent("カード交換!!");
+    expect(container.querySelector(".action-panel")).not.toBeInTheDocument();
+
+    const queenState: GameState = {
+      ...sevenState,
+      pendingDaifugoEffect: {
+        kind: "queenSelect",
+        effect: "queenNumberVanish",
+        playerIndex: 0,
+        continue: { shouldConfirmReach: false },
+      },
+    };
+    rerender(<PlayScreen state={queenState} dispatch={vi.fn()} currentRound={1} disableLocalCpuAutomation />);
+
+    expect(container.querySelector(".reach-splash")).toHaveTextContent("Player 1");
+    expect(container.querySelector(".reach-splash")).toHaveTextContent("数字消去!!");
+    expect(container.querySelector(".action-panel")).not.toBeInTheDocument();
   });
 
   it("shows table discard and meld placement only for three-player games", () => {

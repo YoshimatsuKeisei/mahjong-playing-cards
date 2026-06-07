@@ -83,7 +83,7 @@ function EnhancedTargetTable({
   onSelect,
 }: EnhancedTargetTableProps) {
   const fiveOptionByPlayer = new Map(fiveOptions.map((option) => [option.playerIndex, option]));
-  const displaySlots = mapPlayersToViewSlots(players, viewerPlayerId);
+  const displaySlots = mapPlayersToEnhancedTargetSlots(players, viewerPlayerId, actorIndex);
   return (
     <div
       className={`enhanced-target-table ${mode === "five" ? "enhanced-target-table--five" : "enhanced-target-table--seven"}`}
@@ -277,6 +277,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
   const lastCpuActionKeyRef = useRef<string | null>(null);
   const lastOnlineDrawAnimationKeyRef = useRef<string | null>(null);
   const reachSplashTimeoutRef = useRef<number | null>(null);
+  const lastDaifugoSplashKeyRef = useRef<string | null>(null);
   const jackInspectOrderRef = useRef(new Map<string, string[]>());
   const isAnimating = animationPhase !== "idle";
   const isCpuTurn = currentPlayer?.isCpu === true && state.phase !== "result";
@@ -404,18 +405,19 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
   const isSevenHandSelection = sevenSelectionPlayerIndex !== null && handPlayerIndex === sevenSelectionPlayerIndex;
   const canActOnSevenExchangeSelection = isSevenHandSelection && (!isOnlineView || viewerIsSevenExchangeParticipant) && !viewerHasSelectedSevenExchangeCard;
   const shouldShowActionPanel =
-    !shouldHideCpuDetails ||
-    isSevenExchange ||
-    (pendingDaifugoEffect?.kind === "sevenEnhancementConfirm" && !state.players[pendingDaifugoEffect.playerIndex]?.isCpu) ||
-    (pendingDaifugoEffect?.kind === "sevenEnhancedTargetSelect" && !state.players[pendingDaifugoEffect.playerIndex]?.isCpu) ||
-    (pendingDaifugoEffect?.kind === "fiveEnhancementConfirm" && !state.players[pendingDaifugoEffect.playerIndex]?.isCpu) ||
-    (pendingDaifugoEffect?.kind === "fiveEnhancedTargetSelect" && !state.players[pendingDaifugoEffect.playerIndex]?.isCpu) ||
-    (pendingDaifugoEffect?.kind === "queenSelect" && !state.players[pendingDaifugoEffect.playerIndex]?.isCpu) ||
-    (pendingDaifugoEffect?.kind === "queenWinConfirm" && !state.players[pendingDaifugoEffect.playerIndex]?.isCpu) ||
-    (pendingDaifugoEffect?.kind === "jackSelect" && !state.players[pendingDaifugoEffect.playerIndex]?.isCpu) ||
-    (pendingDaifugoEffect?.kind === "jackShieldSelect" && !state.players[pendingDaifugoEffect.playerIndex]?.isCpu) ||
-    (pendingDaifugoEffect?.kind === "jackInspect" && !state.players[pendingDaifugoEffect.playerIndex]?.isCpu) ||
-    (pendingDaifugoEffect?.kind === "reachContinueConfirm" && !state.players[pendingDaifugoEffect.playerIndex]?.isCpu);
+    ((!isOnlineView || isViewerTurn) && !shouldHideCpuDetails) ||
+    (isSevenExchange && (!isOnlineView || viewerIsSevenExchangeParticipant)) ||
+    (isViewerRequiredActionPlayer &&
+      ((pendingDaifugoEffect?.kind === "sevenEnhancementConfirm" && !state.players[pendingDaifugoEffect.playerIndex]?.isCpu) ||
+        (pendingDaifugoEffect?.kind === "sevenEnhancedTargetSelect" && !state.players[pendingDaifugoEffect.playerIndex]?.isCpu) ||
+        (pendingDaifugoEffect?.kind === "fiveEnhancementConfirm" && !state.players[pendingDaifugoEffect.playerIndex]?.isCpu) ||
+        (pendingDaifugoEffect?.kind === "fiveEnhancedTargetSelect" && !state.players[pendingDaifugoEffect.playerIndex]?.isCpu) ||
+        (pendingDaifugoEffect?.kind === "queenSelect" && !state.players[pendingDaifugoEffect.playerIndex]?.isCpu) ||
+        (pendingDaifugoEffect?.kind === "queenWinConfirm" && !state.players[pendingDaifugoEffect.playerIndex]?.isCpu) ||
+        (pendingDaifugoEffect?.kind === "jackSelect" && !state.players[pendingDaifugoEffect.playerIndex]?.isCpu) ||
+        (pendingDaifugoEffect?.kind === "jackShieldSelect" && !state.players[pendingDaifugoEffect.playerIndex]?.isCpu) ||
+        (pendingDaifugoEffect?.kind === "jackInspect" && !state.players[pendingDaifugoEffect.playerIndex]?.isCpu) ||
+        (pendingDaifugoEffect?.kind === "reachContinueConfirm" && !state.players[pendingDaifugoEffect.playerIndex]?.isCpu)));
 
   function getJackInspectDisplayCards(cards: Card[], actorIndex: number, targetPlayerIndex: number) {
     const key = `${actorIndex}:${targetPlayerIndex}:${cards.map((card) => card.id).join("|")}`;
@@ -469,6 +471,22 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
     }, J_ENHANCEMENT_SPLASH_MS);
     return () => window.clearTimeout(timeoutId);
   }, [dispatch, pendingDaifugoEffect?.kind, pendingDaifugoEffect?.playerIndex, state.players]);
+
+  useEffect(() => {
+    const pending = state.pendingDaifugoEffect;
+    if (!pending) return;
+    const splash =
+      pending.kind === "sevenExchange"
+        ? { playerIndex: pending.playerIndex, call: "カード交換!!" }
+        : pending.kind === "queenSelect"
+          ? { playerIndex: pending.playerIndex, call: "数字消去!!" }
+          : null;
+    if (!splash) return;
+    const key = `${pending.kind}:${pending.playerIndex}:${state.stateVersion ?? 0}`;
+    if (lastDaifugoSplashKeyRef.current === key) return;
+    lastDaifugoSplashKeyRef.current = key;
+    showReachSplash(state.players[splash.playerIndex]?.name ?? "プレイヤー", splash.call);
+  }, [state.pendingDaifugoEffect, state.players, state.stateVersion]);
 
   useEffect(() => {
     if (isDaifugoEventPlaying) {
@@ -953,14 +971,6 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
   }
 
   function handleDaifugoConfirmAnswer(activate: boolean) {
-    if (activate && pendingDaifugoEffect?.kind === "confirm") {
-      if (pendingDaifugoEffect.effect === "sevenExchange" && !currentPlayer.hasJEnhancementRight) {
-        showReachSplash(currentPlayer.name, "カード交換!!");
-      }
-      if (pendingDaifugoEffect.effect === "queenNumberVanish") {
-        showReachSplash(currentPlayer.name, "数字消去!!");
-      }
-    }
     dispatch({ type: "answerDaifugoEffect", activate });
   }
 
@@ -1806,7 +1816,6 @@ function buildDaifugoAnimationSteps(event: NonNullable<GameState["daifugoEffectE
   if (event.kind === "sevenExchange") {
     const target = event.targetPlayerIndex !== undefined ? state.players[event.targetPlayerIndex] : null;
     const visibleExchanges = (event.exchangedCards ?? []).filter(({ playerIndex, receivedCard }) => receivedCard.rank > 0 && !state.players[playerIndex]?.isCpu);
-    if (visibleExchanges.length === 0) return [];
     return [
       {
         id: `${event.id}-receive`,
@@ -2360,6 +2369,17 @@ function getSlotRelativeOffsets(playerCount: number): number[] {
   if (playerCount === 4) return [2, 3, 0, 1];
   if (playerCount === 5) return [2, 3, 4, 0, 1];
   return Array.from({ length: playerCount }, (_, index) => index);
+}
+
+function mapPlayersToEnhancedTargetSlots(players: GameState["players"], viewerPlayerId: string | undefined, actorIndex: number) {
+  const anchorIndex = viewerPlayerId ? players.findIndex((player) => player.id === viewerPlayerId) : actorIndex;
+  const startIndex = anchorIndex >= 0 ? anchorIndex : actorIndex;
+  const clockwisePlayerIndexes = players.map((_, offset) => (startIndex + offset) % players.length);
+  return clockwisePlayerIndexes.map((playerIndex, slotIndex) => ({
+    player: players[playerIndex] ?? players[slotIndex],
+    playerIndex,
+    slotIndex,
+  }));
 }
 
 function getSeatStyle(playerCount: number, index: number): CSSProperties {
