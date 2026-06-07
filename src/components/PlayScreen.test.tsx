@@ -663,6 +663,104 @@ describe("PlayScreen round display", () => {
     expect(container.querySelector(".player-area.seat-left")?.getAttribute("data-player-id")).toBe("p4");
   });
 
+  it("maps enhanced target table seats relative to the online viewer", () => {
+    const base = createInitialGame(4, "clockwise");
+    const state: GameState = {
+      ...base,
+      viewerPlayerId: "p2",
+      phase: "handoff",
+      pendingDaifugoEffect: {
+        kind: "sevenEnhancedTargetSelect",
+        effect: "sevenExchange",
+        playerIndex: 1,
+        continue: { shouldConfirmReach: false },
+      },
+      players: base.players.map((player, index) => ({
+        ...player,
+        id: `p${index + 1}`,
+        name: `Player ${index + 1}`,
+        type: "human",
+        isCpu: false,
+      })),
+    };
+
+    render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} disableLocalCpuAutomation />);
+
+    expect(screen.getByRole("button", { name: "Player 2" })).toHaveClass("enhanced-target-seat--4-3", "self");
+    expect(screen.getByRole("button", { name: "Player 3" })).toHaveClass("enhanced-target-seat--4-4");
+    expect(screen.getByRole("button", { name: "Player 4" })).toHaveClass("enhanced-target-seat--4-1");
+    expect(screen.getByRole("button", { name: "Player 1" })).toHaveClass("enhanced-target-seat--4-2");
+  });
+
+  it("shows only the online viewer's own Q bomber discard cards in the center animation", () => {
+    vi.useFakeTimers();
+    const base = createInitialGame(4, "clockwise");
+    const state: GameState = {
+      ...base,
+      viewerPlayerId: "p2",
+      phase: "handoff",
+      players: base.players.map((player, index) => ({ ...player, id: `p${index + 1}`, name: `Player ${index + 1}` })),
+      daifugoEffectEvent: {
+        id: "queenNumberVanish-test",
+        kind: "queenNumberVanish",
+        actorIndex: 0,
+        rank: 12,
+        queenDiscardResults: [
+          { playerIndex: 0, discardedCards: [card("p1-q", 12, "S")], drawnCards: [] },
+          { playerIndex: 1, discardedCards: [card("p2-q1", 12, "H"), card("p2-q2", 12, "D")], drawnCards: [] },
+          { playerIndex: 2, discardedCards: [card("p3-q", 12, "C")], drawnCards: [] },
+        ],
+      },
+    };
+
+    const { container } = render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} disableLocalCpuAutomation />);
+
+    act(() => {
+      vi.advanceTimersByTime(650);
+    });
+
+    const animatedCardIds = [...container.querySelectorAll(".daifugo-animation-cards [data-card-id]")].map((node) =>
+      node.getAttribute("data-card-id"),
+    );
+    expect(animatedCardIds).toEqual(["p2-q1", "p2-q2"]);
+    vi.useRealTimers();
+  });
+
+  it("limits seven-exchange target selection to pair cards in the online viewer hand", () => {
+    const base = createInitialGame(4, "clockwise");
+    const state: GameState = {
+      ...base,
+      viewerPlayerId: "p2",
+      phase: "discard",
+      currentPlayerIndex: 0,
+      players: base.players.map((player, index) => ({
+        ...player,
+        id: `p${index + 1}`,
+        name: `Player ${index + 1}`,
+        hand:
+          index === 1
+            ? [card("p2-q1", 12, "S"), card("p2-q2", 12, "H"), card("p2-3", 3, "D"), card("p2-4", 4, "C")]
+            : player.hand,
+      })),
+      pendingDaifugoEffect: {
+        kind: "sevenExchange",
+        effect: "sevenExchange",
+        playerIndex: 0,
+        targetPlayerIndex: 1,
+        selections: {},
+        continue: { shouldConfirmReach: false },
+      },
+    };
+
+    render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} disableLocalCpuAutomation />);
+
+    const qCards = screen.getAllByTestId("hand-card").filter((button) => button.getAttribute("data-card-rank") === "Q");
+    const nonPairCards = screen.getAllByTestId("hand-card").filter((button) => button.getAttribute("data-card-rank") !== "Q");
+    expect(qCards).toHaveLength(2);
+    expect(qCards.every((button) => !(button as HTMLButtonElement).disabled)).toBe(true);
+    expect(nonPairCards.every((button) => (button as HTMLButtonElement).disabled && button.classList.contains("unselectable-card"))).toBe(true);
+  });
+
   it("shows table discard and meld placement only for three-player games", () => {
     const { rerender } = render(<PlayScreen state={createInitialGame(3, "clockwise")} dispatch={vi.fn()} currentRound={1} />);
 

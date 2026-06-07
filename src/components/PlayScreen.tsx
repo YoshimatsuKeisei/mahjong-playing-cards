@@ -60,6 +60,7 @@ type EnhancedFiveTurnOption = ReturnType<typeof getEnhancedFiveTurnOptions>[numb
 type EnhancedTargetTableProps = {
   mode: "five" | "seven";
   players: GameState["players"];
+  viewerPlayerId?: string;
   actorIndex: number;
   selectedTargetIndex?: number;
   direction: GameState["direction"];
@@ -72,6 +73,7 @@ type EnhancedTargetTableProps = {
 function EnhancedTargetTable({
   mode,
   players,
+  viewerPlayerId,
   actorIndex,
   selectedTargetIndex,
   direction,
@@ -81,6 +83,7 @@ function EnhancedTargetTable({
   onSelect,
 }: EnhancedTargetTableProps) {
   const fiveOptionByPlayer = new Map(fiveOptions.map((option) => [option.playerIndex, option]));
+  const displaySlots = mapPlayersToViewSlots(players, viewerPlayerId);
   return (
     <div
       className={`enhanced-target-table ${mode === "five" ? "enhanced-target-table--five" : "enhanced-target-table--seven"}`}
@@ -111,7 +114,7 @@ function EnhancedTargetTable({
           ↔
         </div>
       )}
-      {players.map((player, playerIndex) => {
+      {displaySlots.map(({ player, playerIndex, slotIndex }) => {
         const isActor = playerIndex === actorIndex;
         const isSelected = selectedTargetIndex === playerIndex;
         const isSkipped = mode === "five" ? selectedFiveOption?.skippedPlayerIndexes.includes(playerIndex) ?? false : false;
@@ -146,7 +149,7 @@ function EnhancedTargetTable({
         return (
           <button
             type="button"
-            className={`enhanced-target-seat enhanced-target-seat--${players.length}-${playerIndex + 1} subtle-outline ${stateClass} ${outlineClass}`}
+            className={`enhanced-target-seat enhanced-target-seat--${players.length}-${slotIndex + 1} subtle-outline ${stateClass} ${outlineClass}`}
             key={player.id}
             disabled={nodeDisabled}
             aria-label={player.name}
@@ -1375,6 +1378,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
               <EnhancedTargetTable
                 mode="five"
                 players={state.players}
+                viewerPlayerId={state.viewerPlayerId}
                 actorIndex={pendingDaifugoEffect.playerIndex}
                 selectedTargetIndex={pendingDaifugoEffect.selectedTargetPlayerIndex}
                 direction={state.direction}
@@ -1433,6 +1437,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
               <EnhancedTargetTable
                 mode="seven"
                 players={state.players}
+                viewerPlayerId={state.viewerPlayerId}
                 actorIndex={pendingDaifugoEffect.playerIndex}
                 selectedTargetIndex={pendingDaifugoEffect.selectedTargetPlayerIndex}
                 direction={state.direction}
@@ -1466,9 +1471,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
                 <span className="hint">カードをクリックして選択、もう一度クリックするかボタンで確定します。</span>
               ) : viewerIsSevenExchangeParticipant && viewerHasSelectedSevenExchangeCard ? (
                 <span className="hint">あなたの選択は完了しました。相手の選択を待っています。</span>
-              ) : (
-                <span className="hint">この交換は読み取り専用です。</span>
-              )}
+              ):null}
               {canActOnSevenExchangeSelection && (
                 <button
                   type="button"
@@ -1802,7 +1805,7 @@ function buildDaifugoAnimationSteps(event: NonNullable<GameState["daifugoEffectE
 
   if (event.kind === "sevenExchange") {
     const target = event.targetPlayerIndex !== undefined ? state.players[event.targetPlayerIndex] : null;
-    const visibleExchanges = (event.exchangedCards ?? []).filter(({ playerIndex }) => !state.players[playerIndex]?.isCpu);
+    const visibleExchanges = (event.exchangedCards ?? []).filter(({ playerIndex, receivedCard }) => receivedCard.rank > 0 && !state.players[playerIndex]?.isCpu);
     if (visibleExchanges.length === 0) return [];
     return [
       {
@@ -1816,7 +1819,7 @@ function buildDaifugoAnimationSteps(event: NonNullable<GameState["daifugoEffectE
       },
     ];
     return (event.exchangedCards ?? [])
-      .filter(({ playerIndex }) => !state.players[playerIndex]?.isCpu || state.showCpuActions)
+      .filter(({ playerIndex, receivedCard }) => receivedCard.rank > 0 && (!state.players[playerIndex]?.isCpu || state.showCpuActions))
       .map(({ playerIndex, receivedCard }) => {
         const player = state.players[playerIndex];
         const exchangeLine =
@@ -1837,29 +1840,31 @@ function buildDaifugoAnimationSteps(event: NonNullable<GameState["daifugoEffectE
 
   const rank = event.rank ? formatRankLabel(event.rank) : "?";
   const results = event.queenDiscardResults ?? [];
-  const humanDiscardCards = results.flatMap((result) => {
+  const viewerIndex = state.viewerPlayerId ? state.players.findIndex((player) => player.id === state.viewerPlayerId) : -1;
+  const visibleResults = viewerIndex >= 0 ? results.filter((result) => result.playerIndex === viewerIndex) : results;
+  const humanDiscardCards = visibleResults.flatMap((result) => {
     const player = state.players[result.playerIndex];
     return player?.isCpu ? [] : result.discardedCards;
   });
   const cpuDiscardCards = state.showCpuActions
-    ? results.flatMap((result) => {
+    ? visibleResults.flatMap((result) => {
         const player = state.players[result.playerIndex];
         return player?.isCpu ? result.discardedCards : [];
       })
     : [];
-  const humanDrawCards = results.flatMap((result) => {
+  const humanDrawCards = visibleResults.flatMap((result) => {
     const player = state.players[result.playerIndex];
     return player?.isCpu ? [] : result.drawnCards;
   });
   const cpuDrawCards = state.showCpuActions
-    ? results.flatMap((result) => {
+    ? visibleResults.flatMap((result) => {
         const player = state.players[result.playerIndex];
         return player?.isCpu ? result.drawnCards : [];
       })
     : [];
   const visibleDiscardCards = humanDiscardCards;
   const visibleDrawCards = humanDrawCards;
-  const hasQueenDiscards = results.some((result) => result.discardedCards.length > 0);
+  const hasQueenDiscards = visibleResults.some((result) => result.discardedCards.length > 0);
 
   const steps: DaifugoAnimationStep[] = [
     {
@@ -1873,7 +1878,7 @@ function buildDaifugoAnimationSteps(event: NonNullable<GameState["daifugoEffectE
     {
       id: `${event.id}-discard`,
       title: `Q 効果: ${rank}`,
-      message: summarizeQueenResults(results, state, rank, "discard") || `${rank}を持つプレイヤーはいませんでした`,
+      message: summarizeQueenResults(visibleResults, state, rank, "discard") || `${rank}を持つプレイヤーはいませんでした`,
       stageMessage: humanDiscardCards.length > 0 ? `${rank}を捨てます` : undefined,
       cards: visibleDiscardCards,
       side: "center",
@@ -1882,7 +1887,7 @@ function buildDaifugoAnimationSteps(event: NonNullable<GameState["daifugoEffectE
     {
       id: `${event.id}-settle`,
       title: `Q 効果: ${rank}`,
-      message: summarizeQueenResults(results, state, rank, "discard") || `${rank}を持つプレイヤーはいませんでした`,
+      message: summarizeQueenResults(visibleResults, state, rank, "discard") || `${rank}を持つプレイヤーはいませんでした`,
       cards: [],
       side: "center",
       variant: "settle",
@@ -1890,7 +1895,7 @@ function buildDaifugoAnimationSteps(event: NonNullable<GameState["daifugoEffectE
     {
       id: `${event.id}-draw`,
       title: "山札から引きました",
-      message: summarizeQueenResults(results, state, rank, "draw") || "補充ドローはありません",
+      message: summarizeQueenResults(visibleResults, state, rank, "draw") || "補充ドローはありません",
       stageMessage: humanDrawCards.length > 0 ? "山札から新しいカードを引きました" : undefined,
       cards: visibleDrawCards,
       side: "center",
@@ -1899,7 +1904,7 @@ function buildDaifugoAnimationSteps(event: NonNullable<GameState["daifugoEffectE
     {
       id: `${event.id}-draw-cpu`,
       title: "山札から引きました",
-      message: summarizeQueenResults(results, state, rank, "draw") || "補充ドローはありません",
+      message: summarizeQueenResults(visibleResults, state, rank, "draw") || "補充ドローはありません",
       cards: [],
       side: "cpu",
       variant: "draw",

@@ -33,6 +33,9 @@ test("online 7 effect exchanges cards without leaking other hands", async () => 
   await waitForSocket(() => host.state.view.daifugoEffectEvent?.kind === "sevenExchange", "7 exchange did not resolve");
   expect(clients.every((client) => client.state.view.players[0].hand.length === 10)).toBe(true);
   expect(clients.every((client) => client.state.view.players[1].hand.length === 10)).toBe(true);
+  expect(host.state.view.daifugoEffectEvent.exchangedCards.filter((item: any) => item.receivedCard.rank > 0)).toHaveLength(1);
+  expect(target.state.view.daifugoEffectEvent.exchangedCards.filter((item: any) => item.receivedCard.rank > 0)).toHaveLength(1);
+  expect(clients[2].state.view.daifugoEffectEvent.exchangedCards.every((item: any) => item.receivedCard.rank === 0)).toBe(true);
 
   closeSocketClients(clients);
 });

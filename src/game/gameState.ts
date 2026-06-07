@@ -512,7 +512,7 @@ export function getSevenExchangeCandidateCards(player: Player, allowAnyCard = fa
     cardsByRank.set(card.rank, [...(cardsByRank.get(card.rank) ?? []), card]);
   }
   const pairCards = [...cardsByRank.values()].filter((cards) => cards.length >= 2).flat();
-  return pairCards.length >= 4 ? pairCards : availableHand;
+  return pairCards.length > 0 ? pairCards : availableHand;
 }
 
 function fillCpuSevenExchangeSelections(state: GameState, pending: Extract<NonNullable<GameState["pendingDaifugoEffect"]>, { kind: "sevenExchange" }>) {

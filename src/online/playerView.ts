@@ -47,7 +47,7 @@ function maskPlayer(
     ...player,
     hand: jackInspectRevealedCardId !== undefined && !revealPublicResultCards ? maskCardsForJackInspect(player.hand, jackInspectRevealedCardId) : maskCards(player.hand, showCards, ownerIndex),
     winningResult: maskWinningResult(player.winningResult, showCards),
-    jShield: visible ? player.jShield : undefined,
+    jShield: player.jShield,
   };
 }
 
@@ -82,7 +82,15 @@ function maskDaifugoEvent(event: DaifugoEffectEvent | null | undefined, viewerIn
     ...event,
     exchangedCards: event.exchangedCards?.map((item) => ({
       ...item,
-      receivedCard: item.playerIndex === viewerIndex ? item.receivedCard : { ...item.receivedCard, id: `hidden-${item.playerIndex}` },
+      receivedCard:
+        item.playerIndex === viewerIndex
+          ? item.receivedCard
+          : {
+              id: `hidden-exchange-${item.playerIndex}`,
+              suit: "S",
+              rank: 0,
+              discardedByEffect: item.receivedCard.discardedByEffect,
+            },
     })),
     queenDiscardResults: event.queenDiscardResults?.map((item) => ({
       ...item,
