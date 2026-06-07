@@ -422,6 +422,31 @@ function advanceOnlineHandoff(nextState: GameState): GameState {
   return gameReducer(nextState, { type: "confirmHandoff" });
 }
 
+function getOnlinePlayerBaseName(name: string | undefined): string {
+  const trimmed = name?.trim();
+  return trimmed || "Guest Player";
+}
+
+function formatAssignedPlayerName(playerNumber: number, name: string | undefined): string {
+  return `Player${playerNumber}:${getOnlinePlayerBaseName(name)}`;
+}
+
+function shuffleOnlinePlayers(players: OnlineRoomPlayer[]): OnlineRoomPlayer[] {
+  const shuffled = players.slice();
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(Math.random() * (index + 1));
+    [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
+  }
+  return shuffled;
+}
+
+function assignOnlineTurnOrder(room: ServerRoom) {
+  room.players = shuffleOnlinePlayers(room.players).map((player, index) => ({
+    ...player,
+    name: formatAssignedPlayerName(index + 1, player.name),
+  }));
+}
+
 function startRoomGame(room: ServerRoom) {
   const settings = room.roomSettings;
   const matchMode = settings?.matchType ?? "rounds";
@@ -433,6 +458,7 @@ function startRoomGame(room: ServerRoom) {
         : settings?.roundCount ?? 3;
   const totalPlayers = settings?.totalPlayers ?? room.players.length;
   const humanPlayers = settings?.humanPlayers ?? room.players.length;
+  assignOnlineTurnOrder(room);
   room.stateVersion = 0;
   room.matchState = createMatchState(
     matchMode,
@@ -513,7 +539,7 @@ io.on("connection", (socket) => {
     };
     const player: OnlineRoomPlayer = {
       playerId: createPlayerId(room),
-      name: payload.playerName || "Player 1",
+      name: getOnlinePlayerBaseName(payload.playerName),
       ready: false,
       connected: true,
     };
@@ -551,7 +577,7 @@ io.on("connection", (socket) => {
     }
     const player: OnlineRoomPlayer = {
       playerId: createPlayerId(room),
-      name: payload.playerName || `Player ${room.players.length + 1}`,
+      name: getOnlinePlayerBaseName(payload.playerName),
       ready: false,
       connected: true,
     };

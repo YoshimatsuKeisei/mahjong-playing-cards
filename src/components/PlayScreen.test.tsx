@@ -608,6 +608,61 @@ describe("PlayScreen round display", () => {
     expect(screen.getByText(`プレイヤー${playerCount}`)).toBeInTheDocument();
   });
 
+  it("maps four-player online seats relative to the viewer without changing fixed slot positions", () => {
+    const base = createInitialGame(4, "clockwise");
+    const state: GameState = {
+      ...base,
+      viewerPlayerId: "p3",
+      players: base.players.map((player, index) => ({ ...player, id: `p${index + 1}`, name: `Player ${index + 1}` })),
+    };
+
+    const { container } = render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} disableLocalCpuAutomation />);
+
+    expect(container.querySelector(".player-area.seat-bottom")?.getAttribute("data-player-id")).toBe("p3");
+    expect(container.querySelector(".player-area.seat-left")?.getAttribute("data-player-id")).toBe("p4");
+    expect(container.querySelector(".player-area.seat-top")?.getAttribute("data-player-id")).toBe("p1");
+    expect(container.querySelector(".player-area.seat-right")?.getAttribute("data-player-id")).toBe("p2");
+  });
+
+  it("maps three-player online table cards to the same viewer-relative seats as their players", () => {
+    const base = createInitialGame(3, "clockwise");
+    const state: GameState = {
+      ...base,
+      viewerPlayerId: "p1",
+      players: base.players.map((player, index) => ({
+        ...player,
+        id: `p${index + 1}`,
+        name: `Player ${index + 1}`,
+        discardPile: [card(`discard-p${index + 1}`, index + 3, "S")],
+      })),
+    };
+
+    const { container } = render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} disableLocalCpuAutomation />);
+
+    expect(container.querySelector(".player-area.seat-bottom")?.getAttribute("data-player-id")).toBe("p1");
+    expect(container.querySelector(".player-area.seat-left")?.getAttribute("data-player-id")).toBe("p2");
+    expect(container.querySelector(".player-area.seat-right")?.getAttribute("data-player-id")).toBe("p3");
+    expect(container.querySelector('[data-testid="discard-pile-self"] [data-card-id="discard-p1"]')).toBeInTheDocument();
+    expect(container.querySelector('[data-testid="discard-pile-left"] [data-card-id="discard-p2"]')).toBeInTheDocument();
+    expect(container.querySelector('[data-testid="discard-pile-right"] [data-card-id="discard-p3"]')).toBeInTheDocument();
+  });
+
+  it("maps five-player online seats clockwise from the viewer", () => {
+    const base = createInitialGame(5, "clockwise");
+    const state: GameState = {
+      ...base,
+      viewerPlayerId: "p3",
+      players: base.players.map((player, index) => ({ ...player, id: `p${index + 1}`, name: `Player ${index + 1}` })),
+    };
+
+    const { container } = render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} disableLocalCpuAutomation />);
+    const renderedIds = [...container.querySelectorAll(".player-area")].map((area) => area.getAttribute("data-player-id"));
+
+    expect(renderedIds).toEqual(["p5", "p1", "p2", "p3", "p4"]);
+    expect(container.querySelector(".player-area.seat-bottom")?.getAttribute("data-player-id")).toBe("p3");
+    expect(container.querySelector(".player-area.seat-left")?.getAttribute("data-player-id")).toBe("p4");
+  });
+
   it("shows table discard and meld placement only for three-player games", () => {
     const { rerender } = render(<PlayScreen state={createInitialGame(3, "clockwise")} dispatch={vi.fn()} currentRound={1} />);
 

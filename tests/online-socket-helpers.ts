@@ -12,6 +12,7 @@ export interface SocketClientState {
 export interface SocketClient {
   socket: Socket;
   state: SocketClientState;
+  playerId?: string;
 }
 
 export function connectSocketClient(): Promise<SocketClient> {
@@ -48,17 +49,20 @@ export async function setupSocketRoom(scenario: string) {
   const clients = await Promise.all(Array.from({ length: 4 }, () => connectSocketClient()));
   const created = await emitAck(clients[0].socket, "createRoom", { playerName: "Player 1", maxPlayers: 4, scenario });
   expect(created.ok).toBe(true);
+  clients[0].playerId = created.playerId;
   for (let index = 1; index < clients.length; index += 1) {
     const joined = await emitAck(clients[index].socket, "joinRoom", {
       roomId: created.roomId,
       playerName: `Player ${index + 1}`,
     });
     expect(joined.ok).toBe(true);
+    clients[index].playerId = joined.playerId;
     clients[index].socket.emit("ready", { ready: true });
   }
   clients[0].socket.emit("startGame");
   await waitForSocket(() => clients.every((client) => client.state.view), "missing started player views");
-  return clients;
+  const gameOrder = clients[0].state.view.players.map((player: { id: string }) => player.id);
+  return clients.slice().sort((left, right) => gameOrder.indexOf(left.playerId ?? "") - gameOrder.indexOf(right.playerId ?? ""));
 }
 
 export function submitSocketAction(client: SocketClient, action: any, stateVersion = client.state.view.stateVersion) {

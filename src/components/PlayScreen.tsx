@@ -246,6 +246,7 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
   const canUseOnlineDiscard = !isOnlineView || availableActions.has("discard");
   const showTableCardLayer = playerCount === 3;
   const cpuDisplayNames = buildCpuDisplayNames(state);
+  const displaySlots = mapPlayersToViewSlots(state.players, state.viewerPlayerId);
   const canReachAfterDraw =
     state.phase === "discard" &&
     state.drawnFrom === "deck" &&
@@ -1127,31 +1128,31 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
           </div>
         )}
 
-        {state.players.map((player, index) => (
+        {displaySlots.map(({ player, playerIndex, slotIndex }) => (
           <PlayerArea
             key={player.id}
             player={player}
-            isCurrent={index === state.currentPlayerIndex}
-            seat={getSeat(playerCount, index)}
-            displayName={cpuDisplayNames.get(index)}
-            style={getSeatStyle(playerCount, index)}
+            isCurrent={playerIndex === state.currentPlayerIndex}
+            seat={getSeat(playerCount, slotIndex)}
+            displayName={cpuDisplayNames.get(playerIndex)}
+            style={getSeatStyle(playerCount, slotIndex)}
           />
         ))}
 
         {playerCount >= 4 &&
-          state.players.map((player, index) => {
-            const layout = measuredAnchorLayouts[playerCount]?.[index];
+          displaySlots.map(({ player, slotIndex }) => {
+            const layout = measuredAnchorLayouts[playerCount]?.[slotIndex];
             if (!layout) return null;
 
             return (
               <span
-                className={`history-measure-anchor history-measure-anchor--p${index + 1}`}
+                className={`history-measure-anchor history-measure-anchor--p${slotIndex + 1}`}
                 style={layout}
                 ref={(node) => {
                   if (node) {
-                    historyMeasureRefs.current.set(index, node);
+                    historyMeasureRefs.current.set(slotIndex, node);
                   } else {
-                    historyMeasureRefs.current.delete(index);
+                    historyMeasureRefs.current.delete(slotIndex);
                   }
                 }}
                 aria-hidden="true"
@@ -1160,10 +1161,10 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
             );
           })}
         {playerCount >= 4 &&
-          state.players.map((player, index) => (
+          displaySlots.map(({ player, slotIndex }) => (
             <div
-              className={`history-hover-anchor history-hover-anchor--${getSeat(playerCount, index)} history-hover-anchor--p${index + 1}`}
-              style={measuredHistoryPositions[index] ?? getHistoryAnchorStyle(playerCount, index)}
+              className={`history-hover-anchor history-hover-anchor--${getSeat(playerCount, slotIndex)} history-hover-anchor--p${slotIndex + 1}`}
+              style={measuredHistoryPositions[slotIndex] ?? getHistoryAnchorStyle(playerCount, slotIndex)}
               key={`${player.id}-history-hover`}
             >
               <button type="button" className="history-hover-marker" aria-label={`${player.name}\u306e\u5c65\u6b74\u3092\u78ba\u8a8d`}>
@@ -1174,14 +1175,14 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
           ))}
 
         {showTableCardLayer &&
-          state.players.map((player, index) => {
-            const visibleDiscardPile = getVisibleDiscardPile(player.discardPile, hiddenQueenDiscardIdsByPlayer.get(index));
-            const measuredPosition = measuredHistoryPositions[index];
+          displaySlots.map(({ player, playerIndex, slotIndex }) => {
+            const visibleDiscardPile = getVisibleDiscardPile(player.discardPile, hiddenQueenDiscardIdsByPlayer.get(playerIndex));
+            const measuredPosition = measuredHistoryPositions[slotIndex];
             return visibleDiscardPile.length > 0 ? (
               <div
-                className={`history-hover-anchor table-history-anchor table-history-anchor--${getAreaName(getSeat(playerCount, index))}`}
+                className={`history-hover-anchor table-history-anchor table-history-anchor--${getAreaName(getSeat(playerCount, slotIndex))}`}
                 style={{
-                  ...(measuredPosition ?? getHistoryAnchorStyle(playerCount, index)),
+                  ...(measuredPosition ?? getHistoryAnchorStyle(playerCount, slotIndex)),
                   opacity: measuredPosition ? undefined : 0,
                   pointerEvents: measuredPosition ? undefined : "none",
                 }}
@@ -1197,22 +1198,22 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
 
         {showTableCardLayer && (
           <div className="table-card-layer" aria-label="捨て札と公開役">
-            {state.players.map((player, index) => {
-              const area = getAreaName(getSeat(playerCount, index));
-              const visibleDiscardPile = getVisibleDiscardPile(player.discardPile, hiddenQueenDiscardIdsByPlayer.get(index));
+            {displaySlots.map(({ player, playerIndex, slotIndex }) => {
+              const area = getAreaName(getSeat(playerCount, slotIndex));
+              const visibleDiscardPile = getVisibleDiscardPile(player.discardPile, hiddenQueenDiscardIdsByPlayer.get(playerIndex));
               if (area === "self") {
                 return (
                   <div className="self-table-zone" key={`${player.id}-field`}>
                     <div className="self-discard-column">
-                      <DiscardPile cards={visibleDiscardPile} area={area} highlightLatest={discardHighlights.get(index) ?? null} />
+                      <DiscardPile cards={visibleDiscardPile} area={area} highlightLatest={discardHighlights.get(playerIndex) ?? null} />
                       {visibleDiscardPile.length > 0 && (
                         <span
                           className="discard-first-card-anchor"
                           ref={(node) => {
                             if (node) {
-                              historyMeasureRefs.current.set(index, node);
+                              historyMeasureRefs.current.set(slotIndex, node);
                             } else {
-                              historyMeasureRefs.current.delete(index);
+                              historyMeasureRefs.current.delete(slotIndex);
                             }
                           }}
                           aria-hidden="true"
@@ -1231,15 +1232,15 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
                   <div className={`opponent-field opponent-field--${area}`} key={`${player.id}-field`}>
                     <div className="opponent-card-group">
                       <div className={`opponent-discard-stack history-hover-zone--${area}`}>
-                        <DiscardPile cards={visibleDiscardPile} area={area} highlightLatest={discardHighlights.get(index) ?? null} />
+                        <DiscardPile cards={visibleDiscardPile} area={area} highlightLatest={discardHighlights.get(playerIndex) ?? null} />
                         {visibleDiscardPile.length > 0 && (
                           <span
                             className="discard-first-card-anchor"
                             ref={(node) => {
                               if (node) {
-                                historyMeasureRefs.current.set(index, node);
+                                historyMeasureRefs.current.set(slotIndex, node);
                               } else {
-                                historyMeasureRefs.current.delete(index);
+                                historyMeasureRefs.current.delete(slotIndex);
                               }
                             }}
                             aria-hidden="true"
@@ -1257,15 +1258,15 @@ export default function PlayScreen({ state, dispatch, currentRound, onExitToHome
               return (
                 <div className={`card-field card-field--${area}`} key={`${player.id}-field`}>
                   <div className={`history-hover-zone--${area}`}>
-                    <DiscardPile cards={visibleDiscardPile} area={area} highlightLatest={discardHighlights.get(index) ?? null} />
+                    <DiscardPile cards={visibleDiscardPile} area={area} highlightLatest={discardHighlights.get(playerIndex) ?? null} />
                     {visibleDiscardPile.length > 0 && (
                       <span
                         className="discard-first-card-anchor"
                         ref={(node) => {
                           if (node) {
-                            historyMeasureRefs.current.set(index, node);
+                            historyMeasureRefs.current.set(slotIndex, node);
                           } else {
-                            historyMeasureRefs.current.delete(index);
+                            historyMeasureRefs.current.delete(slotIndex);
                           }
                         }}
                         aria-hidden="true"
@@ -2322,6 +2323,38 @@ function getSeat(playerCount: number, index: number): "top" | "right" | "bottom"
 
 function getAreaName(seat: "top" | "right" | "bottom" | "left"): "self" | "left" | "right" | "top" {
   return seat === "bottom" ? "self" : seat;
+}
+
+function mapPlayersToViewSlots(players: GameState["players"], viewerPlayerId?: string) {
+  const playerCount = players.length;
+  const viewerIndex = viewerPlayerId ? players.findIndex((player) => player.id === viewerPlayerId) : -1;
+  if (viewerIndex < 0) {
+    return players.map((player, slotIndex) => ({
+      player,
+      playerIndex: slotIndex,
+      slotIndex,
+    }));
+  }
+
+  const clockwisePlayerIndexes =
+    players.map((_, offset) => (viewerIndex + offset) % playerCount);
+  const slotRelativeOffsets = getSlotRelativeOffsets(playerCount);
+
+  return slotRelativeOffsets.map((relativeOffset, slotIndex) => {
+    const playerIndex = clockwisePlayerIndexes[relativeOffset] ?? slotIndex;
+    return {
+      player: players[playerIndex] ?? players[slotIndex],
+      playerIndex,
+      slotIndex,
+    };
+  });
+}
+
+function getSlotRelativeOffsets(playerCount: number): number[] {
+  if (playerCount === 3) return [0, 2, 1];
+  if (playerCount === 4) return [2, 3, 0, 1];
+  if (playerCount === 5) return [2, 3, 4, 0, 1];
+  return Array.from({ length: playerCount }, (_, index) => index);
 }
 
 function getSeatStyle(playerCount: number, index: number): CSSProperties {

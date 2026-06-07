@@ -4,6 +4,7 @@ import { closeSocketClients, setupSocketRoom, submitSocketAction, waitForSocket 
 test("online next round keeps room seats and starts a fresh server state", async () => {
   const clients = await setupSocketRoom("online-tsumo-basic");
   const host = clients[0];
+  const roomHost = clients.find((client) => client.playerId === "player-1") ?? host;
   const playerIds = clients.map((client) => client.state.view.players.map((player: any) => player.id).join("|"));
 
   submitSocketAction(host, { type: "drawFromDeck" });
@@ -12,7 +13,7 @@ test("online next round keeps room seats and starts a fresh server state", async
   submitSocketAction(host, { type: "winWithDiscard", discardCardId: option.discardCard.id });
   await waitForSocket(() => host.state.view.phase === "result", "result did not appear before next round");
 
-  host.socket.emit("nextRound");
+  roomHost.socket.emit("nextRound");
   await waitForSocket(() => clients.every((client) => client.state.view.phase === "draw" && client.state.matchState.currentRound === 2), "next round did not start");
 
   expect(clients.map((client) => client.state.view.players.map((player: any) => player.id).join("|"))).toEqual(playerIds);
