@@ -10,7 +10,7 @@ import StartScreen, { type RoomCreateSettings } from "./components/StartScreen";
 import PlayScreen from "./components/PlayScreen";
 import ResultScreen from "./components/ResultScreen";
 import FinalResultScreen from "./components/FinalResultScreen";
-import { createInitialGame, gameReducer, type GameAction } from "./game/gameState";
+import { createInitialGame, createRandomStartPlayerIndex, gameReducer, type GameAction } from "./game/gameState";
 import { advanceRound, canAdvanceRound, createInterruptedFinalMatchState, createMatchState, syncMatchGameState } from "./game/matchState";
 import { calculatePointDeductions, calculateRawRoundScores } from "./game/scoring";
 import { createDefaultDaifugoOptions } from "./game/deck";
@@ -250,6 +250,7 @@ export default function App() {
       return;
     }
     if (matchMode === "rounds" || matchMode === "targetScore" || matchMode === "startingPoints") {
+      const startPlayerIndex = createRandomStartPlayerIndex(playerCount);
       const nextMatch = createMatchState(
         matchMode,
         playerCount,
@@ -261,10 +262,12 @@ export default function App() {
         localRoomSettings?.daifugoOptions,
         localRoomSettings?.cpuModelIds,
         localRoomSettings?.showCpuActions,
+        startPlayerIndex,
       );
       setMatchState(nextMatch);
       setState(nextMatch.gameState);
     } else {
+      const startPlayerIndex = createRandomStartPlayerIndex(playerCount);
       const nextState = createInitialGame(
         playerCount,
         direction,
@@ -273,6 +276,7 @@ export default function App() {
         localRoomSettings?.daifugoOptions,
         localRoomSettings?.cpuModelIds,
         localRoomSettings?.showCpuActions,
+        startPlayerIndex,
       );
       setMatchState(null);
       setState(nextState);
@@ -329,7 +333,7 @@ export default function App() {
     }
     setMatchState((currentMatch) => {
       if (!currentMatch || !canAdvanceRound(currentMatch)) return currentMatch;
-      const nextMatch = advanceRound(currentMatch);
+      const nextMatch = advanceRound(currentMatch, createRandomStartPlayerIndex(currentMatch.playerCount));
       setInterruptedFinalMatchState(null);
       setState(nextMatch.gameState);
       setScreen("play");

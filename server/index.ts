@@ -2,7 +2,7 @@ import { createServer } from "node:http";
 import { Server, type Socket } from "socket.io";
 import { createDefaultDaifugoOptions } from "../src/game/deck";
 import {
-  createInitialGame,
+  createRandomStartPlayerIndex,
   gameReducer,
   getEnhancedFiveTurnOptions,
   getAvailableDiscardSources,
@@ -471,6 +471,7 @@ function startRoomGame(room: ServerRoom) {
     settings?.daifugoOptions ?? createDefaultDaifugoOptions(),
     settings?.cpuModelIds ?? [],
     false,
+    createRandomStartPlayerIndex(totalPlayers),
   );
   room.state = room.matchState.gameState;
   room.state = remapOnlinePlayers(room, room.state);
@@ -666,7 +667,7 @@ io.on("connection", (socket) => {
       rejectAction(socket, room, playerId, "invalid_action_for_phase");
       return;
     }
-    const nextMatch = advanceRound(syncedMatch);
+    const nextMatch = advanceRound(syncedMatch, createRandomStartPlayerIndex(syncedMatch.playerCount));
     room.stateVersion += 1;
     const nextGameState = remapOnlinePlayers(room, nextMatch.gameState);
     room.state = nextGameState;

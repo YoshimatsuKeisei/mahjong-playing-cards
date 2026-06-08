@@ -48,6 +48,7 @@ export function dealCards(
   daifugoOptions: DaifugoOptions = createDefaultDaifugoOptions(),
   cpuModelIds: CpuModelId[] = [],
   showCpuActions = true,
+  startPlayerIndex = 0,
 ): GameState {
   const players: Player[] = Array.from({ length: playerCount }, (_, index) => ({
     id: `player-${index + 1}`,
@@ -79,7 +80,7 @@ export function dealCards(
   return {
     players: players.map((player) => ({ ...player, hand: sortCards(player.hand) })),
     deck,
-    currentPlayerIndex: 0,
+    currentPlayerIndex: Math.max(0, Math.min(playerCount - 1, startPlayerIndex)),
     direction,
     daifugoOptions,
     pendingDaifugoEffect: null,

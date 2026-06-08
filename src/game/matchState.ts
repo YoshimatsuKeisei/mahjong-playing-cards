@@ -14,6 +14,7 @@ export function createMatchState(
   daifugoOptions: DaifugoOptions = createDefaultDaifugoOptions(),
   cpuModelIds: CpuModelId[] = [],
   showCpuActions = true,
+  startPlayerIndex = 0,
 ): MatchState {
   return {
     matchMode,
@@ -33,7 +34,7 @@ export function createMatchState(
     pointBalances: Array.from({ length: playerCount }, () => (matchMode === "startingPoints" ? totalRounds : 0)),
     history: [],
     scoredRound: null,
-    gameState: createInitialGame(playerCount, direction, humanPlayerCount, cpuModelId, daifugoOptions, cpuModelIds, showCpuActions),
+    gameState: createInitialGame(playerCount, direction, humanPlayerCount, cpuModelId, daifugoOptions, cpuModelIds, showCpuActions, startPlayerIndex),
   };
 }
 
@@ -55,7 +56,7 @@ export function createInterruptedFinalMatchState(matchState: MatchState): MatchS
   };
 }
 
-export function advanceRound(matchState: MatchState): MatchState {
+export function advanceRound(matchState: MatchState, startPlayerIndex = 0): MatchState {
   if (!canAdvanceRound(matchState)) return matchState;
 
   return {
@@ -70,6 +71,7 @@ export function advanceRound(matchState: MatchState): MatchState {
       matchState.daifugoOptions,
       matchState.cpuModelIds,
       matchState.showCpuActions,
+      startPlayerIndex,
     ),
   };
 }

@@ -41,8 +41,23 @@ export function createInitialGame(
   daifugoOptions: DaifugoOptions = createDefaultDaifugoOptions(),
   cpuModelIds: CpuModelId[] = [],
   showCpuActions = true,
+  startPlayerIndex = 0,
 ): GameState {
-  return dealCards(shuffleDeck(createDeck()), playerCount, direction, humanPlayerCount, cpuModelId, daifugoOptions, cpuModelIds, showCpuActions);
+  return dealCards(
+    shuffleDeck(createDeck()),
+    playerCount,
+    direction,
+    humanPlayerCount,
+    cpuModelId,
+    daifugoOptions,
+    cpuModelIds,
+    showCpuActions,
+    startPlayerIndex,
+  );
+}
+
+export function createRandomStartPlayerIndex(playerCount: number): number {
+  return Math.floor(Math.random() * Math.max(1, playerCount));
 }
 
 function replacePlayer(players: Player[], index: number, nextPlayer: Player): Player[] {
