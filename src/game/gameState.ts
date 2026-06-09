@@ -771,17 +771,17 @@ function resolveNormalFiveSkip(
     state.players.length,
     state.direction,
   );
-  const nextTurnIndex = getNextPlayerIndex(
+  const nextTurnMessage = getNextTurnMessage(
+    state.players,
     skippedIndex,
-    state.players.length,
     state.direction,
   );
-  const message = `${state.players[skippedIndex].name}をスキップ！次の手番は${state.players[nextTurnIndex].name}です。`;
+  const message = `5スキップにより、手番が飛びます。${nextTurnMessage}`;
   return advanceToNextDraw(
     { ...state, pendingDaifugoEffect: null },
     state.players,
     skippedIndex,
-    continueState?.message ?? message,
+    message,
   );
 }
 
@@ -1193,7 +1193,11 @@ function resolveSevenExchangeWithReachReview(
     state.currentPlayerIndex,
     "sevenExchange",
     reachCheck.confirmPlayerIndex,
-    reachCheck.message,
+    getNextTurnMessage(
+      reachCheck.players,
+      state.currentPlayerIndex,
+      state.direction,
+    ),
   );
 }
 
@@ -2109,9 +2113,19 @@ function applyDaifugoEffect(state: GameState): GameState {
     );
   }
   if (pending.effect === "nineReverse") {
+    const nextDirection = reverseDirection(state.direction);
+    const nextTurnMessage = getNextTurnMessage(
+      state.players,
+      state.currentPlayerIndex,
+      nextDirection,
+    );
+
     return continueAfterDaifugo(
-      { ...state, direction: reverseDirection(state.direction) },
-      pending.continue,
+      { ...state, direction: nextDirection },
+      {
+        ...pending.continue,
+        message: `9の効果で手番方向が逆になりました。${nextTurnMessage}`,
+      },
     );
   }
 
@@ -2365,7 +2379,14 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       if (!action.activate) {
         return continueAfterDaifugo(
           { ...state, pendingDaifugoEffect: null },
-          pending.continue,
+          {
+            ...pending.continue,
+            message: getNextTurnMessage(
+              state.players,
+              pending.playerIndex,
+              state.direction,
+            ),
+          },
         );
       }
       return applyDaifugoEffect(state);
@@ -2658,6 +2679,12 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       }
       //10捨てで山札から1枚引く処理
       if (pending.effect === "tenSwapDraw") {
+        const nextTurnMessage = getNextTurnMessage(
+          players,
+          state.currentPlayerIndex,
+          state.direction,
+        );
+
         return {
           ...state,
           players,
@@ -2665,11 +2692,14 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
             kind: "effectDraw",
             effect: "tenSwapDraw",
             playerIndex: state.currentPlayerIndex,
-            continue: pending.continue ?? { shouldConfirmReach: false },
+            continue: {
+              ...(pending.continue ?? { shouldConfirmReach: false }),
+              message: nextTurnMessage,
+            },
           },
           drawnCard: null,
           drawnFrom: null,
-          message: "10の効果：山札から1枚引きます。",
+          message: `10の効果を使用し、${formatRank(discardCard.rank)}を捨てました。山札から1枚引きます。`,
         };
       }
 
@@ -2989,10 +3019,21 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
             isReach: true,
           })
         : state.players;
+      const discardCard = topDiscard(players[state.currentPlayerIndex]);
+      const discardHandoffMessage = discardCard
+        ? getDiscardHandoffMessage(
+            players,
+            state.currentPlayerIndex,
+            state.direction,
+            discardCard,
+          )
+        : undefined;
+
       return advanceToNextDraw(
         { ...state, pendingDaifugoEffect: null },
         players,
         state.currentPlayerIndex,
+        discardHandoffMessage,
       );
     }
 
@@ -3110,11 +3151,15 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         return deckoutResult(nextState, players);
       }
 
+      const discardHandoffMessage = getDiscardHandoffMessage(
+        players,
+        state.currentPlayerIndex,
+        state.direction,
+        discardCard,
+      );
       const continueState: PendingDaifugoContinue = {
         shouldConfirmReach,
-        message: player.isCpu
-          ? `${player.name} (CPU) discarded ${formatCpuCard(discardCard)}.`
-          : undefined,
+        message: discardHandoffMessage,
       };
       const pendingDaifugoEffect = createPendingDaifugoEffect(
         nextState,
@@ -3146,9 +3191,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         nextState,
         players,
         state.currentPlayerIndex,
-        player.isCpu
-          ? `${player.name}（CPU）が ${formatCpuCard(discardCard)} を捨てました。`
-          : undefined,
+        discardHandoffMessage,
       );
     }
 
@@ -3197,14 +3240,17 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           message: getDaifugoConfirmMessage(pendingDaifugoEffect.effect),
         };
       }
-
+      const discardHandoffMessage = getDiscardHandoffMessage(
+        players,
+        state.currentPlayerIndex,
+        state.direction,
+        state.drawnCard,
+      );
       return advanceToNextDraw(
         nextState,
         players,
         state.currentPlayerIndex,
-        player.isCpu && state.drawnCard
-          ? `${player.name}（CPU）が ${formatCpuCard(state.drawnCard)} を捨てました。`
-          : undefined,
+        discardHandoffMessage,
       );
     }
 

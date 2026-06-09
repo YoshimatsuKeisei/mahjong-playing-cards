@@ -3546,7 +3546,10 @@ function getActionText(state: GameState, viewerPlayerId?: string) {
       return "8の効果で山札から引きます。";
     }
     if (pending.effect === "tenSwapDraw") {
-      return "10の効果で山札から引きます。";
+      return isViewerRequiredActionPlayer
+        ? "山札から1枚引きます。"
+        : state.message ||
+            `${requiredPlayer?.name ?? "プレイヤー"}が10の効果で山札から1枚引きます。`;
     }
     return `${requiredPlayer?.name ?? "プレイヤー"}が効果で山札から引いています。`;
   }
@@ -3596,11 +3599,31 @@ function getActionText(state: GameState, viewerPlayerId?: string) {
       ) {
         return `${currentPlayer.name}が8の効果で追加の捨て札を選んでいます。`;
       }
+      if (
+        state.message.includes("10の効果を使用し") &&
+        state.message.includes("山札から1枚引きます")
+      ) {
+        return state.message;
+      }
+
+      if (
+        state.message.includes(
+          "10の効果：追加で捨てるカードを1枚選んでください",
+        ) ||
+        state.message.includes("10の効果：追加で1枚捨ててください")
+      ) {
+        return `${currentPlayer.name}が10の効果で追加の捨て札を選んでいます。`;
+      }
       const lastDiscard = currentPlayer.discardPile.at(-1) ?? null;
       if (
         lastDiscard &&
-        (state.message.includes("8の効果") ||
+        (state.message.includes("5の効果") ||
+          state.message.includes("7の効果") ||
+          state.message.includes("8の効果") ||
+          state.message.includes("9の効果") ||
           state.message.includes("10の効果") ||
+          state.message.includes("Jの効果") ||
+          state.message.includes("Qの効果") ||
           state.message.includes("カード効果"))
       ) {
         return `${currentPlayer.name}が${formatRankLabel(lastDiscard.rank)}を捨てました。`;
@@ -3630,6 +3653,7 @@ function getActionText(state: GameState, viewerPlayerId?: string) {
     const viewerIsNextPlayer = Boolean(
       viewerPlayerId && state.players[nextPlayerIndex]?.id === viewerPlayerId,
     );
+
     const viewerIsHandoffSource = Boolean(
       viewerPlayerId &&
       state.players[handoffSourceIndex]?.id === viewerPlayerId,
@@ -3640,12 +3664,21 @@ function getActionText(state: GameState, viewerPlayerId?: string) {
       : `次は${state.players[nextPlayerIndex]?.name ?? "次のプレイヤー"}です。`;
 
     const message = state.message || nextTurnMessage;
+    if (message.startsWith("9の効果で手番方向が逆になりました。")) {
+      const effectMessage = viewerIsHandoffSource
+        ? "手番方向が逆になりました。"
+        : "9の効果で手番方向が逆になりました。";
 
-    if (message.startsWith("8の効果で") && message.includes("。次は")) {
-      const effectMessage = message.slice(0, message.indexOf("。次は") + 1);
+      return `${effectMessage}${nextTurnMessage}`;
+    }
+    const nextMarkerIndex = message.indexOf("。次は");
+
+    if (nextMarkerIndex >= 0) {
+      const discardMessage = message.slice(0, nextMarkerIndex + 1);
+
       return viewerIsHandoffSource
         ? nextTurnMessage
-        : `${effectMessage}${nextTurnMessage}`;
+        : `${discardMessage}${nextTurnMessage}`;
     }
 
     if (message.startsWith("次は")) {
