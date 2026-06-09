@@ -298,6 +298,12 @@ export default function PlayScreen({
   disableLocalCpuAutomation = false,
 }: PlayScreenProps) {
   const currentPlayer = state.players[state.currentPlayerIndex];
+  console.log("[phase check]", {
+    phase: state.phase,
+    message: state.message,
+    currentPlayerIndex: state.currentPlayerIndex,
+    viewerPlayerId: state.viewerPlayerId,
+  });
   const viewerPlayerIndex = state.viewerPlayerId
     ? state.players.findIndex((player) => player.id === state.viewerPlayerId)
     : -1;
@@ -1135,8 +1141,13 @@ export default function PlayScreen({
     )
       return;
     if (isOnlineView) {
-      dispatch({ type: "drawForDaifugoEffect" });
-      return;
+      if (!isViewerRequiredActionPlayer) return;
+
+      const timeoutId = window.setTimeout(() => {
+        dispatch({ type: "drawForDaifugoEffect" });
+      }, 2100);
+
+      return () => window.clearTimeout(timeoutId);
     }
     animateDrawFromDeck(() => dispatch({ type: "drawForDaifugoEffect" }));
   }, [
@@ -1144,6 +1155,7 @@ export default function PlayScreen({
     dispatch,
     isAnimating,
     isOnlineView,
+    isViewerRequiredActionPlayer,
     state.pendingDaifugoEffect,
   ]);
 
@@ -1839,6 +1851,9 @@ export default function PlayScreen({
                 : ""
             }`}
           >
+            {/* //// ===== 下部ナビ：大富豪効果の確認 =====
+            //「8を使いますか？」「10を使いますか？」などの yes/no
+            ボタンを出す。 */}
             {isDaifugoConfirm && (
               <div className="daifugo-effect-panel">
                 <strong>
@@ -1865,14 +1880,11 @@ export default function PlayScreen({
                 </div>
               </div>
             )}
-
+            {/* 下部ナビ:8/10の追加捨て  
+            //8で山札から引いた後、または10で追加捨てする時の操作パネル。 
+            //上部ナビと同じ文言をここで繰り返さないようにする。 */}
             {isDaifugoExtraDiscard && (
               <div className="daifugo-effect-panel">
-                <strong>
-                  {pendingDaifugoEffect.effect === "eightExtraTurn"
-                    ? "8の効果：追加で1枚捨ててください。"
-                    : "10の効果：追加で1枚捨ててください。"}
-                </strong>
                 {pendingDaifugoEffect.effect === "eightExtraTurn" &&
                   canReachAfterDraw && (
                     <button
@@ -1927,7 +1939,6 @@ export default function PlayScreen({
                 </button>
               </div>
             )}
-
             {isFiveEnhancementConfirm &&
               isViewerRequiredActionPlayer &&
               !state.players[pendingDaifugoEffect.playerIndex]?.isCpu && (
@@ -1965,7 +1976,6 @@ export default function PlayScreen({
                   </div>
                 </div>
               )}
-
             {isFiveEnhancedTargetSelect &&
               isViewerRequiredActionPlayer &&
               !state.players[pendingDaifugoEffect.playerIndex]?.isCpu && (
@@ -2024,7 +2034,6 @@ export default function PlayScreen({
                   </button>
                 </div>
               )}
-
             {isSevenEnhancementConfirm &&
               isViewerRequiredActionPlayer &&
               !state.players[pendingDaifugoEffect.playerIndex]?.isCpu && (
@@ -2062,7 +2071,6 @@ export default function PlayScreen({
                   </div>
                 </div>
               )}
-
             {isSevenEnhancedTargetSelect &&
               isViewerRequiredActionPlayer &&
               !state.players[pendingDaifugoEffect.playerIndex]?.isCpu && (
@@ -2116,7 +2124,6 @@ export default function PlayScreen({
                   </button>
                 </div>
               )}
-
             {isSevenExchange && (
               <div className="daifugo-effect-panel seven-exchange-panel">
                 {canActOnSevenExchangeSelection ? (
@@ -2144,7 +2151,6 @@ export default function PlayScreen({
                 ) : null}
               </div>
             )}
-
             {isQueenSelect &&
               isViewerRequiredActionPlayer &&
               !state.players[pendingDaifugoEffect.playerIndex]?.isCpu && (
@@ -2176,7 +2182,6 @@ export default function PlayScreen({
                   </div>
                 </div>
               )}
-
             {isJackSelect &&
               isViewerRequiredActionPlayer &&
               !state.players[pendingDaifugoEffect.playerIndex]?.isCpu && (
@@ -2239,7 +2244,6 @@ export default function PlayScreen({
                   </div>
                 </div>
               )}
-
             {isJackShieldSelect &&
               isViewerRequiredActionPlayer &&
               !state.players[pendingDaifugoEffect.playerIndex]?.isCpu && (
@@ -2282,7 +2286,6 @@ export default function PlayScreen({
                   </div>
                 </div>
               )}
-
             {isJackInspect &&
               isViewerRequiredActionPlayer &&
               !state.players[pendingDaifugoEffect.playerIndex]?.isCpu &&
@@ -2372,11 +2375,15 @@ export default function PlayScreen({
                   </div>
                 );
               })()}
-
+            {/* //下部ナビ:リーチ継続確認 //
+            7交換/Q効果などで手札構成が変わったリーチ者だけに出す。 //
+            上部ナビは「手札構成が変化しました」だけ、 //
+            下部ナビは「リーチ状態を継続しますか？」だけに分離する。 */}
             {isReachContinueConfirm &&
+              isViewerRequiredActionPlayer &&
               !state.players[pendingDaifugoEffect.playerIndex]?.isCpu && (
                 <div className="daifugo-effect-panel reach-continue-panel">
-                  <strong>{pendingDaifugoEffect.message}</strong>
+                  <strong>リーチ状態を継続しますか？</strong>
                   <div className="daifugo-effect-actions">
                     <button
                       type="button"
@@ -2406,7 +2413,6 @@ export default function PlayScreen({
                   </div>
                 </div>
               )}
-
             {state.phase === "draw" &&
               !pendingDaifugoEffect &&
               canUseOnlineDraw && (
@@ -2463,7 +2469,6 @@ export default function PlayScreen({
                   })}
                 </>
               )}
-
             {state.phase === "discard" &&
               !pendingDaifugoEffect &&
               canUseOnlineDiscard && (
@@ -2548,7 +2553,6 @@ export default function PlayScreen({
                   )}
                 </>
               )}
-
             {state.phase === "reachConfirm" && !pendingDaifugoEffect && (
               <div className="reach-win-options">
                 <strong>リーチを宣言しますか？</strong>
@@ -2613,7 +2617,9 @@ interface PlayerHistoryPopoverProps {
   player: GameState["players"][number];
   showMelds: boolean;
 }
-
+// 効果アニメーション中の上部ナビ文言・中央演出を作る
+// 7交換、Qボンバーなど、中央カード演出と演出中の上部ナビ message を作る。
+// toolbar-action では、この message が getActionText より優先される。
 function buildDaifugoAnimationSteps(
   event: NonNullable<GameState["daifugoEffectEvent"]>,
   state: GameState,
@@ -3449,7 +3455,11 @@ function getRequiredActionPlayerIndex(state: GameState): number | null {
   }
   return "playerIndex" in pending ? pending.playerIndex : null;
 }
-
+// 上部ナビ文言生成 通常フェーズ、効果選択中、7渡し中、8/10効果中、リーチ継続確認中などの上部メッセージを返す。
+// toolbar-action の通常表示を作る。
+// ただし、効果演出中は daifugoAnimationStep.message が優先される。
+// pendingDaifugoEffect の kind/effect と viewerPlayerId を見て、
+// 自分向け/他人向けメッセージを切り替える。
 function getActionText(state: GameState, viewerPlayerId?: string) {
   const pending = state.pendingDaifugoEffect;
   const viewerIndex = viewerPlayerId
@@ -3464,7 +3474,6 @@ function getActionText(state: GameState, viewerPlayerId?: string) {
     !viewerPlayerId ||
     (requiredActionPlayerIndex !== null &&
       viewerIndex === requiredActionPlayerIndex);
-
   if (pending?.kind === "sevenExchange") {
     const participantIndexes = [pending.playerIndex, pending.targetPlayerIndex];
     const viewerIsParticipant = participantIndexes.includes(viewerIndex);
@@ -3512,22 +3521,34 @@ function getActionText(state: GameState, viewerPlayerId?: string) {
       : `${requiredPlayer?.name ?? "プレイヤー"}がJ効果で相手の手札を確認しています。`;
   }
   if (pending?.kind === "reachContinueConfirm") {
-    return isViewerRequiredActionPlayer
-      ? pending.message
-      : `${requiredPlayer?.name ?? "プレイヤー"}がリーチ継続を確認しています。`;
+    if (!isViewerRequiredActionPlayer) {
+      return `${requiredPlayer?.name ?? "プレイヤー"}がリーチ継続を確認しています。`;
+    }
+
+    return pending.effect === "queenNumberVanish"
+      ? "Q効果により手札構成が変化しました。"
+      : "カード交換により手札構成が変化しました。";
   }
   if (pending?.kind === "confirm") {
-    return isViewerRequiredActionPlayer
-      ? getDaifugoEffectText(pending.effect)
-      : `${requiredPlayer?.name ?? "プレイヤー"}が効果を選択しています。`;
+    const actor = state.players[pending.playerIndex];
+    const discardedCard = actor?.discardPile.at(-1) ?? null;
+    const rankLabel = discardedCard
+      ? formatRankLabel(discardedCard.rank)
+      : "カード";
+    const viewerIsActor = viewerIndex === pending.playerIndex;
+    return viewerIsActor
+      ? "効果を使用するか選択してください。"
+      : `${actor?.name ?? "プレイヤー"}が${rankLabel}を捨てました。`;
   }
 
   if (pending?.kind === "effectDraw") {
-    return isViewerRequiredActionPlayer
-      ? pending.effect === "eightExtraTurn"
-        ? "8の効果で山札から引いてください。"
-        : "10の効果で山札から引いてください。"
-      : `${requiredPlayer?.name ?? "プレイヤー"}が効果で山札から引いています。`;
+    if (pending.effect === "eightExtraTurn") {
+      return "8の効果で山札から引きます。";
+    }
+    if (pending.effect === "tenSwapDraw") {
+      return "10の効果で山札から引きます。";
+    }
+    return `${requiredPlayer?.name ?? "プレイヤー"}が効果で山札から引いています。`;
   }
   if (pending?.kind === "extraDiscard") {
     if (pending.effect === "tenSwapDraw") {
@@ -3535,12 +3556,15 @@ function getActionText(state: GameState, viewerPlayerId?: string) {
         ? "10の効果：追加で1枚捨ててください。"
         : `${requiredPlayer?.name ?? "プレイヤー"}が10の効果で追加の捨て札を選んでいます。`;
     }
+    if (pending.effect === "eightExtraTurn") {
+      return isViewerRequiredActionPlayer
+        ? "8の効果：追加で1枚捨ててください。"
+        : `${requiredPlayer?.name ?? "プレイヤー"}が8の効果で追加の捨て札を選んでいます。`;
+    }
 
     if (!isViewerRequiredActionPlayer) {
       return `${requiredPlayer?.name ?? "プレイヤー"}が捨てるカードを選択しています。`;
     }
-
-    return "8の効果で追加行動中です。";
   }
   const currentPlayer = state.players[state.currentPlayerIndex];
   const isViewerTurn = !viewerPlayerId || currentPlayer?.id === viewerPlayerId;
@@ -3558,8 +3582,31 @@ function getActionText(state: GameState, viewerPlayerId?: string) {
   if (!isViewerTurn && currentPlayer) {
     if (state.phase === "draw")
       return `${currentPlayer.name}が山札または捨て札から選択しています。`;
-    if (state.phase === "discard")
+    if (state.phase === "discard") {
+      if (
+        state.message.includes("8の効果：山札から1枚引きます") ||
+        state.message.includes("8の効果で山札から引きます")
+      ) {
+        return "8の効果で山札から引きます。";
+      }
+      if (
+        state.message.includes("8の効果：追加で1枚捨ててください") ||
+        state.message.includes("8の効果：追加行動で1枚捨ててください") ||
+        state.message.includes("8の効果で追加行動中")
+      ) {
+        return `${currentPlayer.name}が8の効果で追加の捨て札を選んでいます。`;
+      }
+      const lastDiscard = currentPlayer.discardPile.at(-1) ?? null;
+      if (
+        lastDiscard &&
+        (state.message.includes("8の効果") ||
+          state.message.includes("10の効果") ||
+          state.message.includes("カード効果"))
+      ) {
+        return `${currentPlayer.name}が${formatRankLabel(lastDiscard.rank)}を捨てました。`;
+      }
       return `${currentPlayer.name}が捨てるカードを選択しています。`;
+    }
     if (state.phase === "reachConfirm")
       return `${currentPlayer.name}がリーチを確認しています。`;
     if (state.phase === "ronCheck")
@@ -3571,8 +3618,42 @@ function getActionText(state: GameState, viewerPlayerId?: string) {
   if (state.phase === "discard") return "手札から1枚選んで捨ててください。";
   if (state.phase === "reachConfirm") return "リーチ宣言を確認してください。";
   if (state.phase === "ronCheck") return "ロン可能な捨て札を確認しています。";
-  if (state.phase === "handoff")
-    return state.message || "次のプレイヤーへ交代してください。";
+  if (state.phase === "handoff") {
+    const handoffSourceIndex =
+      state.lastDiscarderIndex ?? state.currentPlayerIndex;
+    const nextPlayerIndex =
+      state.direction === "clockwise"
+        ? (handoffSourceIndex + 1) % state.players.length
+        : (handoffSourceIndex - 1 + state.players.length) %
+          state.players.length;
+
+    const viewerIsNextPlayer = Boolean(
+      viewerPlayerId && state.players[nextPlayerIndex]?.id === viewerPlayerId,
+    );
+    const viewerIsHandoffSource = Boolean(
+      viewerPlayerId &&
+      state.players[handoffSourceIndex]?.id === viewerPlayerId,
+    );
+
+    const nextTurnMessage = viewerIsNextPlayer
+      ? "次はあなたの手番です。"
+      : `次は${state.players[nextPlayerIndex]?.name ?? "次のプレイヤー"}です。`;
+
+    const message = state.message || nextTurnMessage;
+
+    if (message.startsWith("8の効果で") && message.includes("。次は")) {
+      const effectMessage = message.slice(0, message.indexOf("。次は") + 1);
+      return viewerIsHandoffSource
+        ? nextTurnMessage
+        : `${effectMessage}${nextTurnMessage}`;
+    }
+
+    if (message.startsWith("次は")) {
+      return nextTurnMessage;
+    }
+
+    return message;
+  }
   if (state.drawnCard) return `引いたカード: ${formatCard(state.drawnCard)}`;
   return state.message;
 }
