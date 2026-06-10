@@ -21,8 +21,6 @@ import {
   sortCards,
 } from "./deck";
 import {
-  canDeclareReach,
-  canDeclareReachAfterDraw,
   checkWinningHandWithOpenMelds,
   countMaxMelds,
   findCallMeldOptions,
@@ -279,6 +277,23 @@ function getNextTurnMessage(
   return `次は${players[nextPlayerIndex]?.name ?? "次のプレイヤー"}です。`;
 }
 
+function getEnhancedSevenTargetSelectMessage(playerName: string): string {
+  return `${playerName}が7渡しの相手を選んでいます。J強化により次の手番以外の人も交換対象になります。`;
+}
+
+function getEnhancedFiveTargetSelectMessage(playerName: string): string {
+  return `${playerName}が次の手番の人を選んでいます。J強化により複数人飛ばすことが可能です。`;
+}
+
+function appendNextTurnMessage(
+  players: Player[],
+  discarderIndex: number,
+  direction: Direction,
+  message: string,
+): string {
+  return `${message}${getNextTurnMessage(players, discarderIndex, direction)}`;
+}
+
 function getDiscardHandoffMessage(
   players: Player[],
   discarderIndex: number,
@@ -358,6 +373,89 @@ function reachConfirmState(
     declaredReachThisTurn: false,
     message: "リーチを宣言しますか？",
   };
+}
+
+function removeOneCardById(cards: Card[], cardId: string): Card[] {
+  let removed = false;
+
+  return cards.filter((card) => {
+    if (!removed && card.id === cardId) {
+      removed = true;
+      return false;
+    }
+
+    return true;
+  });
+}
+
+function canDeclareReachWithTenCardHand(
+  state: GameState,
+  player: Player,
+  handAfterDiscard: Card[],
+): boolean {
+  if (player.hasCalled || player.isReach) return false;
+  if (handAfterDiscard.length !== 10) return false;
+
+  return state.deck.some((drawCard) => {
+    const handAfterDraw = [...handAfterDiscard, drawCard];
+
+    return handAfterDraw.some((discardCandidate) => {
+      const finalHand = removeOneCardById(handAfterDraw, discardCandidate.id);
+
+      return checkWinningHandWithOpenMelds(
+        finalHand,
+        player.openMelds,
+        state.isJBackActive,
+      ).canWin;
+    });
+  });
+}
+
+export function getReachDeclarationDiscardOptions(
+  state: GameState,
+  playerIndex = state.currentPlayerIndex,
+): Card[] {
+  const player = state.players[playerIndex];
+  if (!player) return [];
+  if (state.phase !== "discard") return [];
+  if (state.drawnFrom !== "deck") return [];
+  if (player.hasCalled || player.isReach) return [];
+
+  return player.hand.filter((discardCandidate) => {
+    const handAfterDiscard = removeOneCardById(
+      player.hand,
+      discardCandidate.id,
+    );
+
+    return canDeclareReachWithTenCardHand(state, player, handAfterDiscard);
+  });
+}
+
+export function canDeclareReachInCurrentState(
+  state: GameState,
+  playerIndex = state.currentPlayerIndex,
+): boolean {
+  return getReachDeclarationDiscardOptions(state, playerIndex).length > 0;
+}
+
+export function canKeepReachAfterDiscard(
+  state: GameState,
+  playerIndex: number,
+  cardId: string,
+): boolean {
+  const player = state.players[playerIndex];
+  if (!player) return false;
+
+  const discardCard = player.hand.find((card) => card.id === cardId);
+  if (!discardCard) return false;
+
+  const handAfterDiscard = removeOneCardById(player.hand, discardCard.id);
+
+  return canDeclareReachWithTenCardHand(
+    state,
+    { ...player, isReach: false },
+    handAfterDiscard,
+  );
 }
 
 function reverseDirection(direction: Direction): Direction {
@@ -807,7 +905,17 @@ function resolveEnhancedFiveSkip(
   const skippedNames = option.skippedPlayerIndexes
     .map((skippedIndex) => state.players[skippedIndex].name)
     .join("、");
-  const message = `${skippedNames}をスキップ！次の手番は${state.players[targetPlayerIndex].name}です。`;
+
+  const skipMessage = skippedNames
+    ? `${player.name}がJ強化5スキップを使用し、${skippedNames}をスキップしました。`
+    : `${player.name}がJ強化5スキップを使用しました。`;
+
+  const message = `${skipMessage}${getNextTurnMessage(
+    players,
+    previousIndex,
+    state.direction,
+  )}`;
+
   return advanceToNextDraw(
     { ...state, players, pendingDaifugoEffect: null },
     players,
@@ -1521,7 +1629,12 @@ function resolveJackShieldEffect(state: GameState, rank: number): GameState {
     {
       ...pending.continue,
       shouldConfirmReach: false,
-      message: `${player.name}がJシールドを発動しました。`,
+      message: appendNextTurnMessage(
+        players,
+        pending.playerIndex,
+        state.direction,
+        `${player.name}がJシールドを発動しました。`,
+      ),
     },
   );
 }
@@ -1555,7 +1668,12 @@ function resolveJackShieldRunEffect(state: GameState, key: string): GameState {
     {
       ...pending.continue,
       shouldConfirmReach: false,
-      message: `${player.name}がJシールドを発動しました。`,
+      message: appendNextTurnMessage(
+        players,
+        pending.playerIndex,
+        state.direction,
+        `${player.name}がJシールドを発動しました。`,
+      ),
     },
   );
 }
@@ -1735,7 +1853,12 @@ function resolveMasterJackShieldEffect(
     {
       ...continueState,
       shouldConfirmReach: false,
-      message: `${player.name}がJシールドを発動しました。`,
+      message: appendNextTurnMessage(
+        players,
+        playerIndex,
+        state.direction,
+        `${player.name}がJシールドを発動しました。`,
+      ),
     },
   );
 }
@@ -1781,6 +1904,36 @@ function tryResolveMasterJackShieldEffect(
   );
 }
 
+function getPlayerNameList(players: Player[], playerIndexes: number[]): string {
+  return (
+    playerIndexes
+      .map((playerIndex) => players[playerIndex]?.name)
+      .filter((name): name is string => Boolean(name))
+      .join("と") || "相手"
+  );
+}
+
+function getJackInspectProgressMessage(
+  players: Player[],
+  playerIndex: number,
+  targetPlayerIndexes: number[],
+): string {
+  const targetNames = getPlayerNameList(players, targetPlayerIndexes);
+  return `J効果を使用し、${targetNames}の手札を閲覧しています。`;
+}
+
+function getJackInspectCompleteMessage(
+  players: Player[],
+  playerIndex: number,
+  direction: Direction,
+): string {
+  return `情報閲覧が完了しました。${getNextTurnMessage(
+    players,
+    playerIndex,
+    direction,
+  )}`;
+}
+
 function startJackInspectEffect(
   state: GameState,
   playerIndex: number,
@@ -1790,14 +1943,17 @@ function startJackInspectEffect(
     state,
     playerIndex,
   );
-  const playerName = state.players[playerIndex]?.name ?? "プレイヤー";
   if (targetPlayerIndexes.length === 0) {
     return continueAfterDaifugo(
       { ...state, pendingDaifugoEffect: null },
       {
         ...continueState,
         shouldConfirmReach: false,
-        message: `${playerName}が情報閲覧を完了しました。`,
+        message: getJackInspectCompleteMessage(
+          state.players,
+          playerIndex,
+          state.direction,
+        ),
       },
     );
   }
@@ -1812,7 +1968,11 @@ function startJackInspectEffect(
       revealedCardIds: {},
       continue: continueState,
     },
-    message: `${playerName}がJ効果で相手の手札を確認しています。`,
+    message: getJackInspectProgressMessage(
+      state.players,
+      playerIndex,
+      targetPlayerIndexes,
+    ),
   };
 }
 
@@ -1836,7 +1996,12 @@ function resolveJackEnhancementRightEffect(
     {
       ...continueState,
       shouldConfirmReach: false,
-      message: `${player.name}がJ効果で5/7強化権を獲得しました。`,
+      message: appendNextTurnMessage(
+        players,
+        playerIndex,
+        state.direction,
+        `${player.name}がJ効果で5/7強化権を獲得しました。`,
+      ),
     },
   );
 }
@@ -1852,7 +2017,11 @@ function resolveCpuJackInspectEffect(
     {
       ...continueState,
       shouldConfirmReach: false,
-      message: `${playerName} completed J information browsing.`,
+      message: getJackInspectCompleteMessage(
+        state.players,
+        playerIndex,
+        state.direction,
+      ),
     },
   );
 }
@@ -2413,7 +2582,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           playerIndex: pending.playerIndex,
           continue: pending.continue,
         },
-        message: `${player.name}が強化7の交換相手を選択しています。`,
+        message: getEnhancedSevenTargetSelectMessage(player.name),
       };
     }
 
@@ -2447,7 +2616,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           playerIndex: pending.playerIndex,
           continue: pending.continue,
         },
-        message: `${player.name}が強化7の交換相手を選択しています。`,
+        message: getEnhancedSevenTargetSelectMessage(player.name),
       };
     }
 
@@ -2489,7 +2658,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           playerIndex: pending.playerIndex,
           continue: pending.continue,
         },
-        message: `${player.name}が強化5の次手番相手を選択しています。`,
+        message: getEnhancedFiveTargetSelectMessage(player.name),
       };
     }
 
@@ -2525,7 +2694,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           playerIndex: pending.playerIndex,
           continue: pending.continue,
         },
-        message: `${player.name}が強化5の次手番相手を選択しています。`,
+        message: getEnhancedFiveTargetSelectMessage(player.name),
       };
     }
 
@@ -2600,8 +2769,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           winningResult,
         );
       }
-
-      if (canDeclareReach(player.hand, player.hasCalled, player.isReach)) {
+      if (canDeclareReachWithTenCardHand(drawnState, player, player.hand)) {
         return reachConfirmState(
           { ...drawnState, pendingDaifugoEffect: null },
           drawnState.players,
@@ -2701,7 +2869,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const shouldConfirmReach =
         state.drawnFrom === "deck" &&
         !state.declaredReachThisTurn &&
-        canDeclareReachAfterDraw(player.hand, player.hasCalled, player.isReach);
+        canDeclareReachWithTenCardHand(state, player, handAfterDiscard);
       if (shouldConfirmReach) {
         return reachConfirmState(
           { ...state, players, pendingDaifugoEffect: null },
@@ -2838,15 +3006,17 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       )
         return state;
       const nextOffset = pending.currentTargetOffset + 1;
-      const playerName =
-        state.players[pending.playerIndex]?.name ?? "プレイヤー";
       if (nextOffset >= pending.targetPlayerIndexes.length) {
         return continueAfterDaifugo(
           { ...state, pendingDaifugoEffect: null },
           {
             ...pending.continue,
             shouldConfirmReach: false,
-            message: `${playerName}が情報閲覧を完了しました。`,
+            message: getJackInspectCompleteMessage(
+              state.players,
+              pending.playerIndex,
+              state.direction,
+            ),
           },
         );
       }
@@ -2856,7 +3026,11 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           ...pending,
           currentTargetOffset: nextOffset,
         },
-        message: `${playerName}がJ効果で相手の手札を確認しています。`,
+        message: getJackInspectProgressMessage(
+          state.players,
+          pending.playerIndex,
+          pending.targetPlayerIndexes,
+        ),
       };
     }
 
@@ -2990,10 +3164,9 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     case "declareReach": {
       if (state.phase !== "discard" || state.drawnFrom !== "deck") return state;
       const player = state.players[state.currentPlayerIndex];
-      if (
-        !canDeclareReachAfterDraw(player.hand, player.hasCalled, player.isReach)
-      )
+      if (!canDeclareReachInCurrentState(state, state.currentPlayerIndex)) {
         return state;
+      }
       return {
         ...state,
         players: replacePlayer(state.players, state.currentPlayerIndex, {
@@ -3096,13 +3269,26 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const discardCard = player.hand.find((card) => card.id === action.cardId);
       if (!discardCard) return state;
       if (isCardJShielded(player, discardCard)) return state;
+      const handAfterDiscard = sortCards(
+        removeOneCardById(player.hand, discardCard.id),
+      );
+
+      if (
+        player.isReach &&
+        state.declaredReachThisTurn &&
+        !canKeepReachAfterDiscard(
+          state,
+          state.currentPlayerIndex,
+          discardCard.id,
+        )
+      ) {
+        return state;
+      }
+
       const shouldConfirmReach =
         state.drawnFrom === "deck" &&
-        canDeclareReachAfterDraw(player.hand, player.hasCalled, player.isReach);
-
-      const handAfterDiscard = sortCards(
-        player.hand.filter((card) => card.id !== discardCard.id),
-      );
+        !state.declaredReachThisTurn &&
+        canDeclareReachWithTenCardHand(state, player, handAfterDiscard);
       const winningResult = checkWinningHandWithOpenMelds(
         handAfterDiscard,
         player.openMelds,

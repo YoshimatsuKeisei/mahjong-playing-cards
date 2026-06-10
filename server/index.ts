@@ -11,6 +11,8 @@ import {
   getWinningDiscardOptions,
   getQueenVanishRankOptions,
   getSevenExchangeCandidateCards,
+  canDeclareReachInCurrentState,
+  canKeepReachAfterDiscard,
   isCardJShielded,
   type GameAction,
 } from "../src/game/gameState";
@@ -544,11 +546,8 @@ function validateOnlineAction(
     const player = room.state.players[playerIndex];
     if (player.isReach) return "already_reached";
     if (player.hasCalled) return "cannot_reach_after_call";
-    return canDeclareReachAfterDraw(
-      player.hand,
-      player.hasCalled,
-      player.isReach,
-    )
+
+    return canDeclareReachInCurrentState(room.state, playerIndex)
       ? null
       : "invalid_reach_candidate";
   }
@@ -567,6 +566,14 @@ function validateOnlineAction(
       ? "discard_drawn_only_required"
       : "reach_hand_locked";
   }
+  if (
+    player.isReach &&
+    room.state.declaredReachThisTurn &&
+    !canKeepReachAfterDiscard(room.state, playerIndex, action.cardId)
+  ) {
+    return "invalid_reach_discard";
+  }
+
   return null;
 }
 

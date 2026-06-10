@@ -6,10 +6,7 @@ import {
   type CSSProperties,
   type Dispatch,
 } from "react";
-import {
-  canDeclareReachAfterDraw,
-  checkWinningHandWithOpenMelds,
-} from "../game/rules";
+import { checkWinningHandWithOpenMelds } from "../game/rules";
 import {
   createCpuDecisionContext,
   CPU_AFTER_DRAW_DELAY_MS,
@@ -30,6 +27,7 @@ import {
   isCardJShielded,
   chooseCpuQueenRank,
   getQueenVanishRankOptions,
+  canDeclareReachInCurrentState,
   type GameAction,
 } from "../game/gameState";
 import type { Card, GameState } from "../types";
@@ -331,11 +329,7 @@ export default function PlayScreen({
     state.phase === "discard" &&
     state.drawnFrom === "deck" &&
     selfWinOptions.length === 0 &&
-    canDeclareReachAfterDraw(
-      currentPlayer.hand,
-      currentPlayer.hasCalled,
-      currentPlayer.isReach,
-    );
+    canDeclareReachInCurrentState(state, state.currentPlayerIndex);
   const canChooseDiscard =
     !currentPlayer.isReach || state.declaredReachThisTurn;
   const [animationPhase, setAnimationPhase] = useState<AnimationPhase>("idle");
@@ -371,6 +365,7 @@ export default function PlayScreen({
   const lastCpuActionKeyRef = useRef<string | null>(null);
   const lastOnlineDrawAnimationKeyRef = useRef<string | null>(null);
   const reachSplashTimeoutRef = useRef<number | null>(null);
+  const lastEnhancementSplashKeyRef = useRef<string | null>(null);
   const lastDaifugoSplashKeyRef = useRef<string | null>(null);
   const previousReachFlagsRef = useRef<boolean[] | null>(null);
   const jackInspectOrderRef = useRef(new Map<string, string[]>());
@@ -671,22 +666,31 @@ export default function PlayScreen({
   }, [state.currentPlayerIndex]);
 
   useEffect(() => {
+    const pending = pendingDaifugoEffect;
     if (
-      pendingDaifugoEffect?.kind !== "fiveEnhancementSplash" &&
-      pendingDaifugoEffect?.kind !== "sevenEnhancementSplash"
-    )
+      pending?.kind !== "fiveEnhancementSplash" &&
+      pending?.kind !== "sevenEnhancementSplash"
+    ) {
       return;
-    const player = state.players[pendingDaifugoEffect.playerIndex];
+    }
+    const player = state.players[pending.playerIndex];
     if (player?.isCpu) return;
-    const call =
-      pendingDaifugoEffect.kind === "fiveEnhancementSplash"
-        ? "5：スキップ強化"
-        : "7：交換相手選択";
-    showTimedReachSplash("J強化発動！", call, J_ENHANCEMENT_SPLASH_MS);
+    const kind = pending.kind === "fiveEnhancementSplash" ? "five" : "seven";
+    const call = kind === "five" ? "5：スキップ強化" : "7：交換相手選択";
+    const discardCountsKey = state.players
+      .map((player) => player.discardPile.length)
+      .join("|");
+    const splashKey = `j-enhancement:${kind}:${pending.playerIndex}:${discardCountsKey}`;
+    if (lastEnhancementSplashKeyRef.current !== splashKey) {
+      lastEnhancementSplashKeyRef.current = splashKey;
+      showTimedReachSplash("J強化発動！", call, J_ENHANCEMENT_SPLASH_MS);
+    }
+    const viewerIsActor = !isOnlineView || state.viewerPlayerId === player?.id;
+    if (!viewerIsActor) return;
     const timeoutId = window.setTimeout(() => {
       dispatch({
         type:
-          pendingDaifugoEffect.kind === "fiveEnhancementSplash"
+          pending.kind === "fiveEnhancementSplash"
             ? "finishFiveEnhancementSplash"
             : "finishSevenEnhancementSplash",
       });
@@ -694,10 +698,41 @@ export default function PlayScreen({
     return () => window.clearTimeout(timeoutId);
   }, [
     dispatch,
+    isOnlineView,
     pendingDaifugoEffect?.kind,
     pendingDaifugoEffect?.playerIndex,
     state.players,
+    state.viewerPlayerId,
   ]);
+
+  useEffect(() => {
+    const isSevenEnhancementMessage =
+      state.message.includes("7渡しの相手を選んでいます") ||
+      state.message.includes("強化7の交換相手を選択しています");
+
+    const isFiveEnhancementMessage =
+      state.message.includes("次の手番の人を選んでいます") ||
+      state.message.includes("強化5の次手番相手を選択しています");
+
+    if (!isSevenEnhancementMessage && !isFiveEnhancementMessage) return;
+
+    const kind = isFiveEnhancementMessage ? "five" : "seven";
+    const call = kind === "five" ? "5：スキップ強化" : "7：交換相手選択";
+    const actorIndex = state.currentPlayerIndex;
+    const actor = state.players[actorIndex];
+
+    if (actor?.isCpu) return;
+
+    const discardCountsKey = state.players
+      .map((player) => player.discardPile.length)
+      .join("|");
+    const splashKey = `j-enhancement:${kind}:${actorIndex}:${discardCountsKey}`;
+
+    if (lastEnhancementSplashKeyRef.current === splashKey) return;
+
+    lastEnhancementSplashKeyRef.current = splashKey;
+    showTimedReachSplash("J強化発動！", call, J_ENHANCEMENT_SPLASH_MS);
+  }, [state.currentPlayerIndex, state.message, state.players]);
 
   useEffect(() => {
     const previousReachFlags = previousReachFlagsRef.current;
@@ -3550,19 +3585,26 @@ function getActionText(state: GameState, viewerPlayerId?: string) {
       : `${requiredPlayer?.name ?? "プレイヤー"}がQの効果後の上がりを確認しています。`;
   }
   if (pending?.kind === "jackSelect") {
+    const actor = state.players[pending.playerIndex];
     return isViewerRequiredActionPlayer
       ? "J特殊効果を選択してください。"
-      : `${requiredPlayer?.name ?? "プレイヤー"}がJ特殊効果を選択しています。`;
+      : `${actor?.name ?? "プレイヤー"}がJを捨てました。`;
   }
   if (pending?.kind === "jackShieldSelect") {
+    const actor = state.players[pending.playerIndex];
     return isViewerRequiredActionPlayer
       ? "Jシールドの対象数字を選択してください。"
-      : `${requiredPlayer?.name ?? "プレイヤー"}がJシールドの対象数字を選択しています。`;
+      : `${actor?.name ?? "プレイヤー"}がJを捨てました。`;
   }
   if (pending?.kind === "jackInspect") {
+    const targetNames =
+      pending.targetPlayerIndexes
+        .map((playerIndex) => state.players[playerIndex]?.name)
+        .filter((name): name is string => Boolean(name))
+        .join("と") || "相手";
     return isViewerRequiredActionPlayer
       ? "J効果で相手の手札を確認してください。"
-      : `${requiredPlayer?.name ?? "プレイヤー"}がJ効果で相手の手札を確認しています。`;
+      : `J効果を使用し、${targetNames}の手札を閲覧しています。`;
   }
   if (pending?.kind === "reachContinueConfirm") {
     if (!isViewerRequiredActionPlayer) {
@@ -3626,6 +3668,25 @@ function getActionText(state: GameState, viewerPlayerId?: string) {
       return `${currentPlayer.name}（CPU）がロンを確認しています。`;
   }
 
+  if (
+    pending?.kind === "sevenEnhancementSplash" ||
+    pending?.kind === "sevenEnhancedTargetSelect"
+  ) {
+    const actor = state.players[pending.playerIndex];
+    return isViewerRequiredActionPlayer
+      ? "交換相手を選択してください。"
+      : `${actor?.name ?? "プレイヤー"}が7渡しの相手を選んでいます。J強化により次の手番以外の人も交換対象になります。`;
+  }
+  if (
+    pending?.kind === "fiveEnhancementSplash" ||
+    pending?.kind === "fiveEnhancedTargetSelect"
+  ) {
+    const actor = state.players[pending.playerIndex];
+    return isViewerRequiredActionPlayer
+      ? "次の手番を渡すプレイヤーを選択してください。"
+      : `${actor?.name ?? "プレイヤー"}が次の手番の人を選んでいます。J強化により複数人飛ばすことが可能です。`;
+  }
+
   if (!isViewerTurn && currentPlayer) {
     if (state.phase === "draw")
       return `${currentPlayer.name}が山札または捨て札から選択しています。`;
@@ -3658,7 +3719,43 @@ function getActionText(state: GameState, viewerPlayerId?: string) {
       ) {
         return `${currentPlayer.name}が10の効果で追加の捨て札を選んでいます。`;
       }
+      const latestDiscard = currentPlayer.discardPile.at(-1) ?? null;
+      if (
+        latestDiscard?.rank === 11 &&
+        (state.message.includes("J特殊効果を発動しました") ||
+          state.message.includes("Jシールドの対象数字を選んでいます"))
+      ) {
+        return `${currentPlayer.name}がJを捨てました。`;
+      }
+      if (
+        state.message.includes("J効果を使用し") &&
+        state.message.includes("手札を閲覧しています")
+      ) {
+        return state.message;
+      }
+
+      if (
+        state.message.includes("7渡しの相手を選んでいます") ||
+        state.message.includes("強化7の交換相手を選択しています")
+      ) {
+        return `${currentPlayer.name}が7渡しの相手を選んでいます。J強化により次の手番以外の人も交換対象になります。`;
+      }
+      if (
+        state.message.includes("次の手番の人を選んでいます") ||
+        state.message.includes("強化5の次手番相手を選択しています")
+      ) {
+        return `${currentPlayer.name}が次の手番の人を選んでいます。J強化により複数人飛ばすことが可能です。`;
+      }
+
       const lastDiscard = currentPlayer.discardPile.at(-1) ?? null;
+      if (
+        lastDiscard &&
+        (lastDiscard.rank === 5 || lastDiscard.rank === 7) &&
+        (state.message.includes("J強化を使用できます") ||
+          state.message.includes("can use J enhancement"))
+      ) {
+        return `${currentPlayer.name}が${formatRankLabel(lastDiscard.rank)}を捨てました。`;
+      }
       if (
         lastDiscard &&
         (state.message.includes("5の効果") ||
@@ -3708,6 +3805,7 @@ function getActionText(state: GameState, viewerPlayerId?: string) {
       : `次は${state.players[nextPlayerIndex]?.name ?? "次のプレイヤー"}です。`;
 
     const message = state.message || nextTurnMessage;
+    const nextMarkerIndex = message.indexOf("。次は");
     if (message.startsWith("9の効果で手番方向が逆になりました。")) {
       const effectMessage = viewerIsHandoffSource
         ? "手番方向が逆になりました。"
@@ -3715,7 +3813,31 @@ function getActionText(state: GameState, viewerPlayerId?: string) {
 
       return `${effectMessage}${nextTurnMessage}`;
     }
-    const nextMarkerIndex = message.indexOf("。次は");
+    if (nextMarkerIndex >= 0 && message.includes("がJ強化5スキップを使用")) {
+      const effectMessage = message.slice(0, nextMarkerIndex + 1);
+      const viewerPlayer = viewerPlayerId
+        ? state.players.find((player) => player.id === viewerPlayerId)
+        : null;
+      const viewerIsEnhancedFiveActor = Boolean(
+        viewerPlayer &&
+        message.startsWith(`${viewerPlayer.name}がJ強化5スキップ`),
+      );
+      return viewerIsEnhancedFiveActor
+        ? nextTurnMessage
+        : `${effectMessage}${nextTurnMessage}`;
+    }
+    if (
+      nextMarkerIndex >= 0 &&
+      (message.includes("がJシールドを発動しました。") ||
+        message.includes("がJ効果で5/7強化権を獲得しました。") ||
+        message.includes("がJ効果で5/7強化権を発動しました。"))
+    ) {
+      const effectMessage = message.slice(0, nextMarkerIndex + 1);
+
+      return viewerIsHandoffSource
+        ? nextTurnMessage
+        : `${effectMessage}${nextTurnMessage}`;
+    }
     if (message.startsWith("これ以降、この山札から") && nextMarkerIndex >= 0) {
       const vanishMessage = message.slice(0, nextMarkerIndex + 1);
       return `${vanishMessage}${nextTurnMessage}`;
