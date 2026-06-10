@@ -593,7 +593,11 @@ export default function PlayScreen({
     (!isOnlineView || viewerIsSevenExchangeParticipant) &&
     !viewerHasSelectedSevenExchangeCard;
   const shouldShowActionPanel =
-    ((!isOnlineView || isViewerTurn) && !shouldHideCpuDetails) ||
+    (state.phase !== "handoff" &&
+      state.phase !== "result" &&
+      !isDaifugoEventPlaying &&
+      (!isOnlineView || isViewerTurn) &&
+      !shouldHideCpuDetails) ||
     (isSevenExchange && (!isOnlineView || viewerIsSevenExchangeParticipant)) ||
     (isViewerRequiredActionPlayer &&
       ((pendingDaifugoEffect?.kind === "sevenEnhancementConfirm" &&
@@ -2998,7 +3002,7 @@ function buildDaifugoAnimationStepsOld(
           ? `Q効果により、${rank}を${discardCount}枚捨てます`
           : player?.isCpu
             ? `${player.name}が${rank}を${discardCount}枚捨てました`
-            : `${actor?.name ?? "プレイヤー"}のQ効果により、あなたの${rank}が${discardCount}枚捨てさせられます`,
+            : "Q効果により、あなたの${rank}が${discardCount}枚捨てさせられます",
       cards: result.discardedCards,
       side: player?.isCpu ? "cpu" : "center",
       variant: "discard",
@@ -3577,24 +3581,24 @@ function getActionText(state: GameState, viewerPlayerId?: string) {
   if (pending?.kind === "queenSelect") {
     return isViewerRequiredActionPlayer
       ? "Qの効果で消す数字を選んでください。"
-      : `${requiredPlayer?.name ?? "プレイヤー"}がQの効果で消す数字を選択しています。`;
+      : "Qの効果で消す数字を選択しています。";
   }
   if (pending?.kind === "queenWinConfirm") {
     return isViewerRequiredActionPlayer
       ? "Qの効果後の上がりを確認してください。"
-      : `${requiredPlayer?.name ?? "プレイヤー"}がQの効果後の上がりを確認しています。`;
+      : "Qの効果後の上がりを確認しています。";
   }
   if (pending?.kind === "jackSelect") {
     const actor = state.players[pending.playerIndex];
     return isViewerRequiredActionPlayer
       ? "J特殊効果を選択してください。"
-      : `${actor?.name ?? "プレイヤー"}がJを捨てました。`;
+      : "Jを捨てました。";
   }
   if (pending?.kind === "jackShieldSelect") {
     const actor = state.players[pending.playerIndex];
     return isViewerRequiredActionPlayer
       ? "Jシールドの対象数字を選択してください。"
-      : `${actor?.name ?? "プレイヤー"}がJを捨てました。`;
+      : "Jを捨てました。";
   }
   if (pending?.kind === "jackInspect") {
     const targetNames =
@@ -3604,7 +3608,7 @@ function getActionText(state: GameState, viewerPlayerId?: string) {
         .join("と") || "相手";
     return isViewerRequiredActionPlayer
       ? "J効果で相手の手札を確認してください。"
-      : `J効果を使用し、${targetNames}の手札を閲覧しています。`;
+      : "J効果を使用し、他のプレイヤーの手札を閲覧しています。";
   }
   if (pending?.kind === "reachContinueConfirm") {
     if (!isViewerRequiredActionPlayer) {
@@ -3624,7 +3628,7 @@ function getActionText(state: GameState, viewerPlayerId?: string) {
     const viewerIsActor = viewerIndex === pending.playerIndex;
     return viewerIsActor
       ? "効果を使用するか選択してください。"
-      : `${actor?.name ?? "プレイヤー"}が${rankLabel}を捨てました。`;
+      : `${rankLabel}を捨てました。`;
   }
 
   if (pending?.kind === "effectDraw") {
@@ -3634,8 +3638,7 @@ function getActionText(state: GameState, viewerPlayerId?: string) {
     if (pending.effect === "tenSwapDraw") {
       return isViewerRequiredActionPlayer
         ? "山札から1枚引きます。"
-        : state.message ||
-            `${requiredPlayer?.name ?? "プレイヤー"}が10の効果で山札から1枚引きます。`;
+        : state.message || "10の効果で山札から1枚引きます。";
     }
     return `${requiredPlayer?.name ?? "プレイヤー"}が効果で山札から引いています。`;
   }
@@ -3643,16 +3646,16 @@ function getActionText(state: GameState, viewerPlayerId?: string) {
     if (pending.effect === "tenSwapDraw") {
       return isViewerRequiredActionPlayer
         ? "10の効果：追加で1枚捨ててください。"
-        : `${requiredPlayer?.name ?? "プレイヤー"}が10の効果で追加の捨て札を選んでいます。`;
+        : "10の効果で追加の捨て札を選んでいます。";
     }
     if (pending.effect === "eightExtraTurn") {
       return isViewerRequiredActionPlayer
         ? "8の効果：追加で1枚捨ててください。"
-        : `${requiredPlayer?.name ?? "プレイヤー"}が8の効果で追加の捨て札を選んでいます。`;
+        : "8の効果で追加の捨て札を選んでいます。";
     }
 
     if (!isViewerRequiredActionPlayer) {
-      return `${requiredPlayer?.name ?? "プレイヤー"}が捨てるカードを選択しています。`;
+      return "捨てるカードを選択しています。";
     }
   }
   const currentPlayer = state.players[state.currentPlayerIndex];
@@ -3675,7 +3678,7 @@ function getActionText(state: GameState, viewerPlayerId?: string) {
     const actor = state.players[pending.playerIndex];
     return isViewerRequiredActionPlayer
       ? "交換相手を選択してください。"
-      : `${actor?.name ?? "プレイヤー"}が7渡しの相手を選んでいます。J強化により次の手番以外の人も交換対象になります。`;
+      : "7渡しの相手を選んでいます。J強化により次の手番以外の人も交換対象になります。";
   }
   if (
     pending?.kind === "fiveEnhancementSplash" ||
@@ -3684,12 +3687,11 @@ function getActionText(state: GameState, viewerPlayerId?: string) {
     const actor = state.players[pending.playerIndex];
     return isViewerRequiredActionPlayer
       ? "次の手番を渡すプレイヤーを選択してください。"
-      : `${actor?.name ?? "プレイヤー"}が次の手番の人を選んでいます。J強化により複数人飛ばすことが可能です。`;
+      : "次の手番の人を選んでいます。J強化により複数人飛ばすことが可能です。";
   }
 
   if (!isViewerTurn && currentPlayer) {
-    if (state.phase === "draw")
-      return `${currentPlayer.name}が山札または捨て札から選択しています。`;
+    if (state.phase === "draw") return "山札または捨て札から選択しています。";
     if (state.phase === "discard") {
       if (
         state.message.includes("8の効果：山札から1枚引きます") ||
@@ -3702,7 +3704,7 @@ function getActionText(state: GameState, viewerPlayerId?: string) {
         state.message.includes("8の効果：追加行動で1枚捨ててください") ||
         state.message.includes("8の効果で追加行動中")
       ) {
-        return `${currentPlayer.name}が8の効果で追加の捨て札を選んでいます。`;
+        return "8の効果で追加の捨て札を選んでいます。";
       }
       if (
         state.message.includes("10の効果を使用し") &&
@@ -3717,7 +3719,7 @@ function getActionText(state: GameState, viewerPlayerId?: string) {
         ) ||
         state.message.includes("10の効果：追加で1枚捨ててください")
       ) {
-        return `${currentPlayer.name}が10の効果で追加の捨て札を選んでいます。`;
+        return "10の効果で追加の捨て札を選んでいます。";
       }
       const latestDiscard = currentPlayer.discardPile.at(-1) ?? null;
       if (
@@ -3725,11 +3727,11 @@ function getActionText(state: GameState, viewerPlayerId?: string) {
         (state.message.includes("J特殊効果を発動しました") ||
           state.message.includes("Jシールドの対象数字を選んでいます"))
       ) {
-        return `${currentPlayer.name}がJを捨てました。`;
+        return "Jを捨てました。";
       }
       if (
         state.message.includes("J効果を使用し") &&
-        state.message.includes("手札を閲覧しています")
+        state.message.includes("他のプレイヤーの手札を閲覧しています")
       ) {
         return state.message;
       }
@@ -3738,13 +3740,13 @@ function getActionText(state: GameState, viewerPlayerId?: string) {
         state.message.includes("7渡しの相手を選んでいます") ||
         state.message.includes("強化7の交換相手を選択しています")
       ) {
-        return `${currentPlayer.name}が7渡しの相手を選んでいます。J強化により次の手番以外の人も交換対象になります。`;
+        return "7渡しの相手を選んでいます。J強化により次の手番以外の人も交換対象になります。";
       }
       if (
         state.message.includes("次の手番の人を選んでいます") ||
         state.message.includes("強化5の次手番相手を選択しています")
       ) {
-        return `${currentPlayer.name}が次の手番の人を選んでいます。J強化により複数人飛ばすことが可能です。`;
+        return "次の手番の人を選んでいます。J強化により複数人飛ばすことが可能です。";
       }
 
       const lastDiscard = currentPlayer.discardPile.at(-1) ?? null;
@@ -3754,7 +3756,7 @@ function getActionText(state: GameState, viewerPlayerId?: string) {
         (state.message.includes("J強化を使用できます") ||
           state.message.includes("can use J enhancement"))
       ) {
-        return `${currentPlayer.name}が${formatRankLabel(lastDiscard.rank)}を捨てました。`;
+        return `${formatRankLabel(lastDiscard.rank)}を捨てました。`;
       }
       if (
         lastDiscard &&
@@ -3767,14 +3769,12 @@ function getActionText(state: GameState, viewerPlayerId?: string) {
           state.message.includes("Qの効果") ||
           state.message.includes("カード効果"))
       ) {
-        return `${currentPlayer.name}が${formatRankLabel(lastDiscard.rank)}を捨てました。`;
+        return `${formatRankLabel(lastDiscard.rank)}を捨てました。`;
       }
-      return `${currentPlayer.name}が捨てるカードを選択しています。`;
+      return "捨てるカードを選択しています。";
     }
-    if (state.phase === "reachConfirm")
-      return `${currentPlayer.name}がリーチを確認しています。`;
-    if (state.phase === "ronCheck")
-      return `${currentPlayer.name}がロンを確認しています。`;
+    if (state.phase === "reachConfirm") return "リーチを確認しています。";
+    if (state.phase === "ronCheck") return "ロンを確認しています。";
   }
 
   if (state.phase === "draw")

@@ -316,13 +316,24 @@ function advanceToNextDraw(
 ): GameState {
   const ron = makeReachRonResult({ ...state, players }, discarderIndex);
   if (ron) {
+    const ronWinnerNames =
+      ron.result.ronResults
+        ?.map((item) => ron.players[item.winnerIndex]?.name)
+        .filter(Boolean)
+        .join("・") ??
+      ron.players[ron.result.winnerIndex]?.name ??
+      "プレイヤー";
+
     return {
       ...state,
       players: ron.players,
-      phase: "ronCheck",
-      pendingRonResult: ron.result,
+      phase: "result",
+      winner: ron.result.winnerIndex,
+      result: ron.result,
+      pendingRonResult: null,
+      pendingDaifugoEffect: null,
       declaredReachThisTurn: false,
-      message: "ロン確認中です。",
+      message: `${ronWinnerNames}がロン!`,
     };
   }
 
@@ -360,6 +371,7 @@ function continueAfterDaifugo(
 function reachConfirmState(
   state: GameState,
   players = state.players,
+  handoffSourceIndex = state.currentPlayerIndex,
 ): GameState {
   return {
     ...state,
@@ -368,7 +380,7 @@ function reachConfirmState(
     phase: "reachConfirm",
     drawnCard: null,
     drawnFrom: null,
-    lastDiscarderIndex: state.currentPlayerIndex,
+    lastDiscarderIndex: handoffSourceIndex,
     takenDiscardOwnerIndex: null,
     declaredReachThisTurn: false,
     message: "リーチを宣言しますか？",
@@ -666,21 +678,27 @@ function uniqueCards(cards: Card[]): Card[] {
   });
 }
 
-function canMaintainReach(player: Player): boolean {
-  return (
-    !player.hasCalled &&
-    player.hand.length === 10 &&
-    countMaxMelds(player.hand) >= 2
+function canMaintainReach(state: GameState, player: Player): boolean {
+  if (!player.isReach) return false;
+  if (player.hasCalled) return false;
+  if (player.hand.length !== 10) return false;
+  return canDeclareReachWithTenCardHand(
+    state,
+    { ...player, isReach: false },
+    player.hand,
   );
 }
 
-function releaseInvalidReachPlayers(players: Player[]): {
+function releaseInvalidReachPlayers(
+  state: GameState,
+  players: Player[],
+): {
   players: Player[];
   releasedPlayerIndexes: number[];
 } {
   const releasedPlayerIndexes: number[] = [];
   const nextPlayers = players.map((player, playerIndex) => {
-    if (!player.isReach || canMaintainReach(player)) return player;
+    if (!player.isReach || canMaintainReach(state, player)) return player;
     releasedPlayerIndexes.push(playerIndex);
     return { ...player, isReach: false };
   });
@@ -722,7 +740,7 @@ function recheckReachAfterHandChange(
       !player.isReach
     )
       return player;
-    if (!canMaintainReach(player)) {
+    if (!canMaintainReach(state, player)) {
       releasedPlayerIndexes.push(playerIndex);
       return { ...player, isReach: false };
     }
@@ -875,6 +893,13 @@ function resolveNormalFiveSkip(
     state.direction,
   );
   const message = `5スキップにより、手番が飛びます。${nextTurnMessage}`;
+  if (continueState?.shouldConfirmReach) {
+    return reachConfirmState(
+      { ...state, pendingDaifugoEffect: null },
+      state.players,
+      skippedIndex,
+    );
+  }
   return advanceToNextDraw(
     { ...state, pendingDaifugoEffect: null },
     state.players,
@@ -888,6 +913,7 @@ function resolveEnhancedFiveSkip(
   playerIndex: number,
   targetPlayerIndex: number,
   allowCpuEnhancement = false,
+  continueState?: PendingDaifugoContinue,
 ): GameState {
   const option = getEnhancedFiveTurnOptions(state, playerIndex).find(
     (candidate) => candidate.playerIndex === targetPlayerIndex,
@@ -915,6 +941,14 @@ function resolveEnhancedFiveSkip(
     previousIndex,
     state.direction,
   )}`;
+
+  if (continueState?.shouldConfirmReach) {
+    return reachConfirmState(
+      { ...state, players, pendingDaifugoEffect: null },
+      players,
+      previousIndex,
+    );
+  }
 
   return advanceToNextDraw(
     { ...state, players, pendingDaifugoEffect: null },
@@ -1166,8 +1200,10 @@ function resolveSevenExchange(
     pending.playerIndex,
     pending.consumeJEnhancementRightOnComplete,
   );
-  const { players, releasedPlayerIndexes } =
-    releaseInvalidReachPlayers(exchangedPlayers);
+  const { players, releasedPlayerIndexes } = releaseInvalidReachPlayers(
+    state,
+    exchangedPlayers,
+  );
   const message = appendReachReleaseMessage(
     `${giver.name}と${target.name}が互いにカードを渡しました。`,
     players,
@@ -1430,7 +1466,7 @@ function resolveQueenNumberVanish(state: GameState, rank: number): GameState {
     (result) => result.playerIndex,
   );
   const reachCheck = recheckReachAfterHandChange(
-    state,
+    { ...state, deck },
     playersBeforeReachCheck,
     affectedPlayerIndexes,
     "queenNumberVanish",
@@ -1633,7 +1669,7 @@ function resolveJackShieldEffect(state: GameState, rank: number): GameState {
         players,
         pending.playerIndex,
         state.direction,
-        `${player.name}がJシールドを発動しました。`,
+        "Jシールドを発動しました。",
       ),
     },
   );
@@ -1672,7 +1708,7 @@ function resolveJackShieldRunEffect(state: GameState, key: string): GameState {
         players,
         pending.playerIndex,
         state.direction,
-        `${player.name}がJシールドを発動しました。`,
+        "Jシールドを発動しました。",
       ),
     },
   );
@@ -1857,7 +1893,7 @@ function resolveMasterJackShieldEffect(
         players,
         playerIndex,
         state.direction,
-        `${player.name}がJシールドを発動しました。`,
+        "Jシールドを発動しました。",
       ),
     },
   );
@@ -1919,7 +1955,7 @@ function getJackInspectProgressMessage(
   targetPlayerIndexes: number[],
 ): string {
   const targetNames = getPlayerNameList(players, targetPlayerIndexes);
-  return `J効果を使用し、${targetNames}の手札を閲覧しています。`;
+  return `J効果を使用し、他のプレイヤーの手札を閲覧しています。`;
 }
 
 function getJackInspectCompleteMessage(
@@ -2000,7 +2036,7 @@ function resolveJackEnhancementRightEffect(
         players,
         playerIndex,
         state.direction,
-        `${player.name}がJ効果で5/7強化権を獲得しました。`,
+        "J効果で5/7強化権を獲得しました。",
       ),
     },
   );
@@ -2190,6 +2226,7 @@ function applyDaifugoEffect(state: GameState): GameState {
           state.currentPlayerIndex,
           targetPlayerIndex,
           true,
+          pending.continue,
         );
       }
     }
@@ -2257,7 +2294,7 @@ function applyDaifugoEffect(state: GameState): GameState {
           playerIndex: state.currentPlayerIndex,
           continue: pending.continue,
         },
-        message: `${currentPlayer.name}は7の効果でJ強化を使用できます。`,
+        message: "7の効果でJ強化を使用できます。",
       };
     }
     const targetPlayerIndex = getNextPlayerIndex(
@@ -2708,6 +2745,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         state,
         pending.playerIndex,
         targetPlayerIndex,
+        false,
+        pending.continue,
       );
     }
     // 8/10などの効果で山札から引く処理
@@ -3197,11 +3236,23 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           )
         : undefined;
 
+      const handoffSourceIndex =
+        state.lastDiscarderIndex ?? state.currentPlayerIndex;
+
+      const nextHandoffMessage =
+        handoffSourceIndex !== state.currentPlayerIndex
+          ? `5スキップにより、手番が飛びます。${getNextTurnMessage(
+              players,
+              handoffSourceIndex,
+              state.direction,
+            )}`
+          : discardHandoffMessage;
+
       return advanceToNextDraw(
         { ...state, pendingDaifugoEffect: null },
         players,
-        state.currentPlayerIndex,
-        discardHandoffMessage,
+        handoffSourceIndex,
+        nextHandoffMessage,
       );
     }
 
@@ -3354,14 +3405,15 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           message: getDaifugoConfirmMessage(pendingDaifugoEffect.effect),
         };
       }
-
+      const handoffSourceIndex =
+        state.lastDiscarderIndex ?? state.currentPlayerIndex;
       if (shouldConfirmReach) {
         return {
           ...nextState,
           phase: "reachConfirm",
           drawnCard: null,
           drawnFrom: null,
-          lastDiscarderIndex: state.currentPlayerIndex,
+          lastDiscarderIndex: handoffSourceIndex,
           takenDiscardOwnerIndex: null,
           declaredReachThisTurn: false,
           message: "リーチを宣言しますか？",
