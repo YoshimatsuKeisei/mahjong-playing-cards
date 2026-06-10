@@ -1347,18 +1347,13 @@ function resolveQueenNumberVanish(state: GameState, rank: number): GameState {
     console.warn("[Q effect deck mismatch]", queenDeckAudit);
   }
 
-  const baseMessage = [
-    `${state.players[pending.playerIndex].name}がQの効果で${formatRank(rank)}を指定しました。`,
-    `山札から${formatRank(rank)}を${removedFromDeck}枚除外しました。`,
-    discardSummaries.join("、") ||
-      `${formatRank(rank)}を持つプレイヤーはいませんでした。`,
-    drawSummaries.join("、"),
-    `山札: ${beforeDeckCount} → ${afterDeckCount}（内訳: 除外${removedFromDeck}枚 + 補充ドロー${refillDrawCount}枚）`,
-  ]
-    .filter(Boolean)
-    .join(" ");
+  const vanishNotice = `これ以降、この山札から${formatRank(rank)}は出現しません。`;
   const message = appendReachReleaseMessage(
-    baseMessage,
+    `${vanishNotice}${getNextTurnMessage(
+      players,
+      state.currentPlayerIndex,
+      state.direction,
+    )}`,
     players,
     releasedPlayerIndexes,
   );

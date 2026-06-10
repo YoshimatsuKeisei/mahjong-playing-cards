@@ -450,6 +450,7 @@ export default function PlayScreen({
   const daifugoAnimationSteps = visibleDaifugoEvent
     ? buildDaifugoAnimationSteps(visibleDaifugoEvent, state)
     : [];
+
   const rawDaifugoAnimationStep =
     daifugoAnimationSteps[daifugoEventStepIndex] ?? null;
   const daifugoAnimationStep =
@@ -459,6 +460,15 @@ export default function PlayScreen({
       ? { ...rawDaifugoAnimationStep, phase: daifugoDrawPhase }
       : rawDaifugoAnimationStep;
   const isDaifugoEventPlaying = Boolean(daifugoAnimationStep);
+  if (visibleDaifugoEvent?.kind === "queenNumberVanish") {
+    console.warn("[Q_DEBUG]", {
+      stepIndex: daifugoEventStepIndex,
+      stepCount: daifugoAnimationSteps.length,
+      currentVariant: daifugoAnimationStep?.variant ?? "NONE",
+      currentMessage: daifugoAnimationStep?.message ?? "NONE",
+      steps: daifugoAnimationSteps.map((step) => step.variant).join(" -> "),
+    });
+  }
   const sevenExchangeParticipantIndexes =
     pendingDaifugoEffect?.kind === "sevenExchange"
       ? [
@@ -2617,6 +2627,44 @@ interface PlayerHistoryPopoverProps {
   player: GameState["players"][number];
   showMelds: boolean;
 }
+
+function summarizeQueenForcedDiscard(
+  results: NonNullable<GameState["daifugoEffectEvent"]>["queenDiscardResults"],
+  state: GameState,
+  rank: string,
+): string {
+  const names =
+    results
+      ?.filter((result) => result.discardedCards.length > 0)
+      .map((result) => state.players[result.playerIndex]?.name)
+      .filter((name): name is string => Boolean(name)) ?? [];
+
+  if (names.length === 0) {
+    return `${rank}を持つプレイヤーはいませんでした。`;
+  }
+
+  return `${joinJapaneseNames(names)}が${rank}を捨てることになります。`;
+}
+
+function summarizeQueenRefillDraw(
+  results: NonNullable<GameState["daifugoEffectEvent"]>["queenDiscardResults"],
+  state: GameState,
+): string {
+  const drawParts =
+    results
+      ?.filter((result) => result.drawnCards.length > 0)
+      .map((result) => {
+        const playerName =
+          state.players[result.playerIndex]?.name ?? "プレイヤー";
+        return `${playerName}が${result.drawnCards.length}枚`;
+      }) ?? [];
+
+  if (drawParts.length === 0) {
+    return "補充ドローはありません。";
+  }
+
+  return `${drawParts.join("、")}、山札から引きます。`;
+}
 // 効果アニメーション中の上部ナビ文言・中央演出を作る
 // 7交換、Qボンバーなど、中央カード演出と演出中の上部ナビ message を作る。
 // toolbar-action では、この message が getActionText より優先される。
@@ -2683,93 +2731,79 @@ function buildDaifugoAnimationSteps(
     viewerIndex >= 0
       ? results.filter((result) => result.playerIndex === viewerIndex)
       : results;
-  const humanDiscardCards = visibleResults.flatMap((result) => {
+  // カード表示だけは viewer ごとに制限する
+  const visibleDiscardCards = visibleResults.flatMap((result) => {
     const player = state.players[result.playerIndex];
     return player?.isCpu ? [] : result.discardedCards;
   });
-  const cpuDiscardCards = state.showCpuActions
-    ? visibleResults.flatMap((result) => {
-        const player = state.players[result.playerIndex];
-        return player?.isCpu ? result.discardedCards : [];
-      })
-    : [];
-  const humanDrawCards = visibleResults.flatMap((result) => {
+  const visibleDrawCards = visibleResults.flatMap((result) => {
     const player = state.players[result.playerIndex];
     return player?.isCpu ? [] : result.drawnCards;
   });
-  const cpuDrawCards = state.showCpuActions
-    ? visibleResults.flatMap((result) => {
-        const player = state.players[result.playerIndex];
-        return player?.isCpu ? result.drawnCards : [];
-      })
-    : [];
-  const visibleDiscardCards = humanDiscardCards;
-  const visibleDrawCards = humanDrawCards;
-  const hasQueenDiscards = visibleResults.some(
+  // step の有無と上部ナビ文言は全体結果で決める
+  const hasQueenDiscards = results.some(
     (result) => result.discardedCards.length > 0,
   );
-
+  const hasQueenDraws = results.some(
+    (result) => result.discardedCards.length > 0,
+  );
+  const discardMessage =
+    summarizeQueenResults(results, state, rank, "discard") ||
+    `${rank}を持つプレイヤーはいませんでした。`;
+  const drawMessage =
+    summarizeQueenResults(results, state, rank, "draw") ||
+    "補充ドローはありません。";
   const steps: DaifugoAnimationStep[] = [
     {
       id: `${event.id}-notice`,
       title: "Q 効果",
-      message: `Q効果発動により、${rank}が捨てられます`,
+      message: discardMessage,
       cards: [],
       side: "center",
       variant: "notice",
     },
-    {
-      id: `${event.id}-discard`,
-      title: `Q 効果: ${rank}`,
-      message:
-        summarizeQueenResults(visibleResults, state, rank, "discard") ||
-        `${rank}を持つプレイヤーはいませんでした`,
-      stageMessage:
-        humanDiscardCards.length > 0 ? `${rank}を捨てます` : undefined,
-      cards: visibleDiscardCards,
-      side: "center",
-      variant: "discard",
-    },
-    {
-      id: `${event.id}-settle`,
-      title: `Q 効果: ${rank}`,
-      message:
-        summarizeQueenResults(visibleResults, state, rank, "discard") ||
-        `${rank}を持つプレイヤーはいませんでした`,
-      cards: [],
-      side: "center",
-      variant: "settle",
-    },
-    {
+  ];
+  if (hasQueenDiscards) {
+    steps.push(
+      {
+        id: `${event.id}-discard`,
+        title: `Q 効果: ${rank}`,
+        message: discardMessage,
+        stageMessage:
+          visibleDiscardCards.length > 0 ? `${rank}を捨てます` : undefined,
+        cards: visibleDiscardCards,
+        side: "center",
+        variant: "discard",
+      },
+      {
+        id: `${event.id}-settle`,
+        title: `Q 効果: ${rank}`,
+        message: discardMessage,
+        cards: [],
+        side: "center",
+        variant: "settle",
+      },
+    );
+  }
+  if (hasQueenDraws) {
+    steps.push({
       id: `${event.id}-draw`,
       title: "山札から引きました",
-      message:
-        summarizeQueenResults(visibleResults, state, rank, "draw") ||
-        "補充ドローはありません",
+      message: drawMessage,
       stageMessage:
-        humanDrawCards.length > 0
+        visibleDrawCards.length > 0
           ? "山札から新しいカードを引きました"
           : undefined,
       cards: visibleDrawCards,
       side: "center",
       variant: "draw",
-    },
-    {
-      id: `${event.id}-draw-cpu`,
-      title: "山札から引きました",
-      message:
-        summarizeQueenResults(visibleResults, state, rank, "draw") ||
-        "補充ドローはありません",
-      cards: [],
-      side: "cpu",
-      variant: "draw",
-    },
-  ];
-  return steps.filter(
-    (step) =>
-      step.variant === "notice" ||
-      (step.variant === "settle" ? hasQueenDiscards : step.cards.length > 0),
-  );
+    });
+  }
+  return steps;
+}
+
+function joinJapaneseNames(names: string[]): string {
+  return names.join("と");
 }
 
 function summarizeQueenResults(
@@ -2780,20 +2814,24 @@ function summarizeQueenResults(
   rank: string,
   kind: "discard" | "draw",
 ) {
-  return results
+  if (kind === "discard") {
+    const names = results
+      .filter((result) => result.discardedCards.length > 0)
+      .map((result) => state.players[result.playerIndex]?.name)
+      .filter((name): name is string => Boolean(name));
+
+    if (names.length === 0) return "";
+    return `${joinJapaneseNames(names)}が${rank}を捨てることになります。`;
+  }
+  const drawParts = results
+    .filter((result) => result.discardedCards.length > 0)
     .map((result) => {
-      const player = state.players[result.playerIndex];
-      const count =
-        kind === "discard"
-          ? result.discardedCards.length
-          : result.drawnCards.length;
-      if (count <= 0) return "";
-      return kind === "discard"
-        ? `${player?.name ?? "プレイヤー"}が${rank}を${count}枚捨てました`
-        : `${player?.name ?? "プレイヤー"}が山札から${count}枚引きました`;
-    })
-    .filter(Boolean)
-    .join(" / ");
+      const playerName =
+        state.players[result.playerIndex]?.name ?? "プレイヤー";
+      return `${playerName}が${result.discardedCards.length}枚`;
+    });
+  if (drawParts.length === 0) return "";
+  return `${drawParts.join("、")}、山札から引きます。`;
 }
 
 function getDaifugoIncomingCardIdsForPlayer(
@@ -2849,7 +2887,13 @@ function getVisibleDiscardPile(cards: Card[], hiddenIds?: Set<string>) {
 
 function getDaifugoStepDuration(step: DaifugoAnimationStep) {
   if (step.variant === "notice") return 650;
-  if (step.variant === "discard") return step.cards.length > 0 ? 1750 : 650;
+  if (step.variant === "discard") {
+    return step.title.startsWith("Q 効果")
+      ? 1750
+      : step.cards.length > 0
+        ? 1750
+        : 650;
+  }
   if (step.variant === "settle") return 360;
   if (step.variant === "draw" || step.variant === "exchange")
     return step.phase === "insert" ? 650 : 1550;
@@ -3672,6 +3716,10 @@ function getActionText(state: GameState, viewerPlayerId?: string) {
       return `${effectMessage}${nextTurnMessage}`;
     }
     const nextMarkerIndex = message.indexOf("。次は");
+    if (message.startsWith("これ以降、この山札から") && nextMarkerIndex >= 0) {
+      const vanishMessage = message.slice(0, nextMarkerIndex + 1);
+      return `${vanishMessage}${nextTurnMessage}`;
+    }
 
     if (nextMarkerIndex >= 0) {
       const discardMessage = message.slice(0, nextMarkerIndex + 1);
