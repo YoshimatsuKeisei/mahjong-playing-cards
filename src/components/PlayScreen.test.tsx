@@ -222,9 +222,7 @@ describe("PlayScreen round display", () => {
       />,
     );
 
-    expect(screen.getByTestId("temporary-leave-status")).toHaveTextContent(
-      "CPU代行中",
-    );
+    expect(screen.getByText(/CPU代行中/)).toBeInTheDocument();
   });
 
   it("shows match info to non-host players without change controls", async () => {

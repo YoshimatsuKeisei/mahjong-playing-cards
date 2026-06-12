@@ -16,20 +16,21 @@ export default function MoreGameScreen({
   onRefresh,
   onBackHome,
 }: MoreGameScreenProps) {
+  const visibleGames = dedupeResumableGamesByRoom(resumableGames);
   return (
     <main className="screen room-choice-screen">
       <section className="room-choice-panel room-list-panel">
         <p className="eyebrow">More Game</p>
         <h1>復帰できる試合</h1>
 
-        {resumableGames.length === 0 ? (
+        {visibleGames.length === 0 ? (
           <div className="empty-room-list">
             <strong>復帰できる試合はありません</strong>
             <span>一時離脱中のオンライン対戦がある場合、ここに表示されます。</span>
           </div>
         ) : (
           <div className="room-list public-room-list" data-testid="resumable-game-list">
-            {resumableGames.map((game) => (
+            {visibleGames.map((game) => (
               <article className="room-list-card public-room-card" key={`${game.roomId}-${game.playerId}`}>
                 <div className="public-room-grid">
                   <ResumeCell label="ルーム名" value={game.roomName} />
@@ -78,6 +79,17 @@ export default function MoreGameScreen({
       </section>
     </main>
   );
+}
+
+function dedupeResumableGamesByRoom(games: ResumableGameSummary[]) {
+  const uniqueGames = new Map<string, ResumableGameSummary>();
+  for (const game of games) {
+    const existing = uniqueGames.get(game.roomId);
+    if (!existing || game.expiresAt > existing.expiresAt) {
+      uniqueGames.set(game.roomId, game);
+    }
+  }
+  return Array.from(uniqueGames.values());
 }
 
 function ResumeCell({ label, value }: { label: string; value: ReactNode }) {

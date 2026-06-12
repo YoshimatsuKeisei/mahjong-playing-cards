@@ -52,6 +52,11 @@ export interface OnlineTemporaryLeaveSummary {
   convertedToCpu: boolean;
 }
 
+export interface OnlineSubstituteCpuModelSetting {
+  playerId: string;
+  cpuModelId: CpuModelId;
+}
+
 export interface OnlineRoomSnapshot {
   roomId: string;
   hostPlayerId: string;
@@ -61,6 +66,7 @@ export interface OnlineRoomSnapshot {
   players: OnlineRoomPlayer[];
   started: boolean;
   temporaryLeaves?: OnlineTemporaryLeaveSummary[];
+  substituteCpuModels?: OnlineSubstituteCpuModelSetting[];
 }
 
 export type OnlineRoomVisibility = "private" | "public";
@@ -151,6 +157,7 @@ export interface ResumableGameSummary {
   roomName: string;
   playerId: string;
   playerName: string;
+  resumeToken: string;
   mode: TemporaryLeaveMode;
   expiresAt: number;
   currentRound: number;
@@ -163,6 +170,15 @@ export interface ResumeTemporaryLeaveAck {
   ok: boolean;
   error?: string;
 }
+
+export interface UpdateSubstituteCpuModelPayload {
+  cpuModelId: CpuModelId;
+}
+
+export type LeaveRoomPayload =
+  | { type: "normal" }
+  | { type: "hostTransfer"; strategy: "named"; targetPlayerId: string }
+  | { type: "hostTransfer"; strategy: "random" };
 
 export type ActionRejectedReason =
   | "not_your_reaction"
@@ -224,9 +240,12 @@ export interface ClientToServerEvents {
     payload: { entries: ResumableGameEntry[] },
     ack: (rooms: ResumableGameSummary[]) => void,
   ) => void;
-  leaveRoom: () => void;
+  leaveRoom: (payload?: LeaveRoomPayload) => void;
   transferHost: (payload: { targetPlayerId: string }) => void;
   updateMatchSettings: (payload: UpdateMatchSettingsPayload) => void;
+  updateSubstituteCpuModel: (
+    payload: UpdateSubstituteCpuModelPayload,
+  ) => void;
   startTemporaryLeave: (
     payload: StartTemporaryLeavePayload,
     ack: (response: StartTemporaryLeaveAck) => void,

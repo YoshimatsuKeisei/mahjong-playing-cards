@@ -6,10 +6,18 @@ interface PlayerAreaProps {
   isCurrent: boolean;
   seat: "top" | "right" | "bottom" | "left";
   displayName?: string;
+  temporaryLeaveStatus?: string | null;
   style?: CSSProperties;
 }
 
-export default function PlayerArea({ player, isCurrent, seat, displayName, style }: PlayerAreaProps) {
+export default function PlayerArea({
+  player,
+  isCurrent,
+  seat,
+  displayName,
+  temporaryLeaveStatus,
+  style,
+}: PlayerAreaProps) {
   return (
     <article
       className={`player-area seat-${seat} ${isCurrent ? "current" : ""}`}
@@ -30,8 +38,17 @@ export default function PlayerArea({ player, isCurrent, seat, displayName, style
       <div className="seat-label">
         <strong>{displayName ?? player.name}</strong>
         <span>{getPlayerStatus(player)}</span>
-        {player.hasJEnhancementRight && <span className="j-enhancement-badge">J強化権あり</span>}
-        {player.jShield && <span className="j-shield-badge">Jシールド発動中</span>}
+        {temporaryLeaveStatus && (
+          <span className="temporary-leave-seat-status">
+            {temporaryLeaveStatus}
+          </span>
+        )}
+        {player.hasJEnhancementRight && (
+          <span className="j-enhancement-badge">J強化権あり</span>
+        )}
+        {player.jShield && (
+          <span className="j-shield-badge">Jシールド発動中</span>
+        )}
       </div>
     </article>
   );
@@ -40,5 +57,6 @@ export default function PlayerArea({ player, isCurrent, seat, displayName, style
 function getPlayerStatus(player: Player) {
   if (player.isReach) return "リーチ中";
   if (player.hasCalled) return "鳴き済み";
+  if (player.isCpu) return `${player.cpuModelId ?? "standard"}-CPU`;
   return "通常";
 }

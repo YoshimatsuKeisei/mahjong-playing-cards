@@ -30,7 +30,7 @@ import {
   canDeclareReachInCurrentState,
   type GameAction,
 } from "../game/gameState";
-import type { Card, GameState, MatchState } from "../types";
+import type { Card, CpuModelId, GameState, MatchState } from "../types";
 import type {
   OnlineRoomSnapshot,
   TemporaryLeaveMode,
@@ -53,6 +53,7 @@ interface PlayScreenProps {
   onStartTemporaryLeave?: (mode: TemporaryLeaveMode) => void;
   matchState?: MatchState;
   onUpdateMatchSettings?: (payload: UpdateMatchSettingsPayload) => void;
+  onUpdateSubstituteCpuModel?: (cpuModelId: CpuModelId) => void;
   disableLocalCpuAutomation?: boolean;
 }
 
@@ -319,6 +320,7 @@ export default function PlayScreen({
   onStartTemporaryLeave,
   matchState,
   onUpdateMatchSettings,
+  onUpdateSubstituteCpuModel,
   disableLocalCpuAutomation = false,
 }: PlayScreenProps) {
   const [isRoomMenuOpen, setIsRoomMenuOpen] = useState(false);
@@ -1589,6 +1591,7 @@ export default function PlayScreen({
             isHost={isOnlineHost}
             transferTargets={hostTransferTargets}
             room={onlineRoom}
+            onlinePlayerId={onlinePlayerId}
             state={state}
             matchState={matchState}
             onSelectTab={setRoomMenuTab}
@@ -1606,21 +1609,8 @@ export default function PlayScreen({
               setIsRoomMenuOpen(false);
             }}
             onUpdateMatchSettings={onUpdateMatchSettings}
+            onUpdateSubstituteCpuModel={onUpdateSubstituteCpuModel}
           />
-        )}
-        {onlineRoom?.temporaryLeaves && onlineRoom.temporaryLeaves.length > 0 && (
-          <div className="temporary-leave-status" data-testid="temporary-leave-status">
-            {onlineRoom.temporaryLeaves.map((leave) => (
-              <span key={leave.playerId}>
-                {leave.playerName}
-                {leave.convertedToCpu
-                  ? "はCPUに置き換わりました"
-                  : leave.mode === "cpuSubstitute"
-                    ? "はCPU代行中です"
-                    : "は一時離脱中です"}
-              </span>
-            ))}
-          </div>
         )}
 
         <div className="table-shape">
@@ -1806,6 +1796,7 @@ export default function PlayScreen({
             isCurrent={playerIndex === state.currentPlayerIndex}
             seat={getSeat(playerCount, slotIndex)}
             displayName={cpuDisplayNames.get(playerIndex)}
+            temporaryLeaveStatus={getTemporaryLeaveStatus(onlineRoom, player.id)}
             style={getSeatStyle(playerCount, slotIndex)}
           />
         ))}
@@ -3215,6 +3206,7 @@ function RoomManagementDialog({
   isHost,
   transferTargets,
   room,
+  onlinePlayerId,
   state,
   matchState,
   onSelectTab,
@@ -3223,11 +3215,13 @@ function RoomManagementDialog({
   onTransferHost,
   onStartTemporaryLeave,
   onUpdateMatchSettings,
+  onUpdateSubstituteCpuModel,
 }: {
   activeTab: RoomManagementTab;
   isHost: boolean;
   transferTargets: OnlineRoomSnapshot["players"];
   room?: OnlineRoomSnapshot;
+  onlinePlayerId?: string;
   state: GameState;
   matchState?: MatchState;
   onSelectTab: (tab: RoomManagementTab) => void;
@@ -3236,6 +3230,7 @@ function RoomManagementDialog({
   onTransferHost: (targetPlayerId: string) => void;
   onStartTemporaryLeave: (mode: TemporaryLeaveMode) => void;
   onUpdateMatchSettings?: (payload: UpdateMatchSettingsPayload) => void;
+  onUpdateSubstituteCpuModel?: (cpuModelId: CpuModelId) => void;
 }) {
   const [editingSetting, setEditingSetting] = useState<
     "rounds" | "targetScore" | null
@@ -3264,6 +3259,9 @@ function RoomManagementDialog({
     isHost &&
     matchState?.matchMode === "targetScore" &&
     Boolean(onUpdateMatchSettings);
+  const substituteCpuModelId =
+    room?.substituteCpuModels?.find((item) => item.playerId === onlinePlayerId)
+      ?.cpuModelId ?? "standard";
 
   function startEditingSetting(kind: "rounds" | "targetScore") {
     setEditingSetting(kind);
@@ -3465,6 +3463,26 @@ function RoomManagementDialog({
                   <span>現在の局</span>
                   <strong>{currentRoundNumber}局目</strong>
                 </div>
+                {onlinePlayerId && onUpdateSubstituteCpuModel && (
+                  <div className="match-info-row">
+                    <span>代行CPUモデル</span>
+                    <strong>{getCpuModelDisplayName(substituteCpuModelId)}</strong>
+                    <select
+                      aria-label="代行CPUモデル"
+                      value={substituteCpuModelId}
+                      onChange={(event) =>
+                        onUpdateSubstituteCpuModel(
+                          event.target.value as CpuModelId,
+                        )
+                      }
+                    >
+                      <option value="easy">junior-CPU</option>
+                      <option value="standard">standard-CPU</option>
+                      <option value="tactical">pro-CPU</option>
+                      <option value="master">master-CPU</option>
+                    </select>
+                  </div>
+                )}
               </div>
               {editingSetting && (
                 <div className="match-setting-editor">
@@ -3557,6 +3575,25 @@ function stripSeatPrefix(name: string) {
 function getCurrentHighestMatchScore(matchState?: MatchState) {
   if (!matchState || matchState.matchMode !== "targetScore") return 0;
   return Math.max(0, ...matchState.cumulativeScores);
+}
+
+function getTemporaryLeaveStatus(
+  room: OnlineRoomSnapshot | undefined,
+  playerId: string,
+) {
+  const leave = room?.temporaryLeaves?.find((item) => item.playerId === playerId);
+  if (!leave) return null;
+  if (leave.convertedToCpu) return "CPU置換済み";
+  const remaining = formatRemainingLeaveTime(leave.expiresAt);
+  if (leave.mode === "cpuSubstitute") return `CPU代行中 残り ${remaining}`;
+  return `一時離脱中 / 試合停止中 残り ${remaining}`;
+}
+
+function formatRemainingLeaveTime(expiresAt: number) {
+  const remainingMs = Math.max(0, expiresAt - Date.now());
+  const minutes = Math.floor(remainingMs / 60000);
+  const seconds = Math.floor((remainingMs % 60000) / 1000);
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
 }
 
 /*

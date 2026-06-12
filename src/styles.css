@@ -2045,6 +2045,16 @@ h2 {
   padding: 0.3rem 0.65rem;
 }
 
+.temporary-leave-seat-status {
+  border: 1px solid rgba(214, 165, 64, 0.55);
+  border-radius: 999px;
+  background: rgba(8, 28, 20, 0.78);
+  color: #fff8dc;
+  padding: 0.16rem 0.45rem;
+  font-size: 0.68rem;
+  font-weight: 900;
+}
+
 .toolbar-player,
 .toolbar-deck {
   display: grid;
@@ -5089,6 +5099,37 @@ h2 {
   padding: 0.55rem 0.65rem;
   font: inherit;
   font-weight: 800;
+}
+
+.match-info-row select {
+  border: 1px solid rgba(214, 165, 64, 0.42);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fffdf7;
+  padding: 0.42rem 0.55rem;
+  font: inherit;
+  font-weight: 800;
+}
+
+.settings-select,
+.settings-select option,
+.match-info-row select option {
+  background: #0b2518;
+  color: #f7f0c8;
+}
+
+.host-transfer-select-row {
+  display: grid;
+  gap: 0.35rem;
+  color: #fffdf7;
+  font-weight: 800;
+}
+
+.host-transfer-select-row select {
+  border: 1px solid rgba(214, 165, 64, 0.42);
+  border-radius: 8px;
+  padding: 0.5rem 0.65rem;
+  font: inherit;
 }
 
 .match-setting-error {

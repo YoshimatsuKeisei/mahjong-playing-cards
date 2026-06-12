@@ -22,12 +22,13 @@ import type {
   OnlineRoomCreateSettings,
   OnlineRoomSnapshot,
   OnlineScenarioId,
+  LeaveRoomPayload,
   ResumableGameEntry,
   ResumableGameSummary,
   TemporaryLeaveMode,
   UpdateMatchSettingsPayload,
 } from "./online/types";
-import type { Card, GameState, MatchMode, MatchState, Player, ProfileData } from "./types";
+import type { Card, CpuModelId, GameState, MatchMode, MatchState, Player, ProfileData } from "./types";
 import type { HomeMenuTarget } from "./components/HomeMenu";
 
 const initialState: GameState = {
@@ -243,7 +244,26 @@ export default function App() {
   function requestResumableGames() {
     const entries = getStoredTemporaryLeaves();
     getOnlineSocket().emit("listResumableGames", { entries }, (rooms) => {
-      setResumableGames(rooms);
+      const resumableKeys = new Set(
+        rooms.map(
+          (room) => `${room.roomId}:${room.playerId}:${room.resumeToken}`,
+        ),
+      );
+      setStoredTemporaryLeaves(
+        entries.filter((entry) =>
+          resumableKeys.has(
+            `${entry.roomId}:${entry.playerId}:${entry.resumeToken}`,
+          ),
+        ),
+      );
+      const uniqueRooms = new Map<string, ResumableGameSummary>();
+      for (const room of rooms) {
+        const existing = uniqueRooms.get(room.roomId);
+        if (!existing || room.expiresAt > existing.expiresAt) {
+          uniqueRooms.set(room.roomId, room);
+        }
+      }
+      setResumableGames(Array.from(uniqueRooms.values()));
     });
   }
 
@@ -312,6 +332,11 @@ export default function App() {
     getOnlineSocket().emit("updateMatchSettings", payload);
   }
 
+  function updateOnlineSubstituteCpuModel(cpuModelId: CpuModelId) {
+    if (!onlineRoom?.started) return;
+    getOnlineSocket().emit("updateSubstituteCpuModel", { cpuModelId });
+  }
+
   function startOnlineTemporaryLeave(mode: TemporaryLeaveMode) {
     if (!onlineRoom?.started) return;
     getOnlineSocket().emit("startTemporaryLeave", { mode }, (response) => {
@@ -334,10 +359,18 @@ export default function App() {
   }
 
   function resumeTemporaryLeave(game: ResumableGameSummary) {
-    const entry = getStoredTemporaryLeaves().find(
-      (item) => item.roomId === game.roomId && item.playerId === game.playerId,
+    const entry = {
+      roomId: game.roomId,
+      playerId: game.playerId,
+      resumeToken: game.resumeToken,
+    };
+    const hasEntry = getStoredTemporaryLeaves().some(
+      (item) =>
+        item.roomId === entry.roomId &&
+        item.playerId === entry.playerId &&
+        item.resumeToken === entry.resumeToken,
     );
-    if (!entry) {
+    if (!hasEntry) {
       setOnlineError("復帰情報が見つかりませんでした。");
       return;
     }
@@ -415,7 +448,7 @@ export default function App() {
     setExitConfirmKind(null);
   }
 
-  function confirmExit() {
+  function confirmExit(payload?: LeaveRoomPayload) {
     if (exitConfirmKind === "summary") {
       if (matchState) {
         setInterruptedFinalMatchState(createInterruptedFinalMatchState(matchState));
@@ -428,6 +461,11 @@ export default function App() {
     }
 
     if (exitConfirmKind === "home") {
+      if (onlineRoom?.started) {
+        getOnlineSocket().emit("leaveRoom", payload ?? { type: "normal" });
+        setOnlineRoom(null);
+        setOnlinePlayerId(null);
+      }
       setMatchState(null);
       setInterruptedFinalMatchState(null);
       setExitConfirmKind(null);
@@ -591,7 +629,15 @@ export default function App() {
             : undefined
         }
       />
-      {exitConfirmKind && <ExitConfirmDialog kind={exitConfirmKind} onCancel={cancelExitConfirm} onConfirm={confirmExit} />}
+      {exitConfirmKind && (
+        <ExitConfirmDialog
+          kind={exitConfirmKind}
+          onlineRoom={onlineRoom}
+          onlinePlayerId={onlinePlayerId}
+          onCancel={cancelExitConfirm}
+          onConfirm={confirmExit}
+        />
+      )}
       </>
     );
   }
@@ -679,7 +725,15 @@ export default function App() {
             }}
             onBackHome={returnToHome}
           />
-          {exitConfirmKind && <ExitConfirmDialog kind={exitConfirmKind} onCancel={cancelExitConfirm} onConfirm={confirmExit} />}
+          {exitConfirmKind && (
+            <ExitConfirmDialog
+              kind={exitConfirmKind}
+              onlineRoom={onlineRoom}
+              onlinePlayerId={onlinePlayerId}
+              onCancel={cancelExitConfirm}
+              onConfirm={confirmExit}
+            />
+          )}
         </>
       );
     }
@@ -693,7 +747,15 @@ export default function App() {
           onJoinAnotherMatch={() => setScreen("roomSelect")}
           onBackHome={returnToHome}
         />
-        {exitConfirmKind && <ExitConfirmDialog kind={exitConfirmKind} onCancel={cancelExitConfirm} onConfirm={confirmExit} />}
+        {exitConfirmKind && (
+          <ExitConfirmDialog
+            kind={exitConfirmKind}
+            onlineRoom={onlineRoom}
+            onlinePlayerId={onlinePlayerId}
+            onCancel={cancelExitConfirm}
+            onConfirm={confirmExit}
+          />
+        )}
         </>
       );
     }
@@ -731,7 +793,15 @@ export default function App() {
         onRestart={requestSummaryExit}
         onBackHome={returnToHome}
       />
-      {exitConfirmKind && <ExitConfirmDialog kind={exitConfirmKind} onCancel={cancelExitConfirm} onConfirm={confirmExit} />}
+      {exitConfirmKind && (
+        <ExitConfirmDialog
+          kind={exitConfirmKind}
+          onlineRoom={onlineRoom}
+          onlinePlayerId={onlinePlayerId}
+          onCancel={cancelExitConfirm}
+          onConfirm={confirmExit}
+        />
+      )}
       </>
     );
   }
@@ -753,24 +823,124 @@ export default function App() {
       onStartTemporaryLeave={startOnlineTemporaryLeave}
       matchState={matchState ?? undefined}
       onUpdateMatchSettings={updateOnlineMatchSettings}
+      onUpdateSubstituteCpuModel={updateOnlineSubstituteCpuModel}
       disableLocalCpuAutomation={Boolean(onlineRoom?.started)}
     />
-    {exitConfirmKind && <ExitConfirmDialog kind={exitConfirmKind} onCancel={cancelExitConfirm} onConfirm={confirmExit} />}
+    {exitConfirmKind && (
+      <ExitConfirmDialog
+        kind={exitConfirmKind}
+        onlineRoom={onlineRoom}
+        onlinePlayerId={onlinePlayerId}
+        onCancel={cancelExitConfirm}
+        onConfirm={confirmExit}
+      />
+    )}
     </>
   );
 }
 
-function ExitConfirmDialog({ kind, onCancel, onConfirm }: { kind: Exclude<ExitConfirmKind, null>; onCancel: () => void; onConfirm: () => void }) {
+function ExitConfirmDialog({
+  kind,
+  onlineRoom,
+  onlinePlayerId,
+  onCancel,
+  onConfirm,
+}: {
+  kind: Exclude<ExitConfirmKind, null>;
+  onlineRoom: OnlineRoomSnapshot | null;
+  onlinePlayerId: string | null;
+  onCancel: () => void;
+  onConfirm: (payload?: LeaveRoomPayload) => void;
+}) {
   const isSummaryExit = kind === "summary";
+  const isHostHomeExit =
+    kind === "home" &&
+    Boolean(onlineRoom?.started) &&
+    onlineRoom?.hostPlayerId === onlinePlayerId;
+  const hostTransferTargets =
+    isHostHomeExit && onlineRoom && onlinePlayerId
+      ? onlineRoom.players.filter(
+          (player) => player.playerId !== onlinePlayerId && player.connected,
+        )
+      : [];
+  const [selectedHostId, setSelectedHostId] = useState(
+    hostTransferTargets[0]?.playerId ?? "",
+  );
+  const canUseNamedTransfer = hostTransferTargets.length > 0 && selectedHostId;
   return (
     <div className="exit-confirm-overlay" role="dialog" aria-modal="true" aria-labelledby="exit-confirm-title">
       <div className="exit-confirm-dialog">
-        <h2 id="exit-confirm-title">{isSummaryExit ? "この試合を終了しますか？" : "試合を終了してホーム画面に戻りますか？"}</h2>
-        <p>{isSummaryExit ? "現在までに完了した局の結果を集計して表示します。" : "現在の試合結果は表示されません。"}</p>
+        <h2 id="exit-confirm-title">
+          {isSummaryExit
+            ? "この試合を終了しますか？"
+            : isHostHomeExit
+              ? "ホストを交代させてください"
+              : "試合を終了してホーム画面に戻りますか？"}
+        </h2>
+        <p>
+          {isSummaryExit
+            ? "現在までに完了した局の結果を集計して表示します。"
+            : isHostHomeExit
+              ? "ホスト退出時は、残る人間プレイヤーへホストを移してからホーム画面に戻ります。"
+              : "現在の試合結果は表示されません。"}
+        </p>
+        {isHostHomeExit && hostTransferTargets.length > 0 && (
+          <label className="host-transfer-select-row">
+            <span>新しいホスト</span>
+            <select
+              className="settings-select"
+              value={selectedHostId}
+              onChange={(event) => setSelectedHostId(event.target.value)}
+            >
+              {hostTransferTargets.map((player) => (
+                <option key={player.playerId} value={player.playerId}>
+                  {player.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+        {isHostHomeExit && hostTransferTargets.length === 0 && (
+          <p className="online-error">
+            交代可能な接続中プレイヤーがいない場合は、復帰可能な一時離脱中プレイヤーを優先し、それもいなければルームを閉じます。
+          </p>
+        )}
         <div className="exit-confirm-actions">
-          <button type="button" className="primary-button" onClick={onConfirm}>
-            はい
-          </button>
+          {isHostHomeExit ? (
+            <>
+              <button
+                type="button"
+                className="primary-button"
+                disabled={!canUseNamedTransfer}
+                onClick={() =>
+                  onConfirm({
+                    type: "hostTransfer",
+                    strategy: "named",
+                    targetPlayerId: selectedHostId,
+                  })
+                }
+              >
+                指名交代
+              </button>
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={() =>
+                  onConfirm({ type: "hostTransfer", strategy: "random" })
+                }
+              >
+                {hostTransferTargets.length > 0 ? "ランダム交代" : "自動処理"}
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              className="primary-button"
+              onClick={() => onConfirm({ type: "normal" })}
+            >
+              はい
+            </button>
+          )}
           <button type="button" onClick={onCancel}>
             いいえ
           </button>
