@@ -85,6 +85,7 @@ export interface OnlineRoomCreateSettings {
   cpuModelId: CpuModelId;
   cpuModelIds: CpuModelId[];
   showCpuActions: boolean;
+  allowMidGameJoin: boolean;
   daifugoOptions: DaifugoOptions;
 }
 
@@ -96,6 +97,10 @@ export interface OnlinePublicRoom {
   joinedHumanPlayers: number;
   cpuPlayers: number;
   cpuModelIds: CpuModelId[];
+  allowMidGameJoin?: boolean;
+  started?: boolean;
+  currentRound?: number;
+  availableReplacementSeats?: number;
   matchType: MatchMode;
   roundCount?: number;
   targetScore?: number;

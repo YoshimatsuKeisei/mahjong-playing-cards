@@ -41,7 +41,12 @@ import type {
   LeaveRoomPayload,
   OnlineScenarioId,
 } from "../src/online/types";
-import type { CpuModelId, Direction, GameState, MatchState } from "../src/types";
+import type {
+  CpuModelId,
+  Direction,
+  GameState,
+  MatchState,
+} from "../src/types";
 
 interface ServerRoom {
   id: string;
@@ -145,12 +150,37 @@ function snapshotRoom(room: ServerRoom): OnlineRoomSnapshot {
   };
 }
 
+function isJoinableReplacementPlayer(room: ServerRoom, playerId: string) {
+  if (room.temporaryLeaves.has(playerId)) return false;
+  const player = room.state?.players.find((item) => item.id === playerId);
+  return Boolean(player?.isCpu && player.joinableReplacement);
+}
+
+function getJoinableReplacementSeatIndexes(room: ServerRoom) {
+  if (!room.roomSettings?.allowMidGameJoin || !room.started || !room.state) {
+    return [];
+  }
+  return room.state.players
+    .map((player, index) =>
+      isJoinableReplacementPlayer(room, player.id) ? index : -1,
+    )
+    .filter((index) => index >= 0);
+}
+
+function countHumanSeats(room: ServerRoom) {
+  if (!room.state)
+    return room.players.filter((player) => player.connected).length;
+  return room.state.players.filter((player) => !player.isCpu).length;
+}
+
 function listPublicRooms(): OnlinePublicRoom[] {
   return Array.from(rooms.values())
     .filter((room) => {
       const settings = room.roomSettings;
       if (!settings || settings.visibility !== "public") return false;
-      if (room.started) return false;
+      if (room.started) {
+        return getJoinableReplacementSeatIndexes(room).length > 0;
+      }
       if (settings.humanPlayers <= 1) return false;
       return room.players.length < settings.humanPlayers;
     })
@@ -162,9 +192,16 @@ function listPublicRooms(): OnlinePublicRoom[] {
         roomName: settings.roomName,
         totalPlayers: settings.totalPlayers,
         humanPlayers: settings.humanPlayers,
-        joinedHumanPlayers: room.players.length,
+        joinedHumanPlayers: room.started
+          ? countHumanSeats(room)
+          : room.players.length,
         cpuPlayers: settings.cpuPlayers,
         cpuModelIds: settings.cpuModelIds.slice(0, settings.cpuPlayers),
+        allowMidGameJoin: Boolean(settings.allowMidGameJoin),
+        started: room.started,
+        currentRound: room.matchState?.currentRound,
+        availableReplacementSeats:
+          getJoinableReplacementSeatIndexes(room).length,
         matchType: settings.matchType,
         roundCount: settings.roundCount,
         targetScore: settings.targetScore,
@@ -290,6 +327,10 @@ function replacePlayerSeatWithCpu(room: ServerRoom, playerId: string) {
           type: "cpu" as const,
           isCpu: true,
           cpuModelId,
+          joinableReplacement: Boolean(
+            room.roomSettings?.allowMidGameJoin &&
+            !room.temporaryLeaves.has(playerId),
+          ),
         }
       : player,
   );
@@ -312,7 +353,9 @@ function isHumanHostCandidate(
   connectedOnly = false,
 ) {
   if (playerId === excludedPlayerId) return false;
-  const roomPlayer = room.players.find((player) => player.playerId === playerId);
+  const roomPlayer = room.players.find(
+    (player) => player.playerId === playerId,
+  );
   if (!roomPlayer) return false;
   if (connectedOnly && !roomPlayer.connected) return false;
   const gamePlayer = room.state?.players.find((item) => item.id === playerId);
@@ -328,7 +371,10 @@ function findConnectedHumanHostCandidate(
   );
 }
 
-function findNextHumanHostCandidate(room: ServerRoom, excludedPlayerId?: string) {
+function findNextHumanHostCandidate(
+  room: ServerRoom,
+  excludedPlayerId?: string,
+) {
   return (
     findConnectedHumanHostCandidate(room, excludedPlayerId) ??
     room.players.find((player) =>
@@ -346,7 +392,10 @@ function getConnectedHumanHostCandidates(
   );
 }
 
-function getRandomHumanHostCandidate(room: ServerRoom, excludedPlayerId?: string) {
+function getRandomHumanHostCandidate(
+  room: ServerRoom,
+  excludedPlayerId?: string,
+) {
   const connectedCandidates = getConnectedHumanHostCandidates(
     room,
     excludedPlayerId,
@@ -373,7 +422,12 @@ function formatCpuModelName(cpuModelId: CpuModelId) {
 }
 
 function isValidCpuModelId(value: unknown): value is CpuModelId {
-  return value === "easy" || value === "standard" || value === "tactical" || value === "master";
+  return (
+    value === "easy" ||
+    value === "standard" ||
+    value === "tactical" ||
+    value === "master"
+  );
 }
 
 function createResumableGameSummary(
@@ -382,7 +436,8 @@ function createResumableGameSummary(
 ): ResumableGameSummary {
   return {
     roomId: room.id,
-    roomName: room.matchState?.roomName ?? room.roomSettings?.roomName ?? room.id,
+    roomName:
+      room.matchState?.roomName ?? room.roomSettings?.roomName ?? room.id,
     playerId: leave.playerId,
     playerName:
       room.state?.players[leave.playerIndex]?.name ??
@@ -392,8 +447,12 @@ function createResumableGameSummary(
     mode: leave.mode,
     expiresAt: leave.expiresAt,
     currentRound: room.matchState?.currentRound ?? 1,
-    matchType: room.matchState?.matchMode ?? room.roomSettings?.matchType ?? "rounds",
-    totalPlayers: room.state?.players.length ?? room.roomSettings?.totalPlayers ?? room.maxPlayers,
+    matchType:
+      room.matchState?.matchMode ?? room.roomSettings?.matchType ?? "rounds",
+    totalPlayers:
+      room.state?.players.length ??
+      room.roomSettings?.totalPlayers ??
+      room.maxPlayers,
     convertedToCpu: leave.convertedToCpu,
   };
 }
@@ -523,6 +582,7 @@ function leaveCurrentRoom(socket: OnlineSocket, payload?: LeaveRoomPayload) {
   }
   broadcastPlayerView(room);
   scheduleRoomCpu(room);
+  broadcastPublicRooms();
 }
 
 function rejectAction(
@@ -951,12 +1011,24 @@ function remapOnlinePlayers(room: ServerRoom, state: GameState): GameState {
     players: state.players.map((player, index) => {
       if (!player.isCpu) {
         const onlinePlayer = room.players[index];
+        if (!onlinePlayer && room.roomSettings?.allowMidGameJoin) {
+          return {
+            ...player,
+            id: `replacement-${index + 1}`,
+            name: `Player${index + 1}: standard-CPU`,
+            type: "cpu",
+            isCpu: true,
+            cpuModelId: "standard",
+            joinableReplacement: true,
+          };
+        }
         return {
           ...player,
           id: onlinePlayer?.playerId ?? player.id,
           name: onlinePlayer?.name ?? player.name,
           type: "human",
           isCpu: false,
+          joinableReplacement: undefined,
         };
       }
       return {
@@ -965,9 +1037,49 @@ function remapOnlinePlayers(room: ServerRoom, state: GameState): GameState {
         name: `CPU ${index + 1}`,
         type: "cpu",
         isCpu: true,
+        joinableReplacement: false,
       };
     }),
   };
+}
+
+function joinStartedRoomReplacementSeat(
+  socket: OnlineSocket,
+  room: ServerRoom,
+  playerName: string,
+) {
+  const seatIndex = getJoinableReplacementSeatIndexes(room)[0];
+  if (seatIndex === undefined || !room.state) return null;
+  const playerId = createPlayerId(room);
+  const player: OnlineRoomPlayer = {
+    playerId,
+    name: formatAssignedPlayerName(seatIndex + 1, playerName),
+    ready: true,
+    connected: true,
+  };
+  room.players.push(player);
+  room.socketsByPlayerId.set(playerId, socket.id);
+  room.state = {
+    ...room.state,
+    players: room.state.players.map((statePlayer, index) =>
+      index === seatIndex
+        ? {
+            ...statePlayer,
+            id: playerId,
+            name: player.name,
+            type: "human",
+            isCpu: false,
+            cpuModelId: undefined,
+            joinableReplacement: undefined,
+          }
+        : statePlayer,
+    ),
+  };
+  room.matchState = syncMatchGameState(room.matchState, room.state);
+  socket.data.roomId = room.id;
+  socket.data.playerId = playerId;
+  socket.join(room.id);
+  return playerId;
 }
 
 io.on("connection", (socket) => {
@@ -1014,6 +1126,7 @@ io.on("connection", (socket) => {
       state: null,
     });
     broadcastPlayerView(room);
+    broadcastPublicRooms();
   });
 
   socket.on("listPublicRooms", (ack) => {
@@ -1070,11 +1183,17 @@ io.on("connection", (socket) => {
     }
     const matchType = (payload as { matchType?: unknown }).matchType;
     if (matchType !== "rounds" && matchType !== "targetScore") {
-      socket.emit("errorMessage", "Match settings cannot be changed for this match type.");
+      socket.emit(
+        "errorMessage",
+        "Match settings cannot be changed for this match type.",
+      );
       return;
     }
     if (!room.started || !room.matchState) {
-      socket.emit("errorMessage", "Match settings can only be changed during a match.");
+      socket.emit(
+        "errorMessage",
+        "Match settings can only be changed during a match.",
+      );
       return;
     }
     if (room.hostPlayerId !== playerId) {
@@ -1093,7 +1212,10 @@ io.on("connection", (socket) => {
         return;
       }
       if (roundCount <= room.matchState.currentRound) {
-        socket.emit("errorMessage", "Round count must be greater than the current round.");
+        socket.emit(
+          "errorMessage",
+          "Round count must be greater than the current round.",
+        );
         return;
       }
       if (roundCount > MAX_ROUND_COUNT) {
@@ -1119,11 +1241,17 @@ io.on("connection", (socket) => {
         return;
       }
       if (targetScore < MIN_TARGET_SCORE || targetScore > MAX_TARGET_SCORE) {
-        socket.emit("errorMessage", "Target score must be between 50 and 10000.");
+        socket.emit(
+          "errorMessage",
+          "Target score must be between 50 and 10000.",
+        );
         return;
       }
       if (targetScore <= getCurrentHighestMatchScore(room.matchState)) {
-        socket.emit("errorMessage", "Target score must be greater than the current highest score.");
+        socket.emit(
+          "errorMessage",
+          "Target score must be greater than the current highest score.",
+        );
         return;
       }
       room.roomSettings = room.roomSettings
@@ -1138,7 +1266,10 @@ io.on("connection", (socket) => {
       return;
     }
 
-    socket.emit("errorMessage", "Match settings cannot be changed for this match type.");
+    socket.emit(
+      "errorMessage",
+      "Match settings cannot be changed for this match type.",
+    );
   });
 
   socket.on("updateSubstituteCpuModel", (payload) => {
@@ -1151,7 +1282,10 @@ io.on("connection", (socket) => {
     }
     const player = room.state.players.find((item) => item.id === playerId);
     if (!player || player.isCpu) {
-      socket.emit("errorMessage", "Only human players can change substitute CPU model.");
+      socket.emit(
+        "errorMessage",
+        "Only human players can change substitute CPU model.",
+      );
       return;
     }
     room.substituteCpuModelIds.set(playerId, payload.cpuModelId);
@@ -1163,7 +1297,10 @@ io.on("connection", (socket) => {
     const room = getSocketRoom(socket);
     const playerId = socket.data.playerId;
     if (!room || !playerId || !room.started || !room.state) {
-      ack({ ok: false, error: "Temporary leave is only available during a match." });
+      ack({
+        ok: false,
+        error: "Temporary leave is only available during a match.",
+      });
       return;
     }
     const mode = payload.mode;
@@ -1252,7 +1389,30 @@ io.on("connection", (socket) => {
       return;
     }
     if (room.started) {
-      ack({ ok: false, error: "Game has already started." });
+      const playerId = joinStartedRoomReplacementSeat(
+        socket,
+        room,
+        payload.playerName,
+      );
+      if (!playerId) {
+        ack({ ok: false, error: "Game has already started." });
+        return;
+      }
+      if (!room.state) {
+        ack({ ok: false, error: "Game has not started." });
+        return;
+      }
+      ack({
+        ok: true,
+        roomId: room.id,
+        playerId,
+        room: snapshotRoom(room),
+        state: createPlayerViewState(room.state, playerId),
+      });
+      emitPlayerView(room, playerId);
+      broadcastPlayerView(room);
+      scheduleRoomCpu(room);
+      broadcastPublicRooms();
       return;
     }
     if (room.players.length >= room.maxPlayers) {
@@ -1301,9 +1461,15 @@ io.on("connection", (socket) => {
       return;
     }
     const totalSeats = room.roomSettings?.totalPlayers ?? room.maxPlayers;
+    const allowMidGameJoin = Boolean(room.roomSettings?.allowMidGameJoin);
+    const hasSoloCpuComposition =
+      (room.roomSettings?.humanPlayers ?? room.maxPlayers) <= 1 &&
+      (room.roomSettings?.cpuPlayers ?? 0) > 0;
     if (
       totalSeats < 2 ||
-      room.players.length < room.maxPlayers ||
+      (!allowMidGameJoin && room.players.length < room.maxPlayers) ||
+      (allowMidGameJoin &&
+        (room.players.length < 1 || hasSoloCpuComposition)) ||
       !room.players.every(
         (player) => player.ready || player.playerId === room.hostPlayerId,
       )
@@ -1317,6 +1483,7 @@ io.on("connection", (socket) => {
     startRoomGame(room);
     broadcastPlayerView(room);
     scheduleRoomCpu(room);
+    broadcastPublicRooms();
   });
 
   socket.on("submitAction", (payload) => {

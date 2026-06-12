@@ -48,18 +48,38 @@ export default function RoomListScreen({ rooms = [], error, onJoinRoom, onRefres
                 <article className="room-list-card public-room-card" data-testid="public-room-card" key={room.roomId}>
                   <div className="public-room-grid">
                     <PublicRoomCell label="ルーム名" value={room.roomName} testId="public-room-name" />
-                    <PublicRoomCell label="人数" value={`${room.totalPlayers}人プレイ`} />
+                    <PublicRoomCell
+                      label="人数"
+                      value={
+                        room.started
+                          ? `${room.joinedHumanPlayers}/${room.totalPlayers}人`
+                          : `${room.totalPlayers}人プレイ`
+                      }
+                    />
                     <PublicRoomCell label="試合形式" value={matchRule.typeLabel} />
                     <PublicRoomCell label="詳細" value={matchRule.detailLabel} />
+                    {room.started && (
+                      <PublicRoomCell
+                        label="現在"
+                        value={`${room.currentRound ?? 1}局目`}
+                      />
+                    )}
                     <PublicRoomCell label="追加ルール" value={formatDaifugo(room.daifugoOptions)} testId="public-room-extra-rules" />
                     <div className="public-room-cell public-room-recruitment-cell">
                       <span className="public-room-column-label">募集人数</span>
                       <span className="public-room-value" data-testid="public-room-recruitment">
-                        募集人数 {room.joinedHumanPlayers}/{room.humanPlayers}人
+                        {room.started
+                          ? `途中参加可能 ${room.availableReplacementSeats ?? 0}枠`
+                          : `募集人数 ${room.joinedHumanPlayers}/${room.humanPlayers}人`}
                       </span>
                       <span className="public-room-value" data-testid="public-room-cpu">
                         {formatCpu(room.cpuPlayers, room.cpuModelIds)}
                       </span>
+                      {room.started && room.allowMidGameJoin && (
+                        <span className="public-room-rule-badge is-main">
+                          途中参加可能
+                        </span>
+                      )}
                     </div>
                   </div>
                   <button type="button" className="join-room-button" data-testid="public-room-join-button" onClick={() => onJoinRoom(room.roomId)}>

@@ -167,6 +167,7 @@ export interface Player {
   type: "human" | "cpu";
   isCpu: boolean;
   cpuModelId?: CpuModelId;
+  joinableReplacement?: boolean;
   hand: Card[];
   discardPile: Card[];
   openMelds: Card[][];

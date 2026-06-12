@@ -28,6 +28,7 @@ export interface RoomCreateSettings {
   cpuModelId: CpuModelId;
   cpuModelIds: CpuModelId[];
   showCpuActions: boolean;
+  allowMidGameJoin: boolean;
   daifugoOptions: DaifugoOptions;
 }
 
@@ -135,6 +136,7 @@ export default function StartScreen({
   const [playerCount, setPlayerCount] = useState<RoomTotalPlayers>(4);
   const [humanPlayerCount, setHumanPlayerCount] = useState(4);
   const [visibility, setVisibility] = useState<RoomVisibility>("private");
+  const [allowMidGameJoin, setAllowMidGameJoin] = useState(false);
   const [cpuModelIds, setCpuModelIds] = useState<CpuModelId[]>([
     DEFAULT_CPU_MODEL_ID,
     DEFAULT_CPU_MODEL_ID,
@@ -156,11 +158,18 @@ export default function StartScreen({
   const cpuPlayerCount = playerCount - humanPlayerCount;
   const cpuModelId = cpuModelIds[0] ?? DEFAULT_CPU_MODEL_ID;
   const canSelectPublic = humanPlayerCount >= 2;
+  const canAllowMidGameJoin = !(humanPlayerCount === 1 && cpuPlayerCount > 0);
   useEffect(() => {
     if (!canSelectPublic && visibility === "public") {
       setVisibility("private");
     }
   }, [canSelectPublic, visibility]);
+
+  useEffect(() => {
+    if (!canAllowMidGameJoin && allowMidGameJoin) {
+      setAllowMidGameJoin(false);
+    }
+  }, [allowMidGameJoin, canAllowMidGameJoin]);
 
   function updateRuleValue(value: string) {
     setRuleValues((current) => ({ ...current, [matchType]: value }));
@@ -188,6 +197,7 @@ export default function StartScreen({
       cpuModelId: cpuModelIds[0] ?? DEFAULT_CPU_MODEL_ID,
       cpuModelIds: cpuModelIds.slice(0, cpuPlayerCount),
       showCpuActions: true,
+      allowMidGameJoin: canAllowMidGameJoin ? allowMidGameJoin : false,
       daifugoOptions,
     };
   }
@@ -222,6 +232,11 @@ export default function StartScreen({
     setVisibility((current) => (current === "public" ? "private" : "public"));
   }
 
+  function toggleMidGameJoin() {
+    if (!canAllowMidGameJoin) return;
+    setAllowMidGameJoin((current) => !current);
+  }
+
   function updateCpuModel(cpuIndex: number, modelId: CpuModelId) {
     setCpuModelIds((current) =>
       current.map((item, index) => (index === cpuIndex ? modelId : item)),
@@ -242,6 +257,7 @@ export default function StartScreen({
             <label>
               <span>ルーム名</span>
               <input
+                data-testid="room-name-input"
                 placeholder="例: 初心者歓迎ルーム"
                 value={roomName}
                 onChange={(event) => setRoomName(event.target.value)}
@@ -312,6 +328,35 @@ export default function StartScreen({
               );
             })}
           </div>
+        </div>
+
+        <div
+          className={`field mid-game-join-field ${canAllowMidGameJoin ? "" : "is-locked"}`}
+        >
+          <span>途中参加を許可</span>
+          <button
+            type="button"
+            className={`visibility-switch ${allowMidGameJoin ? "is-public" : "is-private"}`}
+            role="switch"
+            aria-checked={allowMidGameJoin}
+            disabled={!canAllowMidGameJoin}
+            onClick={toggleMidGameJoin}
+            title={
+              !canAllowMidGameJoin
+                ? "Player1人 + CPUのみの構成では途中参加を許可できません"
+                : undefined
+            }
+          >
+            <span className="visibility-switch-track" aria-hidden="true">
+              <span className="visibility-switch-knob" />
+            </span>
+            <span className="visibility-switch-label">
+              {allowMidGameJoin ? "ON" : "OFF"}
+            </span>
+          </button>
+          {!canAllowMidGameJoin && (
+            <small>Player1人 + CPUのみの構成では設定できません</small>
+          )}
         </div>
 
         {cpuPlayerCount > 0 && (

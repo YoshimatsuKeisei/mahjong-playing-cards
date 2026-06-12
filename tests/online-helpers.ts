@@ -13,25 +13,25 @@ export async function openOnlineLobby(page: Page, playerName: string, scenario?:
   });
   await page.goto(scenario ? `/?scenario=${encodeURIComponent(scenario)}` : "/");
   await page.getByTestId("home-menu-newGame").click();
-  await page.getByTestId("online-join-room-choice").click();
-  await page.getByTestId("player-name-input").fill(playerName);
 }
 
 export async function createOnlineRoom(page: Page, playerName = "Player 1", scenario?: string) {
   await openOnlineLobby(page, playerName, scenario);
-  await page.getByTestId("create-room-button").click();
-  await expect(page.getByTestId("room-id")).toBeVisible();
-  const roomText = (await page.getByTestId("room-id").textContent()) ?? "";
-  const roomId = roomText.replace("Room ID:", "").trim();
-  expect(roomId.length).toBeGreaterThan(0);
-  return roomId;
+  const roomName = `Online ${Date.now()}`;
+  await page.getByTestId("local-create-room-choice").click();
+  await page.getByTestId("room-name-input").fill(roomName);
+  await page.getByRole("switch").first().click();
+  await page.getByTestId("offline-start-button").click();
+  await expect(page.getByTestId("online-lobby-screen")).toBeVisible();
+  return roomName;
 }
 
-export async function joinOnlineRoom(page: Page, roomId: string, playerName: string) {
+export async function joinOnlineRoom(page: Page, roomName: string, playerName: string) {
   await openOnlineLobby(page, playerName);
-  await page.getByTestId("room-id-input").fill(roomId);
-  await page.getByTestId("join-room-button").click();
-  await expect(page.getByTestId("room-id")).toContainText(roomId);
+  await page.getByTestId("online-join-room-choice").click();
+  const card = page.getByTestId("public-room-card").filter({ hasText: roomName });
+  await card.getByTestId("public-room-join-button").click();
+  await expect(page.getByTestId("online-lobby-screen")).toBeVisible();
 }
 
 export async function setupFourPlayerOnlineGame(browser: Browser, scenario?: string): Promise<OnlineGameSetup> {
