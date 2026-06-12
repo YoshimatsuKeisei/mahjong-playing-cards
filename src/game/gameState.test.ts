@@ -314,7 +314,7 @@ describe("daifugo game state", () => {
     const normal = gameReducer(withoutRight, { type: "answerDaifugoEffect", activate: true });
     expect(normal.pendingDaifugoEffect).toBeNull();
     expect(normal.lastDiscarderIndex).toBe(1);
-    expect(normal.message).toBe("Player 2をスキップ！次の手番はPlayer 3です。");
+    expect(normal.message).toBe("5スキップにより、手番が飛びます。次はPlayer 3です。");
 
     const base = stateForDiscard(card("five", 5), daifugoOptions({ fiveSkip: true }));
     const withRight = gameReducer(
@@ -329,7 +329,7 @@ describe("daifugo game state", () => {
     expect(declined.pendingDaifugoEffect).toBeNull();
     expect(declined.players[0].hasJEnhancementRight).toBe(true);
     expect(declined.lastDiscarderIndex).toBe(1);
-    expect(declined.message).toBe("Player 2をスキップ！次の手番はPlayer 3です。");
+    expect(declined.message).toBe("5スキップにより、手番が飛びます。次はPlayer 3です。");
   });
 
   it("reports normal 5 skip results in the current direction", () => {
@@ -338,14 +338,14 @@ describe("daifugo game state", () => {
       cardId: "five",
     });
     const clockwise = gameReducer(clockwisePending, { type: "answerDaifugoEffect", activate: true });
-    expect(clockwise.message).toBe("Player 2をスキップ！次の手番はPlayer 3です。");
+    expect(clockwise.message).toBe("5スキップにより、手番が飛びます。次はPlayer 3です。");
 
     const reversedPending = gameReducer(stateForFivePlayerDiscard(card("five", 5), "counterclockwise", daifugoOptions({ fiveSkip: true })), {
       type: "discard",
       cardId: "five",
     });
     const reversed = gameReducer(reversedPending, { type: "answerDaifugoEffect", activate: true });
-    expect(reversed.message).toBe("Player 5をスキップ！次の手番はPlayer 4です。");
+    expect(reversed.message).toBe("5スキップにより、手番が飛びます。次はPlayer 4です。");
   });
 
   it("calculates enhanced 5 targets in current direction", () => {
@@ -392,7 +392,7 @@ describe("daifugo game state", () => {
     const resolved = gameReducer(selected, { type: "confirmEnhancedFiveTarget" });
     expect(resolved.players[0].hasJEnhancementRight).toBe(false);
     expect(resolved.lastDiscarderIndex).toBe(2);
-    expect(resolved.message).toBe("Player 2、Player 3をスキップ！次の手番はPlayer 4です。");
+    expect(resolved.message).toBe("Player 1がJ強化5スキップを使用し、Player 2、Player 3をスキップしました。次はPlayer 4です。");
     const next = gameReducer(resolved, { type: "confirmHandoff" });
     expect(next.currentPlayerIndex).toBe(3);
   });
@@ -409,7 +409,7 @@ describe("daifugo game state", () => {
     const reversedSelected = gameReducer(reversedChoosing, { type: "selectEnhancedFiveTarget", targetPlayerIndex: 2 });
     const reversedResolved = gameReducer(reversedSelected, { type: "confirmEnhancedFiveTarget" });
     expect(reversedResolved.lastDiscarderIndex).toBe(3);
-    expect(reversedResolved.message).toBe("Player 5、Player 4をスキップ！次の手番はPlayer 3です。");
+    expect(reversedResolved.message).toBe("Player 1がJ強化5スキップを使用し、Player 5、Player 4をスキップしました。次はPlayer 3です。");
     expect(gameReducer(reversedResolved, { type: "confirmHandoff" }).currentPlayerIndex).toBe(2);
 
     const threeBase = stateForDiscard(card("five", 5), daifugoOptions({ fiveSkip: true }));
@@ -806,25 +806,26 @@ describe("daifugo game state", () => {
     const selecting: GameState = {
       ...base,
       players: [
-        { ...base.players[0], hand: [card("give-a", 1)] },
+        { ...base.players[0], hand: [card("give-a", 1, "D")] },
         {
           ...base.players[1],
           isReach: true,
           hand: [
-            card("2s", 2, "S"),
-            card("2h", 2, "H"),
-            card("2d", 2, "D"),
+            card("1s", 1, "S"),
+            card("1h", 1, "H"),
             card("4s", 4, "S"),
             card("4h", 4, "H"),
             card("4d", 4, "D"),
-            card("6s", 6, "S"),
-            card("6h", 6, "H"),
-            card("6d", 6, "D"),
+            card("7s", 7, "S"),
+            card("7h", 7, "H"),
+            card("7d", 7, "D"),
             card("13c", 13, "C"),
+            card("9c", 9, "C"),
           ],
         },
         base.players[2],
       ],
+      deck: [card("deck-4c", 4, "C")],
       pendingDaifugoEffect: {
         kind: "sevenExchange",
         effect: "sevenExchange",
@@ -835,7 +836,7 @@ describe("daifugo game state", () => {
       },
     };
     const selectedByActor = gameReducer(selecting, { type: "selectSevenExchangeCard", playerIndex: 0, cardId: "give-a" });
-    const resolved = gameReducer(selectedByActor, { type: "selectSevenExchangeCard", playerIndex: 1, cardId: "2s" });
+    const resolved = gameReducer(selectedByActor, { type: "selectSevenExchangeCard", playerIndex: 1, cardId: "4s" });
 
     expect(resolved.pendingDaifugoEffect?.kind).toBe("reachContinueConfirm");
     expect(resolved.players[1].isReach).toBe(true);
@@ -1292,7 +1293,7 @@ describe("daifugo game state", () => {
     expect(resolved.pendingDaifugoEffect).toBeNull();
     expect(resolved.players[0].hasJEnhancementRight).toBeFalsy();
     expect(resolved.isJBackActive).toBe(false);
-    expect(resolved.message).toContain("completed J information browsing");
+    expect(resolved.message).toContain("情報閲覧が完了しました。");
   });
 
   it("tactical CPU gains a J enhancement right while a remote player is in reach", () => {
@@ -1335,7 +1336,7 @@ describe("daifugo game state", () => {
     expect(resolved.pendingDaifugoEffect).toBeNull();
     expect(resolved.players[0].hasJEnhancementRight).toBe(true);
     expect(resolved.isJBackActive).toBe(false);
-    expect(resolved.message).toContain("completed J information browsing");
+    expect(resolved.message).toContain("情報閲覧が完了しました。");
   });
 
   it("junior and standard CPU always use J information browsing after J-back removal", () => {
@@ -1361,7 +1362,7 @@ describe("daifugo game state", () => {
       expect(resolved.pendingDaifugoEffect).toBeNull();
       expect(resolved.players[0].hasJEnhancementRight).toBeFalsy();
       expect(resolved.players[0].jShield).toBeUndefined();
-      expect(resolved.message).toContain("completed J information browsing");
+      expect(resolved.message).toContain("情報閲覧が完了しました。");
     }
   });
 
@@ -1539,7 +1540,7 @@ describe("daifugo game state", () => {
     const resolved = gameReducer(jackPending, { type: "answerDaifugoEffect", activate: true });
 
     expect(resolved.players[0].jShield).toBeUndefined();
-    expect(resolved.message).toContain("completed J information browsing");
+    expect(resolved.message).toContain("情報閲覧が完了しました。");
   });
 
   it("master CPU does not use another J shield while a run shield is already active", () => {
@@ -1564,7 +1565,7 @@ describe("daifugo game state", () => {
     const resolved = gameReducer(jackPending, { type: "answerDaifugoEffect", activate: true });
 
     expect(resolved.players[0].jShield).toEqual(cpuState.players[0].jShield);
-    expect(resolved.message).toContain("completed J information browsing");
+    expect(resolved.message).toContain("情報閲覧が完了しました。");
   });
 
   it("master CPU does not use J shield when both 7 and Q have vanished", () => {
@@ -1613,7 +1614,7 @@ describe("daifugo game state", () => {
 
     expect(resolved.players[0].jShield).toBeUndefined();
     expect(resolved.players[0].hasJEnhancementRight).toBeFalsy();
-    expect(resolved.message).toContain("completed J information browsing");
+    expect(resolved.message).toContain("情報閲覧が完了しました。");
   });
 
   it("master CPU treats the next player in the current direction as adjacent for J shield decisions", () => {
@@ -1680,7 +1681,7 @@ describe("daifugo game state", () => {
       const resolved = gameReducer(jackPending, { type: "answerDaifugoEffect", activate: true });
 
       expect(resolved.players[0].jShield).toBeUndefined();
-      expect(resolved.message).toContain("completed J information browsing");
+      expect(resolved.message).toContain("情報閲覧が完了しました。");
     }
   });
 
@@ -2122,18 +2123,18 @@ describe("daifugo game state", () => {
     const state = stateForDiscard(card("eight", 8));
     state.players[0] = player(1, [
       card("eight", 8),
-      card("r1", 1, "S"),
-      card("r2", 2, "S"),
-      card("r3", 3, "S"),
-      card("r4", 4, "S"),
-      card("r5", 5, "S"),
+      card("r1s", 1, "S"),
+      card("r1h", 1, "H"),
+      card("r1d", 1, "D"),
+      card("r4s", 4, "S"),
+      card("r4h", 4, "H"),
+      card("r4d", 4, "D"),
+      card("r7s", 7, "S"),
+      card("r7h", 7, "H"),
+      card("key", 13, "C"),
       card("loose-a", 9, "D"),
-      card("loose-b", 10, "H"),
-      card("loose-c", 11, "H"),
-      card("loose-d", 12, "H"),
-      card("junk", 13, "H"),
     ]);
-    state.deck = [card("r6", 6, "S")];
+    state.deck = [card("drawn-junk", 12, "D"), card("r7d", 7, "D")];
     const pending = gameReducer(state, { type: "discard", cardId: "eight" });
     const drawPending = gameReducer(pending, { type: "answerDaifugoEffect", activate: true });
     const extra = gameReducer(drawPending, { type: "drawForDaifugoEffect" });
@@ -2173,18 +2174,18 @@ describe("daifugo game state", () => {
     const state = stateForDiscard(card("ten", 10));
     state.players[0] = player(1, [
       card("ten", 10),
-      card("r1", 1, "S"),
-      card("r2", 2, "S"),
-      card("r3", 3, "S"),
-      card("r4", 4, "S"),
-      card("r5", 5, "S"),
+      card("r1s", 1, "S"),
+      card("r1h", 1, "H"),
+      card("r1d", 1, "D"),
+      card("r4s", 4, "S"),
+      card("r4h", 4, "H"),
+      card("r4d", 4, "D"),
+      card("r7s", 7, "S"),
+      card("r7h", 7, "H"),
       card("key", 13, "C"),
-      card("loose-a", 2, "H"),
-      card("loose-b", 5, "H"),
-      card("loose-c", 9, "H"),
       card("junk", 12, "D"),
     ]);
-    state.deck = [card("r6", 6, "S")];
+    state.deck = [card("drawn-junk", 9, "C"), card("r7d", 7, "D")];
 
     const pending = gameReducer(state, { type: "discard", cardId: "ten" });
     const extra = gameReducer(pending, { type: "answerDaifugoEffect", activate: true });

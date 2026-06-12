@@ -506,7 +506,7 @@ describe("PlayScreen round display", () => {
     render(<PlayScreen state={state} dispatch={dispatch} currentRound={1} />);
 
     expect(state.pendingDaifugoEffect).toMatchObject({ kind: "queenWinConfirm" });
-    expect(screen.getByText("Q効果発動により、9が捨てられます")).toBeInTheDocument();
+    expect(screen.getByText("プレイヤー1が9を捨てることになります。")).toBeInTheDocument();
     expect(screen.queryByText("Qの効果で上がれます。上がりますか？")).not.toBeInTheDocument();
     expect(dispatch).not.toHaveBeenCalledWith({ type: "answerQueenWin", takeWin: true });
 
@@ -1067,6 +1067,9 @@ describe("PlayScreen round display", () => {
       render(<PlayScreen state={state} dispatch={dispatch} currentRound={1} disableLocalCpuAutomation />);
 
       expect(screen.getAllByText("相手に渡すカードを1枚選択してください。").length).toBeGreaterThan(0);
+      await act(async () => {
+        await vi.runAllTimersAsync();
+      });
       const selectableCard = screen.getAllByTestId("hand-card").find((button) => !(button as HTMLButtonElement).disabled) as HTMLButtonElement | undefined;
       expect(selectableCard).toBeTruthy();
       fireEvent.click(selectableCard!);

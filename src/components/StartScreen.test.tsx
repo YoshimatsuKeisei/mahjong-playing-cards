@@ -182,7 +182,7 @@ describe("StartScreen room settings validation", () => {
     expect(screen.queryByText("CPUの強さ")).not.toBeInTheDocument();
   });
 
-  it("disables CPU composition choices while online CPU support is paused", async () => {
+  it("allows CPU composition choices for online CPU rooms", async () => {
     const user = userEvent.setup();
     const onStart = vi.fn();
     render(<StartScreen onStart={onStart} onBackHome={vi.fn()} />);
@@ -190,17 +190,17 @@ describe("StartScreen room settings validation", () => {
     expect(screen.queryByText("CPU設定")).not.toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /Player 3.*CPU 1/ }),
-    ).toBeDisabled();
+    ).toBeEnabled();
     expect(
       screen.getByRole("button", { name: /Player 2.*CPU 2/ }),
-    ).toBeDisabled();
+    ).toBeEnabled();
     expect(
       screen.getByRole("button", { name: /Player 1.*CPU 3/ }),
-    ).toBeDisabled();
+    ).toBeEnabled();
 
     await user.click(screen.getByRole("button", { name: /Player 3.*CPU 1/ }));
 
-    expect(screen.queryByText("CPU設定")).not.toBeInTheDocument();
+    expect(screen.getByText("CPU設定")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "作成" }));
 
     expect(onStart).toHaveBeenCalledWith(
@@ -210,15 +210,15 @@ describe("StartScreen room settings validation", () => {
       10,
       expect.objectContaining({
         cpuModelId: "standard",
-        cpuModelIds: [],
-        cpuPlayers: 0,
-        humanPlayers: 4,
+        cpuModelIds: ["standard"],
+        cpuPlayers: 1,
+        humanPlayers: 3,
         showCpuActions: true,
       }),
     );
   });
 
-  it("toggles visibility with a switch and keeps CPU compositions disabled", async () => {
+  it("toggles visibility with a switch and keeps CPU compositions enabled", async () => {
     const user = userEvent.setup();
     render(<StartScreen onStart={vi.fn()} onBackHome={vi.fn()} />);
 
@@ -254,7 +254,7 @@ describe("StartScreen room settings validation", () => {
 
     expect(
       screen.getByRole("button", { name: "Player 1人 + CPU 3体" }),
-    ).toBeDisabled();
+    ).toBeEnabled();
     expect(visibilitySwitch).toBeEnabled();
     expect(visibilitySwitch).toHaveAttribute("aria-checked", "true");
   });

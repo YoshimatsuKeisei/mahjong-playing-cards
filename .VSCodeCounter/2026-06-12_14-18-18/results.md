@@ -1,22 +1,22 @@
 # Summary
 
-Date : 2026-06-06 18:35:27
+Date : 2026-06-12 14:18:18
 
 Directory c:\\Users\\jingc\\Documents\\8番出口
 
-Total : 100 files,  27624 codes, 158 comments, 2987 blanks, all 30769 lines
+Total : 120 files,  34277 codes, 181 comments, 3461 blanks, all 37919 lines
 
 Summary / [Details](details.md) / [Diff Summary](diff.md) / [Diff Details](diff-details.md)
 
 ## Languages
 | language | files | code | comment | blank | total |
 | :--- | ---: | ---: | ---: | ---: | ---: |
-| TypeScript | 58 | 12,028 | 1 | 1,406 | 13,435 |
-| TypeScript JSX | 30 | 6,736 | 151 | 732 | 7,619 |
-| PostCSS | 1 | 5,354 | 6 | 771 | 6,131 |
+| TypeScript | 78 | 16,216 | 10 | 1,768 | 17,994 |
+| TypeScript JSX | 30 | 9,101 | 165 | 828 | 10,094 |
+| PostCSS | 1 | 5,451 | 6 | 787 | 6,244 |
 | JSON | 3 | 3,061 | 0 | 3 | 3,064 |
 | JavaScript | 2 | 256 | 0 | 33 | 289 |
-| Markdown | 1 | 121 | 0 | 27 | 148 |
+| Markdown | 1 | 124 | 0 | 27 | 151 |
 | YAML | 1 | 28 | 0 | 7 | 35 |
 | JSON with Comments | 1 | 22 | 0 | 1 | 23 |
 | HTML | 1 | 12 | 0 | 1 | 13 |
@@ -25,21 +25,21 @@ Summary / [Details](details.md) / [Diff Summary](diff.md) / [Diff Details](diff-
 ## Directories
 | path | files | code | comment | blank | total |
 | :--- | ---: | ---: | ---: | ---: | ---: |
-| . | 100 | 27,624 | 158 | 2,987 | 30,769 |
+| . | 120 | 34,277 | 181 | 3,461 | 37,919 |
 | . (Files) | 9 | 3,145 | 0 | 15 | 3,160 |
 | .github | 1 | 28 | 0 | 7 | 35 |
 | .github\\workflows | 1 | 28 | 0 | 7 | 35 |
-| docs | 1 | 121 | 0 | 27 | 148 |
+| docs | 1 | 124 | 0 | 27 | 151 |
 | scripts | 2 | 256 | 0 | 33 | 289 |
-| server | 2 | 722 | 0 | 55 | 777 |
-| src | 67 | 22,853 | 158 | 2,728 | 25,739 |
-| src (Files) | 5 | 6,689 | 7 | 867 | 7,563 |
-| src\\components | 28 | 5,739 | 151 | 659 | 6,549 |
+| server | 4 | 2,015 | 0 | 236 | 2,251 |
+| src | 68 | 27,343 | 181 | 2,879 | 30,403 |
+| src (Files) | 5 | 6,865 | 7 | 886 | 7,758 |
+| src\\components | 28 | 8,033 | 165 | 753 | 8,951 |
 | src\\data | 1 | 26 | 0 | 4 | 30 |
-| src\\game | 21 | 7,232 | 0 | 911 | 8,143 |
-| src\\online | 3 | 344 | 0 | 31 | 375 |
-| src\\sim | 8 | 2,817 | 0 | 254 | 3,071 |
+| src\\game | 21 | 8,413 | 9 | 938 | 9,360 |
+| src\\online | 4 | 483 | 0 | 42 | 525 |
+| src\\sim | 8 | 3,517 | 0 | 254 | 3,771 |
 | src\\test | 1 | 6 | 0 | 2 | 8 |
-| tests | 18 | 499 | 0 | 122 | 621 |
+| tests | 35 | 1,366 | 0 | 264 | 1,630 |
 
 Summary / [Details](details.md) / [Diff Summary](diff.md) / [Diff Details](diff-details.md)
