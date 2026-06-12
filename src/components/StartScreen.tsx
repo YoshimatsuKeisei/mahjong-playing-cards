@@ -141,7 +141,6 @@ export default function StartScreen({
     DEFAULT_CPU_MODEL_ID,
     DEFAULT_CPU_MODEL_ID,
   ]);
-  const [showCpuActions, setShowCpuActions] = useState(true);
   const [daifugoOptions, setDaifugoOptions] = useState<DaifugoOptions>(
     DEFAULT_DAIFUGO_OPTIONS,
   );
@@ -188,7 +187,7 @@ export default function StartScreen({
       turnDirection: DEFAULT_DIRECTION,
       cpuModelId: cpuModelIds[0] ?? DEFAULT_CPU_MODEL_ID,
       cpuModelIds: cpuModelIds.slice(0, cpuPlayerCount),
-      showCpuActions,
+      showCpuActions: true,
       daifugoOptions,
     };
   }
@@ -359,26 +358,6 @@ export default function StartScreen({
                 </button>
               ))}
             </div>
-          </div>
-        )}
-
-        {cpuPlayerCount > 0 && (
-          <div className="field cpu-action-visibility-field">
-            <span>CPUの手札・操作を表示</span>
-            <button
-              type="button"
-              className={`visibility-switch ${showCpuActions ? "is-public" : "is-private"}`}
-              role="switch"
-              aria-checked={showCpuActions}
-              onClick={() => setShowCpuActions((current) => !current)}
-            >
-              <span className="visibility-switch-track" aria-hidden="true">
-                <span className="visibility-switch-knob" />
-              </span>
-              <span className="visibility-switch-label">
-                {showCpuActions ? "ON" : "OFF"}
-              </span>
-            </button>
           </div>
         )}
 

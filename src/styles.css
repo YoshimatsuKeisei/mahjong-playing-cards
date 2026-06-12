@@ -2016,6 +2016,35 @@ h2 {
   background: rgba(22, 91, 66, 0.84);
 }
 
+.room-management-button {
+  width: 38px;
+  min-height: 38px;
+  padding: 0;
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.temporary-leave-status {
+  position: absolute;
+  top: clamp(3.2rem, 8vh, 4.4rem);
+  right: clamp(0.9rem, 2.4vw, 1.8rem);
+  z-index: var(--z-action-nav);
+  display: grid;
+  gap: 0.25rem;
+  max-width: min(68vw, 340px);
+  color: #fff8dc;
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-align: right;
+}
+
+.temporary-leave-status span {
+  border: 1px solid rgba(214, 165, 64, 0.45);
+  border-radius: 999px;
+  background: rgba(8, 28, 20, 0.78);
+  padding: 0.3rem 0.65rem;
+}
+
 .toolbar-player,
 .toolbar-deck {
   display: grid;
@@ -4887,6 +4916,204 @@ h2 {
 
 .exit-confirm-actions button {
   min-width: 96px;
+}
+
+.room-management-dialog {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  width: min(94vw, 680px);
+  height: min(88vh, 580px);
+  text-align: left;
+}
+
+.room-management-dialog h2 {
+  text-align: center;
+}
+
+.room-management-tabs {
+  display: grid;
+  align-content: start;
+  gap: 0.45rem;
+  min-width: 9rem;
+}
+
+.room-management-tabs button,
+.host-transfer-list button {
+  border: 1px solid rgba(214, 165, 64, 0.42);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fffdf7;
+  padding: 0.55rem 0.75rem;
+  font-weight: 800;
+  text-align: left;
+}
+
+.room-management-tabs button.selected,
+.host-transfer-list button:hover {
+  background: rgba(214, 165, 64, 0.2);
+}
+
+.room-management-panel {
+  display: grid;
+  grid-template-columns: 9rem minmax(0, 1fr);
+  gap: 1rem;
+  min-height: 0;
+  margin-top: 1rem;
+  overflow: hidden;
+}
+
+.room-management-content {
+  min-height: 0;
+  overflow: auto;
+  padding-right: 0.2rem;
+  text-align: center;
+}
+
+.host-transfer-list {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 0.9rem;
+}
+
+.temporary-leave-options {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 0.8rem;
+  text-align: left;
+}
+
+.temporary-leave-options p {
+  margin: 0;
+  color: rgba(255, 253, 247, 0.76);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.match-info-list {
+  display: grid;
+  gap: 0.55rem;
+  margin-top: 0.25rem;
+}
+
+.match-info-row {
+  display: grid;
+  grid-template-columns: minmax(7rem, 0.9fr) minmax(0, 1.4fr) auto;
+  align-items: center;
+  gap: 0.55rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 0.55rem 0.7rem;
+}
+
+.match-info-row--players {
+  align-items: start;
+}
+
+.match-info-row > span {
+  color: rgba(255, 253, 247, 0.68);
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.match-info-row > strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: #fffdf7;
+}
+
+.match-info-players {
+  display: grid;
+  gap: 0.32rem;
+}
+
+.match-info-player {
+  display: grid;
+  grid-template-columns: 2.6rem minmax(0, 1fr);
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.match-info-player strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.match-info-player em {
+  border: 1px solid rgba(214, 165, 64, 0.55);
+  border-radius: 999px;
+  color: #ffe4a0;
+  padding: 0.08rem 0.38rem;
+  font-size: 0.68rem;
+  font-style: normal;
+  font-weight: 900;
+  text-align: center;
+}
+
+.match-info-player em:empty {
+  visibility: hidden;
+}
+
+.match-info-change-button {
+  border: 1px solid rgba(214, 165, 64, 0.52);
+  border-radius: 999px;
+  background: rgba(214, 165, 64, 0.16);
+  color: #fff8dc;
+  padding: 0.32rem 0.65rem;
+  font-weight: 900;
+}
+
+.match-setting-editor {
+  display: grid;
+  gap: 0.55rem;
+  margin-top: 0.85rem;
+  border: 1px solid rgba(214, 165, 64, 0.32);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.18);
+  padding: 0.8rem;
+  text-align: left;
+}
+
+.match-setting-editor label {
+  color: rgba(255, 253, 247, 0.76);
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.match-setting-editor input {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fffdf7;
+  padding: 0.55rem 0.65rem;
+  font: inherit;
+  font-weight: 800;
+}
+
+.match-setting-error {
+  margin: 0;
+  color: #ffd6d6;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+@media (max-width: 520px) {
+  .room-management-dialog {
+    height: min(90vh, 580px);
+  }
+
+  .room-management-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .room-management-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .match-info-row {
+    grid-template-columns: 1fr;
+  }
 }
 
 @keyframes draw-from-deck {

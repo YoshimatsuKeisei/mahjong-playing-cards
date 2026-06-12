@@ -41,6 +41,17 @@ export interface OnlineRoomPlayer {
   connected: boolean;
 }
 
+export type TemporaryLeaveMode = "pause" | "cpuSubstitute";
+
+export interface OnlineTemporaryLeaveSummary {
+  playerId: string;
+  playerName: string;
+  playerIndex: number;
+  mode: TemporaryLeaveMode;
+  expiresAt: number;
+  convertedToCpu: boolean;
+}
+
 export interface OnlineRoomSnapshot {
   roomId: string;
   hostPlayerId: string;
@@ -49,6 +60,7 @@ export interface OnlineRoomSnapshot {
   cpuPlayers: number;
   players: OnlineRoomPlayer[];
   started: boolean;
+  temporaryLeaves?: OnlineTemporaryLeaveSummary[];
 }
 
 export type OnlineRoomVisibility = "private" | "public";
@@ -111,6 +123,47 @@ export interface SubmitActionPayload {
   stateVersion: number;
 }
 
+export type UpdateMatchSettingsPayload =
+  | { matchType: "rounds"; roundCount: number }
+  | { matchType: "targetScore"; targetScore: number };
+
+export interface StartTemporaryLeavePayload {
+  mode: TemporaryLeaveMode;
+}
+
+export interface StartTemporaryLeaveAck {
+  ok: boolean;
+  error?: string;
+  roomId?: string;
+  playerId?: string;
+  resumeToken?: string;
+  expiresAt?: number;
+}
+
+export interface ResumableGameEntry {
+  roomId: string;
+  playerId: string;
+  resumeToken: string;
+}
+
+export interface ResumableGameSummary {
+  roomId: string;
+  roomName: string;
+  playerId: string;
+  playerName: string;
+  mode: TemporaryLeaveMode;
+  expiresAt: number;
+  currentRound: number;
+  matchType: MatchMode;
+  totalPlayers: number;
+  convertedToCpu: boolean;
+}
+
+export interface ResumeTemporaryLeaveAck {
+  ok: boolean;
+  error?: string;
+}
+
 export type ActionRejectedReason =
   | "not_your_reaction"
   | "not_host"
@@ -167,7 +220,21 @@ export interface ClientToServerEvents {
     ack: (response: OnlineAck) => void,
   ) => void;
   listPublicRooms: (ack: (rooms: OnlinePublicRoom[]) => void) => void;
+  listResumableGames: (
+    payload: { entries: ResumableGameEntry[] },
+    ack: (rooms: ResumableGameSummary[]) => void,
+  ) => void;
   leaveRoom: () => void;
+  transferHost: (payload: { targetPlayerId: string }) => void;
+  updateMatchSettings: (payload: UpdateMatchSettingsPayload) => void;
+  startTemporaryLeave: (
+    payload: StartTemporaryLeavePayload,
+    ack: (response: StartTemporaryLeaveAck) => void,
+  ) => void;
+  resumeTemporaryLeave: (
+    payload: ResumableGameEntry,
+    ack: (response: ResumeTemporaryLeaveAck) => void,
+  ) => void;
   ready: (payload: { ready: boolean }) => void;
   startGame: () => void;
   nextRound: () => void;

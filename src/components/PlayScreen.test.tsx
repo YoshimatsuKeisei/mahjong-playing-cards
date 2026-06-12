@@ -1,9 +1,10 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { createInitialGame, gameReducer } from "../game/gameState";
+import { createMatchState } from "../game/matchState";
 import { createDebugDaifugoState } from "../App";
-import type { Card, GameState } from "../types";
+import type { Card, GameState, MatchState } from "../types";
 import PlayScreen from "./PlayScreen";
 
 function card(id: string, rank: number, suit: Card["suit"]): Card {
@@ -26,6 +27,38 @@ function createHistoryState(playerCount: number): GameState {
   };
 }
 
+function createOnlineRoom() {
+  return {
+    roomId: "ROOM1",
+    hostPlayerId: "player-1",
+    maxPlayers: 2,
+    totalPlayers: 4,
+    cpuPlayers: 2,
+    players: [
+      { playerId: "player-1", name: "Alice", ready: true, connected: true },
+      { playerId: "player-2", name: "Bob", ready: true, connected: true },
+    ],
+    started: true,
+  };
+}
+
+function createOnlineMatchState(matchMode: MatchState["matchMode"] = "rounds") {
+  const ruleValue =
+    matchMode === "targetScore" ? 80 : matchMode === "startingPoints" ? 30 : 4;
+  return createMatchState(
+    matchMode,
+    4,
+    "clockwise",
+    ruleValue,
+    "テストルーム",
+    2,
+    "standard",
+    undefined,
+    ["standard", "tactical"],
+    true,
+  );
+}
+
 describe("PlayScreen round display", () => {
   it("shows the current round on the play screen", () => {
     render(<PlayScreen state={createInitialGame(4, "clockwise")} dispatch={vi.fn()} currentRound={1} />);
@@ -33,17 +66,404 @@ describe("PlayScreen round display", () => {
     expect(screen.getByText("- 1回戦 -")).toBeInTheDocument();
   });
 
-  it("renders the direct home exit action only when provided", async () => {
+  it("renders the room settings action only when an exit handler is provided", async () => {
     const user = userEvent.setup();
     const onExitToHome = vi.fn();
     const { rerender } = render(<PlayScreen state={createInitialGame(4, "clockwise")} dispatch={vi.fn()} currentRound={1} />);
 
-    expect(screen.queryByRole("button", { name: "退出" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "設定" })).not.toBeInTheDocument();
 
     rerender(<PlayScreen state={createInitialGame(4, "clockwise")} dispatch={vi.fn()} currentRound={1} onExitToHome={onExitToHome} />);
-    await user.click(screen.getByRole("button", { name: "退出" }));
+    await user.click(screen.getByRole("button", { name: "設定" }));
+    const dialog = screen.getByRole("dialog", { name: "設定" });
+    await user.click(within(dialog).getAllByRole("button", { name: "退出" }).at(-1)!);
 
     expect(onExitToHome).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows host-only room management tabs only to the host", async () => {
+    const user = userEvent.setup();
+    const room = {
+      roomId: "ROOM1",
+      hostPlayerId: "player-1",
+      maxPlayers: 4,
+      totalPlayers: 4,
+      cpuPlayers: 1,
+      players: [
+        { playerId: "player-1", name: "Alice", ready: true, connected: true },
+        { playerId: "player-2", name: "Bob", ready: true, connected: true },
+      ],
+      started: true,
+    };
+    const { rerender } = render(
+      <PlayScreen
+        state={createInitialGame(4, "clockwise")}
+        dispatch={vi.fn()}
+        currentRound={1}
+        onExitToHome={vi.fn()}
+        onlineRoom={room}
+        onlinePlayerId="player-2"
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "設定" }));
+    expect(screen.queryByRole("tab", { name: "ホストを変更" })).not.toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "試合情報" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "キャンセル" }));
+    rerender(
+      <PlayScreen
+        state={createInitialGame(4, "clockwise")}
+        dispatch={vi.fn()}
+        currentRound={1}
+        onExitToHome={vi.fn()}
+        onlineRoom={room}
+        onlinePlayerId="player-1"
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: "設定" }));
+
+    expect(screen.getByRole("tab", { name: "ホストを変更" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "試合情報" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "一時離脱" })).toBeInTheDocument();
+  });
+
+  it("transfers host only to selectable human connected players", async () => {
+    const user = userEvent.setup();
+    const onTransferHost = vi.fn();
+    const room = {
+      roomId: "ROOM1",
+      hostPlayerId: "player-1",
+      maxPlayers: 4,
+      totalPlayers: 4,
+      cpuPlayers: 1,
+      players: [
+        { playerId: "player-1", name: "Alice", ready: true, connected: true },
+        { playerId: "player-2", name: "Bob", ready: true, connected: true },
+        { playerId: "player-3", name: "Carol", ready: true, connected: false },
+        { playerId: "cpu-1", name: "CPU 1", ready: true, connected: true },
+      ],
+      started: true,
+    };
+
+    render(
+      <PlayScreen
+        state={createInitialGame(4, "clockwise")}
+        dispatch={vi.fn()}
+        currentRound={1}
+        onExitToHome={vi.fn()}
+        onlineRoom={room}
+        onlinePlayerId="player-1"
+        onTransferHost={onTransferHost}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "設定" }));
+    await user.click(screen.getByRole("tab", { name: "ホストを変更" }));
+
+    expect(screen.getByRole("button", { name: "Bob" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Alice" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Carol" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "CPU 1" })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Bob" }));
+    expect(onTransferHost).toHaveBeenCalledWith("player-2");
+  });
+
+  it("starts temporary leave from the room management tab", async () => {
+    const user = userEvent.setup();
+    const onStartTemporaryLeave = vi.fn();
+    const matchState = createOnlineMatchState("rounds");
+
+    render(
+      <PlayScreen
+        state={matchState.gameState}
+        dispatch={vi.fn()}
+        currentRound={1}
+        onExitToHome={vi.fn()}
+        onlineRoom={createOnlineRoom()}
+        onlinePlayerId="player-1"
+        matchState={matchState}
+        onStartTemporaryLeave={onStartTemporaryLeave}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "設定" }));
+    await user.click(screen.getByRole("tab", { name: "一時離脱" }));
+    expect(screen.getByText("一時離脱しますか？")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "中断する" }));
+    expect(onStartTemporaryLeave).toHaveBeenCalledWith("pause");
+  });
+
+  it("shows temporary leave status during online play", () => {
+    const matchState = createOnlineMatchState("rounds");
+    render(
+      <PlayScreen
+        state={matchState.gameState}
+        dispatch={vi.fn()}
+        currentRound={1}
+        onExitToHome={vi.fn()}
+        onlineRoom={{
+          ...createOnlineRoom(),
+          temporaryLeaves: [
+            {
+              playerId: "player-2",
+              playerName: "Player2: Guest Player",
+              playerIndex: 1,
+              mode: "cpuSubstitute",
+              expiresAt: Date.now() + 60000,
+              convertedToCpu: false,
+            },
+          ],
+        }}
+        onlinePlayerId="player-1"
+        matchState={matchState}
+      />,
+    );
+
+    expect(screen.getByTestId("temporary-leave-status")).toHaveTextContent(
+      "CPU代行中",
+    );
+  });
+
+  it("shows match info to non-host players without change controls", async () => {
+    const user = userEvent.setup();
+    const room = createOnlineRoom();
+    const baseMatchState = createOnlineMatchState("rounds");
+    const matchState = {
+      ...baseMatchState,
+      gameState: {
+        ...baseMatchState.gameState,
+        players: baseMatchState.gameState.players.map((player, index) =>
+          index === 0
+            ? { ...player, name: "Player1: Guest Player" }
+            : index === 2
+              ? { ...player, name: "CPU 3" }
+              : player,
+        ),
+      },
+    };
+
+    render(
+      <PlayScreen
+        state={matchState.gameState}
+        dispatch={vi.fn()}
+        currentRound={1}
+        onExitToHome={vi.fn()}
+        onlineRoom={room}
+        onlinePlayerId="player-2"
+        matchState={matchState}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "設定" }));
+    await user.click(screen.getByRole("tab", { name: "試合情報" }));
+    const dialog = screen.getByRole("dialog", { name: "設定" });
+
+    expect(within(dialog).getByText("テストルーム")).toBeInTheDocument();
+    expect(within(dialog).getByText("Player1: Guest Player")).toBeInTheDocument();
+    expect(within(dialog).queryByText(/Player1: Player1:/)).not.toBeInTheDocument();
+    expect(within(dialog).getByText("Player3: CPU 3 standard-CPU")).toBeInTheDocument();
+    expect(within(dialog).getByText("4人")).toBeInTheDocument();
+    expect(within(dialog).getByText("局数制")).toBeInTheDocument();
+    expect(within(dialog).getByText("最大4局")).toBeInTheDocument();
+    expect(within(dialog).getByText("1局目")).toBeInTheDocument();
+    expect(within(dialog).getByText("HOST")).toBeInTheDocument();
+    expect(within(dialog).queryByRole("button", { name: "変更" })).not.toBeInTheDocument();
+  });
+
+  it("lets the host increase round count from the match info tab", async () => {
+    const user = userEvent.setup();
+    const onUpdateMatchSettings = vi.fn();
+    const matchState = createOnlineMatchState("rounds");
+
+    render(
+      <PlayScreen
+        state={matchState.gameState}
+        dispatch={vi.fn()}
+        currentRound={1}
+        onExitToHome={vi.fn()}
+        onlineRoom={createOnlineRoom()}
+        onlinePlayerId="player-1"
+        matchState={matchState}
+        onUpdateMatchSettings={onUpdateMatchSettings}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "設定" }));
+    await user.click(screen.getByRole("tab", { name: "試合情報" }));
+    await user.click(screen.getByRole("button", { name: "変更" }));
+    const input = screen.getByLabelText("最大局数");
+    await user.clear(input);
+    await user.type(input, "6");
+    await user.click(screen.getByRole("button", { name: "確定" }));
+
+    expect(onUpdateMatchSettings).toHaveBeenCalledWith({
+      matchType: "rounds",
+      roundCount: 6,
+    });
+  });
+
+  it("rejects round count changes that do not exceed the current round", async () => {
+    const user = userEvent.setup();
+    const onUpdateMatchSettings = vi.fn();
+    const matchState = { ...createOnlineMatchState("rounds"), currentRound: 3 };
+
+    render(
+      <PlayScreen
+        state={matchState.gameState}
+        dispatch={vi.fn()}
+        currentRound={3}
+        onExitToHome={vi.fn()}
+        onlineRoom={createOnlineRoom()}
+        onlinePlayerId="player-1"
+        matchState={matchState}
+        onUpdateMatchSettings={onUpdateMatchSettings}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "設定" }));
+    await user.click(screen.getByRole("tab", { name: "試合情報" }));
+    await user.click(screen.getByRole("button", { name: "変更" }));
+    const input = screen.getByLabelText("最大局数");
+    await user.clear(input);
+    await user.type(input, "3");
+    await user.click(screen.getByRole("button", { name: "確定" }));
+
+    expect(screen.getByText("現在の局数以下には変更できません。")).toBeInTheDocument();
+    expect(onUpdateMatchSettings).not.toHaveBeenCalled();
+  });
+
+  it("allows 100 rounds but rejects round counts over 100", async () => {
+    const user = userEvent.setup();
+    const onUpdateMatchSettings = vi.fn();
+    const matchState = createOnlineMatchState("rounds");
+
+    render(
+      <PlayScreen
+        state={matchState.gameState}
+        dispatch={vi.fn()}
+        currentRound={1}
+        onExitToHome={vi.fn()}
+        onlineRoom={createOnlineRoom()}
+        onlinePlayerId="player-1"
+        matchState={matchState}
+        onUpdateMatchSettings={onUpdateMatchSettings}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "設定" }));
+    await user.click(screen.getByRole("tab", { name: "試合情報" }));
+    await user.click(screen.getByRole("button", { name: "変更" }));
+    const input = screen.getByLabelText("最大局数");
+    await user.clear(input);
+    await user.type(input, "101");
+    await user.click(screen.getByRole("button", { name: "確定" }));
+    expect(screen.getByText("最大局数は100局までです。")).toBeInTheDocument();
+    expect(onUpdateMatchSettings).not.toHaveBeenCalled();
+
+    await user.clear(input);
+    await user.type(input, "100");
+    await user.click(screen.getByRole("button", { name: "確定" }));
+    expect(onUpdateMatchSettings).toHaveBeenCalledWith({
+      matchType: "rounds",
+      roundCount: 100,
+    });
+  });
+
+  it("lets the host increase target score but keeps starting points read-only", async () => {
+    const user = userEvent.setup();
+    const onUpdateMatchSettings = vi.fn();
+    const targetScoreMatch = createOnlineMatchState("targetScore");
+    const { rerender } = render(
+      <PlayScreen
+        state={targetScoreMatch.gameState}
+        dispatch={vi.fn()}
+        currentRound={1}
+        onExitToHome={vi.fn()}
+        onlineRoom={createOnlineRoom()}
+        onlinePlayerId="player-1"
+        matchState={targetScoreMatch}
+        onUpdateMatchSettings={onUpdateMatchSettings}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "設定" }));
+    await user.click(screen.getByRole("tab", { name: "試合情報" }));
+    expect(screen.getByText("目標点制")).toBeInTheDocument();
+    expect(screen.getByText("目標80点")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "変更" }));
+    const input = screen.getByLabelText("目標点");
+    await user.clear(input);
+    await user.type(input, "100");
+    await user.click(screen.getByRole("button", { name: "確定" }));
+    expect(onUpdateMatchSettings).toHaveBeenCalledWith({
+      matchType: "targetScore",
+      targetScore: 100,
+    });
+
+    const startingPointsMatch = createOnlineMatchState("startingPoints");
+    rerender(
+      <PlayScreen
+        state={startingPointsMatch.gameState}
+        dispatch={vi.fn()}
+        currentRound={1}
+        onExitToHome={vi.fn()}
+        onlineRoom={createOnlineRoom()}
+        onlinePlayerId="player-1"
+        matchState={startingPointsMatch}
+        onUpdateMatchSettings={onUpdateMatchSettings}
+      />,
+    );
+
+    await user.click(screen.getByRole("tab", { name: "試合情報" }));
+    expect(screen.getByText("持ち点制")).toBeInTheDocument();
+    expect(screen.getByText("初期持ち点30点")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "変更" })).not.toBeInTheDocument();
+  });
+
+  it("validates target score range and current highest score", async () => {
+    const user = userEvent.setup();
+    const onUpdateMatchSettings = vi.fn();
+    const targetScoreMatch = {
+      ...createOnlineMatchState("targetScore"),
+      cumulativeScores: [80, 20, 0, 0],
+    };
+
+    render(
+      <PlayScreen
+        state={targetScoreMatch.gameState}
+        dispatch={vi.fn()}
+        currentRound={1}
+        onExitToHome={vi.fn()}
+        onlineRoom={createOnlineRoom()}
+        onlinePlayerId="player-1"
+        matchState={targetScoreMatch}
+        onUpdateMatchSettings={onUpdateMatchSettings}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "設定" }));
+    await user.click(screen.getByRole("tab", { name: "試合情報" }));
+    await user.click(screen.getByRole("button", { name: "変更" }));
+    const input = screen.getByLabelText("目標点");
+
+    await user.clear(input);
+    await user.type(input, "49");
+    await user.click(screen.getByRole("button", { name: "確定" }));
+    expect(screen.getByText("目標点は50〜10000の範囲で入力してください。")).toBeInTheDocument();
+
+    await user.clear(input);
+    await user.type(input, "80");
+    await user.click(screen.getByRole("button", { name: "確定" }));
+    expect(screen.getByText("現在の最高得点以下には変更できません。")).toBeInTheDocument();
+
+    await user.clear(input);
+    await user.type(input, "10001");
+    await user.click(screen.getByRole("button", { name: "確定" }));
+    expect(screen.getByText("目標点は50〜10000の範囲で入力してください。")).toBeInTheDocument();
+    expect(onUpdateMatchSettings).not.toHaveBeenCalled();
   });
 
   it("shows the phase 2-A J special effect choices", async () => {

@@ -30,7 +30,12 @@ import {
   canDeclareReachInCurrentState,
   type GameAction,
 } from "../game/gameState";
-import type { Card, GameState } from "../types";
+import type { Card, GameState, MatchState } from "../types";
+import type {
+  OnlineRoomSnapshot,
+  TemporaryLeaveMode,
+  UpdateMatchSettingsPayload,
+} from "../online/types";
 import DiscardPile from "./DiscardPile";
 import HandView from "./HandView";
 import MeldArea from "./MeldArea";
@@ -42,8 +47,20 @@ interface PlayScreenProps {
   dispatch: Dispatch<GameAction>;
   currentRound?: number;
   onExitToHome?: () => void;
+  onlineRoom?: OnlineRoomSnapshot;
+  onlinePlayerId?: string;
+  onTransferHost?: (targetPlayerId: string) => void;
+  onStartTemporaryLeave?: (mode: TemporaryLeaveMode) => void;
+  matchState?: MatchState;
+  onUpdateMatchSettings?: (payload: UpdateMatchSettingsPayload) => void;
   disableLocalCpuAutomation?: boolean;
 }
+
+type RoomManagementTab =
+  | "exit"
+  | "temporaryLeave"
+  | "transferHost"
+  | "matchInfo";
 
 type AnimationPhase =
   | "idle"
@@ -74,6 +91,9 @@ const enhancedTurnGuide3Src = new URL(
   import.meta.url,
 ).href;
 const J_ENHANCEMENT_SPLASH_MS = 1350;
+const MAX_ROUND_COUNT = 100;
+const MIN_TARGET_SCORE = 50;
+const MAX_TARGET_SCORE = 10000;
 
 type EnhancedFiveTurnOption = ReturnType<
   typeof getEnhancedFiveTurnOptions
@@ -293,8 +313,16 @@ export default function PlayScreen({
   dispatch,
   currentRound,
   onExitToHome,
+  onlineRoom,
+  onlinePlayerId,
+  onTransferHost,
+  onStartTemporaryLeave,
+  matchState,
+  onUpdateMatchSettings,
   disableLocalCpuAutomation = false,
 }: PlayScreenProps) {
+  const [isRoomMenuOpen, setIsRoomMenuOpen] = useState(false);
+  const [roomMenuTab, setRoomMenuTab] = useState<RoomManagementTab>("exit");
   const currentPlayer = state.players[state.currentPlayerIndex];
   console.log("[phase check]", {
     phase: state.phase,
@@ -311,6 +339,16 @@ export default function PlayScreen({
   const discardSources = getAvailableDiscardSources(state);
   const discardHighlights = getDiscardHighlights(state, discardSources);
   const playerCount = state.players.length;
+  const isOnlineHost = Boolean(
+    onlineRoom && onlinePlayerId && onlineRoom.hostPlayerId === onlinePlayerId,
+  );
+  const hostTransferTargets =
+    onlineRoom?.players.filter(
+      (player) =>
+        player.playerId !== onlineRoom.hostPlayerId &&
+        player.connected &&
+        !player.playerId.startsWith("cpu-"),
+    ) ?? [];
   const deckCount = state.deckRemaining ?? state.deck.length;
   const availableActions = new Set(state.availableActions ?? []);
   const isOnlineView = Boolean(state.viewerPlayerId);
@@ -1537,11 +1575,52 @@ export default function PlayScreen({
         {onExitToHome && (
           <button
             type="button"
-            className="play-exit-button"
-            onClick={onExitToHome}
+            className="play-exit-button room-management-button"
+            aria-label="設定"
+            title="設定"
+            onClick={() => setIsRoomMenuOpen(true)}
           >
-            退出
+            ⚙
           </button>
+        )}
+        {isRoomMenuOpen && onExitToHome && (
+          <RoomManagementDialog
+            activeTab={roomMenuTab}
+            isHost={isOnlineHost}
+            transferTargets={hostTransferTargets}
+            room={onlineRoom}
+            state={state}
+            matchState={matchState}
+            onSelectTab={setRoomMenuTab}
+            onClose={() => setIsRoomMenuOpen(false)}
+            onExit={() => {
+              setIsRoomMenuOpen(false);
+              onExitToHome();
+            }}
+            onTransferHost={(targetPlayerId) => {
+              onTransferHost?.(targetPlayerId);
+              setIsRoomMenuOpen(false);
+            }}
+            onStartTemporaryLeave={(mode) => {
+              onStartTemporaryLeave?.(mode);
+              setIsRoomMenuOpen(false);
+            }}
+            onUpdateMatchSettings={onUpdateMatchSettings}
+          />
+        )}
+        {onlineRoom?.temporaryLeaves && onlineRoom.temporaryLeaves.length > 0 && (
+          <div className="temporary-leave-status" data-testid="temporary-leave-status">
+            {onlineRoom.temporaryLeaves.map((leave) => (
+              <span key={leave.playerId}>
+                {leave.playerName}
+                {leave.convertedToCpu
+                  ? "はCPUに置き換わりました"
+                  : leave.mode === "cpuSubstitute"
+                    ? "はCPU代行中です"
+                    : "は一時離脱中です"}
+              </span>
+            ))}
+          </div>
         )}
 
         <div className="table-shape">
@@ -3129,6 +3208,355 @@ function DaifugoAnimationStage({ step }: { step: DaifugoAnimationStep }) {
       ) : null}
     </div>
   );
+}
+
+function RoomManagementDialog({
+  activeTab,
+  isHost,
+  transferTargets,
+  room,
+  state,
+  matchState,
+  onSelectTab,
+  onClose,
+  onExit,
+  onTransferHost,
+  onStartTemporaryLeave,
+  onUpdateMatchSettings,
+}: {
+  activeTab: RoomManagementTab;
+  isHost: boolean;
+  transferTargets: OnlineRoomSnapshot["players"];
+  room?: OnlineRoomSnapshot;
+  state: GameState;
+  matchState?: MatchState;
+  onSelectTab: (tab: RoomManagementTab) => void;
+  onClose: () => void;
+  onExit: () => void;
+  onTransferHost: (targetPlayerId: string) => void;
+  onStartTemporaryLeave: (mode: TemporaryLeaveMode) => void;
+  onUpdateMatchSettings?: (payload: UpdateMatchSettingsPayload) => void;
+}) {
+  const [editingSetting, setEditingSetting] = useState<
+    "rounds" | "targetScore" | null
+  >(null);
+  const [settingValue, setSettingValue] = useState("");
+  const [settingError, setSettingError] = useState<string | null>(null);
+  const tabs: Array<{ id: RoomManagementTab; label: string; hostOnly?: boolean }> = [
+    { id: "exit", label: "退出" },
+    { id: "temporaryLeave", label: "一時離脱" },
+    { id: "transferHost", label: "ホストを変更", hostOnly: true },
+    { id: "matchInfo", label: "試合情報" },
+  ];
+  const visibleTabs = tabs.filter((tab) => !tab.hostOnly || isHost);
+  const selectedTab = visibleTabs.some((tab) => tab.id === activeTab)
+    ? activeTab
+    : "exit";
+  const matchGameState = matchState?.gameState ?? state;
+  const matchMode = matchState?.matchMode ?? "rounds";
+  const currentRoundNumber = matchState?.currentRound ?? 1;
+  const currentHighestScore = getCurrentHighestMatchScore(matchState);
+  const matchTypeLabel = getMatchModeLabel(matchMode);
+  const matchDetail = getMatchDetailText(matchState);
+  const canEditRounds =
+    isHost && matchState?.matchMode === "rounds" && Boolean(onUpdateMatchSettings);
+  const canEditTargetScore =
+    isHost &&
+    matchState?.matchMode === "targetScore" &&
+    Boolean(onUpdateMatchSettings);
+
+  function startEditingSetting(kind: "rounds" | "targetScore") {
+    setEditingSetting(kind);
+    setSettingError(null);
+    setSettingValue(
+      kind === "rounds"
+        ? String(matchState?.totalRounds ?? "")
+        : String(matchState?.targetScore ?? ""),
+    );
+  }
+
+  function submitSettingChange() {
+    if (!matchState || !editingSetting || !onUpdateMatchSettings) return;
+    const nextValue = Number(settingValue);
+    if (!Number.isInteger(nextValue) || nextValue <= 0) {
+      setSettingError("有効な数値を入力してください。");
+      return;
+    }
+    if (editingSetting === "rounds") {
+      if (nextValue <= currentRoundNumber) {
+        setSettingError("現在の局数以下には変更できません。");
+        return;
+      }
+      if (nextValue > MAX_ROUND_COUNT) {
+        setSettingError("最大局数は100局までです。");
+        return;
+      }
+      onUpdateMatchSettings({ matchType: "rounds", roundCount: nextValue });
+    } else {
+      if (nextValue < MIN_TARGET_SCORE || nextValue > MAX_TARGET_SCORE) {
+        setSettingError("目標点は50〜10000の範囲で入力してください。");
+        return;
+      }
+      if (nextValue <= currentHighestScore) {
+        setSettingError("現在の最高得点以下には変更できません。");
+        return;
+      }
+      onUpdateMatchSettings({ matchType: "targetScore", targetScore: nextValue });
+    }
+    setEditingSetting(null);
+    setSettingValue("");
+    setSettingError(null);
+  }
+
+  return (
+    <div
+      className="exit-confirm-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="room-management-title"
+    >
+      <div className="exit-confirm-dialog room-management-dialog">
+        <h2 id="room-management-title">設定</h2>
+        <div className="room-management-panel">
+          <div className="room-management-tabs" role="tablist" aria-label="設定メニュー">
+            {visibleTabs.map((tab) => (
+              <button
+                type="button"
+                role="tab"
+                aria-selected={selectedTab === tab.id}
+                className={selectedTab === tab.id ? "selected" : ""}
+                onClick={() => onSelectTab(tab.id)}
+                key={tab.id}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="room-management-content">
+          {selectedTab === "exit" && (
+            <>
+              <p>現在の試合から退出しますか？</p>
+              <div className="exit-confirm-actions">
+                <button type="button" className="primary-button" onClick={onExit}>
+                  退出
+                </button>
+                <button type="button" onClick={onClose}>
+                  キャンセル
+                </button>
+              </div>
+            </>
+          )}
+
+          {selectedTab === "temporaryLeave" && (
+            <>
+              <p>一時離脱しますか？</p>
+              <div className="temporary-leave-options">
+                <button
+                  type="button"
+                  className="primary-button"
+                  onClick={() => onStartTemporaryLeave("pause")}
+                >
+                  中断する
+                </button>
+                <p>
+                  あなたの手番で試合を停止します。15分以内に戻らない場合、CPUに置き換わります。
+                </p>
+                <button
+                  type="button"
+                  className="primary-button"
+                  onClick={() => onStartTemporaryLeave("cpuSubstitute")}
+                >
+                  CPUに代行させる
+                </button>
+                <p>
+                  離脱中はCPUがあなたの代わりに手番を進めます。15分以内に戻らない場合、正式にCPUへ置き換わります。
+                </p>
+              </div>
+              <div className="exit-confirm-actions">
+                <button type="button" onClick={onClose}>
+                  閉じる
+                </button>
+              </div>
+            </>
+          )}
+
+          {selectedTab === "transferHost" && (
+            <>
+              <p>ホストを変更するプレイヤーを選択してください。</p>
+              {transferTargets.length > 0 ? (
+                <div className="host-transfer-list">
+                  {transferTargets.map((player) => (
+                    <button
+                      type="button"
+                      onClick={() => onTransferHost(player.playerId)}
+                      key={player.playerId}
+                    >
+                      {player.name}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p>ホストを変更できるプレイヤーがいません。</p>
+              )}
+              <div className="exit-confirm-actions">
+                <button type="button" onClick={onClose}>
+                  閉じる
+                </button>
+              </div>
+            </>
+          )}
+
+          {selectedTab === "matchInfo" && (
+            <>
+              <div className="match-info-list">
+                <div className="match-info-row">
+                  <span>ルーム名</span>
+                  <strong>{matchState?.roomName ?? room?.roomId ?? "ルーム"}</strong>
+                </div>
+                <div className="match-info-row match-info-row--players">
+                  <span>プレイヤー</span>
+                  <div className="match-info-players">
+                    {matchGameState.players.map((player, index) => (
+                      <div className="match-info-player" key={player.id}>
+                        <em>
+                          {!player.isCpu && player.id === room?.hostPlayerId
+                            ? "HOST"
+                            : ""}
+                        </em>
+                        <strong>
+                          Player{index + 1}: {formatMatchInfoPlayerName(player)}
+                        </strong>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="match-info-row">
+                  <span>人数</span>
+                  <strong>{matchGameState.players.length}人</strong>
+                </div>
+                <div className="match-info-row">
+                  <span>試合形式</span>
+                  <strong>{matchTypeLabel}</strong>
+                </div>
+                <div className="match-info-row">
+                  <span>試合形式の詳細</span>
+                  <strong>{matchDetail}</strong>
+                  {canEditRounds && (
+                    <button
+                      type="button"
+                      className="match-info-change-button"
+                      onClick={() => startEditingSetting("rounds")}
+                    >
+                      変更
+                    </button>
+                  )}
+                  {canEditTargetScore && (
+                    <button
+                      type="button"
+                      className="match-info-change-button"
+                      onClick={() => startEditingSetting("targetScore")}
+                    >
+                      変更
+                    </button>
+                  )}
+                </div>
+                <div className="match-info-row">
+                  <span>現在の局</span>
+                  <strong>{currentRoundNumber}局目</strong>
+                </div>
+              </div>
+              {editingSetting && (
+                <div className="match-setting-editor">
+                  <label htmlFor="match-setting-value">
+                    {editingSetting === "rounds" ? "最大局数" : "目標点"}
+                  </label>
+                  <input
+                    id="match-setting-value"
+                    type="number"
+                    min="1"
+                    max={
+                      editingSetting === "rounds"
+                        ? MAX_ROUND_COUNT
+                        : MAX_TARGET_SCORE
+                    }
+                    step="1"
+                    value={settingValue}
+                    onChange={(event) => {
+                      setSettingValue(event.target.value);
+                      setSettingError(null);
+                    }}
+                  />
+                  {settingError && (
+                    <p className="match-setting-error">{settingError}</p>
+                  )}
+                  <div className="exit-confirm-actions">
+                    <button
+                      type="button"
+                      className="primary-button"
+                      onClick={submitSettingChange}
+                    >
+                      確定
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingSetting(null);
+                        setSettingError(null);
+                      }}
+                    >
+                      キャンセル
+                    </button>
+                  </div>
+                </div>
+              )}
+              <div className="exit-confirm-actions">
+                <button type="button" onClick={onClose}>
+                  閉じる
+                </button>
+              </div>
+            </>
+          )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function getMatchModeLabel(matchMode: MatchState["matchMode"]) {
+  if (matchMode === "targetScore") return "目標点制";
+  if (matchMode === "startingPoints") return "持ち点制";
+  return "局数制";
+}
+
+function getMatchDetailText(matchState?: MatchState) {
+  if (!matchState) return "未設定";
+  if (matchState.matchMode === "targetScore") {
+    return `目標${matchState.targetScore}点`;
+  }
+  if (matchState.matchMode === "startingPoints") {
+    return `初期持ち点${matchState.startingPoints}点`;
+  }
+  return `最大${matchState.totalRounds}局`;
+}
+
+function formatMatchInfoPlayerName(player: GameState["players"][number]) {
+  const displayName = stripSeatPrefix(player.name);
+  if (!player.isCpu) return displayName;
+  const modelLabel = player.cpuModelId
+    ? getCpuModelDisplayName(player.cpuModelId)
+    : "CPU";
+  return `${displayName} ${modelLabel}`;
+}
+
+function stripSeatPrefix(name: string) {
+  return name.replace(/^Player\d+:\s*/, "");
+}
+
+function getCurrentHighestMatchScore(matchState?: MatchState) {
+  if (!matchState || matchState.matchMode !== "targetScore") return 0;
+  return Math.max(0, ...matchState.cumulativeScores);
 }
 
 /*

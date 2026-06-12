@@ -23,6 +23,7 @@ type OnlineCpuRoom = {
 type OnlineCpuCallbacks<Room extends OnlineCpuRoom> = {
   applyNextState: (room: Room, nextState: GameState) => void;
   broadcastPlayerView: (room: Room) => void;
+  getCpuControlledPlayerIds?: (room: Room) => Set<string>;
 };
 
 type ScheduledCpuJob = {
@@ -59,7 +60,9 @@ export function scheduleOnlineCpu<Room extends OnlineCpuRoom>(
     return;
   }
 
-  const action = chooseOnlineCpuAction(room.state);
+  const cpuControlledPlayerIds =
+    callbacks.getCpuControlledPlayerIds?.(room) ?? new Set<string>();
+  const action = chooseOnlineCpuAction(room.state, cpuControlledPlayerIds);
   if (!action) {
     cancelOnlineCpu(room.id);
     return;
@@ -85,7 +88,12 @@ export function scheduleOnlineCpu<Room extends OnlineCpuRoom>(
     if (!room.started || !room.state) return;
     if (room.stateVersion !== scheduledStateVersion) return;
 
-    const latestAction = chooseOnlineCpuAction(room.state);
+    const latestCpuControlledPlayerIds =
+      callbacks.getCpuControlledPlayerIds?.(room) ?? new Set<string>();
+    const latestAction = chooseOnlineCpuAction(
+      room.state,
+      latestCpuControlledPlayerIds,
+    );
     if (!latestAction) return;
 
     const nextState = gameReducer(room.state, latestAction);
@@ -185,18 +193,22 @@ function getOnlineCpuDelayMs(state: GameState, action: GameAction): number {
   return ONLINE_CPU_DEFAULT_DELAY_MS;
 }
 
-function chooseOnlineCpuAction(state: GameState): GameAction | null {
-  const pending = state.pendingDaifugoEffect;
+function chooseOnlineCpuAction(
+  state: GameState,
+  cpuControlledPlayerIds = new Set<string>(),
+): GameAction | null {
+  const cpuState = createCpuControlledState(state, cpuControlledPlayerIds);
+  const pending = cpuState.pendingDaifugoEffect;
 
   if (pending) {
-    return choosePendingCpuAction(state);
+    return choosePendingCpuAction(cpuState);
   }
 
-  if (state.phase === "handoff") {
+  if (cpuState.phase === "handoff") {
     return { type: "confirmHandoff" };
   }
 
-  const context = createCpuDecisionContext(state);
+  const context = createCpuDecisionContext(cpuState);
   if (!context) return null;
 
   const player = context.currentPlayer;
@@ -204,20 +216,20 @@ function chooseOnlineCpuAction(state: GameState): GameAction | null {
 
   const model = getCpuModel(player.cpuModelId);
 
-  if (state.phase === "draw") {
+  if (cpuState.phase === "draw") {
     return model.chooseDrawSource(context);
   }
 
-  if (state.phase === "reachConfirm") {
+  if (cpuState.phase === "reachConfirm") {
     return {
       type: "answerReachAfterDiscard",
       declareReach: model.chooseReachDeclaration?.(context) ?? false,
     };
   }
 
-  if (state.phase === "ronCheck") {
-    const cpuRonCandidate = state.pendingRonResult?.ronResults?.find(
-      (item) => state.players[item.winnerIndex]?.isCpu,
+  if (cpuState.phase === "ronCheck") {
+    const cpuRonCandidate = cpuState.pendingRonResult?.ronResults?.find(
+      (item) => cpuState.players[item.winnerIndex]?.isCpu,
     );
 
     if (!cpuRonCandidate) return null;
@@ -228,8 +240,8 @@ function chooseOnlineCpuAction(state: GameState): GameAction | null {
     };
   }
 
-  if (state.phase === "discard") {
-    const legalWinningOptions = getWinningDiscardOptions(state);
+  if (cpuState.phase === "discard") {
+    const legalWinningOptions = getWinningDiscardOptions(cpuState);
     const modelWinningCard = model.chooseWinningDiscard(context);
     const winningCard =
       modelWinningCard &&
@@ -251,17 +263,17 @@ function chooseOnlineCpuAction(state: GameState): GameAction | null {
     }
 
     if (
-      state.drawnFrom === "deck" &&
+      cpuState.drawnFrom === "deck" &&
       !player.hasCalled &&
       !player.isReach &&
       legalWinningOptions.length === 0 &&
-      canDeclareReachInCurrentState(state, state.currentPlayerIndex) &&
+      canDeclareReachInCurrentState(cpuState, cpuState.currentPlayerIndex) &&
       model.chooseReachDeclaration?.(context)
     ) {
       return { type: "declareReach" };
     }
 
-    const discardCard = chooseCpuNormalDiscardCard(state);
+    const discardCard = chooseCpuNormalDiscardCard(cpuState);
     if (!discardCard) return null;
 
     return {
@@ -271,6 +283,26 @@ function chooseOnlineCpuAction(state: GameState): GameAction | null {
   }
 
   return null;
+}
+
+function createCpuControlledState(
+  state: GameState,
+  cpuControlledPlayerIds: Set<string>,
+): GameState {
+  if (cpuControlledPlayerIds.size === 0) return state;
+  return {
+    ...state,
+    players: state.players.map((player) =>
+      cpuControlledPlayerIds.has(player.id)
+        ? {
+            ...player,
+            type: "cpu",
+            isCpu: true,
+            cpuModelId: player.cpuModelId ?? "standard",
+          }
+        : player,
+    ),
+  };
 }
 
 function choosePendingCpuAction(state: GameState): GameAction | null {

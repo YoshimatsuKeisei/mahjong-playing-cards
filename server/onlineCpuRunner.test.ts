@@ -132,6 +132,22 @@ describe("online CPU runner", () => {
     expect(callbacks.broadcastPlayerView).not.toHaveBeenCalled();
   });
 
+  it("uses the normal CPU path for a temporarily substituted human player", async () => {
+    const room = createRoom(baseState({ currentPlayerIndex: 0 }));
+    const callbacks = {
+      ...createCallbacks(),
+      getCpuControlledPlayerIds: () => new Set(["player-1"]),
+    };
+
+    scheduleOnlineCpu(room, callbacks);
+    await advanceOnlineCpu();
+
+    expect(callbacks.applyNextState).toHaveBeenCalledTimes(1);
+    expect(callbacks.broadcastPlayerView).toHaveBeenCalledTimes(1);
+    expect(room.state?.phase).toBe("discard");
+    expect(room.state?.players[0].isCpu).toBe(false);
+  });
+
   it("schedules and applies a CPU discard action", async () => {
     const drawnCard = card("drawn", 12);
     const state = baseState({
