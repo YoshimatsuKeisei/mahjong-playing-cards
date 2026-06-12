@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import HomeScreen from "./components/HomeScreen";
 import ManualScreen from "./components/ManualScreen";
+import MoreGameScreen from "./components/MoreGameScreen";
 import OnlineLobbyScreen from "./components/OnlineLobbyScreen";
 import PlaceholderScreen from "./components/PlaceholderScreen";
 import ProfileScreen from "./components/ProfileScreen";
@@ -16,7 +17,16 @@ import { calculatePointDeductions, calculateRawRoundScores } from "./game/scorin
 import { createDefaultDaifugoOptions } from "./game/deck";
 import { createDoubleRonResultFixture, createSingleRonResultFixture, createStartingPointsTsumoResultFixture } from "./game/resultFixtures";
 import { getOnlineSocket } from "./online/client";
-import type { OnlinePublicRoom, OnlineRoomCreateSettings, OnlineRoomSnapshot, OnlineScenarioId } from "./online/types";
+import type {
+  OnlinePublicRoom,
+  OnlineRoomCreateSettings,
+  OnlineRoomSnapshot,
+  OnlineScenarioId,
+  ResumableGameEntry,
+  ResumableGameSummary,
+  TemporaryLeaveMode,
+  UpdateMatchSettingsPayload,
+} from "./online/types";
 import type { Card, GameState, MatchMode, MatchState, Player, ProfileData } from "./types";
 import type { HomeMenuTarget } from "./components/HomeMenu";
 
@@ -44,6 +54,7 @@ const initialState: GameState = {
 
 type AppScreen = "home" | "roomSelect" | "roomList" | "onlineLobby" | "newGame" | "play" | "manual" | "moreGame" | "settings" | "profile" | "result";
 type ExitConfirmKind = "summary" | "home" | null;
+const TEMPORARY_LEAVE_STORAGE_KEY = "mahjong-temporary-leaves";
 type DebugResultKind = "ron" | "tsumo" | "doubleRon";
 type DebugStandingsCase = "roundsNoRankChange" | "roundsRankChange" | "targetNoRankChange" | "pointsLoss";
 export type DebugDaifugoCase =
@@ -92,6 +103,7 @@ export default function App() {
   const [onlinePlayerId, setOnlinePlayerId] = useState<string | null>(null);
   const [onlineError, setOnlineError] = useState<string | null>(null);
   const [publicRooms, setPublicRooms] = useState<OnlinePublicRoom[]>([]);
+  const [resumableGames, setResumableGames] = useState<ResumableGameSummary[]>([]);
   const [onlineRoomEntry, setOnlineRoomEntry] = useState<"public" | "legacy">("public");
   const [profile, setProfile] = useState<ProfileData>({
     userName: "Guest Player",
@@ -159,6 +171,9 @@ export default function App() {
       setScreen("roomSelect");
       return;
     }
+    if (target === "moreGame") {
+      requestResumableGames();
+    }
     setScreen(target);
   }
 
@@ -183,6 +198,52 @@ export default function App() {
   function requestPublicRooms() {
     getOnlineSocket().emit("listPublicRooms", (rooms) => {
       setPublicRooms(rooms);
+    });
+  }
+
+  function getStoredTemporaryLeaves(): ResumableGameEntry[] {
+    try {
+      const raw = localStorage.getItem(TEMPORARY_LEAVE_STORAGE_KEY);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return [];
+      return parsed.filter(
+        (entry): entry is ResumableGameEntry =>
+          typeof entry?.roomId === "string" &&
+          typeof entry?.playerId === "string" &&
+          typeof entry?.resumeToken === "string",
+      );
+    } catch {
+      return [];
+    }
+  }
+
+  function setStoredTemporaryLeaves(entries: ResumableGameEntry[]) {
+    localStorage.setItem(TEMPORARY_LEAVE_STORAGE_KEY, JSON.stringify(entries));
+  }
+
+  function addStoredTemporaryLeave(entry: ResumableGameEntry) {
+    const entries = getStoredTemporaryLeaves().filter(
+      (item) => item.roomId !== entry.roomId || item.playerId !== entry.playerId,
+    );
+    setStoredTemporaryLeaves([...entries, entry]);
+  }
+
+  function removeStoredTemporaryLeave(entry: ResumableGameEntry) {
+    setStoredTemporaryLeaves(
+      getStoredTemporaryLeaves().filter(
+        (item) =>
+          item.roomId !== entry.roomId ||
+          item.playerId !== entry.playerId ||
+          item.resumeToken !== entry.resumeToken,
+      ),
+    );
+  }
+
+  function requestResumableGames() {
+    const entries = getStoredTemporaryLeaves();
+    getOnlineSocket().emit("listResumableGames", { entries }, (rooms) => {
+      setResumableGames(rooms);
     });
   }
 
@@ -239,6 +300,56 @@ export default function App() {
     setOnlineError(null);
     requestPublicRooms();
     setScreen("roomSelect");
+  }
+
+  function transferOnlineHost(targetPlayerId: string) {
+    if (!onlineRoom?.started) return;
+    getOnlineSocket().emit("transferHost", { targetPlayerId });
+  }
+
+  function updateOnlineMatchSettings(payload: UpdateMatchSettingsPayload) {
+    if (!onlineRoom?.started) return;
+    getOnlineSocket().emit("updateMatchSettings", payload);
+  }
+
+  function startOnlineTemporaryLeave(mode: TemporaryLeaveMode) {
+    if (!onlineRoom?.started) return;
+    getOnlineSocket().emit("startTemporaryLeave", { mode }, (response) => {
+      if (!response.ok || !response.roomId || !response.playerId || !response.resumeToken) {
+        setOnlineError(response.error ?? "一時離脱を開始できませんでした。");
+        return;
+      }
+      addStoredTemporaryLeave({
+        roomId: response.roomId,
+        playerId: response.playerId,
+        resumeToken: response.resumeToken,
+      });
+      setOnlineRoom(null);
+      setOnlinePlayerId(null);
+      setMatchState(null);
+      setOnlineError(null);
+      setHomeEntryMode("return");
+      setScreen("home");
+    });
+  }
+
+  function resumeTemporaryLeave(game: ResumableGameSummary) {
+    const entry = getStoredTemporaryLeaves().find(
+      (item) => item.roomId === game.roomId && item.playerId === game.playerId,
+    );
+    if (!entry) {
+      setOnlineError("復帰情報が見つかりませんでした。");
+      return;
+    }
+    getOnlineSocket().emit("resumeTemporaryLeave", entry, (response) => {
+      if (!response.ok) {
+        setOnlineError(response.error ?? "復帰できませんでした。");
+        requestResumableGames();
+        return;
+      }
+      removeStoredTemporaryLeave(entry);
+      setOnlineError(null);
+    });
   }
 
   function startGame(playerCount: number, direction: GameState["direction"], matchMode: MatchMode, ruleValue: number, roomSettings?: RoomCreateSettings) {
@@ -536,7 +647,15 @@ export default function App() {
   }
 
   if (screen === "moreGame") {
-    return <PlaceholderScreen title="More Game" body="他のゲームモードは今後追加予定です。" onBackHome={returnToHome} />;
+    return (
+      <MoreGameScreen
+        resumableGames={resumableGames}
+        error={onlineError}
+        onResume={resumeTemporaryLeave}
+        onRefresh={requestResumableGames}
+        onBackHome={returnToHome}
+      />
+    );
   }
 
   if (screen === "settings") {
@@ -628,6 +747,12 @@ export default function App() {
           : undefined
       }
       onExitToHome={requestHomeExit}
+      onlineRoom={onlineRoom ?? undefined}
+      onlinePlayerId={onlinePlayerId ?? undefined}
+      onTransferHost={transferOnlineHost}
+      onStartTemporaryLeave={startOnlineTemporaryLeave}
+      matchState={matchState ?? undefined}
+      onUpdateMatchSettings={updateOnlineMatchSettings}
       disableLocalCpuAutomation={Boolean(onlineRoom?.started)}
     />
     {exitConfirmKind && <ExitConfirmDialog kind={exitConfirmKind} onCancel={cancelExitConfirm} onConfirm={confirmExit} />}

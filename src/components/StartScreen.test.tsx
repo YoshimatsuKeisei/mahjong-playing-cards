@@ -201,6 +201,7 @@ describe("StartScreen room settings validation", () => {
     await user.click(screen.getByRole("button", { name: /Player 3.*CPU 1/ }));
 
     expect(screen.getByText("CPU設定")).toBeInTheDocument();
+    expect(screen.queryByText("CPUの手札・操作を表示")).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "作成" }));
 
     expect(onStart).toHaveBeenCalledWith(

@@ -1,4 +1,5 @@
 import { createServer } from "node:http";
+import { randomUUID } from "node:crypto";
 import { Server, type Socket } from "socket.io";
 import { createDefaultDaifugoOptions } from "../src/game/deck";
 import {
@@ -33,7 +34,10 @@ import type {
   OnlinePlayerViewPayload,
   OnlineRoomPlayer,
   OnlineRoomSnapshot,
+  ResumableGameEntry,
+  ResumableGameSummary,
   ServerToClientEvents,
+  TemporaryLeaveMode,
   OnlineScenarioId,
 } from "../src/online/types";
 import type { Direction, GameState, MatchState } from "../src/types";
@@ -53,12 +57,24 @@ interface ServerRoom {
   createdAt: number;
   roomSettings?: OnlineRoomCreateSettings;
   nextPlayerNumber: number;
+  temporaryLeaves: Map<string, TemporaryLeaveState>;
 }
 
 interface SocketData {
   roomId?: string;
   playerId?: string;
 }
+
+type TemporaryLeaveState = {
+  playerId: string;
+  playerIndex: number;
+  mode: TemporaryLeaveMode;
+  startedAt: number;
+  expiresAt: number;
+  resumeToken: string;
+  timeoutId?: NodeJS.Timeout;
+  convertedToCpu: boolean;
+};
 
 type OnlineSocket = Socket<
   ClientToServerEvents,
@@ -69,6 +85,10 @@ type OnlineSocket = Socket<
 
 const PORT = Number(process.env.ONLINE_PORT ?? 3001);
 const rooms = new Map<string, ServerRoom>();
+const MAX_ROUND_COUNT = 100;
+const MIN_TARGET_SCORE = 50;
+const MAX_TARGET_SCORE = 10000;
+const TEMPORARY_LEAVE_LIMIT_MS = 15 * 60 * 1000;
 
 const httpServer = createServer();
 const io = new Server<
@@ -105,6 +125,18 @@ function snapshotRoom(room: ServerRoom): OnlineRoomSnapshot {
     cpuPlayers: room.roomSettings?.cpuPlayers ?? 0,
     players: room.players,
     started: room.started,
+    temporaryLeaves: Array.from(room.temporaryLeaves.values()).map((leave) => ({
+      playerId: leave.playerId,
+      playerName:
+        room.state?.players[leave.playerIndex]?.name ??
+        room.players.find((player) => player.playerId === leave.playerId)
+          ?.name ??
+        leave.playerId,
+      playerIndex: leave.playerIndex,
+      mode: leave.mode,
+      expiresAt: leave.expiresAt,
+      convertedToCpu: leave.convertedToCpu,
+    })),
   };
 }
 
@@ -182,8 +214,100 @@ function broadcastPlayerView(room: ServerRoom) {
   broadcastPublicRooms();
 }
 
+function clearTemporaryLeaveTimeouts(room: ServerRoom) {
+  for (const leave of room.temporaryLeaves.values()) {
+    if (leave.timeoutId) clearTimeout(leave.timeoutId);
+  }
+}
+
+function isPositiveInteger(value: unknown): value is number {
+  return Number.isInteger(value) && Number(value) > 0;
+}
+
+function getCurrentHighestMatchScore(matchState: MatchState) {
+  if (matchState.matchMode !== "targetScore") return 0;
+  return Math.max(0, ...matchState.cumulativeScores);
+}
+
+function getTemporaryLeaveForPlayer(room: ServerRoom, playerId: string) {
+  return room.temporaryLeaves.get(playerId) ?? null;
+}
+
+function getActiveCpuControlledPlayerIds(room: ServerRoom) {
+  const playerIds = new Set<string>();
+  for (const leave of room.temporaryLeaves.values()) {
+    if (leave.mode === "cpuSubstitute" || leave.convertedToCpu) {
+      playerIds.add(leave.playerId);
+    }
+  }
+  return playerIds;
+}
+
+function isPausedCurrentPlayer(room: ServerRoom) {
+  if (!room.state) return false;
+  const currentPlayer = room.state.players[room.state.currentPlayerIndex];
+  if (!currentPlayer) return false;
+  const leave = getTemporaryLeaveForPlayer(room, currentPlayer.id);
+  return Boolean(leave && leave.mode === "pause" && !leave.convertedToCpu);
+}
+
+function convertTemporaryLeaveToCpu(room: ServerRoom, playerId: string) {
+  const leave = room.temporaryLeaves.get(playerId);
+  if (!leave || leave.convertedToCpu) return;
+  if (leave.timeoutId) clearTimeout(leave.timeoutId);
+  leave.convertedToCpu = true;
+  room.temporaryLeaves.set(playerId, leave);
+  room.players = room.players.map((player) =>
+    player.playerId === playerId ? { ...player, connected: false } : player,
+  );
+  if (room.hostPlayerId === playerId) {
+    const nextHost = room.players.find(
+      (player) => player.connected && player.playerId !== playerId,
+    );
+    if (nextHost) room.hostPlayerId = nextHost.playerId;
+  }
+  broadcastPlayerView(room);
+  scheduleRoomCpu(room);
+}
+
+function createResumableGameSummary(
+  room: ServerRoom,
+  leave: TemporaryLeaveState,
+): ResumableGameSummary {
+  return {
+    roomId: room.id,
+    roomName: room.matchState?.roomName ?? room.roomSettings?.roomName ?? room.id,
+    playerId: leave.playerId,
+    playerName:
+      room.state?.players[leave.playerIndex]?.name ??
+      room.players.find((player) => player.playerId === leave.playerId)?.name ??
+      leave.playerId,
+    mode: leave.mode,
+    expiresAt: leave.expiresAt,
+    currentRound: room.matchState?.currentRound ?? 1,
+    matchType: room.matchState?.matchMode ?? room.roomSettings?.matchType ?? "rounds",
+    totalPlayers: room.state?.players.length ?? room.roomSettings?.totalPlayers ?? room.maxPlayers,
+    convertedToCpu: leave.convertedToCpu,
+  };
+}
+
+function findResumableGames(entries: ResumableGameEntry[]) {
+  const now = Date.now();
+  const summaries: ResumableGameSummary[] = [];
+  for (const entry of entries) {
+    const room = rooms.get(entry.roomId);
+    const leave = room?.temporaryLeaves.get(entry.playerId);
+    if (!room || !leave) continue;
+    if (leave.resumeToken !== entry.resumeToken) continue;
+    if (leave.expiresAt <= now || leave.convertedToCpu) continue;
+    summaries.push(createResumableGameSummary(room, leave));
+  }
+  return summaries;
+}
+
 function closeWaitingRoom(room: ServerRoom, exceptSocketId?: string) {
   cancelOnlineCpu(room.id);
+  clearTemporaryLeaveTimeouts(room);
   for (const socketId of room.socketsByPlayerId.values()) {
     if (socketId === exceptSocketId) continue;
     const roomSocket = io.sockets.sockets.get(socketId) as
@@ -651,9 +775,14 @@ function applyOnlineNextState(room: ServerRoom, nextState: GameState) {
 }
 
 function scheduleRoomCpu(room: ServerRoom) {
+  if (isPausedCurrentPlayer(room)) {
+    cancelOnlineCpu(room.id);
+    return;
+  }
   scheduleOnlineCpu(room, {
     applyNextState: applyOnlineNextState,
     broadcastPlayerView,
+    getCpuControlledPlayerIds: getActiveCpuControlledPlayerIds,
   });
 }
 
@@ -704,6 +833,7 @@ io.on("connection", (socket) => {
       createdAt: Date.now(),
       roomSettings: payload.roomSettings,
       nextPlayerNumber: 1,
+      temporaryLeaves: new Map(),
     };
     const player: OnlineRoomPlayer = {
       playerId: createPlayerId(room),
@@ -731,8 +861,208 @@ io.on("connection", (socket) => {
     ack(listPublicRooms());
   });
 
+  socket.on("listResumableGames", (payload, ack) => {
+    ack(findResumableGames(payload.entries ?? []));
+  });
+
   socket.on("leaveRoom", () => {
     leaveCurrentRoom(socket);
+  });
+
+  socket.on("transferHost", (payload) => {
+    const room = getSocketRoom(socket);
+    const playerId = socket.data.playerId;
+    if (!room || !playerId) return;
+    if (room.hostPlayerId !== playerId) {
+      socket.emit("errorMessage", "Only the host can change the host.");
+      return;
+    }
+    const target = room.players.find(
+      (player) => player.playerId === payload.targetPlayerId,
+    );
+    if (!target) {
+      socket.emit("errorMessage", "Host target was not found.");
+      return;
+    }
+    if (target.playerId === room.hostPlayerId) {
+      socket.emit("errorMessage", "That player is already the host.");
+      return;
+    }
+    if (!target.connected) {
+      socket.emit("errorMessage", "Disconnected players cannot become host.");
+      return;
+    }
+    if (target.playerId.startsWith("cpu-")) {
+      socket.emit("errorMessage", "CPU players cannot become host.");
+      return;
+    }
+
+    room.hostPlayerId = target.playerId;
+    broadcastPlayerView(room);
+  });
+
+  socket.on("updateMatchSettings", (payload) => {
+    const room = getSocketRoom(socket);
+    const playerId = socket.data.playerId;
+    if (!room || !playerId) return;
+    if (!payload || typeof payload !== "object") {
+      socket.emit("errorMessage", "Invalid match settings payload.");
+      return;
+    }
+    const matchType = (payload as { matchType?: unknown }).matchType;
+    if (matchType !== "rounds" && matchType !== "targetScore") {
+      socket.emit("errorMessage", "Match settings cannot be changed for this match type.");
+      return;
+    }
+    if (!room.started || !room.matchState) {
+      socket.emit("errorMessage", "Match settings can only be changed during a match.");
+      return;
+    }
+    if (room.hostPlayerId !== playerId) {
+      socket.emit("errorMessage", "Only the host can change match settings.");
+      return;
+    }
+    if (room.matchState.matchMode !== matchType) {
+      socket.emit("errorMessage", "Match type does not match current room.");
+      return;
+    }
+
+    if (matchType === "rounds") {
+      const roundCount = (payload as { roundCount?: unknown }).roundCount;
+      if (!isPositiveInteger(roundCount)) {
+        socket.emit("errorMessage", "Round count must be a positive integer.");
+        return;
+      }
+      if (roundCount <= room.matchState.currentRound) {
+        socket.emit("errorMessage", "Round count must be greater than the current round.");
+        return;
+      }
+      if (roundCount > MAX_ROUND_COUNT) {
+        socket.emit("errorMessage", "Round count must be 100 or less.");
+        return;
+      }
+      room.roomSettings = room.roomSettings
+        ? { ...room.roomSettings, roundCount }
+        : room.roomSettings;
+      room.matchState = {
+        ...room.matchState,
+        totalRounds: roundCount,
+        gameState: room.state ?? room.matchState.gameState,
+      };
+      broadcastPlayerView(room);
+      return;
+    }
+
+    if (matchType === "targetScore") {
+      const targetScore = (payload as { targetScore?: unknown }).targetScore;
+      if (!isPositiveInteger(targetScore)) {
+        socket.emit("errorMessage", "Target score must be a positive integer.");
+        return;
+      }
+      if (targetScore < MIN_TARGET_SCORE || targetScore > MAX_TARGET_SCORE) {
+        socket.emit("errorMessage", "Target score must be between 50 and 10000.");
+        return;
+      }
+      if (targetScore <= getCurrentHighestMatchScore(room.matchState)) {
+        socket.emit("errorMessage", "Target score must be greater than the current highest score.");
+        return;
+      }
+      room.roomSettings = room.roomSettings
+        ? { ...room.roomSettings, targetScore }
+        : room.roomSettings;
+      room.matchState = {
+        ...room.matchState,
+        targetScore,
+        gameState: room.state ?? room.matchState.gameState,
+      };
+      broadcastPlayerView(room);
+      return;
+    }
+
+    socket.emit("errorMessage", "Match settings cannot be changed for this match type.");
+  });
+
+  socket.on("startTemporaryLeave", (payload, ack) => {
+    const room = getSocketRoom(socket);
+    const playerId = socket.data.playerId;
+    if (!room || !playerId || !room.started || !room.state) {
+      ack({ ok: false, error: "Temporary leave is only available during a match." });
+      return;
+    }
+    const mode = payload.mode;
+    if (mode !== "pause" && mode !== "cpuSubstitute") {
+      ack({ ok: false, error: "Invalid temporary leave mode." });
+      return;
+    }
+    const playerIndex = room.state.players.findIndex(
+      (player) => player.id === playerId,
+    );
+    const player = room.state.players[playerIndex];
+    if (playerIndex < 0 || !player || player.isCpu) {
+      ack({ ok: false, error: "Only human players can temporarily leave." });
+      return;
+    }
+    if (room.temporaryLeaves.has(playerId)) {
+      ack({ ok: false, error: "This player is already temporarily away." });
+      return;
+    }
+
+    const startedAt = Date.now();
+    const expiresAt = startedAt + TEMPORARY_LEAVE_LIMIT_MS;
+    const resumeToken = randomUUID();
+    const timeoutId = setTimeout(() => {
+      convertTemporaryLeaveToCpu(room, playerId);
+    }, TEMPORARY_LEAVE_LIMIT_MS);
+    room.temporaryLeaves.set(playerId, {
+      playerId,
+      playerIndex,
+      mode,
+      startedAt,
+      expiresAt,
+      resumeToken,
+      timeoutId,
+      convertedToCpu: false,
+    });
+    room.socketsByPlayerId.delete(playerId);
+    room.players = room.players.map((roomPlayer) =>
+      roomPlayer.playerId === playerId
+        ? { ...roomPlayer, connected: false }
+        : roomPlayer,
+    );
+    socket.leave(room.id);
+    socket.data.roomId = undefined;
+    socket.data.playerId = undefined;
+    ack({ ok: true, roomId: room.id, playerId, resumeToken, expiresAt });
+    broadcastPlayerView(room);
+    scheduleRoomCpu(room);
+  });
+
+  socket.on("resumeTemporaryLeave", (payload, ack) => {
+    const room = rooms.get(payload.roomId);
+    const leave = room?.temporaryLeaves.get(payload.playerId);
+    if (!room || !leave || leave.resumeToken !== payload.resumeToken) {
+      ack({ ok: false, error: "Resumable match was not found." });
+      return;
+    }
+    if (leave.expiresAt <= Date.now() || leave.convertedToCpu) {
+      ack({ ok: false, error: "Temporary leave has expired." });
+      return;
+    }
+    if (leave.timeoutId) clearTimeout(leave.timeoutId);
+    room.temporaryLeaves.delete(payload.playerId);
+    room.socketsByPlayerId.set(payload.playerId, socket.id);
+    room.players = room.players.map((player) =>
+      player.playerId === payload.playerId
+        ? { ...player, connected: true }
+        : player,
+    );
+    socket.data.roomId = room.id;
+    socket.data.playerId = payload.playerId;
+    socket.join(room.id);
+    ack({ ok: true });
+    emitPlayerView(room, payload.playerId);
+    broadcastPlayerView(room);
+    scheduleRoomCpu(room);
   });
 
   socket.on("joinRoom", (payload, ack) => {
@@ -814,6 +1144,10 @@ io.on("connection", (socket) => {
     const playerId = socket.data.playerId;
     if (!room || !playerId) return;
     if (!room.state || !room.started) {
+      rejectAction(socket, room, playerId, "room_not_playing");
+      return;
+    }
+    if (isPausedCurrentPlayer(room)) {
       rejectAction(socket, room, playerId, "room_not_playing");
       return;
     }
