@@ -13,10 +13,14 @@ import type {
   Player,
   RonResult,
 } from "../types";
-import { createDeck, createDefaultDaifugoOptions, dealCards, shuffleDeck, sortCards } from "./deck";
 import {
-  canDeclareReach,
-  canDeclareReachAfterDraw,
+  createDeck,
+  createDefaultDaifugoOptions,
+  dealCards,
+  shuffleDeck,
+  sortCards,
+} from "./deck";
+import {
   checkWinningHandWithOpenMelds,
   countMaxMelds,
   findCallMeldOptions,
@@ -27,7 +31,11 @@ import {
 import { calculateRonScore, calculateTsumoScore } from "./scoring";
 import { chooseDaifugoSevenExchangeCardForModel } from "./daifugoCpu";
 
-export function getNextPlayerIndex(currentIndex: number, playerCount: number, direction: Direction): number {
+export function getNextPlayerIndex(
+  currentIndex: number,
+  playerCount: number,
+  direction: Direction,
+): number {
   return direction === "clockwise"
     ? (currentIndex + 1) % playerCount
     : (currentIndex - 1 + playerCount) % playerCount;
@@ -41,12 +49,33 @@ export function createInitialGame(
   daifugoOptions: DaifugoOptions = createDefaultDaifugoOptions(),
   cpuModelIds: CpuModelId[] = [],
   showCpuActions = true,
+  startPlayerIndex = 0,
 ): GameState {
-  return dealCards(shuffleDeck(createDeck()), playerCount, direction, humanPlayerCount, cpuModelId, daifugoOptions, cpuModelIds, showCpuActions);
+  return dealCards(
+    shuffleDeck(createDeck()),
+    playerCount,
+    direction,
+    humanPlayerCount,
+    cpuModelId,
+    daifugoOptions,
+    cpuModelIds,
+    showCpuActions,
+    startPlayerIndex,
+  );
 }
 
-function replacePlayer(players: Player[], index: number, nextPlayer: Player): Player[] {
-  return players.map((player, playerIndex) => (playerIndex === index ? nextPlayer : player));
+export function createRandomStartPlayerIndex(playerCount: number): number {
+  return Math.floor(Math.random() * Math.max(1, playerCount));
+}
+
+function replacePlayer(
+  players: Player[],
+  index: number,
+  nextPlayer: Player,
+): Player[] {
+  return players.map((player, playerIndex) =>
+    playerIndex === index ? nextPlayer : player,
+  );
 }
 
 function topDiscard(player: Player): Card | null {
@@ -67,8 +96,10 @@ function logWinDebug(
   if (winType !== "ron" && winType !== "tsumo") return;
   const currentPlayer = state.players[state.currentPlayerIndex];
   const winner = state.players[winnerIndex];
-  const discardOwner = discarderIndex !== null ? state.players[discarderIndex] : null;
-  const viewer = state.players.find((player) => !player.isCpu) ?? state.players[0] ?? null;
+  const discardOwner =
+    discarderIndex !== null ? state.players[discarderIndex] : null;
+  const viewer =
+    state.players.find((player) => !player.isCpu) ?? state.players[0] ?? null;
   const lastDiscard = discardOwner ? topDiscard(discardOwner) : null;
   console.info("[win debug]", {
     currentPlayerId: currentPlayer?.id,
@@ -97,8 +128,19 @@ function makeResult(
   logWinDebug(state, winType, winnerIndex, discarderIndex, actionSource);
   const score =
     winType === "ron" && discarderIndex !== null
-      ? calculateRonScore(state.players, winnerIndex, discarderIndex, winningResult, state.isJBackActive)
-      : calculateTsumoScore(state.players, winnerIndex, winningResult, state.isJBackActive);
+      ? calculateRonScore(
+          state.players,
+          winnerIndex,
+          discarderIndex,
+          winningResult,
+          state.isJBackActive,
+        )
+      : calculateTsumoScore(
+          state.players,
+          winnerIndex,
+          winningResult,
+          state.isJBackActive,
+        );
 
   return {
     winnerIndex,
@@ -129,14 +171,25 @@ function findReachRonResults(
 
   players.forEach((player, winnerIndex) => {
     if (winnerIndex === discarderIndex || !player.isReach) return;
-    const options = findWinningDiscardsAfterDraw([...player.hand, discardCard], discardCard.id, player.openMelds, isJBackActive);
+    const options = findWinningDiscardsAfterDraw(
+      [...player.hand, discardCard],
+      discardCard.id,
+      player.openMelds,
+      isJBackActive,
+    );
     const option = options[0];
     if (!option) return;
 
     results.push({
       winnerIndex,
       winningResult: option.winningResult,
-      score: calculateRonScore(players, winnerIndex, discarderIndex, option.winningResult, isJBackActive),
+      score: calculateRonScore(
+        players,
+        winnerIndex,
+        discarderIndex,
+        option.winningResult,
+        isJBackActive,
+      ),
       player: { ...player, winningResult: option.winningResult },
     });
   });
@@ -144,22 +197,33 @@ function findReachRonResults(
   return results;
 }
 
-function makeReachRonResult(state: GameState, discarderIndex: number): { result: GameResult; players: Player[] } | null {
+function makeReachRonResult(
+  state: GameState,
+  discarderIndex: number,
+): { result: GameResult; players: Player[] } | null {
   const discardCard = topDiscard(state.players[discarderIndex]);
   if (!discardCard) return null;
 
-  const ronCandidates = findReachRonResults(state.players, discarderIndex, discardCard, state.isJBackActive);
+  const ronCandidates = findReachRonResults(
+    state.players,
+    discarderIndex,
+    discardCard,
+    state.isJBackActive,
+  );
   if (ronCandidates.length === 0) return null;
 
   const players = ronCandidates.reduce(
-    (nextPlayers, candidate) => replacePlayer(nextPlayers, candidate.winnerIndex, candidate.player),
+    (nextPlayers, candidate) =>
+      replacePlayer(nextPlayers, candidate.winnerIndex, candidate.player),
     state.players,
   );
-  const ronResults = ronCandidates.map(({ winnerIndex, winningResult, score }) => ({
-    winnerIndex,
-    winningResult,
-    score,
-  }));
+  const ronResults = ronCandidates.map(
+    ({ winnerIndex, winningResult, score }) => ({
+      winnerIndex,
+      winningResult,
+      score,
+    }),
+  );
   const first = ronResults[0];
   logWinDebug(state, "ron", first.winnerIndex, discarderIndex, "reachRonCheck");
 
@@ -195,21 +259,81 @@ function deckoutResult(state: GameState, players: Player[]): GameState {
     result,
     pendingRonResult: null,
     pendingDaifugoEffect: null,
+    daifugoDeckDrawEvent: null,
     declaredReachThisTurn: false,
     message: "山札がなくなりました。この局は流局です。",
   };
 }
+function getNextTurnMessage(
+  players: Player[],
+  discarderIndex: number,
+  direction: Direction,
+): string {
+  const nextPlayerIndex = getNextPlayerIndex(
+    discarderIndex,
+    players.length,
+    direction,
+  );
+  return `次は${players[nextPlayerIndex]?.name ?? "次のプレイヤー"}です。`;
+}
 
-function advanceToNextDraw(state: GameState, players: Player[], discarderIndex: number, message?: string): GameState {
+function getEnhancedSevenTargetSelectMessage(playerName: string): string {
+  return `${playerName}が7渡しの相手を選んでいます。J強化により次の手番以外の人も交換対象になります。`;
+}
+
+function getEnhancedFiveTargetSelectMessage(playerName: string): string {
+  return `${playerName}が次の手番の人を選んでいます。J強化により複数人飛ばすことが可能です。`;
+}
+
+function appendNextTurnMessage(
+  players: Player[],
+  discarderIndex: number,
+  direction: Direction,
+  message: string,
+): string {
+  return `${message}${getNextTurnMessage(players, discarderIndex, direction)}`;
+}
+
+function getDiscardHandoffMessage(
+  players: Player[],
+  discarderIndex: number,
+  direction: Direction,
+  discardCard: Card,
+): string {
+  const nextTurnMessage = getNextTurnMessage(
+    players,
+    discarderIndex,
+    direction,
+  );
+  return `${formatRank(discardCard.rank)}を捨てました。${nextTurnMessage}`;
+}
+
+function advanceToNextDraw(
+  state: GameState,
+  players: Player[],
+  discarderIndex: number,
+  message?: string,
+): GameState {
   const ron = makeReachRonResult({ ...state, players }, discarderIndex);
   if (ron) {
+    const ronWinnerNames =
+      ron.result.ronResults
+        ?.map((item) => ron.players[item.winnerIndex]?.name)
+        .filter(Boolean)
+        .join("・") ??
+      ron.players[ron.result.winnerIndex]?.name ??
+      "プレイヤー";
+
     return {
       ...state,
       players: ron.players,
-      phase: "ronCheck",
-      pendingRonResult: ron.result,
+      phase: "result",
+      winner: ron.result.winnerIndex,
+      result: ron.result,
+      pendingRonResult: null,
+      pendingDaifugoEffect: null,
       declaredReachThisTurn: false,
-      message: "ロン確認中です。",
+      message: `${ronWinnerNames}がロン!`,
     };
   }
 
@@ -222,19 +346,33 @@ function advanceToNextDraw(state: GameState, players: Player[], discarderIndex: 
     lastDiscarderIndex: discarderIndex,
     takenDiscardOwnerIndex: null,
     declaredReachThisTurn: false,
-    message: message ?? "次のプレイヤーへ交代してください。",
+    message:
+      message ?? getNextTurnMessage(players, discarderIndex, state.direction),
   };
 }
 
-function continueAfterDaifugo(state: GameState, continueState: PendingDaifugoContinue, players = state.players): GameState {
+function continueAfterDaifugo(
+  state: GameState,
+  continueState: PendingDaifugoContinue,
+  players = state.players,
+): GameState {
   if (continueState.shouldConfirmReach) {
     return reachConfirmState(state, players);
   }
 
-  return advanceToNextDraw({ ...state, pendingDaifugoEffect: null, players }, players, state.currentPlayerIndex, continueState.message);
+  return advanceToNextDraw(
+    { ...state, pendingDaifugoEffect: null, players },
+    players,
+    state.currentPlayerIndex,
+    continueState.message,
+  );
 }
 
-function reachConfirmState(state: GameState, players = state.players): GameState {
+function reachConfirmState(
+  state: GameState,
+  players = state.players,
+  handoffSourceIndex = state.currentPlayerIndex,
+): GameState {
   return {
     ...state,
     players,
@@ -242,22 +380,116 @@ function reachConfirmState(state: GameState, players = state.players): GameState
     phase: "reachConfirm",
     drawnCard: null,
     drawnFrom: null,
-    lastDiscarderIndex: state.currentPlayerIndex,
+    lastDiscarderIndex: handoffSourceIndex,
     takenDiscardOwnerIndex: null,
     declaredReachThisTurn: false,
     message: "リーチを宣言しますか？",
   };
 }
 
+function removeOneCardById(cards: Card[], cardId: string): Card[] {
+  let removed = false;
+
+  return cards.filter((card) => {
+    if (!removed && card.id === cardId) {
+      removed = true;
+      return false;
+    }
+
+    return true;
+  });
+}
+
+function canDeclareReachWithTenCardHand(
+  state: GameState,
+  player: Player,
+  handAfterDiscard: Card[],
+): boolean {
+  if (player.hasCalled || player.isReach) return false;
+  if (handAfterDiscard.length !== 10) return false;
+
+  return state.deck.some((drawCard) => {
+    const handAfterDraw = [...handAfterDiscard, drawCard];
+
+    return handAfterDraw.some((discardCandidate) => {
+      const finalHand = removeOneCardById(handAfterDraw, discardCandidate.id);
+
+      return checkWinningHandWithOpenMelds(
+        finalHand,
+        player.openMelds,
+        state.isJBackActive,
+      ).canWin;
+    });
+  });
+}
+
+export function getReachDeclarationDiscardOptions(
+  state: GameState,
+  playerIndex = state.currentPlayerIndex,
+): Card[] {
+  const player = state.players[playerIndex];
+  if (!player) return [];
+  if (state.phase !== "discard") return [];
+  if (state.drawnFrom !== "deck") return [];
+  if (player.hasCalled || player.isReach) return [];
+
+  return player.hand.filter((discardCandidate) => {
+    const handAfterDiscard = removeOneCardById(
+      player.hand,
+      discardCandidate.id,
+    );
+
+    return canDeclareReachWithTenCardHand(state, player, handAfterDiscard);
+  });
+}
+
+export function canDeclareReachInCurrentState(
+  state: GameState,
+  playerIndex = state.currentPlayerIndex,
+): boolean {
+  return getReachDeclarationDiscardOptions(state, playerIndex).length > 0;
+}
+
+export function canKeepReachAfterDiscard(
+  state: GameState,
+  playerIndex: number,
+  cardId: string,
+): boolean {
+  const player = state.players[playerIndex];
+  if (!player) return false;
+
+  const discardCard = player.hand.find((card) => card.id === cardId);
+  if (!discardCard) return false;
+
+  const handAfterDiscard = removeOneCardById(player.hand, discardCard.id);
+
+  return canDeclareReachWithTenCardHand(
+    state,
+    { ...player, isReach: false },
+    handAfterDiscard,
+  );
+}
+
 function reverseDirection(direction: Direction): Direction {
   return direction === "clockwise" ? "counterclockwise" : "clockwise";
 }
 
-function getPreviousPlayerIndex(currentIndex: number, playerCount: number, direction: Direction): number {
-  return getNextPlayerIndex(currentIndex, playerCount, reverseDirection(direction));
+function getPreviousPlayerIndex(
+  currentIndex: number,
+  playerCount: number,
+  direction: Direction,
+): number {
+  return getNextPlayerIndex(
+    currentIndex,
+    playerCount,
+    reverseDirection(direction),
+  );
 }
 
-export function getEnhancedFiveTurnOptions(state: GameState, playerIndex: number) {
+export function getEnhancedFiveTurnOptions(
+  state: GameState,
+  playerIndex: number,
+) {
   const orderedPlayerIndexes: number[] = [];
   let cursor = playerIndex;
   for (let count = 1; count < state.players.length; count += 1) {
@@ -271,20 +503,29 @@ export function getEnhancedFiveTurnOptions(state: GameState, playerIndex: number
     selectable: orderIndex > 0,
   }));
 }
-
-function getDaifugoEffectForCard(card: Card, options: DaifugoOptions): DaifugoEffectId | null {
+//大富豪効果IDを決める関数
+function getDaifugoEffectForCard(
+  card: Card,
+  options: DaifugoOptions,
+): DaifugoEffectId | null {
   if (!options.enabled) return null;
   if (card.rank === 5 && options.effects.fiveSkip) return "fiveSkip";
   if (card.rank === 7 && options.effects.sevenExchange) return "sevenExchange";
-  if (card.rank === 8 && options.effects.eightExtraTurn) return "eightExtraTurn";
+  if (card.rank === 8 && options.effects.eightExtraTurn)
+    return "eightExtraTurn";
   if (card.rank === 9 && options.effects.nineReverse) return "nineReverse";
   if (card.rank === 10 && options.effects.tenSwapDraw) return "tenSwapDraw";
   if (card.rank === 11 && options.effects.jackBack) return "jackBack";
-  if (card.rank === 12 && options.effects.queenNumberVanish) return "queenNumberVanish";
+  if (card.rank === 12 && options.effects.queenNumberVanish)
+    return "queenNumberVanish";
   return null;
 }
-
-function createPendingDaifugoEffect(state: GameState, discardCard: Card, continueState: PendingDaifugoContinue) {
+// 効果確認待ち状態を作る関数
+function createPendingDaifugoEffect(
+  state: GameState,
+  discardCard: Card,
+  continueState: PendingDaifugoContinue,
+) {
   const effect = getDaifugoEffectForCard(discardCard, state.daifugoOptions);
   const player = state.players[state.currentPlayerIndex];
   if (effect === "tenSwapDraw" && player?.isReach) return null;
@@ -295,7 +536,11 @@ function createPendingDaifugoEffect(state: GameState, discardCard: Card, continu
       : undefined;
   const cpuThreatTargetPlayerIndex =
     effect === "queenNumberVanish"
-      ? chooseCpuThreatTarget(state, state.currentPlayerIndex, cpuThreatResponseMode)
+      ? chooseCpuThreatTarget(
+          state,
+          state.currentPlayerIndex,
+          cpuThreatResponseMode,
+        )
       : null;
   return {
     kind: "confirm" as const,
@@ -303,13 +548,17 @@ function createPendingDaifugoEffect(state: GameState, discardCard: Card, continu
     playerIndex: state.currentPlayerIndex,
     continue: continueState,
     cpuThreatResponseMode,
-    ...(cpuThreatTargetPlayerIndex === null ? {} : { cpuThreatTargetPlayerIndex }),
+    ...(cpuThreatTargetPlayerIndex === null
+      ? {}
+      : { cpuThreatTargetPlayerIndex }),
   };
 }
-
+//捨てたカードに大富豪効果がある場合に、効果の使用を確認する
 function getDaifugoConfirmMessage(effect: DaifugoEffectId): string {
-  if (effect === "sevenExchange") return "7の効果：次のプレイヤーとカードを1枚交換しますか？";
-  if (effect === "queenNumberVanish") return "Qの効果：指定した数字を手札と山札から消しますか？";
+  if (effect === "sevenExchange")
+    return "7の効果：次のプレイヤーとカードを1枚交換しますか？";
+  if (effect === "queenNumberVanish")
+    return "Qの効果：指定した数字を手札と山札から消しますか？";
   switch (effect) {
     case "fiveSkip":
       return "5の効果：次のプレイヤーをスキップしますか？";
@@ -334,7 +583,10 @@ function formatRank(rank: number): string {
   return String(rank);
 }
 
-export function isCardJShielded(player: Player, card: Card | null | undefined): boolean {
+export function isCardJShielded(
+  player: Player,
+  card: Card | null | undefined,
+): boolean {
   if (!card || !player.jShield) return false;
   return player.jShield.cardIds.includes(card.id);
 }
@@ -353,7 +605,9 @@ function consumeJShieldCards(player: Player, cardIds: string[]): Player {
   if (!player.jShield || cardIds.length === 0) return player;
   if ((player.jShield.kind ?? "rank") !== "run") return consumeJShield(player);
   const consumedIds = new Set(cardIds);
-  const nextCardIds = player.jShield.cardIds.filter((cardId) => !consumedIds.has(cardId));
+  const nextCardIds = player.jShield.cardIds.filter(
+    (cardId) => !consumedIds.has(cardId),
+  );
   if (nextCardIds.length === 0) return consumeJShield(player);
   const nextRanks = nextCardIds
     .map((cardId) => player.hand.find((card) => card.id === cardId)?.rank)
@@ -378,14 +632,22 @@ export interface QueenVanishRankOption {
   disabledReason?: string;
 }
 
-export function getQueenVanishRankOptions(state: Pick<GameState, "deck" | "players" | "queenVanishedRanks">): QueenVanishRankOption[] {
+export function getQueenVanishRankOptions(
+  state: Pick<GameState, "deck" | "players" | "queenVanishedRanks">,
+): QueenVanishRankOption[] {
   const vanishedRanks = new Set(state.queenVanishedRanks ?? []);
   return Array.from({ length: 13 }, (_, index) => index + 1)
     .filter((rank) => !vanishedRanks.has(rank))
     .map((rank) => {
-      const removedFromDeck = state.deck.filter((card) => card.rank === rank).length;
+      const removedFromDeck = state.deck.filter(
+        (card) => card.rank === rank,
+      ).length;
       const replenishmentRequired = state.players.reduce(
-        (total, player) => total + player.hand.filter((card) => card.rank === rank && !isCardJShielded(player, card)).length,
+        (total, player) =>
+          total +
+          player.hand.filter(
+            (card) => card.rank === rank && !isCardJShielded(player, card),
+          ).length,
         0,
       );
       const availableAfterVanish = state.deck.length - removedFromDeck;
@@ -416,23 +678,43 @@ function uniqueCards(cards: Card[]): Card[] {
   });
 }
 
-function canMaintainReach(player: Player): boolean {
-  return !player.hasCalled && player.hand.length === 10 && countMaxMelds(player.hand) >= 2;
+function canMaintainReach(state: GameState, player: Player): boolean {
+  if (!player.isReach) return false;
+  if (player.hasCalled) return false;
+  if (player.hand.length !== 10) return false;
+  return canDeclareReachWithTenCardHand(
+    state,
+    { ...player, isReach: false },
+    player.hand,
+  );
 }
 
-function releaseInvalidReachPlayers(players: Player[]): { players: Player[]; releasedPlayerIndexes: number[] } {
+function releaseInvalidReachPlayers(
+  state: GameState,
+  players: Player[],
+): {
+  players: Player[];
+  releasedPlayerIndexes: number[];
+} {
   const releasedPlayerIndexes: number[] = [];
   const nextPlayers = players.map((player, playerIndex) => {
-    if (!player.isReach || canMaintainReach(player)) return player;
+    if (!player.isReach || canMaintainReach(state, player)) return player;
     releasedPlayerIndexes.push(playerIndex);
     return { ...player, isReach: false };
   });
   return { players: nextPlayers, releasedPlayerIndexes };
 }
 
-function appendReachReleaseMessage(message: string, players: Player[], releasedPlayerIndexes: number[]): string {
+function appendReachReleaseMessage(
+  message: string,
+  players: Player[],
+  releasedPlayerIndexes: number[],
+): string {
   if (releasedPlayerIndexes.length === 0) return message;
-  const releasedNames = releasedPlayerIndexes.map((index) => players[index]?.name).filter(Boolean).join("、");
+  const releasedNames = releasedPlayerIndexes
+    .map((index) => players[index]?.name)
+    .filter(Boolean)
+    .join("、");
   return `${message} ${releasedNames}のリーチが解除されました。`;
 }
 
@@ -442,13 +724,23 @@ function recheckReachAfterHandChange(
   affectedPlayerIndexes: number[],
   effect: "sevenExchange" | "queenNumberVanish",
   message: string,
-): { players: Player[]; releasedPlayerIndexes: number[]; confirmPlayerIndex: number | null; message: string } {
+): {
+  players: Player[];
+  releasedPlayerIndexes: number[];
+  confirmPlayerIndex: number | null;
+  message: string;
+} {
   const affected = new Set(affectedPlayerIndexes);
   const releasedPlayerIndexes: number[] = [];
   let confirmPlayerIndex: number | null = null;
   const nextPlayers = players.map((player, playerIndex) => {
-    if (!affected.has(playerIndex) || !state.players[playerIndex]?.isReach || !player.isReach) return player;
-    if (!canMaintainReach(player)) {
+    if (
+      !affected.has(playerIndex) ||
+      !state.players[playerIndex]?.isReach ||
+      !player.isReach
+    )
+      return player;
+    if (!canMaintainReach(state, player)) {
       releasedPlayerIndexes.push(playerIndex);
       return { ...player, isReach: false };
     }
@@ -462,7 +754,11 @@ function recheckReachAfterHandChange(
     players: nextPlayers,
     releasedPlayerIndexes,
     confirmPlayerIndex,
-    message: appendReachReleaseMessage(message, nextPlayers, releasedPlayerIndexes),
+    message: appendReachReleaseMessage(
+      message,
+      nextPlayers,
+      releasedPlayerIndexes,
+    ),
   };
 }
 
@@ -474,7 +770,12 @@ function withReachContinueConfirmIfNeeded(
   confirmPlayerIndex: number | null,
   message: string,
 ): GameState {
-  const nextState = advanceToNextDraw({ ...state, pendingDaifugoEffect: null, players }, players, discarderIndex, message);
+  const nextState = advanceToNextDraw(
+    { ...state, pendingDaifugoEffect: null, players },
+    players,
+    discarderIndex,
+    message,
+  );
   if (confirmPlayerIndex === null) return nextState;
   const effectMessage =
     effect === "queenNumberVanish"
@@ -492,12 +793,21 @@ function withReachContinueConfirmIfNeeded(
   };
 }
 
-function makeDaifugoEventId(kind: DaifugoEffectEvent["kind"], state: GameState): string {
-  const discardCount = state.players.reduce((total, player) => total + player.discardPile.length, 0);
+function makeDaifugoEventId(
+  kind: DaifugoEffectEvent["kind"],
+  state: GameState,
+): string {
+  const discardCount = state.players.reduce(
+    (total, player) => total + player.discardPile.length,
+    0,
+  );
   return `${kind}-${state.currentPlayerIndex}-${state.deck.length}-${discardCount}`;
 }
 
-export function getSevenExchangeCandidateCards(player: Player, allowAnyCard = false): Card[] {
+export function getSevenExchangeCandidateCards(
+  player: Player,
+  allowAnyCard = false,
+): Card[] {
   const availableHand = getUnshieldedHand(player);
   if (allowAnyCard) return availableHand;
 
@@ -510,16 +820,27 @@ export function getSevenExchangeCandidateCards(player: Player, allowAnyCard = fa
   for (const card of availableHand) {
     cardsByRank.set(card.rank, [...(cardsByRank.get(card.rank) ?? []), card]);
   }
-  const pairCards = [...cardsByRank.values()].filter((cards) => cards.length >= 2).flat();
-  return pairCards.length >= 4 ? pairCards : availableHand;
+  const pairCards = [...cardsByRank.values()]
+    .filter((cards) => cards.length >= 2)
+    .flat();
+  return pairCards.length > 0 ? pairCards : availableHand;
 }
 
-function fillCpuSevenExchangeSelections(state: GameState, pending: Extract<NonNullable<GameState["pendingDaifugoEffect"]>, { kind: "sevenExchange" }>) {
+function fillCpuSevenExchangeSelections(
+  state: GameState,
+  pending: Extract<
+    NonNullable<GameState["pendingDaifugoEffect"]>,
+    { kind: "sevenExchange" }
+  >,
+) {
   const selections = { ...pending.selections };
   for (const playerIndex of [pending.playerIndex, pending.targetPlayerIndex]) {
     const player = state.players[playerIndex];
     if (!player?.isCpu || selections[playerIndex]) continue;
-    const candidates = getSevenExchangeCandidateCards(player, playerIndex === pending.playerIndex);
+    const candidates = getSevenExchangeCandidateCards(
+      player,
+      playerIndex === pending.playerIndex,
+    );
     const selected = chooseDaifugoSevenExchangeCardForModel(
       player.cpuModelId,
       { state, currentPlayer: player, currentPlayerIndex: playerIndex },
@@ -531,28 +852,59 @@ function fillCpuSevenExchangeSelections(state: GameState, pending: Extract<NonNu
   return selections;
 }
 
-function consumeJEnhancementRightAfterSeven(players: Player[], playerIndex: number, shouldConsume?: boolean): Player[] {
+function consumeJEnhancementRightAfterSeven(
+  players: Player[],
+  playerIndex: number,
+  shouldConsume?: boolean,
+): Player[] {
   if (!shouldConsume) return players;
   const player = players[playerIndex];
   if (!player?.hasJEnhancementRight) return players;
-  return replacePlayer(players, playerIndex, { ...player, hasJEnhancementRight: false });
+  return replacePlayer(players, playerIndex, {
+    ...player,
+    hasJEnhancementRight: false,
+  });
 }
 
-function consumeJEnhancementRight(players: Player[], playerIndex: number): Player[] {
+function consumeJEnhancementRight(
+  players: Player[],
+  playerIndex: number,
+): Player[] {
   const player = players[playerIndex];
   if (!player?.hasJEnhancementRight) return players;
-  return replacePlayer(players, playerIndex, { ...player, hasJEnhancementRight: false });
+  return replacePlayer(players, playerIndex, {
+    ...player,
+    hasJEnhancementRight: false,
+  });
 }
 
-function resolveNormalFiveSkip(state: GameState, continueState?: PendingDaifugoContinue): GameState {
-  const skippedIndex = getNextPlayerIndex(state.currentPlayerIndex, state.players.length, state.direction);
-  const nextTurnIndex = getNextPlayerIndex(skippedIndex, state.players.length, state.direction);
-  const message = `${state.players[skippedIndex].name}をスキップ！次の手番は${state.players[nextTurnIndex].name}です。`;
+function resolveNormalFiveSkip(
+  state: GameState,
+  continueState?: PendingDaifugoContinue,
+): GameState {
+  const skippedIndex = getNextPlayerIndex(
+    state.currentPlayerIndex,
+    state.players.length,
+    state.direction,
+  );
+  const nextTurnMessage = getNextTurnMessage(
+    state.players,
+    skippedIndex,
+    state.direction,
+  );
+  const message = `5スキップにより、手番が飛びます。${nextTurnMessage}`;
+  if (continueState?.shouldConfirmReach) {
+    return reachConfirmState(
+      { ...state, pendingDaifugoEffect: null },
+      state.players,
+      skippedIndex,
+    );
+  }
   return advanceToNextDraw(
     { ...state, pendingDaifugoEffect: null },
     state.players,
     skippedIndex,
-    continueState?.message ?? message,
+    message,
   );
 }
 
@@ -561,43 +913,104 @@ function resolveEnhancedFiveSkip(
   playerIndex: number,
   targetPlayerIndex: number,
   allowCpuEnhancement = false,
+  continueState?: PendingDaifugoContinue,
 ): GameState {
-  const option = getEnhancedFiveTurnOptions(state, playerIndex).find((candidate) => candidate.playerIndex === targetPlayerIndex);
+  const option = getEnhancedFiveTurnOptions(state, playerIndex).find(
+    (candidate) => candidate.playerIndex === targetPlayerIndex,
+  );
   if (!option?.selectable) return state;
   const player = state.players[playerIndex];
-  if (!player?.hasJEnhancementRight || (player.isCpu && !allowCpuEnhancement)) return state;
+  if (!player?.hasJEnhancementRight || (player.isCpu && !allowCpuEnhancement))
+    return state;
   const players = consumeJEnhancementRight(state.players, playerIndex);
-  const previousIndex = getPreviousPlayerIndex(targetPlayerIndex, state.players.length, state.direction);
-  const skippedNames = option.skippedPlayerIndexes.map((skippedIndex) => state.players[skippedIndex].name).join("、");
-  const message = `${skippedNames}をスキップ！次の手番は${state.players[targetPlayerIndex].name}です。`;
-  return advanceToNextDraw({ ...state, players, pendingDaifugoEffect: null }, players, previousIndex, message);
+  const previousIndex = getPreviousPlayerIndex(
+    targetPlayerIndex,
+    state.players.length,
+    state.direction,
+  );
+  const skippedNames = option.skippedPlayerIndexes
+    .map((skippedIndex) => state.players[skippedIndex].name)
+    .join("、");
+
+  const skipMessage = skippedNames
+    ? `${player.name}がJ強化5スキップを使用し、${skippedNames}をスキップしました。`
+    : `${player.name}がJ強化5スキップを使用しました。`;
+
+  const message = `${skipMessage}${getNextTurnMessage(
+    players,
+    previousIndex,
+    state.direction,
+  )}`;
+
+  if (continueState?.shouldConfirmReach) {
+    return reachConfirmState(
+      { ...state, players, pendingDaifugoEffect: null },
+      players,
+      previousIndex,
+    );
+  }
+
+  return advanceToNextDraw(
+    { ...state, players, pendingDaifugoEffect: null },
+    players,
+    previousIndex,
+    message,
+  );
 }
 
-function getReachPlayerIndexes(state: GameState, playerIndex: number): number[] {
-  return state.players.flatMap((player, index) => (index !== playerIndex && player.isReach ? [index] : []));
+function getReachPlayerIndexes(
+  state: GameState,
+  playerIndex: number,
+): number[] {
+  return state.players.flatMap((player, index) =>
+    index !== playerIndex && player.isReach ? [index] : [],
+  );
 }
 
-function getTwoCallPlayerIndexes(state: GameState, playerIndex: number): number[] {
-  return state.players.flatMap((player, index) => (index !== playerIndex && player.openMelds.length >= 2 ? [index] : []));
+function getTwoCallPlayerIndexes(
+  state: GameState,
+  playerIndex: number,
+): number[] {
+  return state.players.flatMap((player, index) =>
+    index !== playerIndex && player.openMelds.length >= 2 ? [index] : [],
+  );
 }
 
-function getCpuThreatPlayerIndexes(state: GameState, playerIndex: number): number[] {
+function getCpuThreatPlayerIndexes(
+  state: GameState,
+  playerIndex: number,
+): number[] {
   const reachPlayerIndexes = getReachPlayerIndexes(state, playerIndex);
-  return reachPlayerIndexes.length > 0 ? reachPlayerIndexes : getTwoCallPlayerIndexes(state, playerIndex);
+  return reachPlayerIndexes.length > 0
+    ? reachPlayerIndexes
+    : getTwoCallPlayerIndexes(state, playerIndex);
 }
 
 function isNextPlayerReach(state: GameState, playerIndex: number): boolean {
-  const nextPlayerIndex = getNextPlayerIndex(playerIndex, state.players.length, state.direction);
+  const nextPlayerIndex = getNextPlayerIndex(
+    playerIndex,
+    state.players.length,
+    state.direction,
+  );
   return state.players[nextPlayerIndex]?.isReach ?? false;
 }
 
 function isNextPlayerCpuThreat(state: GameState, playerIndex: number): boolean {
-  const threatPlayerIndexes = new Set(getCpuThreatPlayerIndexes(state, playerIndex));
-  const nextPlayerIndex = getNextPlayerIndex(playerIndex, state.players.length, state.direction);
+  const threatPlayerIndexes = new Set(
+    getCpuThreatPlayerIndexes(state, playerIndex),
+  );
+  const nextPlayerIndex = getNextPlayerIndex(
+    playerIndex,
+    state.players.length,
+    state.direction,
+  );
   return threatPlayerIndexes.has(nextPlayerIndex);
 }
 
-function shouldCpuUseRemoteReachEnhancement(state: GameState, playerIndex: number): boolean {
+function shouldCpuUseRemoteReachEnhancement(
+  state: GameState,
+  playerIndex: number,
+): boolean {
   const player = state.players[playerIndex];
   return (
     player?.isCpu === true &&
@@ -609,9 +1022,13 @@ function shouldCpuUseRemoteReachEnhancement(state: GameState, playerIndex: numbe
   );
 }
 
-function getCpuThreatResponseMode(state: GameState, playerIndex: number): CpuThreatResponseMode | undefined {
+function getCpuThreatResponseMode(
+  state: GameState,
+  playerIndex: number,
+): CpuThreatResponseMode | undefined {
   const player = state.players[playerIndex];
-  if (player?.isCpu !== true || !isThreatAwareCpuModel(player.cpuModelId)) return undefined;
+  if (player?.isCpu !== true || !isThreatAwareCpuModel(player.cpuModelId))
+    return undefined;
   if (getReachPlayerIndexes(state, playerIndex).length > 0) return "reach";
   if (getTwoCallPlayerIndexes(state, playerIndex).length > 0) return "twoCall";
   return undefined;
@@ -644,8 +1061,10 @@ function getCpuThreatPlayerIndexesForMode(
   playerIndex: number,
   responseMode: CpuThreatResponseMode | undefined,
 ): number[] {
-  if (responseMode === "reach") return getReachPlayerIndexes(state, playerIndex);
-  if (responseMode === "twoCall") return getTwoCallPlayerIndexes(state, playerIndex);
+  if (responseMode === "reach")
+    return getReachPlayerIndexes(state, playerIndex);
+  if (responseMode === "twoCall")
+    return getTwoCallPlayerIndexes(state, playerIndex);
   return [];
 }
 
@@ -654,7 +1073,9 @@ function chooseCpuThreatTarget(
   playerIndex: number,
   responseMode: CpuThreatResponseMode | undefined,
 ): number | null {
-  const threatPlayerIndexes = new Set(getCpuThreatPlayerIndexesForMode(state, playerIndex, responseMode));
+  const threatPlayerIndexes = new Set(
+    getCpuThreatPlayerIndexesForMode(state, playerIndex, responseMode),
+  );
   let cursor = playerIndex;
   for (let count = 1; count < state.players.length; count += 1) {
     cursor = getNextPlayerIndex(cursor, state.players.length, state.direction);
@@ -669,8 +1090,16 @@ function shouldCpuUseRemoteSevenEnhancement(
   responseMode: CpuThreatResponseMode | undefined,
 ): boolean {
   const player = state.players[playerIndex];
-  const threatPlayerIndexes = getCpuThreatPlayerIndexesForMode(state, playerIndex, responseMode);
-  const nextPlayerIndex = getNextPlayerIndex(playerIndex, state.players.length, state.direction);
+  const threatPlayerIndexes = getCpuThreatPlayerIndexesForMode(
+    state,
+    playerIndex,
+    responseMode,
+  );
+  const nextPlayerIndex = getNextPlayerIndex(
+    playerIndex,
+    state.players.length,
+    state.direction,
+  );
   return (
     player?.isCpu === true &&
     isThreatAwareCpuModel(player.cpuModelId) &&
@@ -681,12 +1110,19 @@ function shouldCpuUseRemoteSevenEnhancement(
   );
 }
 
-function chooseCpuEnhancedFiveTarget(state: GameState, playerIndex: number): number | null {
-  const threatPlayerIndexes = new Set(getCpuThreatPlayerIndexes(state, playerIndex));
+function chooseCpuEnhancedFiveTarget(
+  state: GameState,
+  playerIndex: number,
+): number | null {
+  const threatPlayerIndexes = new Set(
+    getCpuThreatPlayerIndexes(state, playerIndex),
+  );
   const option = getEnhancedFiveTurnOptions(state, playerIndex).find(
     (candidate) =>
       candidate.selectable &&
-      candidate.skippedPlayerIndexes.some((skippedPlayerIndex) => threatPlayerIndexes.has(skippedPlayerIndex)),
+      candidate.skippedPlayerIndexes.some((skippedPlayerIndex) =>
+        threatPlayerIndexes.has(skippedPlayerIndex),
+      ),
   );
   return option?.playerIndex ?? null;
 }
@@ -726,7 +1162,13 @@ function startSevenExchange(
   });
 }
 
-function resolveSevenExchange(state: GameState, pending: Extract<NonNullable<GameState["pendingDaifugoEffect"]>, { kind: "sevenExchange" }>): GameState {
+function resolveSevenExchange(
+  state: GameState,
+  pending: Extract<
+    NonNullable<GameState["pendingDaifugoEffect"]>,
+    { kind: "sevenExchange" }
+  >,
+): GameState {
   const giver = state.players[pending.playerIndex];
   const target = state.players[pending.targetPlayerIndex];
   const giverCardId = pending.selections[pending.playerIndex];
@@ -737,19 +1179,36 @@ function resolveSevenExchange(state: GameState, pending: Extract<NonNullable<Gam
 
   const nextGiver: Player = {
     ...giver,
-    hand: sortCards([...giver.hand.filter((card) => card.id !== giverCard.id), targetCard]),
+    hand: sortCards([
+      ...giver.hand.filter((card) => card.id !== giverCard.id),
+      targetCard,
+    ]),
   };
   const nextTarget: Player = {
     ...target,
-    hand: sortCards([...target.hand.filter((card) => card.id !== targetCard.id), giverCard]),
+    hand: sortCards([
+      ...target.hand.filter((card) => card.id !== targetCard.id),
+      giverCard,
+    ]),
   };
   const exchangedPlayers = consumeJEnhancementRightAfterSeven(
-    replacePlayer(replacePlayer(state.players, pending.playerIndex, nextGiver), pending.targetPlayerIndex, nextTarget),
+    replacePlayer(
+      replacePlayer(state.players, pending.playerIndex, nextGiver),
+      pending.targetPlayerIndex,
+      nextTarget,
+    ),
     pending.playerIndex,
     pending.consumeJEnhancementRightOnComplete,
   );
-  const { players, releasedPlayerIndexes } = releaseInvalidReachPlayers(exchangedPlayers);
-  const message = appendReachReleaseMessage(`${giver.name}と${target.name}が互いにカードを渡しました。`, players, releasedPlayerIndexes);
+  const { players, releasedPlayerIndexes } = releaseInvalidReachPlayers(
+    state,
+    exchangedPlayers,
+  );
+  const message = appendReachReleaseMessage(
+    `${giver.name}と${target.name}が互いにカードを渡しました。`,
+    players,
+    releasedPlayerIndexes,
+  );
   return continueAfterDaifugo(
     {
       ...state,
@@ -773,12 +1232,21 @@ function resolveSevenExchange(state: GameState, pending: Extract<NonNullable<Gam
   );
 }
 
-function getSevenExchangeSelectedCardOrDecoy(player: Player, selectedCardId?: string, allowAnyCard = false): { card: Card | null; player: Player } {
-  const selectedCard = player.hand.find((card) => card.id === selectedCardId) ?? null;
+function getSevenExchangeSelectedCardOrDecoy(
+  player: Player,
+  selectedCardId?: string,
+  allowAnyCard = false,
+): { card: Card | null; player: Player } {
+  const selectedCard =
+    player.hand.find((card) => card.id === selectedCardId) ?? null;
   if (!selectedCard) return { card: null, player };
-  if (!isCardJShielded(player, selectedCard)) return { card: selectedCard, player };
+  if (!isCardJShielded(player, selectedCard))
+    return { card: selectedCard, player };
 
-  const decoy = getSevenExchangeCandidateCards(player, allowAnyCard).find((card) => card.id !== selectedCard.id) ?? null;
+  const decoy =
+    getSevenExchangeCandidateCards(player, allowAnyCard).find(
+      (card) => card.id !== selectedCard.id,
+    ) ?? null;
   if (!decoy) {
     console.warn("[J shield] 7 exchange shielded card had no decoy candidate", {
       playerId: player.id,
@@ -792,27 +1260,50 @@ function getSevenExchangeSelectedCardOrDecoy(player: Player, selectedCardId?: st
 
 function resolveSevenExchangeWithReachReview(
   state: GameState,
-  pending: Extract<NonNullable<GameState["pendingDaifugoEffect"]>, { kind: "sevenExchange" }>,
+  pending: Extract<
+    NonNullable<GameState["pendingDaifugoEffect"]>,
+    { kind: "sevenExchange" }
+  >,
 ): GameState {
   const giver = state.players[pending.playerIndex];
   const target = state.players[pending.targetPlayerIndex];
   if (!giver || !target) return state;
-  const giverSelection = getSevenExchangeSelectedCardOrDecoy(giver, pending.selections[pending.playerIndex], true);
-  const targetSelection = getSevenExchangeSelectedCardOrDecoy(target, pending.selections[pending.targetPlayerIndex], false);
+  const giverSelection = getSevenExchangeSelectedCardOrDecoy(
+    giver,
+    pending.selections[pending.playerIndex],
+    true,
+  );
+  const targetSelection = getSevenExchangeSelectedCardOrDecoy(
+    target,
+    pending.selections[pending.targetPlayerIndex],
+    false,
+  );
   const giverCard = giverSelection.card;
   const targetCard = targetSelection.card;
   if (!giverCard || !targetCard) return state;
 
   const nextGiver: Player = {
     ...giverSelection.player,
-    hand: sortCards([...giverSelection.player.hand.filter((card) => card.id !== giverCard.id), targetCard]),
+    hand: sortCards([
+      ...giverSelection.player.hand.filter((card) => card.id !== giverCard.id),
+      targetCard,
+    ]),
   };
   const nextTarget: Player = {
     ...targetSelection.player,
-    hand: sortCards([...targetSelection.player.hand.filter((card) => card.id !== targetCard.id), giverCard]),
+    hand: sortCards([
+      ...targetSelection.player.hand.filter(
+        (card) => card.id !== targetCard.id,
+      ),
+      giverCard,
+    ]),
   };
   const exchangedPlayers = consumeJEnhancementRightAfterSeven(
-    replacePlayer(replacePlayer(state.players, pending.playerIndex, nextGiver), pending.targetPlayerIndex, nextTarget),
+    replacePlayer(
+      replacePlayer(state.players, pending.playerIndex, nextGiver),
+      pending.targetPlayerIndex,
+      nextTarget,
+    ),
     pending.playerIndex,
     pending.consumeJEnhancementRightOnComplete,
   );
@@ -846,7 +1337,11 @@ function resolveSevenExchangeWithReachReview(
     state.currentPlayerIndex,
     "sevenExchange",
     reachCheck.confirmPlayerIndex,
-    reachCheck.message,
+    getNextTurnMessage(
+      reachCheck.players,
+      state.currentPlayerIndex,
+      state.direction,
+    ),
   );
 }
 
@@ -856,7 +1351,10 @@ function resolveSevenExchangeIfReady(state: GameState): GameState {
   const selections = fillCpuSevenExchangeSelections(state, pending);
   const nextPending = { ...pending, selections };
   const nextState: GameState = { ...state, pendingDaifugoEffect: nextPending };
-  if (selections[pending.playerIndex] && selections[pending.targetPlayerIndex]) {
+  if (
+    selections[pending.playerIndex] &&
+    selections[pending.targetPlayerIndex]
+  ) {
     return resolveSevenExchangeWithReachReview(nextState, nextPending);
   }
   const waiting = [pending.playerIndex, pending.targetPlayerIndex]
@@ -872,27 +1370,39 @@ function resolveSevenExchangeIfReady(state: GameState): GameState {
   };
 }
 
-export function chooseCpuQueenRank(state: GameState, playerIndex: number): number {
+export function chooseCpuQueenRank(
+  state: GameState,
+  playerIndex: number,
+): number {
   const selectableRanks = new Set(getSelectableQueenVanishRanks(state));
-  const ownIds = new Set(state.players[playerIndex]?.hand.map((card) => card.id) ?? []);
+  const ownIds = new Set(
+    state.players[playerIndex]?.hand.map((card) => card.id) ?? [],
+  );
   const counts = new Map<number, number>();
   for (const player of state.players) {
     for (const card of player.hand) {
-      counts.set(card.rank, (counts.get(card.rank) ?? 0) + (ownIds.has(card.id) ? -1 : 1));
+      counts.set(
+        card.rank,
+        (counts.get(card.rank) ?? 0) + (ownIds.has(card.id) ? -1 : 1),
+      );
     }
   }
   for (const card of state.deck) {
     counts.set(card.rank, (counts.get(card.rank) ?? 0) + 1);
   }
-  return Array.from({ length: 13 }, (_, index) => index + 1)
-    .filter((rank) => selectableRanks.has(rank))
-    .sort((a, b) => (counts.get(b) ?? 0) - (counts.get(a) ?? 0))[0] ?? 12;
+  return (
+    Array.from({ length: 13 }, (_, index) => index + 1)
+      .filter((rank) => selectableRanks.has(rank))
+      .sort((a, b) => (counts.get(b) ?? 0) - (counts.get(a) ?? 0))[0] ?? 12
+  );
 }
 
 function resolveQueenNumberVanish(state: GameState, rank: number): GameState {
   const pending = state.pendingDaifugoEffect;
   if (!pending || pending.kind !== "queenSelect") return state;
-  const rankOption = getQueenVanishRankOptions(state).find((option) => option.rank === rank);
+  const rankOption = getQueenVanishRankOptions(state).find(
+    (option) => option.rank === rank,
+  );
   if (!rankOption?.selectable) return state;
 
   const beforeDeckCount = state.deck.length;
@@ -900,36 +1410,73 @@ function resolveQueenNumberVanish(state: GameState, rank: number): GameState {
   const removedFromDeck = state.deck.length - deck.length;
   const discardSummaries: string[] = [];
   const drawSummaries: string[] = [];
-  const queenDiscardResults: NonNullable<DaifugoEffectEvent["queenDiscardResults"]> = [];
+  const queenDiscardResults: NonNullable<
+    DaifugoEffectEvent["queenDiscardResults"]
+  > = [];
   let refillDrawCount = 0;
 
   const playersBeforeReachCheck = state.players.map((player, playerIndex) => {
     const removedCards = player.hand.filter((card) => card.rank === rank);
     if (removedCards.length === 0) return player;
-    const shieldedCards = removedCards.filter((card) => isCardJShielded(player, card));
-    const discardedCards = removedCards.filter((card) => !isCardJShielded(player, card));
-    const queenDiscardedCards = discardedCards.map((card) => ({ ...card, discardedByEffect: "queenNumberVanish" as const }));
+    const shieldedCards = removedCards.filter((card) =>
+      isCardJShielded(player, card),
+    );
+    const discardedCards = removedCards.filter(
+      (card) => !isCardJShielded(player, card),
+    );
+    const queenDiscardedCards = discardedCards.map((card) => ({
+      ...card,
+      discardedByEffect: "queenNumberVanish" as const,
+    }));
 
     const drawnCards = deck.slice(0, discardedCards.length);
     deck = deck.slice(drawnCards.length);
     refillDrawCount += drawnCards.length;
     if (queenDiscardedCards.length > 0) {
-      queenDiscardResults.push({ playerIndex, discardedCards: queenDiscardedCards, drawnCards });
+      queenDiscardResults.push({
+        playerIndex,
+        discardedCards: queenDiscardedCards,
+        drawnCards,
+      });
     }
-    if (discardedCards.length > 0) discardSummaries.push(`${player.name}が${formatRank(rank)}を${discardedCards.length}枚捨てました`);
-    if (drawnCards.length > 0) drawSummaries.push(`${player.name}が山札から${drawnCards.length}枚引きました`);
+    if (discardedCards.length > 0)
+      discardSummaries.push(
+        `${player.name}が${formatRank(rank)}を${discardedCards.length}枚捨てました`,
+      );
+    if (drawnCards.length > 0)
+      drawSummaries.push(
+        `${player.name}が山札から${drawnCards.length}枚引きました`,
+      );
     return {
-      ...(shieldedCards.length > 0 ? consumeJShieldCards(player, shieldedCards.map((card) => card.id)) : player),
-      hand: sortCards([...player.hand.filter((card) => card.rank !== rank), ...shieldedCards, ...drawnCards]),
+      ...(shieldedCards.length > 0
+        ? consumeJShieldCards(
+            player,
+            shieldedCards.map((card) => card.id),
+          )
+        : player),
+      hand: sortCards([
+        ...player.hand.filter((card) => card.rank !== rank),
+        ...shieldedCards,
+        ...drawnCards,
+      ]),
       discardPile: [...player.discardPile, ...queenDiscardedCards],
     };
   });
-  const affectedPlayerIndexes = queenDiscardResults.map((result) => result.playerIndex);
-  const reachCheck = recheckReachAfterHandChange(state, playersBeforeReachCheck, affectedPlayerIndexes, "queenNumberVanish", "");
+  const affectedPlayerIndexes = queenDiscardResults.map(
+    (result) => result.playerIndex,
+  );
+  const reachCheck = recheckReachAfterHandChange(
+    { ...state, deck },
+    playersBeforeReachCheck,
+    affectedPlayerIndexes,
+    "queenNumberVanish",
+    "",
+  );
   const players = reachCheck.players;
   const releasedPlayerIndexes = reachCheck.releasedPlayerIndexes;
   const afterDeckCount = deck.length;
-  const expectedAfterDeckCount = beforeDeckCount - removedFromDeck - refillDrawCount;
+  const expectedAfterDeckCount =
+    beforeDeckCount - removedFromDeck - refillDrawCount;
   const queenDeckAudit = {
     beforeDeckCount,
     removedFromDeckCount: removedFromDeck,
@@ -944,17 +1491,23 @@ function resolveQueenNumberVanish(state: GameState, rank: number): GameState {
     console.warn("[Q effect deck mismatch]", queenDeckAudit);
   }
 
-  const baseMessage = [
-    `${state.players[pending.playerIndex].name}がQの効果で${formatRank(rank)}を指定しました。`,
-    `山札から${formatRank(rank)}を${removedFromDeck}枚除外しました。`,
-    discardSummaries.join("、") || `${formatRank(rank)}を持つプレイヤーはいませんでした。`,
-    drawSummaries.join("、"),
-    `山札: ${beforeDeckCount} → ${afterDeckCount}（内訳: 除外${removedFromDeck}枚 + 補充ドロー${refillDrawCount}枚）`,
-  ].filter(Boolean).join(" ");
-  const message = appendReachReleaseMessage(baseMessage, players, releasedPlayerIndexes);
+  const vanishNotice = `これ以降、この山札から${formatRank(rank)}は出現しません。`;
+  const message = appendReachReleaseMessage(
+    `${vanishNotice}${getNextTurnMessage(
+      players,
+      state.currentPlayerIndex,
+      state.direction,
+    )}`,
+    players,
+    releasedPlayerIndexes,
+  );
 
   const user = players[pending.playerIndex];
-  const winningResult = checkWinningHandWithOpenMelds(user.hand, user.openMelds, state.isJBackActive);
+  const winningResult = checkWinningHandWithOpenMelds(
+    user.hand,
+    user.openMelds,
+    state.isJBackActive,
+  );
   const nextState: GameState = {
     ...state,
     players,
@@ -962,7 +1515,9 @@ function resolveQueenNumberVanish(state: GameState, rank: number): GameState {
     pendingDaifugoEffect: null,
     drawnCard: null,
     drawnFrom: null,
-    queenVanishedRanks: [...new Set([...(state.queenVanishedRanks ?? []), rank])],
+    queenVanishedRanks: [
+      ...new Set([...(state.queenVanishedRanks ?? []), rank]),
+    ],
     daifugoEffectEvent: {
       id: makeDaifugoEventId("queenNumberVanish", state),
       kind: "queenNumberVanish",
@@ -983,7 +1538,10 @@ function resolveQueenNumberVanish(state: GameState, rank: number): GameState {
     });
     return {
       ...nextState,
-      players: replacePlayer(players, pending.playerIndex, { ...user, winningResult }),
+      players: replacePlayer(players, pending.playerIndex, {
+        ...user,
+        winningResult,
+      }),
       pendingDaifugoEffect: {
         kind: "queenWinConfirm",
         effect: "queenNumberVanish",
@@ -1005,12 +1563,21 @@ function resolveQueenNumberVanish(state: GameState, rank: number): GameState {
   );
 }
 
-function drawOneForPlayer(state: GameState, playerIndex: number): { state: GameState; drawnCard: Card | null } {
+function drawOneForPlayer(
+  state: GameState,
+  playerIndex: number,
+): { state: GameState; drawnCard: Card | null } {
   if (state.deck.length === 0) return { state, drawnCard: null };
   const [drawnCard, ...deck] = state.deck;
   const player = state.players[playerIndex];
-  const players = replacePlayer(state.players, playerIndex, { ...player, hand: sortCards([...player.hand, drawnCard]) });
-  return { state: { ...state, deck, players, drawnCard, drawnFrom: "deck" }, drawnCard };
+  const players = replacePlayer(state.players, playerIndex, {
+    ...player,
+    hand: sortCards([...player.hand, drawnCard]),
+  });
+  return {
+    state: { ...state, deck, players, drawnCard, drawnFrom: "deck" },
+    drawnCard,
+  };
 }
 
 function makeWinningState(
@@ -1040,14 +1607,25 @@ function makeWinningState(
   };
 }
 
-function getJackInspectTargetPlayerIndexes(state: GameState, playerIndex: number): number[] {
-  return state.players.map((_, index) => index).filter((index) => index !== playerIndex);
+function getJackInspectTargetPlayerIndexes(
+  state: GameState,
+  playerIndex: number,
+): number[] {
+  return state.players
+    .map((_, index) => index)
+    .filter((index) => index !== playerIndex);
 }
 
-function startJackShieldSelect(state: GameState, playerIndex: number, continueState: PendingDaifugoContinue): GameState {
+function startJackShieldSelect(
+  state: GameState,
+  playerIndex: number,
+  continueState: PendingDaifugoContinue,
+): GameState {
   const player = state.players[playerIndex];
   if (!player || player.isCpu) return state;
-  const selectableRanks = [...new Set(player.hand.map((card) => card.rank))].sort((a, b) => a - b);
+  const selectableRanks = [
+    ...new Set(player.hand.map((card) => card.rank)),
+  ].sort((a, b) => a - b);
   const selectableRuns = getJackShieldRunOptions(player);
   if (selectableRanks.length === 0 && selectableRuns.length === 0) return state;
   return {
@@ -1070,7 +1648,9 @@ function resolveJackShieldEffect(state: GameState, rank: number): GameState {
   if (!pending.selectableRanks.includes(rank)) return state;
   const player = state.players[pending.playerIndex];
   if (!player || player.isCpu) return state;
-  const cardIds = player.hand.filter((card) => card.rank === rank).map((card) => card.id);
+  const cardIds = player.hand
+    .filter((card) => card.rank === rank)
+    .map((card) => card.id);
   if (cardIds.length === 0) return state;
   const players = replacePlayer(state.players, pending.playerIndex, {
     ...player,
@@ -1085,7 +1665,12 @@ function resolveJackShieldEffect(state: GameState, rank: number): GameState {
     {
       ...pending.continue,
       shouldConfirmReach: false,
-      message: `${player.name}がJシールドを発動しました。`,
+      message: appendNextTurnMessage(
+        players,
+        pending.playerIndex,
+        state.direction,
+        "Jシールドを発動しました。",
+      ),
     },
   );
 }
@@ -1093,7 +1678,9 @@ function resolveJackShieldEffect(state: GameState, rank: number): GameState {
 function resolveJackShieldRunEffect(state: GameState, key: string): GameState {
   const pending = state.pendingDaifugoEffect;
   if (!pending || pending.kind !== "jackShieldSelect") return state;
-  const target = pending.selectableRuns?.find((candidate) => candidate.key === key);
+  const target = pending.selectableRuns?.find(
+    (candidate) => candidate.key === key,
+  );
   if (!target) return state;
   const player = state.players[pending.playerIndex];
   if (!player || player.isCpu) return state;
@@ -1101,7 +1688,12 @@ function resolveJackShieldRunEffect(state: GameState, key: string): GameState {
   if (!target.cardIds.every((cardId) => heldIds.has(cardId))) return state;
   const players = replacePlayer(state.players, pending.playerIndex, {
     ...player,
-    jShield: { kind: "run", ranks: target.ranks, label: target.label, cardIds: target.cardIds },
+    jShield: {
+      kind: "run",
+      ranks: target.ranks,
+      label: target.label,
+      cardIds: target.cardIds,
+    },
   });
   return continueAfterDaifugo(
     {
@@ -1112,12 +1704,19 @@ function resolveJackShieldRunEffect(state: GameState, key: string): GameState {
     {
       ...pending.continue,
       shouldConfirmReach: false,
-      message: `${player.name}がJシールドを発動しました。`,
+      message: appendNextTurnMessage(
+        players,
+        pending.playerIndex,
+        state.direction,
+        "Jシールドを発動しました。",
+      ),
     },
   );
 }
 
-const MASTER_J_SHIELD_RANK_PRIORITY = [12, 7, 5, 11, 8, 10, 9, 13, 6, 4, 3, 2, 1];
+const MASTER_J_SHIELD_RANK_PRIORITY = [
+  12, 7, 5, 11, 8, 10, 9, 13, 6, 4, 3, 2, 1,
+];
 const MASTER_J_SHIELD_RUN_PRIORITY = [
   [10, 11, 12],
   [11, 12, 13],
@@ -1136,7 +1735,10 @@ type JShieldTarget =
   | { kind: "rank"; rank: number; cardIds: string[] }
   | { kind: "run"; ranks: number[]; label: string; cardIds: string[] };
 
-function logMasterJShieldMetric(metric: string, detail: Record<string, unknown> = {}) {
+function logMasterJShieldMetric(
+  metric: string,
+  detail: Record<string, unknown> = {},
+) {
   console.info("[master J shield]", { [metric]: 1, ...detail });
 }
 
@@ -1152,7 +1754,9 @@ function formatRunLabel(ranks: number[]): string {
   return ranks.map(formatRank).join("");
 }
 
-function getCompletedRunShieldTargets(player: Player): Array<Extract<JShieldTarget, { kind: "run" }>> {
+function getCompletedRunShieldTargets(
+  player: Player,
+): Array<Extract<JShieldTarget, { kind: "run" }>> {
   const targets: Array<Extract<JShieldTarget, { kind: "run" }>> = [];
   const melds = findPossibleMelds(player.hand).filter(isRun);
   const usedKeys = new Set<string>();
@@ -1162,7 +1766,10 @@ function getCompletedRunShieldTargets(player: Player): Array<Extract<JShieldTarg
       return ranks.every((rank, index) => meldRanks[index] === rank);
     });
     for (const meld of candidates) {
-      const key = meld.map((card) => card.id).sort().join("|");
+      const key = meld
+        .map((card) => card.id)
+        .sort()
+        .join("|");
       if (usedKeys.has(key)) continue;
       usedKeys.add(key);
       targets.push({
@@ -1176,19 +1783,29 @@ function getCompletedRunShieldTargets(player: Player): Array<Extract<JShieldTarg
   return targets;
 }
 
-function getCompletedRankShieldTargets(player: Player): Array<Extract<JShieldTarget, { kind: "rank" }>> {
+function getCompletedRankShieldTargets(
+  player: Player,
+): Array<Extract<JShieldTarget, { kind: "rank" }>> {
   const cardsByRank = countCardsByRank(player.hand);
   const targets: Array<Extract<JShieldTarget, { kind: "rank" }>> = [];
   for (const rank of MASTER_J_SHIELD_RANK_PRIORITY) {
     const cards = cardsByRank.get(rank) ?? [];
     if (cards.length >= 3) {
-      targets.push({ kind: "rank", rank, cardIds: cards.slice(0, rank === 11 ? 3 : cards.length).map((card) => card.id) });
+      targets.push({
+        kind: "rank",
+        rank,
+        cardIds: cards
+          .slice(0, rank === 11 ? 3 : cards.length)
+          .map((card) => card.id),
+      });
     }
   }
   return targets;
 }
 
-export function getJackShieldRunOptions(player: Player): Array<{ key: string; label: string; ranks: number[]; cardIds: string[] }> {
+export function getJackShieldRunOptions(
+  player: Player,
+): Array<{ key: string; label: string; ranks: number[]; cardIds: string[] }> {
   return getCompletedRunShieldTargets(player).map((target) => ({
     key: target.cardIds.join("|"),
     label: target.label,
@@ -1201,17 +1818,29 @@ function hasRunJShield(player: Player): boolean {
   return player.jShield?.kind === "run";
 }
 
-function chooseMasterJShieldTarget(state: GameState, player: Player): JShieldTarget | null {
+function chooseMasterJShieldTarget(
+  state: GameState,
+  player: Player,
+): JShieldTarget | null {
   const vanishedRanks = new Set(state.queenVanishedRanks ?? []);
   const mayUseRunShield = !(vanishedRanks.has(7) && vanishedRanks.has(12));
   if (mayUseRunShield && !hasRunJShield(player)) {
-    const runTarget = getCompletedRunShieldTargets(player).find((target) => canSpendJWithoutBreakingShieldTarget(player, target));
+    const runTarget = getCompletedRunShieldTargets(player).find((target) =>
+      canSpendJWithoutBreakingShieldTarget(player, target),
+    );
     if (runTarget) return runTarget;
   }
-  return getCompletedRankShieldTargets(player).find((target) => canSpendJWithoutBreakingShieldTarget(player, target)) ?? null;
+  return (
+    getCompletedRankShieldTargets(player).find((target) =>
+      canSpendJWithoutBreakingShieldTarget(player, target),
+    ) ?? null
+  );
 }
 
-function canSpendJWithoutBreakingShieldTarget(player: Player, target: JShieldTarget): boolean {
+function canSpendJWithoutBreakingShieldTarget(
+  player: Player,
+  target: JShieldTarget,
+): boolean {
   const targetCards = target.cardIds
     .map((cardId) => player.hand.find((card) => card.id === cardId))
     .filter((card): card is Card => Boolean(card));
@@ -1234,13 +1863,22 @@ function resolveMasterJackShieldEffect(
     jShield:
       target.kind === "rank"
         ? { rank: target.rank, cardIds: target.cardIds }
-        : { kind: "run", ranks: target.ranks, label: target.label, cardIds: target.cardIds },
+        : {
+            kind: "run",
+            ranks: target.ranks,
+            label: target.label,
+            cardIds: target.cardIds,
+          },
   });
   logMasterJShieldMetric("masterJShieldUsedCount", { playerIndex });
   if (target.kind === "rank") {
-    logMasterJShieldMetric("masterJShieldTargetRankCount", { rank: target.rank });
+    logMasterJShieldMetric("masterJShieldTargetRankCount", {
+      rank: target.rank,
+    });
   } else {
-    logMasterJShieldMetric("masterJShieldTargetRunCount", { ranks: target.ranks.join("-") });
+    logMasterJShieldMetric("masterJShieldTargetRunCount", {
+      ranks: target.ranks.join("-"),
+    });
   }
   return continueAfterDaifugo(
     {
@@ -1251,20 +1889,33 @@ function resolveMasterJackShieldEffect(
     {
       ...continueState,
       shouldConfirmReach: false,
-      message: `${player.name}がJシールドを発動しました。`,
+      message: appendNextTurnMessage(
+        players,
+        playerIndex,
+        state.direction,
+        "Jシールドを発動しました。",
+      ),
     },
   );
 }
 
-function tryResolveMasterJackShieldEffect(state: GameState, playerIndex: number, continueState: PendingDaifugoContinue): GameState | null {
+function tryResolveMasterJackShieldEffect(
+  state: GameState,
+  playerIndex: number,
+  continueState: PendingDaifugoContinue,
+): GameState | null {
   const player = state.players[playerIndex];
   if (!player) return null;
   if (player.openMelds.length >= 2) {
-    logMasterJShieldMetric("masterJShieldSkippedTwoCallSelfCount", { playerIndex });
+    logMasterJShieldMetric("masterJShieldSkippedTwoCallSelfCount", {
+      playerIndex,
+    });
     return null;
   }
   if (findPossibleMelds(player.hand).length === 0) {
-    logMasterJShieldMetric("masterJShieldSkippedNoCompletedMeldCount", { playerIndex });
+    logMasterJShieldMetric("masterJShieldSkippedNoCompletedMeldCount", {
+      playerIndex,
+    });
     return null;
   }
   if (hasRunJShield(player)) {
@@ -1276,19 +1927,70 @@ function tryResolveMasterJackShieldEffect(state: GameState, playerIndex: number,
   }
   const target = chooseMasterJShieldTarget(state, player);
   if (!target) {
-    logMasterJShieldMetric("masterJShieldSkippedNoCompletedMeldCount", { playerIndex });
+    logMasterJShieldMetric("masterJShieldSkippedNoCompletedMeldCount", {
+      playerIndex,
+    });
     return null;
   }
-  return resolveMasterJackShieldEffect(state, playerIndex, continueState, target);
+  return resolveMasterJackShieldEffect(
+    state,
+    playerIndex,
+    continueState,
+    target,
+  );
 }
 
-function startJackInspectEffect(state: GameState, playerIndex: number, continueState: PendingDaifugoContinue): GameState {
-  const targetPlayerIndexes = getJackInspectTargetPlayerIndexes(state, playerIndex);
-  const playerName = state.players[playerIndex]?.name ?? "プレイヤー";
+function getPlayerNameList(players: Player[], playerIndexes: number[]): string {
+  return (
+    playerIndexes
+      .map((playerIndex) => players[playerIndex]?.name)
+      .filter((name): name is string => Boolean(name))
+      .join("と") || "相手"
+  );
+}
+
+function getJackInspectProgressMessage(
+  players: Player[],
+  playerIndex: number,
+  targetPlayerIndexes: number[],
+): string {
+  const targetNames = getPlayerNameList(players, targetPlayerIndexes);
+  return `J効果を使用し、他のプレイヤーの手札を閲覧しています。`;
+}
+
+function getJackInspectCompleteMessage(
+  players: Player[],
+  playerIndex: number,
+  direction: Direction,
+): string {
+  return `情報閲覧が完了しました。${getNextTurnMessage(
+    players,
+    playerIndex,
+    direction,
+  )}`;
+}
+
+function startJackInspectEffect(
+  state: GameState,
+  playerIndex: number,
+  continueState: PendingDaifugoContinue,
+): GameState {
+  const targetPlayerIndexes = getJackInspectTargetPlayerIndexes(
+    state,
+    playerIndex,
+  );
   if (targetPlayerIndexes.length === 0) {
     return continueAfterDaifugo(
       { ...state, pendingDaifugoEffect: null },
-      { ...continueState, shouldConfirmReach: false, message: `${playerName}が情報閲覧を完了しました。` },
+      {
+        ...continueState,
+        shouldConfirmReach: false,
+        message: getJackInspectCompleteMessage(
+          state.players,
+          playerIndex,
+          state.direction,
+        ),
+      },
     );
   }
   return {
@@ -1302,14 +2004,25 @@ function startJackInspectEffect(state: GameState, playerIndex: number, continueS
       revealedCardIds: {},
       continue: continueState,
     },
-    message: `${playerName}がJ効果で相手の手札を確認しています。`,
+    message: getJackInspectProgressMessage(
+      state.players,
+      playerIndex,
+      targetPlayerIndexes,
+    ),
   };
 }
 
-function resolveJackEnhancementRightEffect(state: GameState, playerIndex: number, continueState: PendingDaifugoContinue): GameState {
+function resolveJackEnhancementRightEffect(
+  state: GameState,
+  playerIndex: number,
+  continueState: PendingDaifugoContinue,
+): GameState {
   const player = state.players[playerIndex];
   if (!player || player.hasJEnhancementRight) return state;
-  const players = replacePlayer(state.players, playerIndex, { ...player, hasJEnhancementRight: true });
+  const players = replacePlayer(state.players, playerIndex, {
+    ...player,
+    hasJEnhancementRight: true,
+  });
   return continueAfterDaifugo(
     {
       ...state,
@@ -1319,29 +2032,50 @@ function resolveJackEnhancementRightEffect(state: GameState, playerIndex: number
     {
       ...continueState,
       shouldConfirmReach: false,
-      message: `${player.name}がJ効果で5/7強化権を獲得しました。`,
+      message: appendNextTurnMessage(
+        players,
+        playerIndex,
+        state.direction,
+        "J効果で5/7強化権を獲得しました。",
+      ),
     },
   );
 }
 
-function resolveCpuJackInspectEffect(state: GameState, playerIndex: number, continueState: PendingDaifugoContinue): GameState {
+function resolveCpuJackInspectEffect(
+  state: GameState,
+  playerIndex: number,
+  continueState: PendingDaifugoContinue,
+): GameState {
   const playerName = state.players[playerIndex]?.name ?? "CPU";
   return continueAfterDaifugo(
     { ...state, pendingDaifugoEffect: null },
     {
       ...continueState,
       shouldConfirmReach: false,
-      message: `${playerName} completed J information browsing.`,
+      message: getJackInspectCompleteMessage(
+        state.players,
+        playerIndex,
+        state.direction,
+      ),
     },
   );
 }
 
-function hasUsableRank(player: Player, state: GameState, rank: number): boolean {
+function hasUsableRank(
+  player: Player,
+  state: GameState,
+  rank: number,
+): boolean {
   if ((state.queenVanishedRanks ?? []).includes(rank)) return false;
   return player.hand.some((card) => card.rank === rank);
 }
 
-function resolveMasterCpuJackSpecialEffect(state: GameState, playerIndex: number, continueState: PendingDaifugoContinue): GameState {
+function resolveMasterCpuJackSpecialEffect(
+  state: GameState,
+  playerIndex: number,
+  continueState: PendingDaifugoContinue,
+): GameState {
   const player = state.players[playerIndex];
   if (!player) return state;
   const hasFive = hasUsableRank(player, state, 5);
@@ -1350,29 +2084,47 @@ function resolveMasterCpuJackSpecialEffect(state: GameState, playerIndex: number
   const vanishedRanks = new Set(state.queenVanishedRanks ?? []);
   const lacksFiveOrSeven = !hasFive && !hasSeven;
   const lacksFiveSevenQueen = lacksFiveOrSeven && !hasQueen;
-  const shouldPreferShieldOverEnhancement = player.hasJEnhancementRight || (vanishedRanks.has(5) && vanishedRanks.has(7));
-  const shieldOrInspect = () => tryResolveMasterJackShieldEffect(state, playerIndex, continueState) ?? resolveCpuJackInspectEffect(state, playerIndex, continueState);
+  const shouldPreferShieldOverEnhancement =
+    player.hasJEnhancementRight ||
+    (vanishedRanks.has(5) && vanishedRanks.has(7));
+  const shieldOrInspect = () =>
+    tryResolveMasterJackShieldEffect(state, playerIndex, continueState) ??
+    resolveCpuJackInspectEffect(state, playerIndex, continueState);
   const enhanceOrFallback = () => {
     if (!shouldPreferShieldOverEnhancement && !player.hasJEnhancementRight) {
-      return resolveJackEnhancementRightEffect(state, playerIndex, continueState);
+      return resolveJackEnhancementRightEffect(
+        state,
+        playerIndex,
+        continueState,
+      );
     }
     return shieldOrInspect();
   };
 
-  const nextPlayerIndex = getNextPlayerIndex(playerIndex, state.players.length, state.direction);
+  const nextPlayerIndex = getNextPlayerIndex(
+    playerIndex,
+    state.players.length,
+    state.direction,
+  );
   const adjacentReach = state.players[nextPlayerIndex]?.isReach === true;
-  const remoteReach = getReachPlayerIndexes(state, playerIndex).some((index) => index !== nextPlayerIndex);
+  const remoteReach = getReachPlayerIndexes(state, playerIndex).some(
+    (index) => index !== nextPlayerIndex,
+  );
   const adjacentTwoCall = state.players[nextPlayerIndex]?.openMelds.length >= 2;
-  const remoteTwoCall = getTwoCallPlayerIndexes(state, playerIndex).some((index) => index !== nextPlayerIndex);
+  const remoteTwoCall = getTwoCallPlayerIndexes(state, playerIndex).some(
+    (index) => index !== nextPlayerIndex,
+  );
 
   if (adjacentReach) {
-    if (lacksFiveOrSeven && hasQueen) return resolveCpuJackInspectEffect(state, playerIndex, continueState);
+    if (lacksFiveOrSeven && hasQueen)
+      return resolveCpuJackInspectEffect(state, playerIndex, continueState);
     if (lacksFiveSevenQueen) return shieldOrInspect();
     return resolveCpuJackInspectEffect(state, playerIndex, continueState);
   }
 
   if (remoteReach) {
-    if (lacksFiveOrSeven && hasQueen) return resolveCpuJackInspectEffect(state, playerIndex, continueState);
+    if (lacksFiveOrSeven && hasQueen)
+      return resolveCpuJackInspectEffect(state, playerIndex, continueState);
     if (lacksFiveSevenQueen) return enhanceOrFallback();
     return resolveCpuJackInspectEffect(state, playerIndex, continueState);
   }
@@ -1390,13 +2142,21 @@ function resolveMasterCpuJackSpecialEffect(state: GameState, playerIndex: number
   if (hasFive && hasSeven && !player.hasJEnhancementRight) {
     return resolveJackEnhancementRightEffect(state, playerIndex, continueState);
   }
-  const normalShield = tryResolveMasterJackShieldEffect(state, playerIndex, continueState);
+  const normalShield = tryResolveMasterJackShieldEffect(
+    state,
+    playerIndex,
+    continueState,
+  );
   if (normalShield) return normalShield;
   if (lacksFiveSevenQueen) return enhanceOrFallback();
   return resolveCpuJackInspectEffect(state, playerIndex, continueState);
 }
 
-function resolveCpuJackSpecialEffect(state: GameState, playerIndex: number, continueState: PendingDaifugoContinue): GameState {
+function resolveCpuJackSpecialEffect(
+  state: GameState,
+  playerIndex: number,
+  continueState: PendingDaifugoContinue,
+): GameState {
   const player = state.players[playerIndex];
   if (player?.cpuModelId === "master") {
     return resolveMasterCpuJackSpecialEffect(state, playerIndex, continueState);
@@ -1425,28 +2185,49 @@ function resolveCpuJackSpecialEffect(state: GameState, playerIndex: number, cont
   return resolveCpuJackInspectEffect(state, playerIndex, continueState);
 }
 
-function resolveJackSpecialEffect(state: GameState, effect: JackSpecialEffectId): GameState {
+function resolveJackSpecialEffect(
+  state: GameState,
+  effect: JackSpecialEffectId,
+): GameState {
   const pending = state.pendingDaifugoEffect;
   if (!pending || pending.kind !== "jackSelect") return state;
   if (effect === "jShield") {
     return startJackShieldSelect(state, pending.playerIndex, pending.continue);
   }
   if (effect === "enhanceFiveOrSeven") {
-    return resolveJackEnhancementRightEffect(state, pending.playerIndex, pending.continue);
+    return resolveJackEnhancementRightEffect(
+      state,
+      pending.playerIndex,
+      pending.continue,
+    );
   }
   return startJackInspectEffect(state, pending.playerIndex, pending.continue);
 }
 
 function applyDaifugoEffect(state: GameState): GameState {
   const pending = state.pendingDaifugoEffect;
-  if (!pending || pending.kind !== "confirm" || pending.playerIndex !== state.currentPlayerIndex) return state;
+  if (
+    !pending ||
+    pending.kind !== "confirm" ||
+    pending.playerIndex !== state.currentPlayerIndex
+  )
+    return state;
 
   if (pending.effect === "fiveSkip") {
     const currentPlayer = state.players[state.currentPlayerIndex];
     if (shouldCpuUseRemoteReachEnhancement(state, state.currentPlayerIndex)) {
-      const targetPlayerIndex = chooseCpuEnhancedFiveTarget(state, state.currentPlayerIndex);
+      const targetPlayerIndex = chooseCpuEnhancedFiveTarget(
+        state,
+        state.currentPlayerIndex,
+      );
       if (targetPlayerIndex !== null) {
-        return resolveEnhancedFiveSkip(state, state.currentPlayerIndex, targetPlayerIndex, true);
+        return resolveEnhancedFiveSkip(
+          state,
+          state.currentPlayerIndex,
+          targetPlayerIndex,
+          true,
+          pending.continue,
+        );
       }
     }
     if (currentPlayer?.hasJEnhancementRight && !currentPlayer.isCpu) {
@@ -1462,8 +2243,17 @@ function applyDaifugoEffect(state: GameState): GameState {
       };
     }
     return resolveNormalFiveSkip(state, pending.continue);
-    const skippedIndex = getNextPlayerIndex(state.currentPlayerIndex, state.players.length, state.direction);
-    return advanceToNextDraw({ ...state, pendingDaifugoEffect: null }, state.players, skippedIndex, "5の効果で次のプレイヤーをスキップしました。");
+    const skippedIndex = getNextPlayerIndex(
+      state.currentPlayerIndex,
+      state.players.length,
+      state.direction,
+    );
+    return advanceToNextDraw(
+      { ...state, pendingDaifugoEffect: null },
+      state.players,
+      skippedIndex,
+      "5の効果で次のプレイヤーをスキップしました。",
+    );
   }
 
   if (pending.effect === "sevenExchange") {
@@ -1480,7 +2270,11 @@ function applyDaifugoEffect(state: GameState): GameState {
     );
     if (
       threatTargetPlayerIndex !== null &&
-      shouldCpuUseRemoteSevenEnhancement(state, state.currentPlayerIndex, cpuThreatResponseMode)
+      shouldCpuUseRemoteSevenEnhancement(
+        state,
+        state.currentPlayerIndex,
+        cpuThreatResponseMode,
+      )
     ) {
       return startSevenExchange(
         state,
@@ -1500,26 +2294,49 @@ function applyDaifugoEffect(state: GameState): GameState {
           playerIndex: state.currentPlayerIndex,
           continue: pending.continue,
         },
-        message: `${currentPlayer.name}は7の効果でJ強化を使用できます。`,
+        message: "7の効果でJ強化を使用できます。",
       };
     }
-    const targetPlayerIndex = getNextPlayerIndex(state.currentPlayerIndex, state.players.length, state.direction);
+    const targetPlayerIndex = getNextPlayerIndex(
+      state.currentPlayerIndex,
+      state.players.length,
+      state.direction,
+    );
     return startSevenExchange(
       state,
       state.currentPlayerIndex,
       targetPlayerIndex,
       pending.continue,
       false,
-      threatTargetPlayerIndex === targetPlayerIndex ? cpuThreatResponseMode : undefined,
+      threatTargetPlayerIndex === targetPlayerIndex
+        ? cpuThreatResponseMode
+        : undefined,
     );
   }
   if (pending.effect === "nineReverse") {
-    return continueAfterDaifugo({ ...state, direction: reverseDirection(state.direction) }, pending.continue);
+    const nextDirection = reverseDirection(state.direction);
+    const nextTurnMessage = getNextTurnMessage(
+      state.players,
+      state.currentPlayerIndex,
+      nextDirection,
+    );
+
+    return continueAfterDaifugo(
+      { ...state, direction: nextDirection },
+      {
+        ...pending.continue,
+        message: `9の効果で手番方向が逆になりました。${nextTurnMessage}`,
+      },
+    );
   }
 
   if (pending.effect === "jackBack") {
     if (state.players[state.currentPlayerIndex]?.isCpu) {
-      return resolveCpuJackSpecialEffect(state, state.currentPlayerIndex, pending.continue);
+      return resolveCpuJackSpecialEffect(
+        state,
+        state.currentPlayerIndex,
+        pending.continue,
+      );
     }
     return {
       ...state,
@@ -1534,7 +2351,11 @@ function applyDaifugoEffect(state: GameState): GameState {
   }
 
   if (pending.effect === "eightExtraTurn") {
-    if (state.deck.length === 0) return deckoutResult({ ...state, pendingDaifugoEffect: null }, state.players);
+    if (state.deck.length === 0)
+      return deckoutResult(
+        { ...state, pendingDaifugoEffect: null },
+        state.players,
+      );
     return {
       ...state,
       pendingDaifugoEffect: {
@@ -1564,7 +2385,11 @@ function applyDaifugoEffect(state: GameState): GameState {
     if (getSelectableQueenVanishRanks(state).length === 0) {
       return continueAfterDaifugo(
         { ...state, pendingDaifugoEffect: null },
-        { ...pending.continue, shouldConfirmReach: false, message: "山札が不足しているため、Q効果は発動できませんでした。" },
+        {
+          ...pending.continue,
+          shouldConfirmReach: false,
+          message: "山札が不足しているため、Q効果は発動できませんでした。",
+        },
       );
     }
     const cpuThreatResponseMode = getResolvedCpuThreatResponseMode(
@@ -1574,7 +2399,11 @@ function applyDaifugoEffect(state: GameState): GameState {
     );
     const cpuThreatTargetPlayerIndex =
       state.players[state.currentPlayerIndex]?.cpuModelId === "master"
-        ? chooseCpuThreatTarget(state, state.currentPlayerIndex, cpuThreatResponseMode) ?? undefined
+        ? (chooseCpuThreatTarget(
+            state,
+            state.currentPlayerIndex,
+            cpuThreatResponseMode,
+          ) ?? undefined)
         : pending.cpuThreatTargetPlayerIndex;
     return {
       ...state,
@@ -1705,7 +2534,11 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const nextPlayerIndex =
         state.lastDiscarderIndex === null
           ? state.currentPlayerIndex
-          : getNextPlayerIndex(state.lastDiscarderIndex, state.players.length, state.direction);
+          : getNextPlayerIndex(
+              state.lastDiscarderIndex,
+              state.players.length,
+              state.direction,
+            );
       return {
         ...state,
         currentPlayerIndex: nextPlayerIndex,
@@ -1721,7 +2554,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         return {
           ...state,
           phase: "handoff",
-          currentPlayerIndex: state.pendingRonResult.discarderIndex ?? state.currentPlayerIndex,
+          currentPlayerIndex:
+            state.pendingRonResult.discarderIndex ?? state.currentPlayerIndex,
           lastDiscarderIndex: state.pendingRonResult.discarderIndex,
           pendingRonResult: null,
           drawnCard: null,
@@ -1744,7 +2578,17 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const pending = state.pendingDaifugoEffect;
       if (!pending || pending.kind !== "confirm") return state;
       if (!action.activate) {
-        return continueAfterDaifugo({ ...state, pendingDaifugoEffect: null }, pending.continue);
+        return continueAfterDaifugo(
+          { ...state, pendingDaifugoEffect: null },
+          {
+            ...pending.continue,
+            message: getNextTurnMessage(
+              state.players,
+              pending.playerIndex,
+              state.direction,
+            ),
+          },
+        );
       }
       return applyDaifugoEffect(state);
     }
@@ -1755,8 +2599,17 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const player = state.players[pending.playerIndex];
       if (!player?.hasJEnhancementRight || player.isCpu) return state;
       if (!action.useEnhancement) {
-        const targetPlayerIndex = getNextPlayerIndex(pending.playerIndex, state.players.length, state.direction);
-        return startSevenExchange(state, pending.playerIndex, targetPlayerIndex, pending.continue);
+        const targetPlayerIndex = getNextPlayerIndex(
+          pending.playerIndex,
+          state.players.length,
+          state.direction,
+        );
+        return startSevenExchange(
+          state,
+          pending.playerIndex,
+          targetPlayerIndex,
+          pending.continue,
+        );
       }
       return {
         ...state,
@@ -1766,13 +2619,14 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           playerIndex: pending.playerIndex,
           continue: pending.continue,
         },
-        message: `${player.name}が強化7の交換相手を選択しています。`,
+        message: getEnhancedSevenTargetSelectMessage(player.name),
       };
     }
 
     case "selectEnhancedSevenTarget": {
       const pending = state.pendingDaifugoEffect;
-      if (!pending || pending.kind !== "sevenEnhancedTargetSelect") return state;
+      if (!pending || pending.kind !== "sevenEnhancedTargetSelect")
+        return state;
       if (action.targetPlayerIndex === pending.playerIndex) return state;
       if (!state.players[action.targetPlayerIndex]) return state;
       const player = state.players[pending.playerIndex];
@@ -1799,18 +2653,30 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           playerIndex: pending.playerIndex,
           continue: pending.continue,
         },
-        message: `${player.name}が強化7の交換相手を選択しています。`,
+        message: getEnhancedSevenTargetSelectMessage(player.name),
       };
     }
 
     case "confirmEnhancedSevenTarget": {
       const pending = state.pendingDaifugoEffect;
-      if (!pending || pending.kind !== "sevenEnhancedTargetSelect") return state;
+      if (!pending || pending.kind !== "sevenEnhancedTargetSelect")
+        return state;
       const targetPlayerIndex = pending.selectedTargetPlayerIndex;
-      if (targetPlayerIndex === undefined || targetPlayerIndex === pending.playerIndex || !state.players[targetPlayerIndex]) return state;
+      if (
+        targetPlayerIndex === undefined ||
+        targetPlayerIndex === pending.playerIndex ||
+        !state.players[targetPlayerIndex]
+      )
+        return state;
       const player = state.players[pending.playerIndex];
       if (!player?.hasJEnhancementRight || player.isCpu) return state;
-      return startSevenExchange(state, pending.playerIndex, targetPlayerIndex, pending.continue, true);
+      return startSevenExchange(
+        state,
+        pending.playerIndex,
+        targetPlayerIndex,
+        pending.continue,
+        true,
+      );
     }
 
     case "answerFiveEnhancement": {
@@ -1829,7 +2695,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           playerIndex: pending.playerIndex,
           continue: pending.continue,
         },
-        message: `${player.name}が強化5の次手番相手を選択しています。`,
+        message: getEnhancedFiveTargetSelectMessage(player.name),
       };
     }
 
@@ -1838,7 +2704,10 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       if (!pending || pending.kind !== "fiveEnhancedTargetSelect") return state;
       const player = state.players[pending.playerIndex];
       if (!player?.hasJEnhancementRight || player.isCpu) return state;
-      const option = getEnhancedFiveTurnOptions(state, pending.playerIndex).find((candidate) => candidate.playerIndex === action.targetPlayerIndex);
+      const option = getEnhancedFiveTurnOptions(
+        state,
+        pending.playerIndex,
+      ).find((candidate) => candidate.playerIndex === action.targetPlayerIndex);
       if (!option?.selectable) return state;
       return {
         ...state,
@@ -1862,7 +2731,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           playerIndex: pending.playerIndex,
           continue: pending.continue,
         },
-        message: `${player.name}が強化5の次手番相手を選択しています。`,
+        message: getEnhancedFiveTargetSelectMessage(player.name),
       };
     }
 
@@ -1870,19 +2739,45 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const pending = state.pendingDaifugoEffect;
       if (!pending || pending.kind !== "fiveEnhancedTargetSelect") return state;
       const targetPlayerIndex = pending.selectedTargetPlayerIndex;
-      if (targetPlayerIndex === undefined || !state.players[targetPlayerIndex]) return state;
-      return resolveEnhancedFiveSkip(state, pending.playerIndex, targetPlayerIndex);
+      if (targetPlayerIndex === undefined || !state.players[targetPlayerIndex])
+        return state;
+      return resolveEnhancedFiveSkip(
+        state,
+        pending.playerIndex,
+        targetPlayerIndex,
+        false,
+        pending.continue,
+      );
     }
-
+    // 8/10などの効果で山札から引く処理
     case "drawForDaifugoEffect": {
       const pending = state.pendingDaifugoEffect;
-      if (!pending || pending.kind !== "effectDraw" || pending.playerIndex !== state.currentPlayerIndex) return state;
+      if (
+        !pending ||
+        pending.kind !== "effectDraw" ||
+        pending.playerIndex !== state.currentPlayerIndex
+      )
+        return state;
       const drawn = drawOneForPlayer(state, state.currentPlayerIndex);
-      if (!drawn.drawnCard) return deckoutResult({ ...drawn.state, pendingDaifugoEffect: null }, drawn.state.players);
+      if (!drawn.drawnCard)
+        return deckoutResult(
+          { ...drawn.state, pendingDaifugoEffect: null },
+          drawn.state.players,
+        );
+      const drawnState = {
+        ...drawn.state,
+        daifugoDeckDrawEvent: {
+          id: `daifugo-deck-draw-${pending.effect}-${state.currentPlayerIndex}-${drawn.drawnCard.id}`,
+          playerIndex: state.currentPlayerIndex,
+          effect: pending.effect,
+          drawSource: "deck" as const,
+          drawnCard: drawn.drawnCard,
+        },
+      };
 
       if (pending.effect === "eightExtraTurn") {
         return {
-          ...drawn.state,
+          ...drawnState,
           phase: "discard",
           pendingDaifugoEffect: {
             kind: "extraDiscard",
@@ -1894,51 +2789,104 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         };
       }
 
-      const player = drawn.state.players[state.currentPlayerIndex];
-      const winningResult = checkWinningHandWithOpenMelds(player.hand, player.openMelds, drawn.state.isJBackActive);
+      const player = drawnState.players[state.currentPlayerIndex];
+      const winningResult = checkWinningHandWithOpenMelds(
+        player.hand,
+        player.openMelds,
+        drawnState.isJBackActive,
+      );
       if (winningResult.canWin) {
         const nextPlayer = { ...player, winningResult };
-        const players = replacePlayer(drawn.state.players, state.currentPlayerIndex, nextPlayer);
-        return makeWinningState({ ...drawn.state, pendingDaifugoEffect: null }, players, winningResult);
+        const players = replacePlayer(
+          drawnState.players,
+          state.currentPlayerIndex,
+          nextPlayer,
+        );
+        return makeWinningState(
+          { ...drawnState, pendingDaifugoEffect: null },
+          players,
+          winningResult,
+        );
+      }
+      if (canDeclareReachWithTenCardHand(drawnState, player, player.hand)) {
+        return reachConfirmState(
+          { ...drawnState, pendingDaifugoEffect: null },
+          drawnState.players,
+        );
       }
 
-      if (canDeclareReach(player.hand, player.hasCalled, player.isReach)) {
-        return reachConfirmState({ ...drawn.state, pendingDaifugoEffect: null }, drawn.state.players);
-      }
-
-      return continueAfterDaifugo({ ...drawn.state, pendingDaifugoEffect: null }, pending.continue, drawn.state.players);
+      return continueAfterDaifugo(
+        { ...drawnState, pendingDaifugoEffect: null },
+        pending.continue,
+        drawnState.players,
+      );
     }
-
+    // 8/10などの効果で追加捨てする処理
     case "discardForDaifugoEffect": {
       const pending = state.pendingDaifugoEffect;
-      if (!pending || pending.kind !== "extraDiscard" || pending.playerIndex !== state.currentPlayerIndex) return state;
+      if (
+        !pending ||
+        pending.kind !== "extraDiscard" ||
+        pending.playerIndex !== state.currentPlayerIndex
+      )
+        return state;
       const player = state.players[state.currentPlayerIndex];
       const discardCard = player.hand.find((card) => card.id === action.cardId);
       if (!discardCard) return state;
       if (isCardJShielded(player, discardCard)) return state;
-      if (pending.effect === "eightExtraTurn" && player.isReach && !state.declaredReachThisTurn && discardCard.id !== state.drawnCard?.id) {
+      if (
+        pending.effect === "eightExtraTurn" &&
+        player.isReach &&
+        !state.declaredReachThisTurn &&
+        discardCard.id !== state.drawnCard?.id
+      ) {
         return state;
       }
 
-      const handAfterDiscard = sortCards(player.hand.filter((card) => card.id !== discardCard.id));
-      const winningResult = checkWinningHandWithOpenMelds(handAfterDiscard, player.openMelds, state.isJBackActive);
+      const handAfterDiscard = sortCards(
+        player.hand.filter((card) => card.id !== discardCard.id),
+      );
+      const winningResult = checkWinningHandWithOpenMelds(
+        handAfterDiscard,
+        player.openMelds,
+        state.isJBackActive,
+      );
       const nextPlayer: Player = {
         ...player,
         hand: handAfterDiscard,
         discardPile: [...player.discardPile, discardCard],
-        winningResult: winningResult.canWin ? winningResult : player.winningResult,
+        winningResult: winningResult.canWin
+          ? winningResult
+          : player.winningResult,
       };
-      const players = replacePlayer(state.players, state.currentPlayerIndex, nextPlayer);
+      const players = replacePlayer(
+        state.players,
+        state.currentPlayerIndex,
+        nextPlayer,
+      );
 
       if (winningResult.canWin) {
-        return makeWinningState({ ...state, players, pendingDaifugoEffect: null }, players, winningResult);
+        return makeWinningState(
+          { ...state, players, pendingDaifugoEffect: null },
+          players,
+          winningResult,
+        );
       }
 
       if (state.deck.length === 0) {
-        return deckoutResult({ ...state, players, pendingDaifugoEffect: null }, players);
+        return deckoutResult(
+          { ...state, players, pendingDaifugoEffect: null },
+          players,
+        );
       }
-
+      //10捨てで山札から1枚引く処理
       if (pending.effect === "tenSwapDraw") {
+        const nextTurnMessage = getNextTurnMessage(
+          players,
+          state.currentPlayerIndex,
+          state.direction,
+        );
+
         return {
           ...state,
           players,
@@ -1946,31 +2894,59 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
             kind: "effectDraw",
             effect: "tenSwapDraw",
             playerIndex: state.currentPlayerIndex,
-            continue: pending.continue ?? { shouldConfirmReach: false },
+            continue: {
+              ...(pending.continue ?? { shouldConfirmReach: false }),
+              message: nextTurnMessage,
+            },
           },
           drawnCard: null,
           drawnFrom: null,
-          message: "10の効果：山札から1枚引きます。",
+          message: `10の効果を使用し、${formatRank(discardCard.rank)}を捨てました。山札から1枚引きます。`,
         };
       }
 
       const shouldConfirmReach =
         state.drawnFrom === "deck" &&
         !state.declaredReachThisTurn &&
-        canDeclareReachAfterDraw(player.hand, player.hasCalled, player.isReach);
+        canDeclareReachWithTenCardHand(state, player, handAfterDiscard);
       if (shouldConfirmReach) {
-        return reachConfirmState({ ...state, players, pendingDaifugoEffect: null }, players);
+        return reachConfirmState(
+          { ...state, players, pendingDaifugoEffect: null },
+          players,
+        );
       }
+      const nextTurnMessage = getNextTurnMessage(
+        players,
+        state.currentPlayerIndex,
+        state.direction,
+      );
+      const handoffMessage =
+        pending.effect === "eightExtraTurn"
+          ? `8の効果で${formatRank(discardCard.rank)}を捨てました。${nextTurnMessage}`
+          : nextTurnMessage;
 
-      return advanceToNextDraw({ ...state, players, pendingDaifugoEffect: null }, players, state.currentPlayerIndex);
+      return advanceToNextDraw(
+        { ...state, players, pendingDaifugoEffect: null },
+        players,
+        state.currentPlayerIndex,
+        handoffMessage,
+      );
     }
-
+    //7渡しで自分の手札から渡すカードを選択する処理
     case "selectSevenExchangeCard": {
       const pending = state.pendingDaifugoEffect;
       if (!pending || pending.kind !== "sevenExchange") return state;
-      if (action.playerIndex !== pending.playerIndex && action.playerIndex !== pending.targetPlayerIndex) return state;
+      if (
+        action.playerIndex !== pending.playerIndex &&
+        action.playerIndex !== pending.targetPlayerIndex
+      )
+        return state;
+      if (pending.selections[action.playerIndex]) return state;
       const player = state.players[action.playerIndex];
-      const candidates = getSevenExchangeCandidateCards(player, action.playerIndex === pending.playerIndex);
+      const candidates = getSevenExchangeCandidateCards(
+        player,
+        action.playerIndex === pending.playerIndex,
+      );
       if (!candidates.some((card) => card.id === action.cardId)) return state;
       return resolveSevenExchangeIfReady({
         ...state,
@@ -1983,9 +2959,13 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         },
       });
     }
-
+    //Qボンバーで消去するカードを選択する処理
     case "selectQueenVanishRank": {
-      if (!state.pendingDaifugoEffect || state.pendingDaifugoEffect.kind !== "queenSelect") return state;
+      if (
+        !state.pendingDaifugoEffect ||
+        state.pendingDaifugoEffect.kind !== "queenSelect"
+      )
+        return state;
       if (action.rank < 1 || action.rank > 13) return state;
       return resolveQueenNumberVanish(state, action.rank);
     }
@@ -2000,18 +2980,27 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           method: "qEffectAfterDraw",
         });
         return makeWinningState(
-          { ...state, pendingDaifugoEffect: null, currentPlayerIndex: pending.playerIndex, drawnFrom: "deck" },
+          {
+            ...state,
+            pendingDaifugoEffect: null,
+            currentPlayerIndex: pending.playerIndex,
+            drawnFrom: "deck",
+          },
           state.players,
           pending.winningResult,
           "qEffectAfterDraw",
         );
       }
       return continueAfterDaifugo(
-        { ...state, pendingDaifugoEffect: null, currentPlayerIndex: pending.playerIndex },
+        {
+          ...state,
+          pendingDaifugoEffect: null,
+          currentPlayerIndex: pending.playerIndex,
+        },
         { ...pending.continue, shouldConfirmReach: false },
       );
     }
-
+    //J効果を選択する処理
     case "selectJackSpecialEffect": {
       return resolveJackSpecialEffect(state, action.effect);
     }
@@ -2027,7 +3016,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     case "inspectJackCard": {
       const pending = state.pendingDaifugoEffect;
       if (!pending || pending.kind !== "jackInspect") return state;
-      const targetPlayerIndex = pending.targetPlayerIndexes[pending.currentTargetOffset];
+      const targetPlayerIndex =
+        pending.targetPlayerIndexes[pending.currentTargetOffset];
       if (targetPlayerIndex !== action.targetPlayerIndex) return state;
       const target = state.players[targetPlayerIndex];
       if (!target?.hand.some((card) => card.id === action.cardId)) return state;
@@ -2047,14 +3037,26 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     case "confirmJackInspectCard": {
       const pending = state.pendingDaifugoEffect;
       if (!pending || pending.kind !== "jackInspect") return state;
-      const targetPlayerIndex = pending.targetPlayerIndexes[pending.currentTargetOffset];
-      if (targetPlayerIndex === undefined || !pending.revealedCardIds[targetPlayerIndex]) return state;
+      const targetPlayerIndex =
+        pending.targetPlayerIndexes[pending.currentTargetOffset];
+      if (
+        targetPlayerIndex === undefined ||
+        !pending.revealedCardIds[targetPlayerIndex]
+      )
+        return state;
       const nextOffset = pending.currentTargetOffset + 1;
-      const playerName = state.players[pending.playerIndex]?.name ?? "プレイヤー";
       if (nextOffset >= pending.targetPlayerIndexes.length) {
         return continueAfterDaifugo(
           { ...state, pendingDaifugoEffect: null },
-          { ...pending.continue, shouldConfirmReach: false, message: `${playerName}が情報閲覧を完了しました。` },
+          {
+            ...pending.continue,
+            shouldConfirmReach: false,
+            message: getJackInspectCompleteMessage(
+              state.players,
+              pending.playerIndex,
+              state.direction,
+            ),
+          },
         );
       }
       return {
@@ -2063,7 +3065,11 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           ...pending,
           currentTargetOffset: nextOffset,
         },
-        message: `${playerName}がJ効果で相手の手札を確認しています。`,
+        message: getJackInspectProgressMessage(
+          state.players,
+          pending.playerIndex,
+          pending.targetPlayerIndexes,
+        ),
       };
     }
 
@@ -2072,12 +3078,19 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       if (!pending || pending.kind !== "reachContinueConfirm") return state;
       const player = state.players[pending.playerIndex];
       if (!player) return state;
-      const players = action.keepReach ? state.players : replacePlayer(state.players, pending.playerIndex, { ...player, isReach: false });
+      const players = action.keepReach
+        ? state.players
+        : replacePlayer(state.players, pending.playerIndex, {
+            ...player,
+            isReach: false,
+          });
       return {
         ...state,
         players,
         pendingDaifugoEffect: null,
-        message: action.keepReach ? `${player.name}はリーチを継続しました。` : `${player.name}は通常状態に戻りました。`,
+        message: action.keepReach
+          ? `${player.name}はリーチを継続しました。`
+          : `${player.name}は通常状態に戻りました。`,
       };
     }
 
@@ -2086,29 +3099,42 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       if (state.deck.length === 0) return deckoutResult(state, state.players);
       const [drawnCard, ...deck] = state.deck;
       const player = state.players[state.currentPlayerIndex];
-      const nextPlayer = { ...player, hand: sortCards([...player.hand, drawnCard]) };
+      const nextPlayer = {
+        ...player,
+        hand: sortCards([...player.hand, drawnCard]),
+      };
 
       if (nextPlayer.hand.length !== player.hand.length + 1) {
-        console.warn("Invalid draw state: drawing from deck did not add exactly one card to hand.");
+        console.warn(
+          "Invalid draw state: drawing from deck did not add exactly one card to hand.",
+        );
         return state;
       }
       if (!player.hasCalled && nextPlayer.hand.length !== 11) {
-        console.warn("Invalid state: discard phase requires 11 cards after drawing from deck.");
+        console.warn(
+          "Invalid state: discard phase requires 11 cards after drawing from deck.",
+        );
         return state;
       }
 
       return {
         ...state,
         deck,
-        players: replacePlayer(state.players, state.currentPlayerIndex, nextPlayer),
+        players: replacePlayer(
+          state.players,
+          state.currentPlayerIndex,
+          nextPlayer,
+        ),
         phase: "discard",
         drawnCard,
         drawnFrom: "deck",
         takenDiscardOwnerIndex: null,
         declaredReachThisTurn: false,
-        message: player.isCpu ? `${player.name}（CPU）が山札から引きました。` : player.isReach
-          ? "リーチ中です。上がれない場合は引いたカードをそのまま捨ててください。"
-          : "捨てるカードを選んでください。",
+        message: player.isCpu
+          ? `${player.name}（CPU）が山札から引きました。`
+          : player.isReach
+            ? "リーチ中です。上がれない場合は引いたカードをそのまま捨ててください。"
+            : "捨てるカードを選んでください。",
       };
     }
 
@@ -2126,11 +3152,22 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       let currentNext: Player;
 
       if (action.meld) {
-        const handUsedIds = new Set(action.meld.filter((card) => card.id !== discard.id).map((card) => card.id));
-        if (player.hand.some((card) => handUsedIds.has(card.id) && isCardJShielded(player, card))) return state;
+        const handUsedIds = new Set(
+          action.meld
+            .filter((card) => card.id !== discard.id)
+            .map((card) => card.id),
+        );
+        if (
+          player.hand.some(
+            (card) => handUsedIds.has(card.id) && isCardJShielded(player, card),
+          )
+        )
+          return state;
         currentNext = {
           ...player,
-          hand: sortCards(player.hand.filter((card) => !handUsedIds.has(card.id))),
+          hand: sortCards(
+            player.hand.filter((card) => !handUsedIds.has(card.id)),
+          ),
           openMelds: [...player.openMelds, action.meld],
           hasCalled: true,
         };
@@ -2155,17 +3192,26 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         drawnFrom: "discard",
         takenDiscardOwnerIndex: action.ownerIndex,
         declaredReachThisTurn: false,
-        message: player.isCpu ? `${player.name}（CPU）が鳴きました。` : action.meld ? "鳴きました。捨てるカードを選んでください。" : "捨てるカードを選んでください。",
+        message: player.isCpu
+          ? `${player.name}（CPU）が鳴きました。`
+          : action.meld
+            ? "鳴きました。捨てるカードを選んでください。"
+            : "捨てるカードを選んでください。",
       };
     }
 
     case "declareReach": {
       if (state.phase !== "discard" || state.drawnFrom !== "deck") return state;
       const player = state.players[state.currentPlayerIndex];
-      if (!canDeclareReachAfterDraw(player.hand, player.hasCalled, player.isReach)) return state;
+      if (!canDeclareReachInCurrentState(state, state.currentPlayerIndex)) {
+        return state;
+      }
       return {
         ...state,
-        players: replacePlayer(state.players, state.currentPlayerIndex, { ...player, isReach: true }),
+        players: replacePlayer(state.players, state.currentPlayerIndex, {
+          ...player,
+          isReach: true,
+        }),
         declaredReachThisTurn: true,
         message: "リーチを宣言しました。1枚捨ててください。",
       };
@@ -2175,31 +3221,76 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       if (state.phase !== "reachConfirm") return state;
       const player = state.players[state.currentPlayerIndex];
       const players = action.declareReach
-        ? replacePlayer(state.players, state.currentPlayerIndex, { ...player, isReach: true })
+        ? replacePlayer(state.players, state.currentPlayerIndex, {
+            ...player,
+            isReach: true,
+          })
         : state.players;
-      return advanceToNextDraw({ ...state, pendingDaifugoEffect: null }, players, state.currentPlayerIndex);
+      const discardCard = topDiscard(players[state.currentPlayerIndex]);
+      const discardHandoffMessage = discardCard
+        ? getDiscardHandoffMessage(
+            players,
+            state.currentPlayerIndex,
+            state.direction,
+            discardCard,
+          )
+        : undefined;
+
+      const handoffSourceIndex =
+        state.lastDiscarderIndex ?? state.currentPlayerIndex;
+
+      const nextHandoffMessage =
+        handoffSourceIndex !== state.currentPlayerIndex
+          ? `5スキップにより、手番が飛びます。${getNextTurnMessage(
+              players,
+              handoffSourceIndex,
+              state.direction,
+            )}`
+          : discardHandoffMessage;
+
+      return advanceToNextDraw(
+        { ...state, pendingDaifugoEffect: null },
+        players,
+        handoffSourceIndex,
+        nextHandoffMessage,
+      );
     }
 
     case "winWithDiscard": {
       if (state.phase !== "discard" || !state.drawnCard) return state;
       const player = state.players[state.currentPlayerIndex];
-      const discardCard = player.hand.find((card) => card.id === action.discardCardId);
+      const discardCard = player.hand.find(
+        (card) => card.id === action.discardCardId,
+      );
       if (!discardCard) return state;
       if (isCardJShielded(player, discardCard)) return state;
 
-      const options = findWinningDiscardsAfterDraw(player.hand, state.drawnCard.id, player.openMelds, state.isJBackActive);
-      const option = options.find((item) => item.discardCard.id === discardCard.id);
+      const options = findWinningDiscardsAfterDraw(
+        player.hand,
+        state.drawnCard.id,
+        player.openMelds,
+        state.isJBackActive,
+      );
+      const option = options.find(
+        (item) => item.discardCard.id === discardCard.id,
+      );
       if (!option) return state;
 
       const nextPlayer: Player = {
         ...player,
-        hand: sortCards(player.hand.filter((card) => card.id !== discardCard.id)),
+        hand: sortCards(
+          player.hand.filter((card) => card.id !== discardCard.id),
+        ),
         discardPile: [...player.discardPile, discardCard],
         winningResult: option.winningResult,
       };
       const nextState = {
         ...state,
-        players: replacePlayer(state.players, state.currentPlayerIndex, nextPlayer),
+        players: replacePlayer(
+          state.players,
+          state.currentPlayerIndex,
+          nextPlayer,
+        ),
         declaredReachThisTurn: false,
       };
       const result = makeResult(
@@ -2211,7 +3302,14 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         "winWithDiscard",
       );
 
-      return { ...nextState, phase: "result", winner: state.currentPlayerIndex, result, pendingRonResult: null, pendingDaifugoEffect: null };
+      return {
+        ...nextState,
+        phase: "result",
+        winner: state.currentPlayerIndex,
+        result,
+        pendingRonResult: null,
+        pendingDaifugoEffect: null,
+      };
     }
 
     case "discard": {
@@ -2222,18 +3320,44 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const discardCard = player.hand.find((card) => card.id === action.cardId);
       if (!discardCard) return state;
       if (isCardJShielded(player, discardCard)) return state;
-      const shouldConfirmReach =
-        state.drawnFrom === "deck" && canDeclareReachAfterDraw(player.hand, player.hasCalled, player.isReach);
+      const handAfterDiscard = sortCards(
+        removeOneCardById(player.hand, discardCard.id),
+      );
 
-      const handAfterDiscard = sortCards(player.hand.filter((card) => card.id !== discardCard.id));
-      const winningResult = checkWinningHandWithOpenMelds(handAfterDiscard, player.openMelds, state.isJBackActive);
+      if (
+        player.isReach &&
+        state.declaredReachThisTurn &&
+        !canKeepReachAfterDiscard(
+          state,
+          state.currentPlayerIndex,
+          discardCard.id,
+        )
+      ) {
+        return state;
+      }
+
+      const shouldConfirmReach =
+        state.drawnFrom === "deck" &&
+        !state.declaredReachThisTurn &&
+        canDeclareReachWithTenCardHand(state, player, handAfterDiscard);
+      const winningResult = checkWinningHandWithOpenMelds(
+        handAfterDiscard,
+        player.openMelds,
+        state.isJBackActive,
+      );
       const nextPlayer: Player = {
         ...player,
         hand: handAfterDiscard,
         discardPile: [...player.discardPile, discardCard],
-        winningResult: winningResult.canWin ? winningResult : player.winningResult,
+        winningResult: winningResult.canWin
+          ? winningResult
+          : player.winningResult,
       };
-      const players = replacePlayer(state.players, state.currentPlayerIndex, nextPlayer);
+      const players = replacePlayer(
+        state.players,
+        state.currentPlayerIndex,
+        nextPlayer,
+      );
       const nextState = { ...state, players };
 
       if (winningResult.canWin) {
@@ -2259,11 +3383,21 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         return deckoutResult(nextState, players);
       }
 
+      const discardHandoffMessage = getDiscardHandoffMessage(
+        players,
+        state.currentPlayerIndex,
+        state.direction,
+        discardCard,
+      );
       const continueState: PendingDaifugoContinue = {
         shouldConfirmReach,
-        message: player.isCpu ? `${player.name} (CPU) discarded ${formatCpuCard(discardCard)}.` : undefined,
+        message: discardHandoffMessage,
       };
-      const pendingDaifugoEffect = createPendingDaifugoEffect(nextState, discardCard, continueState);
+      const pendingDaifugoEffect = createPendingDaifugoEffect(
+        nextState,
+        discardCard,
+        continueState,
+      );
       if (pendingDaifugoEffect) {
         return {
           ...nextState,
@@ -2271,14 +3405,15 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           message: getDaifugoConfirmMessage(pendingDaifugoEffect.effect),
         };
       }
-
+      const handoffSourceIndex =
+        state.lastDiscarderIndex ?? state.currentPlayerIndex;
       if (shouldConfirmReach) {
         return {
           ...nextState,
           phase: "reachConfirm",
           drawnCard: null,
           drawnFrom: null,
-          lastDiscarderIndex: state.currentPlayerIndex,
+          lastDiscarderIndex: handoffSourceIndex,
           takenDiscardOwnerIndex: null,
           declaredReachThisTurn: false,
           message: "リーチを宣言しますか？",
@@ -2289,7 +3424,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         nextState,
         players,
         state.currentPlayerIndex,
-        player.isCpu ? `${player.name}（CPU）が ${formatCpuCard(discardCard)} を捨てました。` : undefined,
+        discardHandoffMessage,
       );
     }
 
@@ -2298,21 +3433,39 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const player = state.players[state.currentPlayerIndex];
       if (!player.isReach || state.declaredReachThisTurn) return state;
       if (isCardJShielded(player, state.drawnCard)) return state;
-      const options = findWinningDiscardsAfterDraw(player.hand, state.drawnCard.id, player.openMelds, state.isJBackActive);
+      const options = findWinningDiscardsAfterDraw(
+        player.hand,
+        state.drawnCard.id,
+        player.openMelds,
+        state.isJBackActive,
+      );
       if (options.length > 0) return state;
 
       const nextPlayer: Player = {
         ...player,
-        hand: sortCards(player.hand.filter((card) => card.id !== state.drawnCard?.id)),
+        hand: sortCards(
+          player.hand.filter((card) => card.id !== state.drawnCard?.id),
+        ),
         discardPile: [...player.discardPile, state.drawnCard],
       };
-      const players = replacePlayer(state.players, state.currentPlayerIndex, nextPlayer);
+      const players = replacePlayer(
+        state.players,
+        state.currentPlayerIndex,
+        nextPlayer,
+      );
       const nextState = { ...state, players };
       const continueState: PendingDaifugoContinue = {
         shouldConfirmReach: false,
-        message: player.isCpu && state.drawnCard ? `${player.name} (CPU) discarded ${formatCpuCard(state.drawnCard)}.` : undefined,
+        message:
+          player.isCpu && state.drawnCard
+            ? `${player.name} (CPU) discarded ${formatCpuCard(state.drawnCard)}.`
+            : undefined,
       };
-      const pendingDaifugoEffect = createPendingDaifugoEffect(nextState, state.drawnCard, continueState);
+      const pendingDaifugoEffect = createPendingDaifugoEffect(
+        nextState,
+        state.drawnCard,
+        continueState,
+      );
       if (pendingDaifugoEffect) {
         return {
           ...nextState,
@@ -2320,12 +3473,17 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           message: getDaifugoConfirmMessage(pendingDaifugoEffect.effect),
         };
       }
-
+      const discardHandoffMessage = getDiscardHandoffMessage(
+        players,
+        state.currentPlayerIndex,
+        state.direction,
+        state.drawnCard,
+      );
       return advanceToNextDraw(
         nextState,
         players,
         state.currentPlayerIndex,
-        player.isCpu && state.drawnCard ? `${player.name}（CPU）が ${formatCpuCard(state.drawnCard)} を捨てました。` : undefined,
+        discardHandoffMessage,
       );
     }
 
@@ -2337,14 +3495,24 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 export function getReachWinningOptions(state: GameState) {
   const player = state.players[state.currentPlayerIndex];
   if (!player?.isReach || !state.drawnCard) return [];
-  return findWinningDiscardsAfterDraw(player.hand, state.drawnCard.id, player.openMelds, state.isJBackActive);
+  return findWinningDiscardsAfterDraw(
+    player.hand,
+    state.drawnCard.id,
+    player.openMelds,
+    state.isJBackActive,
+  );
 }
 
 export function getWinningDiscardOptions(state: GameState) {
   if (state.phase !== "discard" || !state.drawnCard) return [];
   const player = state.players[state.currentPlayerIndex];
   if (!player) return [];
-  return findWinningDiscardsAfterDraw(player.hand, state.drawnCard.id, player.openMelds, state.isJBackActive);
+  return findWinningDiscardsAfterDraw(
+    player.hand,
+    state.drawnCard.id,
+    player.openMelds,
+    state.isJBackActive,
+  );
 }
 
 export function getAvailableDiscardSources(state: GameState): number[] {
@@ -2360,10 +3528,15 @@ export function getAvailableDiscardSources(state: GameState): number[] {
   );
 
   const discard = topDiscard(state.players[previousIndex]);
-  return discard && findCallMeldOptions(current.hand, discard).length > 0 ? [previousIndex] : [];
+  return discard && findCallMeldOptions(current.hand, discard).length > 0
+    ? [previousIndex]
+    : [];
 }
 
-export function getCallOptionsForSource(state: GameState, ownerIndex: number): Card[][] {
+export function getCallOptionsForSource(
+  state: GameState,
+  ownerIndex: number,
+): Card[][] {
   const current = state.players[state.currentPlayerIndex];
   const previousIndex = getNextPlayerIndex(
     state.currentPlayerIndex,

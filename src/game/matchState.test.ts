@@ -56,6 +56,29 @@ describe("rounds match state", () => {
     expect(secondRound.gameState.players.every((player) => player.hand.length === 10)).toBe(true);
   });
 
+  it("keeps independent configured start players for initial and next rounds", () => {
+    const firstRound = createMatchState("rounds", 5, "clockwise", 3, "Start order room", 5, "standard", undefined, [], true, 1);
+    const dirtyMatch: MatchState = {
+      ...firstRound,
+      gameState: {
+        ...firstRound.gameState,
+        phase: "result",
+        result: {
+          winnerIndex: 1,
+          winType: "tsumo",
+          winningResult: { canWin: true, melds: [], keyCard: firstRound.gameState.players[1].hand[0] },
+          score: { winnerScore: 1000, playerLosses: [1, 2, 3, 4, 5] },
+          discarderIndex: null,
+        },
+      },
+    };
+
+    const secondRound = advanceRound(dirtyMatch, 4);
+
+    expect(firstRound.gameState.currentPlayerIndex).toBe(1);
+    expect(secondRound.gameState.currentPlayerIndex).toBe(4);
+  });
+
   it("keeps the selected CPU model when advancing rounds", () => {
     const matchState = createMatchState("rounds", 4, "clockwise", 3, "CPU部屋", 1, "tactical");
     const nextRound = advanceRound(matchState);

@@ -40,7 +40,7 @@ test("online J hand inspect reveals only to the actor", async () => {
   closeSocketClients(clients);
 });
 
-test("online J shield detail is visible only to the owner", async () => {
+test("online J shield status is visible on the owner for every viewer", async () => {
   const { clients, host } = await startJackEffect("online-effect-j-shield");
 
   submitSocketAction(host, { type: "selectJackSpecialEffect", effect: "jShield" });
@@ -49,7 +49,8 @@ test("online J shield detail is visible only to the owner", async () => {
   await waitForSocket(() => Boolean(host.state.view.players[0].jShield), "J shield did not resolve");
 
   expect(host.state.view.players[0].jShield.rank).toBe(5);
-  expect(clients[1].state.view.players[0].jShield).toBeUndefined();
+  expect(clients[1].state.view.players[0].jShield.rank).toBe(5);
+  expect(clients[1].state.view.players[1].jShield).toBeUndefined();
 
   closeSocketClients(clients);
 });

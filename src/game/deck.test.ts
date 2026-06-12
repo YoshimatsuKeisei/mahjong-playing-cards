@@ -14,6 +14,12 @@ describe("deck and game state card counts", () => {
     expect(state.players.every((player) => player.hand.length === 10)).toBe(true);
   });
 
+  it("uses the provided start player index for the first turn", () => {
+    const state = dealCards(createDeck(), 5, "clockwise", 5, "standard", undefined, [], true, 3);
+
+    expect(state.currentPlayerIndex).toBe(3);
+  });
+
   it.each([3, 4, 5])("generates %i players with numbered names", (playerCount) => {
     const state = dealCards(createDeck(), playerCount);
 

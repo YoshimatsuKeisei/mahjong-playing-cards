@@ -33,7 +33,13 @@ export default function OnlineLobbyScreen({
       : undefined;
   const currentPlayer = room?.players.find((player) => player.playerId === playerId) ?? null;
   const isHost = Boolean(room && playerId === room.hostPlayerId);
-  const canStart = Boolean(room && isHost && room.players.length >= 2 && room.players.every((player) => player.ready || player.playerId === room.hostPlayerId));
+  const canStart = Boolean(
+    room &&
+      isHost &&
+      room.totalPlayers >= 2 &&
+      room.players.length >= room.maxPlayers &&
+      room.players.every((player) => player.ready || player.playerId === room.hostPlayerId),
+  );
 
   return (
     <main className="screen room-choice-screen">
@@ -70,7 +76,7 @@ export default function OnlineLobbyScreen({
             </button>
           </div>
         ) : (
-          <div className="online-room-form">
+          <div className="online-room-form" data-testid="online-lobby-screen">
             <div className="empty-room-list">
               {showRoomId ? <strong data-testid="room-id">Room ID: {room.roomId}</strong> : <strong data-testid="online-lobby-title">参加ロビー</strong>}
               <span>
@@ -104,7 +110,7 @@ export default function OnlineLobbyScreen({
         {error && <p className="online-error">{error}</p>}
 
         <div className="room-choice-actions">
-          <button type="button" className="secondary-button" onClick={onBack}>
+          <button type="button" className="secondary-button" data-testid="online-lobby-back-button" onClick={onBack}>
             戻る
           </button>
         </div>

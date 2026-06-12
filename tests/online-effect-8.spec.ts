@@ -14,7 +14,19 @@ test("online 8 effect draws actor-only card and accepts extra discard", async ()
   submitSocketAction(host, { type: "drawForDaifugoEffect" });
   await waitForSocket(() => host.state.view.pendingDaifugoEffect?.kind === "extraDiscard", "8 did not enter extra discard");
   expect(host.state.view.drawnCard).toBeTruthy();
+  expect(host.state.view.daifugoDeckDrawEvent).toMatchObject({
+    playerIndex: 0,
+    effect: "eightExtraTurn",
+    drawSource: "deck",
+  });
+  expect(host.state.view.daifugoDeckDrawEvent.drawnCard).toBeTruthy();
   expect(clients[1].state.view.drawnCard).toBeNull();
+  expect(clients[1].state.view.daifugoDeckDrawEvent).toMatchObject({
+    playerIndex: 0,
+    effect: "eightExtraTurn",
+    drawSource: "deck",
+    drawnCard: null,
+  });
 
   const extra = host.state.view.players[0].hand.find((card: any) => card.id !== host.state.view.drawnCard.id);
   submitSocketAction(host, { type: "discardForDaifugoEffect", cardId: extra.id });

@@ -10,7 +10,7 @@ import StartScreen, { type RoomCreateSettings } from "./components/StartScreen";
 import PlayScreen from "./components/PlayScreen";
 import ResultScreen from "./components/ResultScreen";
 import FinalResultScreen from "./components/FinalResultScreen";
-import { createInitialGame, gameReducer, type GameAction } from "./game/gameState";
+import { createInitialGame, createRandomStartPlayerIndex, gameReducer, type GameAction } from "./game/gameState";
 import { advanceRound, canAdvanceRound, createInterruptedFinalMatchState, createMatchState, syncMatchGameState } from "./game/matchState";
 import { calculatePointDeductions, calculateRawRoundScores } from "./game/scoring";
 import { createDefaultDaifugoOptions } from "./game/deck";
@@ -108,6 +108,13 @@ export default function App() {
     socket.on("publicRoomsUpdated", (rooms) => {
       setPublicRooms(rooms);
     });
+    socket.on("roomClosed", () => {
+      setOnlineRoom(null);
+      setOnlinePlayerId(null);
+      setOnlineError("ルームが解散されました。");
+      requestPublicRooms();
+      setScreen("roomList");
+    });
     socket.on("playerView", (payload) => {
       setOnlinePlayerId(payload.playerId);
       setOnlineRoom(payload.room);
@@ -133,6 +140,7 @@ export default function App() {
     return () => {
       socket.off("roomUpdated");
       socket.off("publicRoomsUpdated");
+      socket.off("roomClosed");
       socket.off("playerView");
       socket.off("errorMessage");
       socket.off("actionRejected");
@@ -181,7 +189,15 @@ export default function App() {
   function createOnlineRoom(playerName: string, maxPlayers: number, scenario?: OnlineScenarioId, roomSettings?: OnlineRoomCreateSettings) {
     setOnlineError(null);
     setOnlineRoomEntry(roomSettings ? "public" : "legacy");
-    getOnlineSocket().emit("createRoom", { playerName, maxPlayers, scenario, roomSettings }, (response) => {
+    const socket = getOnlineSocket();
+    if (!socket.connected) {
+      socket.connect();
+    }
+    const timeoutId = window.setTimeout(() => {
+      setOnlineError("オンラインサーバーに接続できません。サーバーを起動してからもう一度作成してください。");
+    }, 8_000);
+    socket.emit("createRoom", { playerName, maxPlayers, scenario, roomSettings }, (response) => {
+      window.clearTimeout(timeoutId);
       if (!response.ok) {
         setOnlineError(response.error);
         return;
@@ -215,9 +231,13 @@ export default function App() {
   }
 
   function leaveOnlineLobby() {
+    if (onlineRoom && !onlineRoom.started) {
+      getOnlineSocket().emit("leaveRoom");
+    }
     setOnlineRoom(null);
     setOnlinePlayerId(null);
     setOnlineError(null);
+    requestPublicRooms();
     setScreen("roomSelect");
   }
 
@@ -230,6 +250,7 @@ export default function App() {
       return;
     }
     if (matchMode === "rounds" || matchMode === "targetScore" || matchMode === "startingPoints") {
+      const startPlayerIndex = createRandomStartPlayerIndex(playerCount);
       const nextMatch = createMatchState(
         matchMode,
         playerCount,
@@ -241,10 +262,12 @@ export default function App() {
         localRoomSettings?.daifugoOptions,
         localRoomSettings?.cpuModelIds,
         localRoomSettings?.showCpuActions,
+        startPlayerIndex,
       );
       setMatchState(nextMatch);
       setState(nextMatch.gameState);
     } else {
+      const startPlayerIndex = createRandomStartPlayerIndex(playerCount);
       const nextState = createInitialGame(
         playerCount,
         direction,
@@ -253,6 +276,7 @@ export default function App() {
         localRoomSettings?.daifugoOptions,
         localRoomSettings?.cpuModelIds,
         localRoomSettings?.showCpuActions,
+        startPlayerIndex,
       );
       setMatchState(null);
       setState(nextState);
@@ -309,7 +333,7 @@ export default function App() {
     }
     setMatchState((currentMatch) => {
       if (!currentMatch || !canAdvanceRound(currentMatch)) return currentMatch;
-      const nextMatch = advanceRound(currentMatch);
+      const nextMatch = advanceRound(currentMatch, createRandomStartPlayerIndex(currentMatch.playerCount));
       setInterruptedFinalMatchState(null);
       setState(nextMatch.gameState);
       setScreen("play");
@@ -462,7 +486,7 @@ export default function App() {
   }
 
   if (screen === "newGame") {
-    return <StartScreen onStart={startGame} onBackHome={returnToHome} onCancel={() => setScreen("roomSelect")} />;
+    return <StartScreen onStart={startGame} onBackHome={returnToHome} onCancel={() => setScreen("roomSelect")} error={onlineError} />;
   }
 
   if (screen === "roomSelect") {

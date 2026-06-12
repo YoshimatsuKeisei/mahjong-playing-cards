@@ -1,11 +1,33 @@
-import type { Card, CpuModelId, DaifugoOptions, GameResult, GameState } from "../types";
+import type {
+  Card,
+  CpuModelId,
+  DaifugoOptions,
+  GameResult,
+  GameState,
+} from "../types";
 import { createDefaultDaifugoOptions } from "../game/deck";
 import { createCpuDecisionContext } from "../game/cpuTypes";
-import { createInitialGame, gameReducer, getEnhancedFiveTurnOptions, getNextPlayerIndex, type GameAction } from "../game/gameState";
-import { getDisplayedPlayerLosses, getResultLoserIndexes } from "../game/matchState";
+import {
+  createInitialGame,
+  gameReducer,
+  getEnhancedFiveTurnOptions,
+  getNextPlayerIndex,
+  type GameAction,
+} from "../game/gameState";
+import {
+  getDisplayedPlayerLosses,
+  getResultLoserIndexes,
+} from "../game/matchState";
 import { findPossibleMelds, isRun } from "../game/rules";
-import { doesNineReverseIncreaseReachDistance, doesNineReverseIncreaseTwoCallDistance, getTacticalDiscardScores } from "../game/tacticalCpu";
-import { createMasterRankEstimate, formatEstimatedUnseenByRank } from "../game/masterRankEstimate";
+import {
+  doesNineReverseIncreaseReachDistance,
+  doesNineReverseIncreaseTwoCallDistance,
+  getTacticalDiscardScores,
+} from "../game/tacticalCpu";
+import {
+  createMasterRankEstimate,
+  formatEstimatedUnseenByRank,
+} from "../game/masterRankEstimate";
 import { chooseHeadlessCpuAction } from "./headlessCpuDriver";
 import { deriveGameSeed, withSeededMathRandom } from "./seededRandom";
 import type {
@@ -63,16 +85,21 @@ function formatCard(card: Card): string {
 
 function describeAction(action: GameAction): string {
   if ("cardId" in action) return `${action.type}(${action.cardId})`;
-  if ("discardCardId" in action) return `${action.type}(${action.discardCardId})`;
+  if ("discardCardId" in action)
+    return `${action.type}(${action.discardCardId})`;
   if ("rank" in action) return `${action.type}(${action.rank})`;
   if ("activate" in action) return `${action.type}(${action.activate})`;
   if ("declareReach" in action) return `${action.type}(${action.declareReach})`;
   if ("takeRon" in action) return `${action.type}(${action.takeRon})`;
-  if ("ownerIndex" in action) return `${action.type}(player-${action.ownerIndex + 1})`;
+  if ("ownerIndex" in action)
+    return `${action.type}(player-${action.ownerIndex + 1})`;
   return action.type;
 }
 
-export function makePlayerSummary(playerIndex: number, config: SimulationConfig): SimulationPlayerSummary {
+export function makePlayerSummary(
+  playerIndex: number,
+  config: SimulationConfig,
+): SimulationPlayerSummary {
   return {
     player: config.playerLabels[playerIndex],
     model: config.playerModels[playerIndex],
@@ -137,28 +164,50 @@ export function makePlayerSummary(playerIndex: number, config: SimulationConfig)
 }
 
 function getReachPlayerIndexes(state: GameState, actorIndex: number): number[] {
-  return state.players.flatMap((player, index) => (index !== actorIndex && player.isReach ? [index] : []));
+  return state.players.flatMap((player, index) =>
+    index !== actorIndex && player.isReach ? [index] : [],
+  );
 }
 
-function getTwoCallPlayerIndexes(state: GameState, actorIndex: number): number[] {
-  return state.players.flatMap((player, index) => (index !== actorIndex && player.openMelds.length >= 2 ? [index] : []));
+function getTwoCallPlayerIndexes(
+  state: GameState,
+  actorIndex: number,
+): number[] {
+  return state.players.flatMap((player, index) =>
+    index !== actorIndex && player.openMelds.length >= 2 ? [index] : [],
+  );
 }
 
-function getThreatPlayerIndexes(state: GameState, actorIndex: number): number[] {
+function getThreatPlayerIndexes(
+  state: GameState,
+  actorIndex: number,
+): number[] {
   const reachPlayerIndexes = getReachPlayerIndexes(state, actorIndex);
-  return reachPlayerIndexes.length > 0 ? reachPlayerIndexes : getTwoCallPlayerIndexes(state, actorIndex);
+  return reachPlayerIndexes.length > 0
+    ? reachPlayerIndexes
+    : getTwoCallPlayerIndexes(state, actorIndex);
 }
 
-function isNormalJShieldSituation(state: GameState, actorIndex: number): boolean {
-  return getReachPlayerIndexes(state, actorIndex).length === 0 && getTwoCallPlayerIndexes(state, actorIndex).length === 0;
+function isNormalJShieldSituation(
+  state: GameState,
+  actorIndex: number,
+): boolean {
+  return (
+    getReachPlayerIndexes(state, actorIndex).length === 0 &&
+    getTwoCallPlayerIndexes(state, actorIndex).length === 0
+  );
 }
 
 function getPlayerNames(state: GameState, indexes: number[]): string[] {
-  return indexes.map((index) => state.players[index]?.name ?? `player-${index + 1}`);
+  return indexes.map(
+    (index) => state.players[index]?.name ?? `player-${index + 1}`,
+  );
 }
 
 function getCallCounts(state: GameState): string[] {
-  return state.players.map((player) => `${player.name}=${player.openMelds.length}`);
+  return state.players.map(
+    (player) => `${player.name}=${player.openMelds.length}`,
+  );
 }
 
 function pushTargetWarning(
@@ -185,9 +234,15 @@ function pushTargetWarning(
     code,
     cpu: state.players[actorIndex]?.name ?? `player-${actorIndex + 1}`,
     effectCard,
-    reachPlayers: getPlayerNames(state, getReachPlayerIndexes(state, actorIndex)),
+    reachPlayers: getPlayerNames(
+      state,
+      getReachPlayerIndexes(state, actorIndex),
+    ),
     callCounts: getCallCounts(state),
-    threatTargets: getPlayerNames(state, getThreatPlayerIndexes(state, actorIndex)),
+    threatTargets: getPlayerNames(
+      state,
+      getThreatPlayerIndexes(state, actorIndex),
+    ),
     selectedTarget,
     warningReason,
     fiveTarget,
@@ -220,10 +275,19 @@ function incrementEffectUsage(player: SimulationPlayerSummary, effect: string) {
   }
 }
 
-export function summarizeNumberSamples(samples: number[]): SimulationNumberStats {
-  if (samples.length === 0) return { count: 0, avg: null, p50: null, p75: null, p90: null };
+export function summarizeNumberSamples(
+  samples: number[],
+): SimulationNumberStats {
+  if (samples.length === 0)
+    return { count: 0, avg: null, p50: null, p75: null, p90: null };
   const sorted = [...samples].sort((a, b) => a - b);
-  const percentile = (ratio: number): number => sorted[Math.min(sorted.length - 1, Math.max(0, Math.ceil(sorted.length * ratio) - 1))] ?? 0;
+  const percentile = (ratio: number): number =>
+    sorted[
+      Math.min(
+        sorted.length - 1,
+        Math.max(0, Math.ceil(sorted.length * ratio) - 1),
+      )
+    ] ?? 0;
   return {
     count: sorted.length,
     avg: sorted.reduce((sum, value) => sum + value, 0) / sorted.length,
@@ -248,7 +312,8 @@ function createTimingFromResult(
       : [
           {
             playerIndex: result.winnerIndex,
-            winType: result.winType === "ron" ? ("ron" as const) : ("tsumo" as const),
+            winType:
+              result.winType === "ron" ? ("ron" as const) : ("tsumo" as const),
           },
         ];
 
@@ -259,89 +324,170 @@ function createTimingFromResult(
     winners: winners.map((winner) => {
       const winSelfTurnCount = selfTurnCounts[winner.playerIndex] ?? 0;
       const reachSelfTurnCount = reachSelfTurnCounts[winner.playerIndex];
-      const secondCallSelfTurnCount = secondCallSelfTurnCounts[winner.playerIndex];
+      const secondCallSelfTurnCount =
+        secondCallSelfTurnCounts[winner.playerIndex];
       return {
         playerIndex: winner.playerIndex,
         winType: winner.winType,
         selfTurnCountAtWin: winSelfTurnCount,
-        selfTurnCountFromReachToWin: reachSelfTurnCount === null ? null : Math.max(0, winSelfTurnCount - reachSelfTurnCount),
-        selfTurnCountFromSecondCallToWin: secondCallSelfTurnCount === null ? null : Math.max(0, winSelfTurnCount - secondCallSelfTurnCount),
+        selfTurnCountFromReachToWin:
+          reachSelfTurnCount === null
+            ? null
+            : Math.max(0, winSelfTurnCount - reachSelfTurnCount),
+        selfTurnCountFromSecondCallToWin:
+          secondCallSelfTurnCount === null
+            ? null
+            : Math.max(0, winSelfTurnCount - secondCallSelfTurnCount),
       };
     }),
     globalTurnCountAtWin: result.winType === "deckout" ? null : globalTurnCount,
     deckRemainingAtWin: result.winType === "deckout" ? null : deckRemaining,
-    deckConsumedAtWin: result.winType === "deckout" ? null : Math.max(0, initialDeckCount - deckRemaining),
+    deckConsumedAtWin:
+      result.winType === "deckout"
+        ? null
+        : Math.max(0, initialDeckCount - deckRemaining),
   };
 }
 
-export function createTurnTimingSummary(timings: SimulationGameTiming[]): SimulationTurnTimingSummary[] {
+export function createTurnTimingSummary(
+  timings: SimulationGameTiming[],
+): SimulationTurnTimingSummary[] {
   const byPlayerCount = new Map<number, SimulationGameTiming[]>();
   for (const timing of timings) {
-    byPlayerCount.set(timing.playerCount, [...(byPlayerCount.get(timing.playerCount) ?? []), timing]);
+    byPlayerCount.set(timing.playerCount, [
+      ...(byPlayerCount.get(timing.playerCount) ?? []),
+      timing,
+    ]);
   }
 
   return [...byPlayerCount.entries()]
     .sort(([a], [b]) => a - b)
     .map(([playerCount, games]) => {
       const playerSlots = games.length * playerCount;
-      const reachSamples = games.flatMap((game) => game.reachSelfTurnCounts.filter((value): value is number => value !== null));
-      const secondCallSamples = games.flatMap((game) => game.secondCallSelfTurnCounts.filter((value): value is number => value !== null));
+      const reachSamples = games.flatMap((game) =>
+        game.reachSelfTurnCounts.filter(
+          (value): value is number => value !== null,
+        ),
+      );
+      const secondCallSamples = games.flatMap((game) =>
+        game.secondCallSelfTurnCounts.filter(
+          (value): value is number => value !== null,
+        ),
+      );
       const winners = games.flatMap((game) => game.winners);
-      const reachWinSamples = winners.flatMap((winner) => (winner.selfTurnCountFromReachToWin === null ? [] : [winner.selfTurnCountFromReachToWin]));
-      const secondCallWinSamples = winners.flatMap((winner) => (winner.selfTurnCountFromSecondCallToWin === null ? [] : [winner.selfTurnCountFromSecondCallToWin]));
+      const reachWinSamples = winners.flatMap((winner) =>
+        winner.selfTurnCountFromReachToWin === null
+          ? []
+          : [winner.selfTurnCountFromReachToWin],
+      );
+      const secondCallWinSamples = winners.flatMap((winner) =>
+        winner.selfTurnCountFromSecondCallToWin === null
+          ? []
+          : [winner.selfTurnCountFromSecondCallToWin],
+      );
       return {
         playerCount,
-        winnerSelfTurnCountAtWin: summarizeNumberSamples(winners.map((winner) => winner.selfTurnCountAtWin)),
+        winnerSelfTurnCountAtWin: summarizeNumberSamples(
+          winners.map((winner) => winner.selfTurnCountAtWin),
+        ),
         selfTurnCountAtReach: summarizeNumberSamples(reachSamples),
         selfTurnCountFromReachToWin: summarizeNumberSamples(reachWinSamples),
         reachToTsumoWinSelfTurnCount: summarizeNumberSamples(
-          winners.flatMap((winner) => (winner.winType === "tsumo" && winner.selfTurnCountFromReachToWin !== null ? [winner.selfTurnCountFromReachToWin] : [])),
+          winners.flatMap((winner) =>
+            winner.winType === "tsumo" &&
+            winner.selfTurnCountFromReachToWin !== null
+              ? [winner.selfTurnCountFromReachToWin]
+              : [],
+          ),
         ),
         reachToRonWinSelfTurnCount: summarizeNumberSamples(
-          winners.flatMap((winner) => (winner.winType === "ron" && winner.selfTurnCountFromReachToWin !== null ? [winner.selfTurnCountFromReachToWin] : [])),
+          winners.flatMap((winner) =>
+            winner.winType === "ron" &&
+            winner.selfTurnCountFromReachToWin !== null
+              ? [winner.selfTurnCountFromReachToWin]
+              : [],
+          ),
         ),
         reachDeclaredPlayerCount: reachSamples.length,
         nonReachPlayerCount: playerSlots - reachSamples.length,
         reachRate: playerSlots > 0 ? reachSamples.length / playerSlots : 0,
         selfTurnCountAtSecondCall: summarizeNumberSamples(secondCallSamples),
-        selfTurnCountFromSecondCallToWin: summarizeNumberSamples(secondCallWinSamples),
+        selfTurnCountFromSecondCallToWin:
+          summarizeNumberSamples(secondCallWinSamples),
         secondCallToTsumoWinSelfTurnCount: summarizeNumberSamples(
-          winners.flatMap((winner) => (winner.winType === "tsumo" && winner.selfTurnCountFromSecondCallToWin !== null ? [winner.selfTurnCountFromSecondCallToWin] : [])),
+          winners.flatMap((winner) =>
+            winner.winType === "tsumo" &&
+            winner.selfTurnCountFromSecondCallToWin !== null
+              ? [winner.selfTurnCountFromSecondCallToWin]
+              : [],
+          ),
         ),
         secondCallToRonWinSelfTurnCount: summarizeNumberSamples(
-          winners.flatMap((winner) => (winner.winType === "ron" && winner.selfTurnCountFromSecondCallToWin !== null ? [winner.selfTurnCountFromSecondCallToWin] : [])),
+          winners.flatMap((winner) =>
+            winner.winType === "ron" &&
+            winner.selfTurnCountFromSecondCallToWin !== null
+              ? [winner.selfTurnCountFromSecondCallToWin]
+              : [],
+          ),
         ),
         secondCallReachedPlayerCount: secondCallSamples.length,
         nonSecondCallPlayerCount: playerSlots - secondCallSamples.length,
-        secondCallRate: playerSlots > 0 ? secondCallSamples.length / playerSlots : 0,
+        secondCallRate:
+          playerSlots > 0 ? secondCallSamples.length / playerSlots : 0,
       };
     });
 }
 
-export function createTurnTimingSanityCheck(games: number, deckouts: number, timings: SimulationGameTiming[]): SimulationTurnTimingSanityCheck {
+export function createTurnTimingSanityCheck(
+  games: number,
+  deckouts: number,
+  timings: SimulationGameTiming[],
+): SimulationTurnTimingSanityCheck {
   const completedGames = games - deckouts;
-  const winnerSamples = timings.flatMap((timing) => timing.winners.map((winner) => winner.selfTurnCountAtWin));
-  const globalTurnSamples = timings.flatMap((timing) => (timing.globalTurnCountAtWin === null ? [] : [timing.globalTurnCountAtWin]));
-  const deckRemainingSamples = timings.flatMap((timing) => (timing.deckRemainingAtWin === null ? [] : [timing.deckRemainingAtWin]));
-  const deckConsumedSamples = timings.flatMap((timing) => (timing.deckConsumedAtWin === null ? [] : [timing.deckConsumedAtWin]));
+  const winnerSamples = timings.flatMap((timing) =>
+    timing.winners.map((winner) => winner.selfTurnCountAtWin),
+  );
+  const globalTurnSamples = timings.flatMap((timing) =>
+    timing.globalTurnCountAtWin === null ? [] : [timing.globalTurnCountAtWin],
+  );
+  const deckRemainingSamples = timings.flatMap((timing) =>
+    timing.deckRemainingAtWin === null ? [] : [timing.deckRemainingAtWin],
+  );
+  const deckConsumedSamples = timings.flatMap((timing) =>
+    timing.deckConsumedAtWin === null ? [] : [timing.deckConsumedAtWin],
+  );
   const avg = (samples: number[]): number | null =>
-    samples.length === 0 ? null : samples.reduce((sum, value) => sum + value, 0) / samples.length;
+    samples.length === 0
+      ? null
+      : samples.reduce((sum, value) => sum + value, 0) / samples.length;
   return {
     games,
     deckouts,
     completedGames,
     winnerSelfTurnCountAtWinCount: winnerSamples.length,
     winnerCountMatchesCompletedGames: winnerSamples.length === completedGames,
-    minWinnerSelfTurnCountAtWin: winnerSamples.length === 0 ? null : Math.min(...winnerSamples),
-    maxWinnerSelfTurnCountAtWin: winnerSamples.length === 0 ? null : Math.max(...winnerSamples),
+    minWinnerSelfTurnCountAtWin:
+      winnerSamples.length === 0 ? null : Math.min(...winnerSamples),
+    maxWinnerSelfTurnCountAtWin:
+      winnerSamples.length === 0 ? null : Math.max(...winnerSamples),
     avgGlobalTurnCountAtWin: avg(globalTurnSamples),
     avgDeckRemainingAtWin: avg(deckRemainingSamples),
     avgDeckConsumedAtWin: avg(deckConsumedSamples),
   };
 }
 
-function collectTacticalDecisionTurn(state: GameState, action: GameAction, players: SimulationPlayerSummary[]) {
-  if (state.phase !== "discard" || (action.type !== "discard" && action.type !== "discardDrawnOnly" && action.type !== "winWithDiscard")) return;
+function collectTacticalDecisionTurn(
+  state: GameState,
+  action: GameAction,
+  players: SimulationPlayerSummary[],
+) {
+  if (
+    state.phase !== "discard" ||
+    (action.type !== "discard" &&
+      action.type !== "discardDrawnOnly" &&
+      action.type !== "winWithDiscard")
+  )
+    return;
   const actorIndex = state.currentPlayerIndex;
   if (!isTacticalFamilyModel(state.players[actorIndex]?.cpuModelId)) return;
   const summary = players[actorIndex];
@@ -364,20 +510,44 @@ function getTurnOrderIndexes(state: GameState, actorIndex: number): number[] {
   return indexes;
 }
 
-function getSelectedPlayerIndexForFive(state: GameState, actorIndex: number, nextState: GameState): number {
+function getSelectedPlayerIndexForFive(
+  state: GameState,
+  actorIndex: number,
+  nextState: GameState,
+): number {
   const targetPlayerIndex =
     nextState.lastDiscarderIndex === null
       ? null
-      : getNextPlayerIndex(nextState.lastDiscarderIndex, state.players.length, state.direction);
+      : getNextPlayerIndex(
+          nextState.lastDiscarderIndex,
+          state.players.length,
+          state.direction,
+        );
   if (targetPlayerIndex !== null) return targetPlayerIndex;
-  const skippedIndex = getNextPlayerIndex(actorIndex, state.players.length, state.direction);
-  return getNextPlayerIndex(skippedIndex, state.players.length, state.direction);
+  const skippedIndex = getNextPlayerIndex(
+    actorIndex,
+    state.players.length,
+    state.direction,
+  );
+  return getNextPlayerIndex(
+    skippedIndex,
+    state.players.length,
+    state.direction,
+  );
 }
 
-function getSkippedPlayerIndexesForFive(state: GameState, actorIndex: number, selectedPlayerIndex: number): number[] {
-  const option = getEnhancedFiveTurnOptions(state, actorIndex).find((candidate) => candidate.playerIndex === selectedPlayerIndex);
+function getSkippedPlayerIndexesForFive(
+  state: GameState,
+  actorIndex: number,
+  selectedPlayerIndex: number,
+): number[] {
+  const option = getEnhancedFiveTurnOptions(state, actorIndex).find(
+    (candidate) => candidate.playerIndex === selectedPlayerIndex,
+  );
   if (option?.selectable) return option.skippedPlayerIndexes;
-  return [getNextPlayerIndex(actorIndex, state.players.length, state.direction)];
+  return [
+    getNextPlayerIndex(actorIndex, state.players.length, state.direction),
+  ];
 }
 
 function collectTacticalFiveTarget(
@@ -393,19 +563,49 @@ function collectTacticalFiveTarget(
   violations: SimulationViolation[],
   fiveTargetEvents: SimulationFiveTargetEvent[],
 ) {
-  const selectedPlayerIndex = getSelectedPlayerIndexForFive(state, actorIndex, nextState);
-  const skippedPlayerIndexes = getSkippedPlayerIndexesForFive(state, actorIndex, selectedPlayerIndex);
+  const selectedPlayerIndex = getSelectedPlayerIndexForFive(
+    state,
+    actorIndex,
+    nextState,
+  );
+  const skippedPlayerIndexes = getSkippedPlayerIndexesForFive(
+    state,
+    actorIndex,
+    selectedPlayerIndex,
+  );
   const reachPlayerIndexes = getReachPlayerIndexes(state, actorIndex);
   const twoCallPlayerIndexes = getTwoCallPlayerIndexes(state, actorIndex);
-  const threatType = reachPlayerIndexes.length > 0 ? "reach" : twoCallPlayerIndexes.length > 0 ? "twoCall" : "none";
-  const threatPlayerIndexes = threatType === "reach" ? reachPlayerIndexes : threatType === "twoCall" ? twoCallPlayerIndexes : [];
+  const threatType =
+    reachPlayerIndexes.length > 0
+      ? "reach"
+      : twoCallPlayerIndexes.length > 0
+        ? "twoCall"
+        : "none";
+  const threatPlayerIndexes =
+    threatType === "reach"
+      ? reachPlayerIndexes
+      : threatType === "twoCall"
+        ? twoCallPlayerIndexes
+        : [];
   const turnOrderIndexes = getTurnOrderIndexes(state, actorIndex);
-  const threatTargetIndex = turnOrderIndexes.find((index) => threatPlayerIndexes.includes(index)) ?? null;
-  const threatWasSkipped = threatPlayerIndexes.some((index) => skippedPlayerIndexes.includes(index));
-  const immediateSkippedPlayerIndex = getNextPlayerIndex(actorIndex, state.players.length, state.direction);
+  const threatTargetIndex =
+    turnOrderIndexes.find((index) => threatPlayerIndexes.includes(index)) ??
+    null;
+  const threatWasSkipped = threatPlayerIndexes.some((index) =>
+    skippedPlayerIndexes.includes(index),
+  );
+  const immediateSkippedPlayerIndex = getNextPlayerIndex(
+    actorIndex,
+    state.players.length,
+    state.direction,
+  );
   const threatCouldBeSkipped = state.players[actorIndex]?.hasJEnhancementRight
     ? getEnhancedFiveTurnOptions(state, actorIndex).some(
-        (option) => option.selectable && option.skippedPlayerIndexes.some((index) => threatPlayerIndexes.includes(index)),
+        (option) =>
+          option.selectable &&
+          option.skippedPlayerIndexes.some((index) =>
+            threatPlayerIndexes.includes(index),
+          ),
       )
     : threatPlayerIndexes.includes(immediateSkippedPlayerIndex);
   const event: SimulationFiveTargetEvent = {
@@ -413,16 +613,28 @@ function collectTacticalFiveTarget(
     seed,
     step,
     turn,
-    currentPlayer: state.players[actorIndex]?.name ?? `player-${actorIndex + 1}`,
+    currentPlayer:
+      state.players[actorIndex]?.name ?? `player-${actorIndex + 1}`,
     turnOrder: getPlayerNames(state, turnOrderIndexes),
-    selectedPlayer: state.players[selectedPlayerIndex]?.name ?? `player-${selectedPlayerIndex + 1}`,
-    nextPlayerBefore5: state.players[getNextPlayerIndex(actorIndex, state.players.length, state.direction)]?.name ?? "-",
-    nextPlayerAfter5: state.players[selectedPlayerIndex]?.name ?? `player-${selectedPlayerIndex + 1}`,
+    selectedPlayer:
+      state.players[selectedPlayerIndex]?.name ??
+      `player-${selectedPlayerIndex + 1}`,
+    nextPlayerBefore5:
+      state.players[
+        getNextPlayerIndex(actorIndex, state.players.length, state.direction)
+      ]?.name ?? "-",
+    nextPlayerAfter5:
+      state.players[selectedPlayerIndex]?.name ??
+      `player-${selectedPlayerIndex + 1}`,
     skippedPlayers: getPlayerNames(state, skippedPlayerIndexes),
     reachPlayers: getPlayerNames(state, reachPlayerIndexes),
     twoCallPlayers: getPlayerNames(state, twoCallPlayerIndexes),
     threatType,
-    threatTarget: threatTargetIndex === null ? null : state.players[threatTargetIndex]?.name ?? `player-${threatTargetIndex + 1}`,
+    threatTarget:
+      threatTargetIndex === null
+        ? null
+        : (state.players[threatTargetIndex]?.name ??
+          `player-${threatTargetIndex + 1}`),
     threatWasSkipped,
     threatCouldBeSkipped,
   };
@@ -467,7 +679,14 @@ function collectTacticalSevenTarget(
   violations: SimulationViolation[],
 ) {
   const event = nextState.daifugoEffectEvent;
-  if (!event || event.kind !== "sevenExchange" || event.actorIndex !== actorIndex || event.id === state.daifugoEffectEvent?.id || event.targetPlayerIndex === undefined) return;
+  if (
+    !event ||
+    event.kind !== "sevenExchange" ||
+    event.actorIndex !== actorIndex ||
+    event.id === state.daifugoEffectEvent?.id ||
+    event.targetPlayerIndex === undefined
+  )
+    return;
   const reachPlayerIndexes = getReachPlayerIndexes(state, actorIndex);
   const twoCallPlayerIndexes = getTwoCallPlayerIndexes(state, actorIndex);
   const targetPlayerIndex = event.targetPlayerIndex;
@@ -478,11 +697,44 @@ function collectTacticalSevenTarget(
   } else {
     summary.proUsed7OnIrrelevantTarget += 1;
   }
-  const targetName = state.players[targetPlayerIndex]?.name ?? `player-${targetPlayerIndex + 1}`;
-  if (event.cpuThreatResponseMode === "reach" && !reachPlayerIndexes.includes(targetPlayerIndex)) {
-    pushTargetWarning(config, violations, game, seed, step, turn, state, actorIndex, "7", "tactical-seven-irrelevant-reach-target", targetName, "7 targeted no reach player.");
-  } else if (event.cpuThreatResponseMode === "twoCall" && !twoCallPlayerIndexes.includes(targetPlayerIndex)) {
-    pushTargetWarning(config, violations, game, seed, step, turn, state, actorIndex, "7", "tactical-seven-irrelevant-two-call-target", targetName, "7 targeted no two-call player.");
+  const targetName =
+    state.players[targetPlayerIndex]?.name ?? `player-${targetPlayerIndex + 1}`;
+  if (
+    event.cpuThreatResponseMode === "reach" &&
+    !reachPlayerIndexes.includes(targetPlayerIndex)
+  ) {
+    pushTargetWarning(
+      config,
+      violations,
+      game,
+      seed,
+      step,
+      turn,
+      state,
+      actorIndex,
+      "7",
+      "tactical-seven-irrelevant-reach-target",
+      targetName,
+      "7 targeted no reach player.",
+    );
+  } else if (
+    event.cpuThreatResponseMode === "twoCall" &&
+    !twoCallPlayerIndexes.includes(targetPlayerIndex)
+  ) {
+    pushTargetWarning(
+      config,
+      violations,
+      game,
+      seed,
+      step,
+      turn,
+      state,
+      actorIndex,
+      "7",
+      "tactical-seven-irrelevant-two-call-target",
+      targetName,
+      "7 targeted no two-call player.",
+    );
   }
 }
 
@@ -501,7 +753,10 @@ function collectTacticalQueenTarget(
   if (action.type !== "selectQueenVanishRank") return;
   const reachPlayerIndexes = getReachPlayerIndexes(state, actorIndex);
   const twoCallPlayerIndexes = getTwoCallPlayerIndexes(state, actorIndex);
-  const isRelatedTo = (indexes: number[]) => indexes.some((index) => state.players[index]?.hand.some((card) => card.rank === action.rank));
+  const isRelatedTo = (indexes: number[]) =>
+    indexes.some((index) =>
+      state.players[index]?.hand.some((card) => card.rank === action.rank),
+    );
   if (isRelatedTo(reachPlayerIndexes)) {
     summary.proUsedQOnReachRelatedRank += 1;
   } else if (isRelatedTo(twoCallPlayerIndexes)) {
@@ -509,7 +764,20 @@ function collectTacticalQueenTarget(
   } else {
     summary.proUsedQOnIrrelevantRank += 1;
     if (reachPlayerIndexes.length > 0 || twoCallPlayerIndexes.length > 0) {
-      pushTargetWarning(config, violations, game, seed, step, turn, state, actorIndex, "Q", "tactical-queen-irrelevant-rank", String(action.rank), "Q removed no rank held by a threat target.");
+      pushTargetWarning(
+        config,
+        violations,
+        game,
+        seed,
+        step,
+        turn,
+        state,
+        actorIndex,
+        "Q",
+        "tactical-queen-irrelevant-rank",
+        String(action.rank),
+        "Q removed no rank held by a threat target.",
+      );
     }
   }
 }
@@ -537,7 +805,20 @@ function collectTacticalNineUsage(
   }
   summary.proUsed9WithoutDistanceGain += 1;
   if (getThreatPlayerIndexes(state, actorIndex).length > 0) {
-    pushTargetWarning(config, violations, game, seed, step, turn, state, actorIndex, "9", "tactical-nine-without-distance-gain", "-", "9 was activated without increasing threat distance.");
+    pushTargetWarning(
+      config,
+      violations,
+      game,
+      seed,
+      step,
+      turn,
+      state,
+      actorIndex,
+      "9",
+      "tactical-nine-without-distance-gain",
+      "-",
+      "9 was activated without increasing threat distance.",
+    );
   }
 }
 
@@ -558,30 +839,49 @@ function formatRank(rank: number): string {
   return String(rank);
 }
 
-function getShieldType(shield: GameState["players"][number]["jShield"] | undefined): "sequence" | "sameRank" | undefined {
+function getShieldType(
+  shield: GameState["players"][number]["jShield"] | undefined,
+): "sequence" | "sameRank" | undefined {
   if (!shield) return undefined;
   return shield.kind === "run" ? "sequence" : "sameRank";
 }
 
-function formatShieldTarget(shield: GameState["players"][number]["jShield"] | undefined): string | undefined {
+function formatShieldTarget(
+  shield: GameState["players"][number]["jShield"] | undefined,
+): string | undefined {
   if (!shield) return undefined;
-  if (shield.kind === "run") return shield.label ?? shield.ranks?.map(formatRank).join("");
+  if (shield.kind === "run")
+    return shield.label ?? shield.ranks?.map(formatRank).join("");
   return shield.rank === undefined ? undefined : formatRank(shield.rank);
 }
 
-function didPlayerGainJShield(state: GameState, nextState: GameState, playerIndex: number): boolean {
+function didPlayerGainJShield(
+  state: GameState,
+  nextState: GameState,
+  playerIndex: number,
+): boolean {
   const before = state.players[playerIndex]?.jShield;
   const after = nextState.players[playerIndex]?.jShield;
   if (!after) return false;
   if (!before) return true;
-  return before.cardIds.join("|") !== after.cardIds.join("|") || before.kind !== after.kind || before.rank !== after.rank || before.label !== after.label;
+  return (
+    before.cardIds.join("|") !== after.cardIds.join("|") ||
+    before.kind !== after.kind ||
+    before.rank !== after.rank ||
+    before.label !== after.label
+  );
 }
 
-function getJShieldCardIds(player: GameState["players"][number] | undefined): Set<string> {
+function getJShieldCardIds(
+  player: GameState["players"][number] | undefined,
+): Set<string> {
   return new Set(player?.jShield?.cardIds ?? []);
 }
 
-function getJShieldConsumedCardIds(beforePlayer: GameState["players"][number] | undefined, afterPlayer: GameState["players"][number] | undefined): string[] {
+function getJShieldConsumedCardIds(
+  beforePlayer: GameState["players"][number] | undefined,
+  afterPlayer: GameState["players"][number] | undefined,
+): string[] {
   const beforeIds = getJShieldCardIds(beforePlayer);
   const afterIds = getJShieldCardIds(afterPlayer);
   return [...beforeIds].filter((cardId) => !afterIds.has(cardId));
@@ -596,7 +896,10 @@ function pushJShieldDetail(
   turn: number,
   state: GameState,
   playerIndex: number,
-  detail: Omit<SimulationJShieldDetailEvent, "game" | "seed" | "step" | "turn" | "player">,
+  detail: Omit<
+    SimulationJShieldDetailEvent,
+    "game" | "seed" | "step" | "turn" | "player"
+  >,
 ) {
   if (config.logLevel !== "detail") return;
   details.push({
@@ -613,35 +916,54 @@ function hasShieldableSequence(player: GameState["players"][number]): boolean {
   return findPossibleMelds(player.hand).some(isRun);
 }
 
-function hasShieldableSameRankMeld(player: GameState["players"][number]): boolean {
+function hasShieldableSameRankMeld(
+  player: GameState["players"][number],
+): boolean {
   const counts = new Map<number, number>();
-  for (const card of player.hand) counts.set(card.rank, (counts.get(card.rank) ?? 0) + 1);
-  return [...counts.entries()].some(([rank, count]) => count >= 3 && (rank !== 11 || count >= 4));
+  for (const card of player.hand)
+    counts.set(card.rank, (counts.get(card.rank) ?? 0) + 1);
+  return [...counts.entries()].some(
+    ([rank, count]) => count >= 3 && (rank !== 11 || count >= 4),
+  );
 }
 
 function wouldBreakJRun(player: GameState["players"][number]): boolean {
   const jCount = player.hand.filter((card) => card.rank === 11).length;
-  return jCount <= 1 && findPossibleMelds(player.hand).some((meld) => isRun(meld) && meld.some((card) => card.rank === 11));
+  return (
+    jCount <= 1 &&
+    findPossibleMelds(player.hand).some(
+      (meld) => isRun(meld) && meld.some((card) => card.rank === 11),
+    )
+  );
 }
 
-function classifyMasterJShieldSkipReason(state: GameState, actorIndex: number): MasterJShieldSkipReason {
+function classifyMasterJShieldSkipReason(
+  state: GameState,
+  actorIndex: number,
+): MasterJShieldSkipReason {
   const player = state.players[actorIndex];
   if (!player) return "masterJShieldSkippedNoCompletedMeld";
   if (player.openMelds.length >= 2) return "masterJShieldSkippedSelfTwoCall";
-  if (player.jShield?.kind === "run") return "masterJShieldSkippedAlreadySequenceShielded";
+  if (player.jShield?.kind === "run")
+    return "masterJShieldSkippedAlreadySequenceShielded";
   const vanishedRanks = new Set(state.queenVanishedRanks ?? []);
-  if (vanishedRanks.has(7) && vanishedRanks.has(12)) return "masterJShieldSkippedSevenAndQEliminated";
+  if (vanishedRanks.has(7) && vanishedRanks.has(12))
+    return "masterJShieldSkippedSevenAndQEliminated";
   const melds = findPossibleMelds(player.hand);
   if (melds.length === 0) return "masterJShieldSkippedNoCompletedMeld";
   const hasSequence = hasShieldableSequence(player);
   const hasSameRank = hasShieldableSameRankMeld(player);
-  if (!hasSequence && wouldBreakJRun(player)) return "masterJShieldSkippedWouldBreakProtectedMeld";
+  if (!hasSequence && wouldBreakJRun(player))
+    return "masterJShieldSkippedWouldBreakProtectedMeld";
   if (!hasSequence) return "masterJShieldSkippedNoShieldableSequence";
   if (!hasSameRank) return "masterJShieldSkippedNoShieldableSameRankMeld";
   return "masterJShieldSkippedWouldBreakProtectedMeld";
 }
 
-function incrementMasterJShieldSkip(summary: SimulationPlayerSummary, reason: MasterJShieldSkipReason) {
+function incrementMasterJShieldSkip(
+  summary: SimulationPlayerSummary,
+  reason: MasterJShieldSkipReason,
+) {
   switch (reason) {
     case "masterJShieldSkippedNoCompletedMeld":
       summary.masterJShieldSkippedNoCompletedMeld += 1;
@@ -680,15 +1002,28 @@ function collectTacticalJackUsage(
   jShieldDetails: SimulationJShieldDetailEvent[],
 ) {
   const isMaster = state.players[actorIndex]?.cpuModelId === "master";
-  if (!state.players[actorIndex]?.hasJEnhancementRight && nextState.players[actorIndex]?.hasJEnhancementRight) {
+  if (
+    !state.players[actorIndex]?.hasJEnhancementRight &&
+    nextState.players[actorIndex]?.hasJEnhancementRight
+  ) {
     summary.proUsedJForEnhancement += 1;
     if (isMaster) {
       summary.masterJSelectedEnhance += 1;
-      pushJShieldDetail(config, jShieldDetails, game, seed, step, turn, state, actorIndex, {
-        event: "masterJDecision",
-        decision: "enhance",
-        reason: "selectedEnhancement",
-      });
+      pushJShieldDetail(
+        config,
+        jShieldDetails,
+        game,
+        seed,
+        step,
+        turn,
+        state,
+        actorIndex,
+        {
+          event: "masterJDecision",
+          decision: "enhance",
+          reason: "selectedEnhancement",
+        },
+      );
     }
     return;
   }
@@ -699,19 +1034,45 @@ function collectTacticalJackUsage(
         summary.masterJShieldUsedInNormalSituation += 1;
       }
       const shield = nextState.players[actorIndex]?.jShield;
-      pushJShieldDetail(config, jShieldDetails, game, seed, step, turn, nextState, actorIndex, {
-        event: "masterJDecision",
-        decision: "jShield",
-        shieldType: getShieldType(shield),
-        target: formatShieldTarget(shield),
-        reason: getShieldType(shield) === "sequence" ? "sequenceShieldSelected" : "sameRankShieldSelected",
-      });
+      pushJShieldDetail(
+        config,
+        jShieldDetails,
+        game,
+        seed,
+        step,
+        turn,
+        nextState,
+        actorIndex,
+        {
+          event: "masterJDecision",
+          decision: "jShield",
+          shieldType: getShieldType(shield),
+          target: formatShieldTarget(shield),
+          reason:
+            getShieldType(shield) === "sequence"
+              ? "sequenceShieldSelected"
+              : "sameRankShieldSelected",
+        },
+      );
     }
     return;
   }
   if (state.isJBackActive !== nextState.isJBackActive) {
     summary.proUsedJBackFallback += 1;
-    pushTargetWarning(config, violations, game, seed, step, turn, state, actorIndex, "J", "tactical-j-back-fallback", "J-back", "Tactical J unexpectedly resolved to J-back.");
+    pushTargetWarning(
+      config,
+      violations,
+      game,
+      seed,
+      step,
+      turn,
+      state,
+      actorIndex,
+      "J",
+      "tactical-j-back-fallback",
+      "J-back",
+      "Tactical J unexpectedly resolved to J-back.",
+    );
     return;
   }
   summary.proUsedJForView += 1;
@@ -720,11 +1081,21 @@ function collectTacticalJackUsage(
     incrementMasterJShieldSkip(summary, reason);
     summary.masterJSelectedViewHand += 1;
     summary.masterJShieldFallbackToViewHand += 1;
-    pushJShieldDetail(config, jShieldDetails, game, seed, step, turn, state, actorIndex, {
-      event: "masterJDecision",
-      decision: "viewHand",
-      reason,
-    });
+    pushJShieldDetail(
+      config,
+      jShieldDetails,
+      game,
+      seed,
+      step,
+      turn,
+      state,
+      actorIndex,
+      {
+        event: "masterJDecision",
+        decision: "viewHand",
+        reason,
+      },
+    );
   }
 }
 
@@ -743,11 +1114,14 @@ function collectJShieldUsage(
   const isShieldAction =
     action.type === "selectJackShieldRank" ||
     action.type === "selectJackShieldRun" ||
-    (action.type === "answerDaifugoEffect" && state.pendingDaifugoEffect?.kind === "confirm" && state.pendingDaifugoEffect.effect === "jackBack");
+    (action.type === "answerDaifugoEffect" &&
+      state.pendingDaifugoEffect?.kind === "confirm" &&
+      state.pendingDaifugoEffect.effect === "jackBack");
   if (!isShieldAction) return;
   state.players.forEach((beforePlayer, playerIndex) => {
     const afterPlayer = nextState.players[playerIndex];
-    if (!afterPlayer || !didPlayerGainJShield(state, nextState, playerIndex)) return;
+    if (!afterPlayer || !didPlayerGainJShield(state, nextState, playerIndex))
+      return;
     const shield = afterPlayer.jShield;
     if (!shield) return;
     const summary = players[playerIndex];
@@ -765,12 +1139,22 @@ function collectJShieldUsage(
     } else {
       summary.jShieldUsedForSameRank += 1;
     }
-    pushJShieldDetail(config, jShieldDetails, game, seed, step, turn, nextState, playerIndex, {
-      event: "J Shield used",
-      shieldType: getShieldType(shield),
-      target: formatShieldTarget(shield),
-      cardIds: shield.cardIds,
-    });
+    pushJShieldDetail(
+      config,
+      jShieldDetails,
+      game,
+      seed,
+      step,
+      turn,
+      nextState,
+      playerIndex,
+      {
+        event: "J Shield used",
+        shieldType: getShieldType(shield),
+        target: formatShieldTarget(shield),
+        cardIds: shield.cardIds,
+      },
+    );
   });
 }
 
@@ -787,7 +1171,10 @@ function collectJShieldDefense(
   jShieldDetails: SimulationJShieldDetailEvent[],
 ) {
   state.players.forEach((beforePlayer, playerIndex) => {
-    const consumedCardIds = getJShieldConsumedCardIds(beforePlayer, nextState.players[playerIndex]);
+    const consumedCardIds = getJShieldConsumedCardIds(
+      beforePlayer,
+      nextState.players[playerIndex],
+    );
     if (consumedCardIds.length === 0) return;
     const summary = players[playerIndex];
     summary.jShieldConsumed += 1;
@@ -798,25 +1185,52 @@ function collectJShieldDefense(
       if (beforeType === "sequence" && afterShield) {
         summary.jShieldSequencePartialBrokenByQ += 1;
       }
-      pushJShieldDetail(config, jShieldDetails, game, seed, step, turn, nextState, playerIndex, {
-        event: "J Shield blocked Q",
-        rank: formatRank(action.rank),
-        shieldType: beforeType,
-        remainingShieldedRanks: nextState.players[playerIndex]?.jShield?.cardIds.map((cardId) => {
-          const card = nextState.players[playerIndex]?.hand.find((candidate) => candidate.id === cardId);
-          return card ? formatRank(card.rank) : cardId;
-        }),
-      });
+      pushJShieldDetail(
+        config,
+        jShieldDetails,
+        game,
+        seed,
+        step,
+        turn,
+        nextState,
+        playerIndex,
+        {
+          event: "J Shield blocked Q",
+          rank: formatRank(action.rank),
+          shieldType: beforeType,
+          remainingShieldedRanks: nextState.players[
+            playerIndex
+          ]?.jShield?.cardIds.map((cardId) => {
+            const card = nextState.players[playerIndex]?.hand.find(
+              (candidate) => candidate.id === cardId,
+            );
+            return card ? formatRank(card.rank) : cardId;
+          }),
+        },
+      );
       return;
     }
-    if (state.pendingDaifugoEffect?.kind === "sevenExchange" && nextState.daifugoEffectEvent?.kind === "sevenExchange") {
+    if (
+      state.pendingDaifugoEffect?.kind === "sevenExchange" &&
+      nextState.daifugoEffectEvent?.kind === "sevenExchange"
+    ) {
       summary.jShieldBlocked7 += 1;
-      pushJShieldDetail(config, jShieldDetails, game, seed, step, turn, nextState, playerIndex, {
-        event: "J Shield blocked 7",
-        shieldType: beforeType,
-        target: formatShieldTarget(beforePlayer.jShield),
-        cardIds: consumedCardIds,
-      });
+      pushJShieldDetail(
+        config,
+        jShieldDetails,
+        game,
+        seed,
+        step,
+        turn,
+        nextState,
+        playerIndex,
+        {
+          event: "J Shield blocked 7",
+          shieldType: beforeType,
+          target: formatShieldTarget(beforePlayer.jShield),
+          cardIds: consumedCardIds,
+        },
+      );
     }
   });
 }
@@ -836,14 +1250,52 @@ export function collectEffectTelemetry(
   jShieldDetails: SimulationJShieldDetailEvent[] = [],
 ) {
   collectTacticalDecisionTurn(state, action, players);
-  collectJShieldUsage(config, game, seed, step, turn, state, action, nextState, players, jShieldDetails);
-  collectJShieldDefense(config, game, seed, step, turn, state, action, nextState, players, jShieldDetails);
+  collectJShieldUsage(
+    config,
+    game,
+    seed,
+    step,
+    turn,
+    state,
+    action,
+    nextState,
+    players,
+    jShieldDetails,
+  );
+  collectJShieldDefense(
+    config,
+    game,
+    seed,
+    step,
+    turn,
+    state,
+    action,
+    nextState,
+    players,
+    jShieldDetails,
+  );
   const pending = state.pendingDaifugoEffect;
-  if (!pending || pending.kind !== "confirm" || action.type !== "answerDaifugoEffect" || !action.activate) {
+  if (
+    !pending ||
+    pending.kind !== "confirm" ||
+    action.type !== "answerDaifugoEffect" ||
+    !action.activate
+  ) {
     if (pending?.kind === "queenSelect") {
       const actorIndex = pending.playerIndex;
       if (isTacticalFamilyModel(state.players[actorIndex]?.cpuModelId)) {
-        collectTacticalQueenTarget(config, game, seed, step, turn, state, action, actorIndex, players[actorIndex], violations);
+        collectTacticalQueenTarget(
+          config,
+          game,
+          seed,
+          step,
+          turn,
+          state,
+          action,
+          actorIndex,
+          players[actorIndex],
+          violations,
+        );
       }
     }
     return;
@@ -856,20 +1308,69 @@ export function collectEffectTelemetry(
 
   switch (pending.effect) {
     case "fiveSkip":
-      collectTacticalFiveTarget(config, game, seed, step, turn, state, nextState, actorIndex, summary, violations, fiveTargetEvents);
+      collectTacticalFiveTarget(
+        config,
+        game,
+        seed,
+        step,
+        turn,
+        state,
+        nextState,
+        actorIndex,
+        summary,
+        violations,
+        fiveTargetEvents,
+      );
       return;
     case "sevenExchange":
-      collectTacticalSevenTarget(config, game, seed, step, turn, state, nextState, actorIndex, summary, violations);
+      collectTacticalSevenTarget(
+        config,
+        game,
+        seed,
+        step,
+        turn,
+        state,
+        nextState,
+        actorIndex,
+        summary,
+        violations,
+      );
       return;
     case "nineReverse":
-      collectTacticalNineUsage(config, game, seed, step, turn, state, actorIndex, summary, violations);
+      collectTacticalNineUsage(
+        config,
+        game,
+        seed,
+        step,
+        turn,
+        state,
+        actorIndex,
+        summary,
+        violations,
+      );
       return;
     case "jackBack":
-      collectTacticalJackUsage(config, game, seed, step, turn, state, nextState, actorIndex, summary, violations, jShieldDetails);
+      collectTacticalJackUsage(
+        config,
+        game,
+        seed,
+        step,
+        turn,
+        state,
+        nextState,
+        actorIndex,
+        summary,
+        violations,
+        jShieldDetails,
+      );
   }
 }
 
-function collectResult(result: GameResult, players: SimulationPlayerSummary[], calledPlayerIndexes: number[]) {
+function collectResult(
+  result: GameResult,
+  players: SimulationPlayerSummary[],
+  calledPlayerIndexes: number[],
+) {
   const playerLosses = getDisplayedPlayerLosses(result, players.length);
   playerLosses.forEach((loss, index) => {
     players[index].totalLoss += loss;
@@ -884,7 +1385,13 @@ function collectResult(result: GameResult, players: SimulationPlayerSummary[], c
   if (result.winType === "deckout") return;
 
   if (result.winType === "ron") {
-    const ronResults = result.ronResults ?? [{ winnerIndex: result.winnerIndex, winningResult: result.winningResult, score: result.score }];
+    const ronResults = result.ronResults ?? [
+      {
+        winnerIndex: result.winnerIndex,
+        winningResult: result.winningResult,
+        score: result.score,
+      },
+    ];
     new Set(ronResults.map((ron) => ron.winnerIndex)).forEach((winnerIndex) => {
       players[winnerIndex].ronCount += 1;
       players[winnerIndex].winCount += 1;
@@ -896,38 +1403,114 @@ function collectResult(result: GameResult, players: SimulationPlayerSummary[], c
   players[result.winnerIndex].winCount += 1;
 }
 
-function sumPlayers(players: SimulationPlayerSummary[], selector: (player: SimulationPlayerSummary) => number): number {
+function sumPlayers(
+  players: SimulationPlayerSummary[],
+  selector: (player: SimulationPlayerSummary) => number,
+): number {
   return players.reduce((total, player) => total + selector(player), 0);
 }
 
-function createJShieldSummary(players: SimulationPlayerSummary[]): SimulationJShieldSummary {
+function createJShieldSummary(
+  players: SimulationPlayerSummary[],
+): SimulationJShieldSummary {
   return {
     jShieldUsedCount: sumPlayers(players, (player) => player.jShieldUsed),
-    jShieldUsedByHumanCount: sumPlayers(players, (player) => player.jShieldUsedByHuman),
-    jShieldUsedByCpuCount: sumPlayers(players, (player) => player.jShieldUsedByCpu),
-    jShieldUsedByMasterCount: sumPlayers(players, (player) => player.jShieldUsedByMaster),
-    jShieldUsedForSequenceMeldCount: sumPlayers(players, (player) => player.jShieldUsedForSequence),
-    jShieldUsedForSameRankMeldCount: sumPlayers(players, (player) => player.jShieldUsedForSameRank),
-    jShieldBlockedQCount: sumPlayers(players, (player) => player.jShieldBlockedQ),
-    jShieldBlocked7Count: sumPlayers(players, (player) => player.jShieldBlocked7),
-    jShieldConsumedCount: sumPlayers(players, (player) => player.jShieldConsumed),
-    jShieldSequencePartialBrokenByQCount: sumPlayers(players, (player) => player.jShieldSequencePartialBrokenByQ),
-    masterJSelectedEnhanceCount: sumPlayers(players, (player) => player.masterJSelectedEnhance),
-    masterJSelectedViewHandCount: sumPlayers(players, (player) => player.masterJSelectedViewHand),
-    masterJSelectedShieldCount: sumPlayers(players, (player) => player.masterJSelectedShield),
-    masterJShieldUsedInNormalSituationCount: sumPlayers(players, (player) => player.masterJShieldUsedInNormalSituation),
-    masterJShieldSkippedNoCompletedMeldCount: sumPlayers(players, (player) => player.masterJShieldSkippedNoCompletedMeld),
-    masterJShieldSkippedNoShieldableSequenceCount: sumPlayers(players, (player) => player.masterJShieldSkippedNoShieldableSequence),
-    masterJShieldSkippedNoShieldableSameRankMeldCount: sumPlayers(players, (player) => player.masterJShieldSkippedNoShieldableSameRankMeld),
-    masterJShieldSkippedAlreadySequenceShieldedCount: sumPlayers(players, (player) => player.masterJShieldSkippedAlreadySequenceShielded),
-    masterJShieldSkippedSelfTwoCallCount: sumPlayers(players, (player) => player.masterJShieldSkippedSelfTwoCall),
-    masterJShieldSkippedSevenAndQEliminatedCount: sumPlayers(players, (player) => player.masterJShieldSkippedSevenAndQEliminated),
-    masterJShieldSkippedWouldBreakProtectedMeldCount: sumPlayers(players, (player) => player.masterJShieldSkippedWouldBreakProtectedMeld),
-    masterJShieldFallbackToViewHandCount: sumPlayers(players, (player) => player.masterJShieldFallbackToViewHand),
+    jShieldUsedByHumanCount: sumPlayers(
+      players,
+      (player) => player.jShieldUsedByHuman,
+    ),
+    jShieldUsedByCpuCount: sumPlayers(
+      players,
+      (player) => player.jShieldUsedByCpu,
+    ),
+    jShieldUsedByMasterCount: sumPlayers(
+      players,
+      (player) => player.jShieldUsedByMaster,
+    ),
+    jShieldUsedForSequenceMeldCount: sumPlayers(
+      players,
+      (player) => player.jShieldUsedForSequence,
+    ),
+    jShieldUsedForSameRankMeldCount: sumPlayers(
+      players,
+      (player) => player.jShieldUsedForSameRank,
+    ),
+    jShieldBlockedQCount: sumPlayers(
+      players,
+      (player) => player.jShieldBlockedQ,
+    ),
+    jShieldBlocked7Count: sumPlayers(
+      players,
+      (player) => player.jShieldBlocked7,
+    ),
+    jShieldConsumedCount: sumPlayers(
+      players,
+      (player) => player.jShieldConsumed,
+    ),
+    jShieldSequencePartialBrokenByQCount: sumPlayers(
+      players,
+      (player) => player.jShieldSequencePartialBrokenByQ,
+    ),
+    masterJSelectedEnhanceCount: sumPlayers(
+      players,
+      (player) => player.masterJSelectedEnhance,
+    ),
+    masterJSelectedViewHandCount: sumPlayers(
+      players,
+      (player) => player.masterJSelectedViewHand,
+    ),
+    masterJSelectedShieldCount: sumPlayers(
+      players,
+      (player) => player.masterJSelectedShield,
+    ),
+    masterJShieldUsedInNormalSituationCount: sumPlayers(
+      players,
+      (player) => player.masterJShieldUsedInNormalSituation,
+    ),
+    masterJShieldSkippedNoCompletedMeldCount: sumPlayers(
+      players,
+      (player) => player.masterJShieldSkippedNoCompletedMeld,
+    ),
+    masterJShieldSkippedNoShieldableSequenceCount: sumPlayers(
+      players,
+      (player) => player.masterJShieldSkippedNoShieldableSequence,
+    ),
+    masterJShieldSkippedNoShieldableSameRankMeldCount: sumPlayers(
+      players,
+      (player) => player.masterJShieldSkippedNoShieldableSameRankMeld,
+    ),
+    masterJShieldSkippedAlreadySequenceShieldedCount: sumPlayers(
+      players,
+      (player) => player.masterJShieldSkippedAlreadySequenceShielded,
+    ),
+    masterJShieldSkippedSelfTwoCallCount: sumPlayers(
+      players,
+      (player) => player.masterJShieldSkippedSelfTwoCall,
+    ),
+    masterJShieldSkippedSevenAndQEliminatedCount: sumPlayers(
+      players,
+      (player) => player.masterJShieldSkippedSevenAndQEliminated,
+    ),
+    masterJShieldSkippedWouldBreakProtectedMeldCount: sumPlayers(
+      players,
+      (player) => player.masterJShieldSkippedWouldBreakProtectedMeld,
+    ),
+    masterJShieldFallbackToViewHandCount: sumPlayers(
+      players,
+      (player) => player.masterJShieldFallbackToViewHand,
+    ),
   };
 }
 
-function createDetailEvent(game: number, seed: number, step: number, turn: number, state: GameState, action: GameAction, reason?: string): SimulationDetailEvent {
+function createDetailEvent(
+  game: number,
+  seed: number,
+  step: number,
+  turn: number,
+  state: GameState,
+  action: GameAction,
+  reason?: string,
+): SimulationDetailEvent {
   const player = state.players[state.currentPlayerIndex];
   return {
     game,
@@ -938,10 +1521,14 @@ function createDetailEvent(game: number, seed: number, step: number, turn: numbe
     model: player?.cpuModelId ?? "standard",
     phase: state.phase,
     hand: player?.hand.map(formatCard) ?? [],
-    reachPlayers: state.players.filter((candidate) => candidate.isReach).map((candidate) => candidate.name),
+    reachPlayers: state.players
+      .filter((candidate) => candidate.isReach)
+      .map((candidate) => candidate.name),
     estimatedUnseenByRank:
       player?.cpuModelId === "master"
-        ? formatEstimatedUnseenByRank(createMasterRankEstimate(state, state.currentPlayerIndex))
+        ? formatEstimatedUnseenByRank(
+            createMasterRankEstimate(state, state.currentPlayerIndex),
+          )
         : undefined,
     action: describeAction(action),
     reason,
@@ -953,7 +1540,10 @@ function createFallbackDeckout(playerCount: number): GameResult {
     winnerIndex: -1,
     winType: "deckout",
     winningResult: { canWin: false, melds: [], keyCard: null },
-    score: { winnerScore: 0, playerLosses: Array.from({ length: playerCount }, () => 0) },
+    score: {
+      winnerScore: 0,
+      playerLosses: Array.from({ length: playerCount }, () => 0),
+    },
     discarderIndex: null,
   };
 }
@@ -971,7 +1561,9 @@ function collectTacticalReachViolations(
     !context ||
     !isTacticalFamilyModel(context.currentPlayer.cpuModelId) ||
     !state.daifugoOptions.enabled ||
-    !state.players.some((player, index) => index !== state.currentPlayerIndex && player.isReach)
+    !state.players.some(
+      (player, index) => index !== state.currentPlayerIndex && player.isReach,
+    )
   ) {
     return;
   }
@@ -1024,26 +1616,57 @@ function runOneGame(
 ): SimulationGameOutcome {
   return withSeededMathRandom(seed, () => {
     let state = {
-      ...createInitialGame(config.playerModels.length, config.direction, 0, "standard", config.rules === "daifugo" ? ALL_DAIFUGO_OPTIONS : createDefaultDaifugoOptions(), config.playerModels, false),
+      ...createInitialGame(
+        config.playerModels.length,
+        config.direction,
+        0,
+        "standard",
+        config.rules === "daifugo"
+          ? ALL_DAIFUGO_OPTIONS
+          : createDefaultDaifugoOptions(),
+        config.playerModels,
+        false,
+      ),
       currentPlayerIndex: startPlayerIndex,
     };
     const initialDeckCount = state.deck.length;
     let turn = 0;
     const selfTurnCounts = Array.from({ length: players.length }, () => 0);
-    const reachSelfTurnCounts: Array<number | null> = Array.from({ length: players.length }, () => null);
-    const secondCallSelfTurnCounts: Array<number | null> = Array.from({ length: players.length }, () => null);
+    const reachSelfTurnCounts: Array<number | null> = Array.from(
+      { length: players.length },
+      () => null,
+    );
+    const secondCallSelfTurnCounts: Array<number | null> = Array.from(
+      { length: players.length },
+      () => null,
+    );
     const calledPlayerIndexes = new Set<number>();
     const complete = (result: GameResult): SimulationGameOutcome => ({
       result,
       calledPlayerIndexes: [...calledPlayerIndexes],
-      timing: createTimingFromResult(result, selfTurnCounts, reachSelfTurnCounts, secondCallSelfTurnCounts, turn, state.deck.length, initialDeckCount),
+      timing: createTimingFromResult(
+        result,
+        selfTurnCounts,
+        reachSelfTurnCounts,
+        secondCallSelfTurnCounts,
+        turn,
+        state.deck.length,
+        initialDeckCount,
+      ),
     });
 
     for (let step = 1; step <= config.maxStepsPerGame; step += 1) {
-      if (state.phase === "result" && state.result) return complete(state.result);
+      if (state.phase === "result" && state.result)
+        return complete(state.result);
       const decision = chooseHeadlessCpuAction(state);
       if (!decision.action) {
-        violations.push({ game, seed, step, code: "no-action", message: decision.reason ?? `No action for ${state.phase}.` });
+        violations.push({
+          game,
+          seed,
+          step,
+          code: "no-action",
+          message: decision.reason ?? `No action for ${state.phase}.`,
+        });
         return complete(createFallbackDeckout(players.length));
       }
       if (state.phase === "draw" && decision.action.type !== "confirmHandoff") {
@@ -1054,46 +1677,101 @@ function runOneGame(
         calledPlayerIndexes.add(state.currentPlayerIndex);
       }
       if (config.logLevel === "detail") {
-        details.push(createDetailEvent(game, seed, step, turn, state, decision.action, decision.reason));
+        details.push(
+          createDetailEvent(
+            game,
+            seed,
+            step,
+            turn,
+            state,
+            decision.action,
+            decision.reason,
+          ),
+        );
       }
-      collectTacticalReachViolations(game, seed, step, state, decision.action, violations);
+      collectTacticalReachViolations(
+        game,
+        seed,
+        step,
+        state,
+        decision.action,
+        violations,
+      );
       const nextState = gameReducer(state, decision.action);
       if (
-        (decision.action.type === "answerReachAfterDiscard" && decision.action.declareReach) ||
+        (decision.action.type === "answerReachAfterDiscard" &&
+          decision.action.declareReach) ||
         decision.action.type === "declareReach"
       ) {
-        reachSelfTurnCounts[state.currentPlayerIndex] ??= selfTurnCounts[state.currentPlayerIndex];
+        reachSelfTurnCounts[state.currentPlayerIndex] ??=
+          selfTurnCounts[state.currentPlayerIndex];
       }
       if (decision.action.type === "takeDiscard" && decision.action.meld) {
-        const beforeCallCount = state.players[state.currentPlayerIndex]?.openMelds.length ?? 0;
-        const afterCallCount = nextState.players[state.currentPlayerIndex]?.openMelds.length ?? beforeCallCount;
+        const beforeCallCount =
+          state.players[state.currentPlayerIndex]?.openMelds.length ?? 0;
+        const afterCallCount =
+          nextState.players[state.currentPlayerIndex]?.openMelds.length ??
+          beforeCallCount;
         if (beforeCallCount < 2 && afterCallCount >= 2) {
-          secondCallSelfTurnCounts[state.currentPlayerIndex] ??= selfTurnCounts[state.currentPlayerIndex];
+          secondCallSelfTurnCounts[state.currentPlayerIndex] ??=
+            selfTurnCounts[state.currentPlayerIndex];
         }
       }
-      collectEffectTelemetry(config, game, seed, step, turn, state, decision.action, nextState, players, violations, fiveTargetEvents, jShieldDetails);
+      collectEffectTelemetry(
+        config,
+        game,
+        seed,
+        step,
+        turn,
+        state,
+        decision.action,
+        nextState,
+        players,
+        violations,
+        fiveTargetEvents,
+        jShieldDetails,
+      );
       if (nextState === state) {
-        violations.push({ game, seed, step, code: "stalled-action", message: `${describeAction(decision.action)} did not change state.` });
+        violations.push({
+          game,
+          seed,
+          step,
+          code: "stalled-action",
+          message: `${describeAction(decision.action)} did not change state.`,
+        });
         return complete(createFallbackDeckout(players.length));
       }
       state = nextState;
     }
 
-    violations.push({ game, seed, step: config.maxStepsPerGame, code: "max-steps", message: `Game exceeded ${config.maxStepsPerGame} steps.` });
+    violations.push({
+      game,
+      seed,
+      step: config.maxStepsPerGame,
+      code: "max-steps",
+      message: `Game exceeded ${config.maxStepsPerGame} steps.`,
+    });
     return complete(createFallbackDeckout(players.length));
   });
 }
 
 export function runSimulation(config: SimulationConfig): SimulationSummary {
-  const players = config.playerModels.map((_, index) => makePlayerSummary(index, config));
+  const players = config.playerModels.map((_, index) =>
+    makePlayerSummary(index, config),
+  );
   const violations: SimulationViolation[] = [];
   const details: SimulationDetailEvent[] = [];
   const fiveTargetEvents: SimulationFiveTargetEvent[] = [];
   const jShieldDetails: SimulationJShieldDetailEvent[] = [];
   const results: GameResult[] = [];
   const timings: SimulationGameTiming[] = [];
-  const gameSeeds = Array.from({ length: config.games }, (_, index) => deriveGameSeed(config.seed, index));
-  const startPlayerIndexes = Array.from({ length: config.games }, (_, index) => index % players.length);
+  const gameSeeds = Array.from({ length: config.games }, (_, index) =>
+    deriveGameSeed(config.seed, index),
+  );
+  const startPlayerIndexes = Array.from(
+    { length: config.games },
+    (_, index) => index % players.length,
+  );
   const originalInfo = console.info;
   const originalWarn = console.warn;
 
@@ -1105,7 +1783,17 @@ export function runSimulation(config: SimulationConfig): SimulationSummary {
     gameSeeds.forEach((gameSeed, index) => {
       const startPlayerIndex = startPlayerIndexes[index];
       players[startPlayerIndex].startPlayerCount += 1;
-      const outcome = runOneGame(config, index + 1, gameSeed, startPlayerIndex, players, violations, details, fiveTargetEvents, jShieldDetails);
+      const outcome = runOneGame(
+        config,
+        index + 1,
+        gameSeed,
+        startPlayerIndex,
+        players,
+        violations,
+        details,
+        fiveTargetEvents,
+        jShieldDetails,
+      );
       results.push(outcome.result);
       timings.push(outcome.timing);
       collectResult(outcome.result, players, outcome.calledPlayerIndexes);
@@ -1116,13 +1804,21 @@ export function runSimulation(config: SimulationConfig): SimulationSummary {
   }
 
   players.forEach((player) => {
-    player.lossEfficiency = player.loserCount > 0 ? Math.round(player.pureLoss / player.loserCount) : null;
+    player.lossEfficiency =
+      player.loserCount > 0
+        ? Math.round(player.pureLoss / player.loserCount)
+        : null;
   });
 
-  const deckoutCount = results.filter((result) => result.winType === "deckout").length;
+  const deckoutCount = results.filter(
+    (result) => result.winType === "deckout",
+  ).length;
   return {
     config,
-    daifugoOptions: config.rules === "daifugo" ? ALL_DAIFUGO_OPTIONS : createDefaultDaifugoOptions(),
+    daifugoOptions:
+      config.rules === "daifugo"
+        ? ALL_DAIFUGO_OPTIONS
+        : createDefaultDaifugoOptions(),
     players,
     completedGames: results.length,
     deckoutCount,
@@ -1135,6 +1831,10 @@ export function runSimulation(config: SimulationConfig): SimulationSummary {
     results,
     jShieldSummary: createJShieldSummary(players),
     turnTiming: createTurnTimingSummary(timings),
-    turnTimingSanity: createTurnTimingSanityCheck(results.length, deckoutCount, timings),
+    turnTimingSanity: createTurnTimingSanityCheck(
+      results.length,
+      deckoutCount,
+      timings,
+    ),
   };
 }

@@ -18,6 +18,18 @@ test("online 10 effect accepts extra discard and effect draw without leaking the
   await waitForSocket(() => host.state.view.pendingDaifugoEffect === null, "10 effect draw did not resolve");
 
   expect(clients.every((client) => client.state.view.deck.length === 0)).toBe(true);
+  expect(host.state.view.daifugoDeckDrawEvent).toMatchObject({
+    playerIndex: 0,
+    effect: "tenSwapDraw",
+    drawSource: "deck",
+  });
+  expect(host.state.view.daifugoDeckDrawEvent.drawnCard).toBeTruthy();
+  expect(clients[1].state.view.daifugoDeckDrawEvent).toMatchObject({
+    playerIndex: 0,
+    effect: "tenSwapDraw",
+    drawSource: "deck",
+    drawnCard: null,
+  });
   expect(clients.every((client) => client.state.view.players[0].discardPile.some((card: any) => card.id === extra.id))).toBe(true);
 
   closeSocketClients(clients);

@@ -1,4 +1,4 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { createInitialGame, gameReducer } from "../game/gameState";
@@ -506,7 +506,7 @@ describe("PlayScreen round display", () => {
     render(<PlayScreen state={state} dispatch={dispatch} currentRound={1} />);
 
     expect(state.pendingDaifugoEffect).toMatchObject({ kind: "queenWinConfirm" });
-    expect(screen.getByText("Q効果発動により、9が捨てられます")).toBeInTheDocument();
+    expect(screen.getByText("プレイヤー1が9を捨てることになります。")).toBeInTheDocument();
     expect(screen.queryByText("Qの効果で上がれます。上がりますか？")).not.toBeInTheDocument();
     expect(dispatch).not.toHaveBeenCalledWith({ type: "answerQueenWin", takeWin: true });
 
@@ -608,6 +608,290 @@ describe("PlayScreen round display", () => {
     expect(screen.getByText(`プレイヤー${playerCount}`)).toBeInTheDocument();
   });
 
+  it("maps four-player online seats relative to the viewer without changing fixed slot positions", () => {
+    const base = createInitialGame(4, "clockwise");
+    const state: GameState = {
+      ...base,
+      viewerPlayerId: "p3",
+      players: base.players.map((player, index) => ({ ...player, id: `p${index + 1}`, name: `Player ${index + 1}` })),
+    };
+
+    const { container } = render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} disableLocalCpuAutomation />);
+
+    expect(container.querySelector(".player-area.seat-bottom")?.getAttribute("data-player-id")).toBe("p3");
+    expect(container.querySelector(".player-area.seat-left")?.getAttribute("data-player-id")).toBe("p4");
+    expect(container.querySelector(".player-area.seat-top")?.getAttribute("data-player-id")).toBe("p1");
+    expect(container.querySelector(".player-area.seat-right")?.getAttribute("data-player-id")).toBe("p2");
+  });
+
+  it("maps three-player online table cards to the same viewer-relative seats as their players", () => {
+    const base = createInitialGame(3, "clockwise");
+    const state: GameState = {
+      ...base,
+      viewerPlayerId: "p1",
+      players: base.players.map((player, index) => ({
+        ...player,
+        id: `p${index + 1}`,
+        name: `Player ${index + 1}`,
+        discardPile: [card(`discard-p${index + 1}`, index + 3, "S")],
+      })),
+    };
+
+    const { container } = render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} disableLocalCpuAutomation />);
+
+    expect(container.querySelector(".player-area.seat-bottom")?.getAttribute("data-player-id")).toBe("p1");
+    expect(container.querySelector(".player-area.seat-left")?.getAttribute("data-player-id")).toBe("p2");
+    expect(container.querySelector(".player-area.seat-right")?.getAttribute("data-player-id")).toBe("p3");
+    expect(container.querySelector('[data-testid="discard-pile-self"] [data-card-id="discard-p1"]')).toBeInTheDocument();
+    expect(container.querySelector('[data-testid="discard-pile-left"] [data-card-id="discard-p2"]')).toBeInTheDocument();
+    expect(container.querySelector('[data-testid="discard-pile-right"] [data-card-id="discard-p3"]')).toBeInTheDocument();
+  });
+
+  it("maps five-player online seats clockwise from the viewer", () => {
+    const base = createInitialGame(5, "clockwise");
+    const state: GameState = {
+      ...base,
+      viewerPlayerId: "p3",
+      players: base.players.map((player, index) => ({ ...player, id: `p${index + 1}`, name: `Player ${index + 1}` })),
+    };
+
+    const { container } = render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} disableLocalCpuAutomation />);
+    const renderedIds = [...container.querySelectorAll(".player-area")].map((area) => area.getAttribute("data-player-id"));
+
+    expect(renderedIds).toEqual(["p5", "p1", "p2", "p3", "p4"]);
+    expect(container.querySelector(".player-area.seat-bottom")?.getAttribute("data-player-id")).toBe("p3");
+    expect(container.querySelector(".player-area.seat-left")?.getAttribute("data-player-id")).toBe("p4");
+  });
+
+  it("maps enhanced target table seats relative to the online viewer", () => {
+    const base = createInitialGame(4, "clockwise");
+    const state: GameState = {
+      ...base,
+      viewerPlayerId: "p2",
+      phase: "handoff",
+      pendingDaifugoEffect: {
+        kind: "sevenEnhancedTargetSelect",
+        effect: "sevenExchange",
+        playerIndex: 1,
+        continue: { shouldConfirmReach: false },
+      },
+      players: base.players.map((player, index) => ({
+        ...player,
+        id: `p${index + 1}`,
+        name: `Player ${index + 1}`,
+        type: "human",
+        isCpu: false,
+      })),
+    };
+
+    render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} disableLocalCpuAutomation />);
+
+    expect(screen.getByRole("button", { name: "Player 2" })).toHaveClass("enhanced-target-seat--4-1", "self");
+    expect(screen.getByRole("button", { name: "Player 3" })).toHaveClass("enhanced-target-seat--4-2");
+    expect(screen.getByRole("button", { name: "Player 4" })).toHaveClass("enhanced-target-seat--4-3");
+    expect(screen.getByRole("button", { name: "Player 1" })).toHaveClass("enhanced-target-seat--4-4");
+  });
+
+  it("maps three-player enhanced target table clockwise from the online viewer", () => {
+    const base = createInitialGame(3, "clockwise");
+    const state: GameState = {
+      ...base,
+      viewerPlayerId: "p2",
+      phase: "handoff",
+      pendingDaifugoEffect: {
+        kind: "sevenEnhancedTargetSelect",
+        effect: "sevenExchange",
+        playerIndex: 1,
+        continue: { shouldConfirmReach: false },
+      },
+      players: base.players.map((player, index) => ({
+        ...player,
+        id: `p${index + 1}`,
+        name: `Player ${index + 1}`,
+        type: "human",
+        isCpu: false,
+      })),
+    };
+
+    render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} disableLocalCpuAutomation />);
+
+    expect(screen.getByRole("button", { name: "Player 2" })).toHaveClass("enhanced-target-seat--3-1", "self");
+    expect(screen.getByRole("button", { name: "Player 3" })).toHaveClass("enhanced-target-seat--3-2");
+    expect(screen.getByRole("button", { name: "Player 1" })).toHaveClass("enhanced-target-seat--3-3");
+  });
+
+  it("shows only the online viewer's own Q bomber discard cards in the center animation", () => {
+    vi.useFakeTimers();
+    const base = createInitialGame(4, "clockwise");
+    const state: GameState = {
+      ...base,
+      viewerPlayerId: "p2",
+      phase: "handoff",
+      players: base.players.map((player, index) => ({ ...player, id: `p${index + 1}`, name: `Player ${index + 1}` })),
+      daifugoEffectEvent: {
+        id: "queenNumberVanish-test",
+        kind: "queenNumberVanish",
+        actorIndex: 0,
+        rank: 12,
+        queenDiscardResults: [
+          { playerIndex: 0, discardedCards: [card("p1-q", 12, "S")], drawnCards: [] },
+          { playerIndex: 1, discardedCards: [card("p2-q1", 12, "H"), card("p2-q2", 12, "D")], drawnCards: [] },
+          { playerIndex: 2, discardedCards: [card("p3-q", 12, "C")], drawnCards: [] },
+        ],
+      },
+    };
+
+    const { container } = render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} disableLocalCpuAutomation />);
+
+    act(() => {
+      vi.advanceTimersByTime(650);
+    });
+
+    const animatedCardIds = [...container.querySelectorAll(".daifugo-animation-cards [data-card-id]")].map((node) =>
+      node.getAttribute("data-card-id"),
+    );
+    expect(animatedCardIds).toEqual(["p2-q1", "p2-q2"]);
+    vi.useRealTimers();
+  });
+
+  it("limits seven-exchange target selection to pair cards in the online viewer hand", () => {
+    const base = createInitialGame(4, "clockwise");
+    const state: GameState = {
+      ...base,
+      viewerPlayerId: "p2",
+      phase: "discard",
+      currentPlayerIndex: 0,
+      players: base.players.map((player, index) => ({
+        ...player,
+        id: `p${index + 1}`,
+        name: `Player ${index + 1}`,
+        hand:
+          index === 1
+            ? [card("p2-q1", 12, "S"), card("p2-q2", 12, "H"), card("p2-3", 3, "D"), card("p2-4", 4, "C")]
+            : player.hand,
+      })),
+      pendingDaifugoEffect: {
+        kind: "sevenExchange",
+        effect: "sevenExchange",
+        playerIndex: 0,
+        targetPlayerIndex: 1,
+        selections: {},
+        continue: { shouldConfirmReach: false },
+      },
+    };
+
+    render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} disableLocalCpuAutomation />);
+
+    const qCards = screen.getAllByTestId("hand-card").filter((button) => button.getAttribute("data-card-rank") === "Q");
+    const nonPairCards = screen.getAllByTestId("hand-card").filter((button) => button.getAttribute("data-card-rank") !== "Q");
+    expect(qCards).toHaveLength(2);
+    expect(qCards.every((button) => !(button as HTMLButtonElement).disabled)).toBe(true);
+    expect(nonPairCards.every((button) => (button as HTMLButtonElement).disabled && button.classList.contains("unselectable-card"))).toBe(true);
+  });
+
+  it("hides the bottom action panel for online viewers who are not involved in seven exchange", () => {
+    const base = createInitialGame(4, "clockwise");
+    const state: GameState = {
+      ...base,
+      viewerPlayerId: "p3",
+      phase: "discard",
+      currentPlayerIndex: 0,
+      players: base.players.map((player, index) => ({
+        ...player,
+        id: `p${index + 1}`,
+        name: `Player ${index + 1}`,
+      })),
+      pendingDaifugoEffect: {
+        kind: "sevenExchange",
+        effect: "sevenExchange",
+        playerIndex: 0,
+        targetPlayerIndex: 1,
+        selections: {},
+        continue: { shouldConfirmReach: false },
+      },
+    };
+
+    const { container } = render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} disableLocalCpuAutomation />);
+
+    expect(container.querySelector(".action-panel")).not.toBeInTheDocument();
+  });
+
+  it("shows seven exchange and Q bomber center splash for uninvolved online viewers", () => {
+    const base = createInitialGame(4, "clockwise");
+    const players = base.players.map((player, index) => ({
+      ...player,
+      id: `p${index + 1}`,
+      name: `Player ${index + 1}`,
+    }));
+    const sevenState: GameState = {
+      ...base,
+      viewerPlayerId: "p3",
+      phase: "handoff",
+      players,
+      pendingDaifugoEffect: {
+        kind: "sevenExchange",
+        effect: "sevenExchange",
+        playerIndex: 0,
+        targetPlayerIndex: 1,
+        selections: {},
+        continue: { shouldConfirmReach: false },
+      },
+    };
+    const { container, rerender } = render(<PlayScreen state={sevenState} dispatch={vi.fn()} currentRound={1} disableLocalCpuAutomation />);
+
+    expect(container.querySelector(".reach-splash")).toHaveTextContent("Player 1");
+    expect(container.querySelector(".reach-splash")).toHaveTextContent("カード交換!!");
+    expect(container.querySelector(".action-panel")).not.toBeInTheDocument();
+
+    const queenState: GameState = {
+      ...sevenState,
+      pendingDaifugoEffect: {
+        kind: "queenSelect",
+        effect: "queenNumberVanish",
+        playerIndex: 0,
+        continue: { shouldConfirmReach: false },
+      },
+    };
+    rerender(<PlayScreen state={queenState} dispatch={vi.fn()} currentRound={1} disableLocalCpuAutomation />);
+
+    expect(container.querySelector(".reach-splash")).toHaveTextContent("Player 1");
+    expect(container.querySelector(".reach-splash")).toHaveTextContent("数字消去!!");
+    expect(container.querySelector(".action-panel")).not.toBeInTheDocument();
+  });
+
+  it("shows the reach center splash when public reach status changes for online viewers", () => {
+    const base = createInitialGame(4, "clockwise");
+    const players = base.players.map((player, index) => ({
+      ...player,
+      id: `p${index + 1}`,
+      name: `Player ${index + 1}`,
+      isReach: false,
+    }));
+    const state: GameState = {
+      ...base,
+      viewerPlayerId: "p2",
+      players,
+    };
+    const { container, rerender } = render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} disableLocalCpuAutomation />);
+
+    expect(container.querySelector(".reach-splash")).not.toBeInTheDocument();
+
+    rerender(
+      <PlayScreen
+        state={{
+          ...state,
+          players: players.map((player, index) => (index === 0 ? { ...player, isReach: true } : player)),
+        }}
+        dispatch={vi.fn()}
+        currentRound={1}
+        disableLocalCpuAutomation
+      />,
+    );
+
+    expect(container.querySelector(".reach-splash")).toHaveTextContent("Player 1");
+    expect(container.querySelector(".reach-splash")).toHaveTextContent("リーチ!!");
+  });
+
   it("shows table discard and meld placement only for three-player games", () => {
     const { rerender } = render(<PlayScreen state={createInitialGame(3, "clockwise")} dispatch={vi.fn()} currentRound={1} />);
 
@@ -654,5 +938,204 @@ describe("PlayScreen round display", () => {
 
     expect(screen.getAllByText("まだ捨てていません").length).toBeGreaterThan(0);
     expect(screen.getAllByText("まだ鳴いていません").length).toBeGreaterThan(0);
+  });
+
+  it("does not play the online deck draw animation while an effect confirmation is pending", async () => {
+    const base = createInitialGame(4, "clockwise");
+    const state: GameState = {
+      ...base,
+      viewerPlayerId: base.players[0].id,
+      availableActions: ["answerDaifugoEffect"],
+      stateVersion: 4,
+      phase: "discard",
+      drawnCard: base.players[0].hand[0],
+      drawnFrom: "deck",
+      pendingDaifugoEffect: {
+        kind: "confirm",
+        effect: "sevenExchange",
+        playerIndex: 0,
+        continue: { shouldConfirmReach: false },
+      },
+    };
+
+    render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} disableLocalCpuAutomation />);
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(screen.queryByTestId("drawn-card-preview")).not.toBeInTheDocument();
+  });
+
+  it("plays the online deck draw animation for an explicit deck draw discard state", async () => {
+    const base = createInitialGame(4, "clockwise");
+    const state: GameState = {
+      ...base,
+      viewerPlayerId: base.players[0].id,
+      availableActions: ["discard"],
+      stateVersion: 2,
+      phase: "discard",
+      drawnCard: base.players[0].hand[0],
+      drawnFrom: "deck",
+      pendingDaifugoEffect: null,
+    };
+
+    render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} disableLocalCpuAutomation />);
+
+    await waitFor(() => expect(screen.getByTestId("drawn-card-preview")).toBeInTheDocument());
+  });
+
+  it("plays the online daifugo 8/10 deck draw animation from the explicit draw event", async () => {
+    const base = createInitialGame(4, "clockwise");
+    const drawnCard = base.players[0].hand[0];
+    const state: GameState = {
+      ...base,
+      viewerPlayerId: base.players[0].id,
+      availableActions: ["discardForDaifugoEffect"],
+      stateVersion: 5,
+      phase: "discard",
+      drawnCard,
+      drawnFrom: "deck",
+      pendingDaifugoEffect: {
+        kind: "extraDiscard",
+        effect: "eightExtraTurn",
+        playerIndex: 0,
+      },
+      daifugoDeckDrawEvent: {
+        id: "daifugo-deck-draw-eightExtraTurn-0-test",
+        playerIndex: 0,
+        effect: "eightExtraTurn",
+        drawSource: "deck",
+        drawnCard,
+      },
+    };
+
+    render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} disableLocalCpuAutomation />);
+
+    await waitFor(() => expect(screen.getByTestId("drawn-card-preview")).toBeInTheDocument());
+  });
+
+  it("does not play another player's online daifugo deck draw animation without the card body", async () => {
+    const base = createInitialGame(4, "clockwise");
+    const state: GameState = {
+      ...base,
+      viewerPlayerId: base.players[1].id,
+      availableActions: [],
+      stateVersion: 5,
+      phase: "discard",
+      drawnCard: null,
+      drawnFrom: "deck",
+      pendingDaifugoEffect: {
+        kind: "extraDiscard",
+        effect: "eightExtraTurn",
+        playerIndex: 0,
+      },
+      daifugoDeckDrawEvent: {
+        id: "daifugo-deck-draw-eightExtraTurn-0-test",
+        playerIndex: 0,
+        effect: "eightExtraTurn",
+        drawSource: "deck",
+        drawnCard: null,
+      },
+    };
+
+    render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} disableLocalCpuAutomation />);
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(screen.queryByTestId("drawn-card-preview")).not.toBeInTheDocument();
+  });
+
+  it("lets an online seven-exchange participant select before the other participant has selected", async () => {
+    vi.useFakeTimers();
+    const dispatch = vi.fn();
+    const base = createInitialGame(4, "clockwise");
+    const state: GameState = {
+      ...base,
+      viewerPlayerId: base.players[1].id,
+      stateVersion: 7,
+      currentPlayerIndex: 0,
+      phase: "discard",
+      players: base.players.map((player, index) => ({ ...player, name: ["Alice", "Bob", "Carol", "Dave"][index] })),
+      pendingDaifugoEffect: {
+        kind: "sevenExchange",
+        effect: "sevenExchange",
+        playerIndex: 0,
+        targetPlayerIndex: 1,
+        selections: {},
+        continue: { shouldConfirmReach: false },
+      },
+    };
+
+    try {
+      render(<PlayScreen state={state} dispatch={dispatch} currentRound={1} disableLocalCpuAutomation />);
+
+      expect(screen.getAllByText("相手に渡すカードを1枚選択してください。").length).toBeGreaterThan(0);
+      await act(async () => {
+        await vi.runAllTimersAsync();
+      });
+      const selectableCard = screen.getAllByTestId("hand-card").find((button) => !(button as HTMLButtonElement).disabled) as HTMLButtonElement | undefined;
+      expect(selectableCard).toBeTruthy();
+      fireEvent.click(selectableCard!);
+      expect(selectableCard).toHaveClass("selected-card");
+      const confirm = screen.getByTestId("seven-exchange-confirm-button");
+      expect(confirm).toBeEnabled();
+      fireEvent.click(confirm);
+      act(() => vi.advanceTimersByTime(650));
+      expect(dispatch).toHaveBeenCalledWith({
+        type: "selectSevenExchangeCard",
+        playerIndex: 1,
+        cardId: selectableCard!.dataset.cardId,
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("closes the seven-exchange selection controls after the online viewer has selected", () => {
+    const base = createInitialGame(4, "clockwise");
+    const state: GameState = {
+      ...base,
+      viewerPlayerId: base.players[0].id,
+      stateVersion: 7,
+      currentPlayerIndex: 0,
+      phase: "discard",
+      players: base.players.map((player, index) => ({ ...player, name: ["Alice", "Bob", "Carol", "Dave"][index] })),
+      pendingDaifugoEffect: {
+        kind: "sevenExchange",
+        effect: "sevenExchange",
+        playerIndex: 0,
+        targetPlayerIndex: 1,
+        selections: { 0: "__selected__" },
+        continue: { shouldConfirmReach: false },
+      },
+    };
+
+    render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} disableLocalCpuAutomation />);
+
+    expect(screen.getAllByText("Bobが渡すカードを選択しています。").length).toBeGreaterThan(0);
+    expect(screen.queryByTestId("seven-exchange-confirm-button")).not.toBeInTheDocument();
+  });
+
+  it("keeps third-party online viewers read-only during seven exchange", () => {
+    const base = createInitialGame(4, "clockwise");
+    const state: GameState = {
+      ...base,
+      viewerPlayerId: base.players[2].id,
+      stateVersion: 7,
+      currentPlayerIndex: 0,
+      phase: "discard",
+      players: base.players.map((player, index) => ({ ...player, name: ["Alice", "Bob", "Carol", "Dave"][index] })),
+      pendingDaifugoEffect: {
+        kind: "sevenExchange",
+        effect: "sevenExchange",
+        playerIndex: 0,
+        targetPlayerIndex: 1,
+        selections: { 0: "__selected__" },
+        continue: { shouldConfirmReach: false },
+      },
+    };
+
+    render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} disableLocalCpuAutomation />);
+
+    expect(screen.getAllByText("AliceとBobが互いに渡すカードを選択しています。").length).toBeGreaterThan(0);
+    expect(screen.getAllByTestId("hand-card").every((button) => (button as HTMLButtonElement).disabled)).toBe(true);
+    expect(screen.queryByTestId("seven-exchange-confirm-button")).not.toBeInTheDocument();
   });
 });

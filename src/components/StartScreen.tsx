@@ -1,6 +1,15 @@
 import { useEffect, useState } from "react";
-import type { CpuModelId, DaifugoOptions, Direction, MatchMode } from "../types";
-import { DEFAULT_CPU_MODEL_ID, cpuModelDisplayNames, cpuModels } from "../game/cpuModelRegistry";
+import type {
+  CpuModelId,
+  DaifugoOptions,
+  Direction,
+  MatchMode,
+} from "../types";
+import {
+  DEFAULT_CPU_MODEL_ID,
+  cpuModelDisplayNames,
+  cpuModels,
+} from "../game/cpuModelRegistry";
 
 export type RoomVisibility = "private" | "public";
 export type RoomTotalPlayers = 3 | 4 | 5;
@@ -23,9 +32,16 @@ export interface RoomCreateSettings {
 }
 
 interface StartScreenProps {
-  onStart: (playerCount: number, direction: Direction, matchMode: MatchMode, ruleValue: number, roomSettings: RoomCreateSettings) => void;
+  onStart: (
+    playerCount: number,
+    direction: Direction,
+    matchMode: MatchMode,
+    ruleValue: number,
+    roomSettings: RoomCreateSettings,
+  ) => void;
   onBackHome: () => void;
   onCancel?: () => void;
+  error?: string | null;
 }
 
 export type MatchRuleType = "fixedRounds" | "targetScore" | "startingPoints";
@@ -109,14 +125,26 @@ const DAIFUGO_EFFECT_LABELS: Array<{
   { key: "queenNumberVanish", shortLabel: "Q", label: "数字全消去" },
 ];
 
-export default function StartScreen({ onStart, onBackHome, onCancel = onBackHome }: StartScreenProps) {
+export default function StartScreen({
+  onStart,
+  onBackHome,
+  onCancel = onBackHome,
+  error,
+}: StartScreenProps) {
   const [roomName, setRoomName] = useState("");
   const [playerCount, setPlayerCount] = useState<RoomTotalPlayers>(4);
   const [humanPlayerCount, setHumanPlayerCount] = useState(4);
   const [visibility, setVisibility] = useState<RoomVisibility>("private");
-  const [cpuModelIds, setCpuModelIds] = useState<CpuModelId[]>([DEFAULT_CPU_MODEL_ID, DEFAULT_CPU_MODEL_ID, DEFAULT_CPU_MODEL_ID, DEFAULT_CPU_MODEL_ID]);
+  const [cpuModelIds, setCpuModelIds] = useState<CpuModelId[]>([
+    DEFAULT_CPU_MODEL_ID,
+    DEFAULT_CPU_MODEL_ID,
+    DEFAULT_CPU_MODEL_ID,
+    DEFAULT_CPU_MODEL_ID,
+  ]);
   const [showCpuActions, setShowCpuActions] = useState(true);
-  const [daifugoOptions, setDaifugoOptions] = useState<DaifugoOptions>(DEFAULT_DAIFUGO_OPTIONS);
+  const [daifugoOptions, setDaifugoOptions] = useState<DaifugoOptions>(
+    DEFAULT_DAIFUGO_OPTIONS,
+  );
   const [matchType, setMatchType] = useState<MatchRuleType>("fixedRounds");
   const [ruleValues, setRuleValues] = useState<Record<MatchRuleType, string>>({
     fixedRounds: String(MATCH_RULE_SETTINGS.fixedRounds.defaultValue),
@@ -129,7 +157,6 @@ export default function StartScreen({ onStart, onBackHome, onCancel = onBackHome
   const cpuPlayerCount = playerCount - humanPlayerCount;
   const cpuModelId = cpuModelIds[0] ?? DEFAULT_CPU_MODEL_ID;
   const canSelectPublic = humanPlayerCount >= 2;
-
   useEffect(() => {
     if (!canSelectPublic && visibility === "public") {
       setVisibility("private");
@@ -182,7 +209,13 @@ export default function StartScreen({ onStart, onBackHome, onCancel = onBackHome
 
   function handleCreateRoom() {
     const matchMode = getMatchMode(matchType);
-    onStart(playerCount, DEFAULT_DIRECTION, matchMode, Number(activeValue), buildRoomSettings());
+    onStart(
+      playerCount,
+      DEFAULT_DIRECTION,
+      matchMode,
+      Number(activeValue),
+      buildRoomSettings(),
+    );
   }
 
   function toggleVisibility() {
@@ -191,7 +224,9 @@ export default function StartScreen({ onStart, onBackHome, onCancel = onBackHome
   }
 
   function updateCpuModel(cpuIndex: number, modelId: CpuModelId) {
-    setCpuModelIds((current) => current.map((item, index) => (index === cpuIndex ? modelId : item)));
+    setCpuModelIds((current) =>
+      current.map((item, index) => (index === cpuIndex ? modelId : item)),
+    );
   }
 
   function setCpuModelId(modelId: CpuModelId) {
@@ -207,11 +242,17 @@ export default function StartScreen({ onStart, onBackHome, onCancel = onBackHome
           <div className="field room-name-field">
             <label>
               <span>ルーム名</span>
-              <input placeholder="例: 初心者歓迎ルーム" value={roomName} onChange={(event) => setRoomName(event.target.value)} />
+              <input
+                placeholder="例: 初心者歓迎ルーム"
+                value={roomName}
+                onChange={(event) => setRoomName(event.target.value)}
+              />
             </label>
           </div>
 
-          <div className={`field visibility-field ${canSelectPublic ? "" : "is-locked"}`}>
+          <div
+            className={`field visibility-field ${canSelectPublic ? "" : "is-locked"}`}
+          >
             <span>公開設定</span>
             <button
               type="button"
@@ -220,12 +261,18 @@ export default function StartScreen({ onStart, onBackHome, onCancel = onBackHome
               aria-checked={visibility === "public"}
               disabled={!canSelectPublic}
               onClick={toggleVisibility}
-              title={!canSelectPublic ? "参加枠がないため、Publicは選択できません" : undefined}
+              title={
+                !canSelectPublic
+                  ? "参加枠がないため、Publicは選択できません"
+                  : undefined
+              }
             >
               <span className="visibility-switch-track" aria-hidden="true">
                 <span className="visibility-switch-knob" />
               </span>
-              <span className="visibility-switch-label">{visibility === "public" ? "Public" : "Private"}</span>
+              <span className="visibility-switch-label">
+                {visibility === "public" ? "Public" : "Private"}
+              </span>
             </button>
             {!canSelectPublic && <small>参加枠がないためPrivate固定です</small>}
           </div>
@@ -256,10 +303,12 @@ export default function StartScreen({ onStart, onBackHome, onCancel = onBackHome
                 <button
                   type="button"
                   className={humanPlayerCount === humanCount ? "selected" : ""}
+                  disabled={false}
                   onClick={() => setHumanPlayerCount(humanCount)}
                   key={humanCount}
                 >
-                  Player {humanCount}人{cpuCount > 0 ? ` + CPU ${cpuCount}体` : ""}
+                  Player {humanCount}人
+                  {cpuCount > 0 ? ` + CPU ${cpuCount}体` : ""}
                 </button>
               );
             })}
@@ -274,16 +323,20 @@ export default function StartScreen({ onStart, onBackHome, onCancel = onBackHome
                 <div className="cpu-model-row" key={`cpu-${cpuIndex}`}>
                   <strong>プレイヤー{humanPlayerCount + cpuIndex + 1}</strong>
                   <div className="cpu-model-options">
-                    {(Object.keys(cpuModelDisplayNames) as CpuModelId[]).map((modelId) => (
-                      <button
-                        type="button"
-                        className={cpuModelIds[cpuIndex] === modelId ? "selected" : ""}
-                        onClick={() => updateCpuModel(cpuIndex, modelId)}
-                        key={modelId}
-                      >
-                        {cpuModelDisplayNames[modelId]}
-                      </button>
-                    ))}
+                    {(Object.keys(cpuModelDisplayNames) as CpuModelId[]).map(
+                      (modelId) => (
+                        <button
+                          type="button"
+                          className={
+                            cpuModelIds[cpuIndex] === modelId ? "selected" : ""
+                          }
+                          onClick={() => updateCpuModel(cpuIndex, modelId)}
+                          key={modelId}
+                        >
+                          {cpuModelDisplayNames[modelId]}
+                        </button>
+                      ),
+                    )}
                   </div>
                 </div>
               ))}
@@ -322,7 +375,9 @@ export default function StartScreen({ onStart, onBackHome, onCancel = onBackHome
               <span className="visibility-switch-track" aria-hidden="true">
                 <span className="visibility-switch-knob" />
               </span>
-              <span className="visibility-switch-label">{showCpuActions ? "ON" : "OFF"}</span>
+              <span className="visibility-switch-label">
+                {showCpuActions ? "ON" : "OFF"}
+              </span>
             </button>
           </div>
         )}
@@ -330,20 +385,22 @@ export default function StartScreen({ onStart, onBackHome, onCancel = onBackHome
         <div className="field">
           <span>試合形式</span>
           <div className="match-type-grid">
-            {(Object.keys(MATCH_RULE_SETTINGS) as MatchRuleType[]).map((ruleType) => {
-              const rule = MATCH_RULE_SETTINGS[ruleType];
-              return (
-                <button
-                  type="button"
-                  className={matchType === ruleType ? "selected" : ""}
-                  onClick={() => setMatchType(ruleType)}
-                  key={ruleType}
-                >
-                  <strong>{rule.label}</strong>
-                  <small>{rule.description}</small>
-                </button>
-              );
-            })}
+            {(Object.keys(MATCH_RULE_SETTINGS) as MatchRuleType[]).map(
+              (ruleType) => {
+                const rule = MATCH_RULE_SETTINGS[ruleType];
+                return (
+                  <button
+                    type="button"
+                    className={matchType === ruleType ? "selected" : ""}
+                    onClick={() => setMatchType(ruleType)}
+                    key={ruleType}
+                  >
+                    <strong>{rule.label}</strong>
+                    <small>{rule.description}</small>
+                  </button>
+                );
+              },
+            )}
           </div>
         </div>
 
@@ -361,18 +418,32 @@ export default function StartScreen({ onStart, onBackHome, onCancel = onBackHome
           </label>
           <div className="room-preset-group">
             <span>よく使う設定</span>
-            <div className="room-presets" aria-label={`${activeRule.inputLabel}のプリセット`}>
+            <div
+              className="room-presets"
+              aria-label={`${activeRule.inputLabel}のプリセット`}
+            >
               {activeRule.presets.map((preset) => (
-                <button type="button" key={preset} onClick={() => updateRuleValue(String(preset))}>
+                <button
+                  type="button"
+                  key={preset}
+                  onClick={() => updateRuleValue(String(preset))}
+                >
                   {matchType === "fixedRounds" ? `${preset}回` : preset}
                 </button>
               ))}
             </div>
           </div>
           {settingsError && <p className="room-error">{settingsError}</p>}
+          {error && (
+            <p className="room-error" data-testid="room-create-error">
+              {error}
+            </p>
+          )}
         </div>
 
-        <div className={`field daifugo-options ${daifugoOptions.enabled ? "is-enabled" : "is-disabled"}`}>
+        <div
+          className={`field daifugo-options ${daifugoOptions.enabled ? "is-enabled" : "is-disabled"}`}
+        >
           <div className="daifugo-options-head">
             <span>大富豪ルール</span>
             <button
@@ -384,7 +455,9 @@ export default function StartScreen({ onStart, onBackHome, onCancel = onBackHome
               <span className="visibility-switch-track" aria-hidden="true">
                 <span className="visibility-switch-knob" />
               </span>
-              <span className="visibility-switch-label">{daifugoOptions.enabled ? "ON" : "OFF"}</span>
+              <span className="visibility-switch-label">
+                {daifugoOptions.enabled ? "ON" : "OFF"}
+              </span>
             </button>
           </div>
 
@@ -441,7 +514,12 @@ export function getSettingsError(matchType: MatchRuleType, value: string) {
   const rule = MATCH_RULE_SETTINGS[matchType];
   if (value.trim() === "") return `${rule.inputLabel}を入力してください。`;
   const numberValue = Number(value);
-  if (!Number.isInteger(numberValue) || numberValue < rule.min || numberValue > rule.max || numberValue % rule.step !== 0) {
+  if (
+    !Number.isInteger(numberValue) ||
+    numberValue < rule.min ||
+    numberValue > rule.max ||
+    numberValue % rule.step !== 0
+  ) {
     return rule.errorMessage;
   }
   return "";
@@ -452,5 +530,8 @@ export function getMatchMode(matchType: MatchRuleType): MatchMode {
 }
 
 export function buildHumanPlayerOptions(totalPlayers: RoomTotalPlayers) {
-  return Array.from({ length: totalPlayers }, (_, index) => totalPlayers - index);
+  return Array.from(
+    { length: totalPlayers },
+    (_, index) => totalPlayers - index,
+  );
 }

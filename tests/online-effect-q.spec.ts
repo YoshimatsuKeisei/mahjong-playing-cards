@@ -18,9 +18,14 @@ test("online Q effect exposes rank choices actor-only and masks refill details",
   submitSocketAction(host, { type: "selectQueenVanishRank", rank });
   await waitForSocket(() => Boolean(host.state.view.daifugoEffectEvent), "Q effect did not resolve");
 
+  const hostViewEvent = host.state.view.daifugoEffectEvent;
   const otherViewEvent = clients[1].state.view.daifugoEffectEvent;
   expect(clients.every((client) => client.state.view.deck.length === 0)).toBe(true);
-  expect(otherViewEvent.queenDiscardResults.every((item: any) => item.playerIndex === 1 || item.discardedCards.length === 0)).toBe(true);
+  expect(otherViewEvent.queenDiscardResults.map((item: any) => [item.playerIndex, item.discardedCards.length])).toEqual(
+    hostViewEvent.queenDiscardResults.map((item: any) => [item.playerIndex, item.discardedCards.length]),
+  );
+  expect(otherViewEvent.queenDiscardResults.every((item: any) => item.discardedCards.every((card: any) => card.rank === rank))).toBe(true);
+  expect(otherViewEvent.queenDiscardResults.every((item: any) => item.playerIndex === 1 || item.drawnCards.length === 0)).toBe(true);
 
   closeSocketClients(clients);
 });

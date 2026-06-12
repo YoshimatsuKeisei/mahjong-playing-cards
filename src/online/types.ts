@@ -1,4 +1,11 @@
-import type { CpuModelId, DaifugoOptions, Direction, GameState, MatchMode, MatchState } from "../types";
+import type {
+  CpuModelId,
+  DaifugoOptions,
+  Direction,
+  GameState,
+  MatchMode,
+  MatchState,
+} from "../types";
 import type { GameAction } from "../game/gameState";
 
 export type OnlineScenarioId =
@@ -38,6 +45,8 @@ export interface OnlineRoomSnapshot {
   roomId: string;
   hostPlayerId: string;
   maxPlayers: number;
+  totalPlayers: number;
+  cpuPlayers: number;
   players: OnlineRoomPlayer[];
   started: boolean;
 }
@@ -111,6 +120,7 @@ export type ActionRejectedReason =
   | "room_not_playing"
   | "invalid_action_for_phase"
   | "invalid_call_candidate"
+  | "invalid_reach_discard"
   | "invalid_ron_candidate"
   | "invalid_tsumo_candidate"
   | "tsumo_available_reach_not_allowed"
@@ -141,15 +151,23 @@ export interface ActionRejectedPayload {
 export interface ServerToClientEvents {
   roomUpdated: (room: OnlineRoomSnapshot) => void;
   publicRoomsUpdated: (rooms: OnlinePublicRoom[]) => void;
+  roomClosed: () => void;
   playerView: (payload: OnlinePlayerViewPayload) => void;
   actionRejected: (payload: ActionRejectedPayload) => void;
   errorMessage: (message: string) => void;
 }
 
 export interface ClientToServerEvents {
-  createRoom: (payload: CreateRoomPayload, ack: (response: OnlineAck) => void) => void;
-  joinRoom: (payload: JoinRoomPayload, ack: (response: OnlineAck) => void) => void;
+  createRoom: (
+    payload: CreateRoomPayload,
+    ack: (response: OnlineAck) => void,
+  ) => void;
+  joinRoom: (
+    payload: JoinRoomPayload,
+    ack: (response: OnlineAck) => void,
+  ) => void;
   listPublicRooms: (ack: (rooms: OnlinePublicRoom[]) => void) => void;
+  leaveRoom: () => void;
   ready: (payload: { ready: boolean }) => void;
   startGame: () => void;
   nextRound: () => void;

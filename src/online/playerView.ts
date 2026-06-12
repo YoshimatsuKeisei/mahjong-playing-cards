@@ -35,19 +35,26 @@ function maskWinningResult(result: WinningResult | undefined, visible: boolean):
   };
 }
 
-function maskPlayer(player: Player, visible: boolean, ownerIndex: number, jackInspectRevealedCardId?: string | null): Player {
+function maskPlayer(
+  player: Player,
+  visible: boolean,
+  ownerIndex: number,
+  jackInspectRevealedCardId?: string | null,
+  revealPublicResultCards = false,
+): Player {
+  const showCards = visible || revealPublicResultCards;
   return {
     ...player,
-    hand: jackInspectRevealedCardId !== undefined ? maskCardsForJackInspect(player.hand, jackInspectRevealedCardId) : maskCards(player.hand, visible, ownerIndex),
-    winningResult: maskWinningResult(player.winningResult, visible),
-    jShield: visible ? player.jShield : undefined,
+    hand: jackInspectRevealedCardId !== undefined && !revealPublicResultCards ? maskCardsForJackInspect(player.hand, jackInspectRevealedCardId) : maskCards(player.hand, showCards, ownerIndex),
+    winningResult: maskWinningResult(player.winningResult, showCards),
+    jShield: player.jShield,
   };
 }
 
-function maskGameResult(result: GameResult | null, viewerIndex: number): GameResult | null {
+function maskGameResult(result: GameResult | null, viewerIndex: number, revealPublicResult = false): GameResult | null {
   if (!result) return null;
   const viewerWon = result.winnerIndex === viewerIndex || result.ronResults?.some((ron) => ron.winnerIndex === viewerIndex);
-  if (viewerWon || result.winType === "deckout") return result;
+  if (revealPublicResult || viewerWon || result.winType === "deckout") return result;
   return {
     ...result,
     winningResult: {
@@ -75,11 +82,19 @@ function maskDaifugoEvent(event: DaifugoEffectEvent | null | undefined, viewerIn
     ...event,
     exchangedCards: event.exchangedCards?.map((item) => ({
       ...item,
-      receivedCard: item.playerIndex === viewerIndex ? item.receivedCard : { ...item.receivedCard, id: `hidden-${item.playerIndex}` },
+      receivedCard:
+        item.playerIndex === viewerIndex
+          ? item.receivedCard
+          : {
+              id: `hidden-exchange-${item.playerIndex}`,
+              suit: "S",
+              rank: 0,
+              discardedByEffect: item.receivedCard.discardedByEffect,
+            },
     })),
     queenDiscardResults: event.queenDiscardResults?.map((item) => ({
       ...item,
-      discardedCards: item.playerIndex === viewerIndex ? item.discardedCards : [],
+      discardedCards: item.discardedCards,
       drawnCards: item.playerIndex === viewerIndex ? item.drawnCards : [],
     })),
   };
@@ -87,17 +102,28 @@ function maskDaifugoEvent(event: DaifugoEffectEvent | null | undefined, viewerIn
 
 function isPendingEffectVisible(pending: PendingDaifugoEffect | null, viewerIndex: number): boolean {
   if (!pending) return false;
+  if (pending.kind === "sevenExchange") return true;
+  if (pending.kind === "queenSelect") return true;
   if ("playerIndex" in pending && pending.playerIndex === viewerIndex) return true;
-  if (pending.kind === "sevenExchange" && pending.targetPlayerIndex === viewerIndex) return true;
+  return false;
+}
+
+function isPendingEffectActionable(pending: PendingDaifugoEffect | null, viewerIndex: number): boolean {
+  if (!pending) return false;
+  if (pending.kind === "sevenExchange") return pending.playerIndex === viewerIndex || pending.targetPlayerIndex === viewerIndex;
+  if ("playerIndex" in pending) return pending.playerIndex === viewerIndex;
   return false;
 }
 
 function maskPendingDaifugoEffect(pending: PendingDaifugoEffect | null, viewerIndex: number): PendingDaifugoEffect | null {
   if (!isPendingEffectVisible(pending, viewerIndex)) return null;
   if (pending?.kind === "sevenExchange") {
+    const selections = Object.fromEntries(
+      Object.entries(pending.selections).map(([playerIndex, cardId]) => [playerIndex, Number(playerIndex) === viewerIndex ? cardId : "__selected__"]),
+    );
     return {
       ...pending,
-      selections: pending.selections[viewerIndex] ? { [viewerIndex]: pending.selections[viewerIndex] } : {},
+      selections,
     };
   }
   return pending;
@@ -188,13 +214,17 @@ export function createPlayerViewState(fullState: GameState, viewerPlayerId: stri
     availableActions.push("answerRon");
     availableActions.push("passReaction");
   }
-  if (fullState.pendingDaifugoEffect && isPendingEffectVisible(fullState.pendingDaifugoEffect, viewerIndex)) {
-    availableActions.push(fullState.pendingDaifugoEffect.kind);
-    if (fullState.pendingDaifugoEffect.kind === "queenWinConfirm") availableActions.push("answerQueenWin");
-    if (fullState.pendingDaifugoEffect.kind === "confirm") availableActions.push("answerDaifugoEffect");
-    if (fullState.pendingDaifugoEffect.kind === "effectDraw") availableActions.push("drawForDaifugoEffect");
-    if (fullState.pendingDaifugoEffect.kind === "extraDiscard") availableActions.push("discardForDaifugoEffect");
-    if (fullState.pendingDaifugoEffect.kind === "queenSelect") availableActions.push("selectQueenVanishRank");
+  if (fullState.pendingDaifugoEffect && isPendingEffectActionable(fullState.pendingDaifugoEffect, viewerIndex)) {
+    const pending = fullState.pendingDaifugoEffect;
+    const isSevenParticipant = pending.kind === "sevenExchange" && (pending.playerIndex === viewerIndex || pending.targetPlayerIndex === viewerIndex);
+    if (pending.kind !== "sevenExchange" || isSevenParticipant) {
+      availableActions.push(pending.kind);
+    }
+    if (pending.kind === "queenWinConfirm") availableActions.push("answerQueenWin");
+    if (pending.kind === "confirm") availableActions.push("answerDaifugoEffect");
+    if (pending.kind === "effectDraw") availableActions.push("drawForDaifugoEffect");
+    if (pending.kind === "extraDiscard") availableActions.push("discardForDaifugoEffect");
+    if (pending.kind === "queenSelect") availableActions.push("selectQueenVanishRank");
   }
 
   const canSelfWin = winningDiscardOptions.length > 0;
@@ -232,11 +262,18 @@ export function createPlayerViewState(fullState: GameState, viewerPlayerId: stri
         index === jackInspectTargetIndex && fullState.pendingDaifugoEffect?.kind === "jackInspect"
           ? fullState.pendingDaifugoEffect.revealedCardIds[index] ?? null
           : undefined,
+        fullState.phase === "result",
       ),
     ),
-    result: maskGameResult(fullState.result, viewerIndex),
+    result: maskGameResult(fullState.result, viewerIndex, fullState.phase === "result"),
     pendingRonResult: visiblePendingRon,
     daifugoEffectEvent: maskDaifugoEvent(fullState.daifugoEffectEvent, viewerIndex),
+    daifugoDeckDrawEvent: fullState.daifugoDeckDrawEvent
+      ? {
+          ...fullState.daifugoDeckDrawEvent,
+          drawnCard: fullState.daifugoDeckDrawEvent.playerIndex === viewerIndex ? fullState.daifugoDeckDrawEvent.drawnCard : null,
+        }
+      : null,
     showCpuActions: false,
   };
 }
