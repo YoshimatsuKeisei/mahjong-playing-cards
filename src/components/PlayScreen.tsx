@@ -371,6 +371,12 @@ export default function PlayScreen({
   const jackInspectOrderRef = useRef(new Map<string, string[]>());
   const isAnimating = animationPhase !== "idle";
   const isCpuTurn = currentPlayer?.isCpu === true && state.phase !== "result";
+  const isBlockingSplashVisible =
+    Boolean(reachSplashPlayerName) &&
+    (reachSplashCall === "カード交換!!" ||
+      reachSplashCall === "数字消去!!" ||
+      reachSplashCall === "5：スキップ強化" ||
+      reachSplashCall === "7：交換相手選択");
   const shouldHideCpuDetails = !state.showCpuActions && isCpuTurn;
   const pendingDaifugoEffect = state.pendingDaifugoEffect;
   const queenRankChoices =
@@ -413,6 +419,7 @@ export default function PlayScreen({
     currentPlayer.isReach &&
     !state.declaredReachThisTurn;
   const controlsDisabled =
+    isBlockingSplashVisible ||
     isAnimating ||
     isCpuTurn ||
     !isViewerTurn ||
@@ -464,6 +471,11 @@ export default function PlayScreen({
       steps: daifugoAnimationSteps.map((step) => step.variant).join(" -> "),
     });
   }
+  const shouldForceHideActionPanel =
+    state.phase === "handoff" ||
+    state.phase === "result" ||
+    isDaifugoEventPlaying ||
+    isBlockingSplashVisible;
   const sevenExchangeParticipantIndexes =
     pendingDaifugoEffect?.kind === "sevenExchange"
       ? [
@@ -593,7 +605,9 @@ export default function PlayScreen({
     (!isOnlineView || viewerIsSevenExchangeParticipant) &&
     !viewerHasSelectedSevenExchangeCard;
   const shouldShowActionPanel =
-    (state.phase !== "handoff" &&
+    (!shouldForceHideActionPanel &&
+      !isBlockingSplashVisible &&
+      state.phase !== "handoff" &&
       state.phase !== "result" &&
       !isDaifugoEventPlaying &&
       (!isOnlineView || isViewerTurn) &&
@@ -776,7 +790,7 @@ export default function PlayScreen({
   }, [state.currentPlayerIndex, state.pendingDaifugoEffect, state.players]);
 
   useEffect(() => {
-    if (isDaifugoEventPlaying) {
+    if (isBlockingSplashVisible || isDaifugoEventPlaying) {
       cpuTimeoutsRef.current.forEach(window.clearTimeout);
       cpuTimeoutsRef.current = [];
       setCpuActionInProgress(false);
@@ -1004,6 +1018,7 @@ export default function PlayScreen({
     dispatch,
     isCpuTurn,
     isDaifugoEventPlaying,
+    isBlockingSplashVisible,
     state,
   ]);
 
@@ -1477,6 +1492,16 @@ export default function PlayScreen({
         className={`table-scene table-${playerCount}`}
         aria-label={`${playerCount}人用テーブル`}
         ref={sceneRef}
+        onPointerDownCapture={(event) => {
+          if (!isBlockingSplashVisible) return;
+          event.preventDefault();
+          event.stopPropagation();
+        }}
+        onClickCapture={(event) => {
+          if (!isBlockingSplashVisible) return;
+          event.preventDefault();
+          event.stopPropagation();
+        }}
       >
         {currentRound && (
           <div className="round-scroll-banner">- {currentRound}回戦 -</div>
@@ -3662,9 +3687,8 @@ function getActionText(state: GameState, viewerPlayerId?: string) {
   const isViewerTurn = !viewerPlayerId || currentPlayer?.id === viewerPlayerId;
   if (currentPlayer?.isCpu) {
     if (state.phase === "draw")
-      return `${currentPlayer.name}（CPU）が引くカードを選んでいます。`;
-    if (state.phase === "discard")
-      return `${currentPlayer.name}（CPU）が捨てるカードを選んでいます。`;
+      return "山札または直前の捨て札から選択しています";
+    if (state.phase === "discard") return "捨てるカードを選択しています。";
     if (state.phase === "reachConfirm")
       return `${currentPlayer.name}（CPU）がリーチを確認しています。`;
     if (state.phase === "ronCheck")

@@ -18,7 +18,7 @@ import {
 } from "../src/game/gameState";
 import { createPlayerViewState } from "../src/online/playerView";
 import { applyOnlineScenario } from "./onlineScenarios";
-import { canDeclareReachAfterDraw } from "../src/game/rules";
+import { cancelOnlineCpu, scheduleOnlineCpu } from "./onlineCpuRunner";
 import {
   advanceRound,
   canAdvanceRound,
@@ -113,7 +113,6 @@ function listPublicRooms(): OnlinePublicRoom[] {
     .filter((room) => {
       const settings = room.roomSettings;
       if (!settings || settings.visibility !== "public") return false;
-      if (settings.cpuPlayers > 0) return false;
       if (room.started) return false;
       if (settings.humanPlayers <= 1) return false;
       return room.players.length < settings.humanPlayers;
@@ -184,6 +183,7 @@ function broadcastPlayerView(room: ServerRoom) {
 }
 
 function closeWaitingRoom(room: ServerRoom, exceptSocketId?: string) {
+  cancelOnlineCpu(room.id);
   for (const socketId of room.socketsByPlayerId.values()) {
     if (socketId === exceptSocketId) continue;
     const roomSocket = io.sockets.sockets.get(socketId) as
@@ -577,12 +577,6 @@ function validateOnlineAction(
   return null;
 }
 
-function advanceOnlineHandoff(nextState: GameState): GameState {
-  if (nextState.phase !== "handoff" || nextState.pendingDaifugoEffect)
-    return nextState;
-  return gameReducer(nextState, { type: "confirmHandoff" });
-}
-
 function getOnlinePlayerBaseName(name: string | undefined): string {
   const trimmed = name?.trim();
   return trimmed || "Guest Player";
@@ -656,6 +650,13 @@ function applyOnlineNextState(room: ServerRoom, nextState: GameState) {
   room.matchState = syncMatchGameState(room.matchState, room.state);
 }
 
+function scheduleRoomCpu(room: ServerRoom) {
+  scheduleOnlineCpu(room, {
+    applyNextState: applyOnlineNextState,
+    broadcastPlayerView,
+  });
+}
+
 function remapOnlinePlayers(room: ServerRoom, state: GameState): GameState {
   return {
     ...state,
@@ -686,14 +687,6 @@ io.on("connection", (socket) => {
   socket.emit("publicRoomsUpdated", listPublicRooms());
 
   socket.on("createRoom", (payload, ack) => {
-    if ((payload.roomSettings?.cpuPlayers ?? 0) > 0) {
-      ack({
-        ok: false,
-        error:
-          "オンラインCPU対戦は現在調整中です。CPUなしでルームを作成してください。",
-      });
-      return;
-    }
     const roomId = createRoomId();
     const room: ServerRoom = {
       id: roomId,
@@ -799,16 +792,6 @@ io.on("connection", (socket) => {
     }
     const totalSeats = room.roomSettings?.totalPlayers ?? room.maxPlayers;
     if (
-      (room.roomSettings?.cpuPlayers ?? 0) > 0 ||
-      room.state?.players.some((player) => player.isCpu)
-    ) {
-      socket.emit(
-        "errorMessage",
-        "オンラインCPU対戦は現在調整中です。CPUなしのルームのみ開始できます。",
-      );
-      return;
-    }
-    if (
       totalSeats < 2 ||
       room.players.length < room.maxPlayers ||
       !room.players.every(
@@ -823,6 +806,7 @@ io.on("connection", (socket) => {
     }
     startRoomGame(room);
     broadcastPlayerView(room);
+    scheduleRoomCpu(room);
   });
 
   socket.on("submitAction", (payload) => {
@@ -849,6 +833,7 @@ io.on("connection", (socket) => {
     }
     applyOnlineNextState(room, nextState);
     broadcastPlayerView(room);
+    scheduleRoomCpu(room);
   });
 
   socket.on("nextRound", () => {
@@ -878,6 +863,7 @@ io.on("connection", (socket) => {
     room.state = nextGameState;
     room.matchState = { ...nextMatch, gameState: nextGameState };
     broadcastPlayerView(room);
+    scheduleRoomCpu(room);
   });
 
   socket.on("disconnect", () => {
