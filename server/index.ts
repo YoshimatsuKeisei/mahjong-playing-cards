@@ -1552,6 +1552,6 @@ io.on("connection", (socket) => {
   });
 });
 
-httpServer.listen(PORT, () => {
-  console.info(`Local online server listening on http://localhost:${PORT}`);
+httpServer.listen(PORT, "0.0.0.0", () => {
+  console.info(`Online server listening on port ${PORT}`);
 });
