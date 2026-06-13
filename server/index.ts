@@ -90,7 +90,7 @@ type OnlineSocket = Socket<
   SocketData
 >;
 
-const PORT = Number(process.env.ONLINE_PORT ?? 3001);
+const PORT = Number(process.env.PORT ?? process.env.ONLINE_SERVER_PORT ?? 3001);
 const rooms = new Map<string, ServerRoom>();
 const MAX_ROUND_COUNT = 100;
 const MIN_TARGET_SCORE = 50;
