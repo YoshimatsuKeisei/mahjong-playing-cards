@@ -12,9 +12,11 @@ test("online 5 effect skips the next player server-side", async () => {
   expect(clients[1].state.view.pendingDaifugoEffect).toBeNull();
 
   submitSocketAction(host, { type: "answerDaifugoEffect", activate: true });
+  await waitForSocket(() => host.state.view.phase === "handoff" && host.state.view.currentPlayerIndex === 0, "5 skip did not enter handoff");
+  submitSocketAction(host, { type: "confirmHandoff" });
   await waitForSocket(() => host.state.view.phase === "draw" && host.state.view.currentPlayerIndex === 2, "5 skip did not advance to player 3 draw");
   expect(clients.every((client) => client.state.view.currentPlayerIndex === 2)).toBe(true);
-  expect(host.state.view.stateVersion).toBe(2);
+  expect(host.state.view.stateVersion).toBe(3);
 
   closeSocketClients(clients);
 });

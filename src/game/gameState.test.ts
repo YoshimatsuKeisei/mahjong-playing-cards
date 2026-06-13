@@ -197,6 +197,16 @@ describe("daifugo game state", () => {
     expect(state.phase).toBe("handoff");
   });
 
+  it("keeps the discarded effect card fact in state.message", () => {
+    const state = gameReducer(stateForDiscard(card("seven", 7), daifugoOptions({ sevenExchange: true })), {
+      type: "discard",
+      cardId: "seven",
+    });
+
+    expect(state.pendingDaifugoEffect).toEqual(expect.objectContaining({ kind: "confirm", effect: "sevenExchange" }));
+    expect(state.message).toBe("7を捨てました。7の効果：次のプレイヤーとカードを1枚交換しますか？");
+  });
+
   it("skips the next player with the 5 effect", () => {
     const pending = gameReducer(stateForDiscard(card("five", 5)), { type: "discard", cardId: "five" });
     const resolved = gameReducer(pending, { type: "answerDaifugoEffect", activate: true });
@@ -2270,6 +2280,24 @@ describe("daifugo game state", () => {
     expect(rejected).toBe(extra);
     expect(resolved.phase).toBe("handoff");
     expect(resolved.players[0].discardPile.at(-1)?.id).toBe("deck-1");
+  });
+
+  it("does not create CPU-only English messages for discardDrawnOnly effects", () => {
+    const state = stateForDiscard(card("eight", 8));
+    state.players[0] = {
+      ...state.players[0],
+      type: "cpu",
+      isCpu: true,
+      cpuModelId: "standard",
+      isReach: true,
+    };
+    state.drawnCard = state.players[0].hand.find((item) => item.id === "eight") ?? null;
+
+    const pending = gameReducer(state, { type: "discardDrawnOnly" });
+
+    expect(pending.pendingDaifugoEffect).toEqual(expect.objectContaining({ kind: "confirm", effect: "eightExtraTurn" }));
+    expect(pending.message).toBe("8を捨てました。8の効果：追加ターンを行いますか？");
+    expect(JSON.stringify(pending)).not.toContain("(CPU) discarded");
   });
 
   it("applies J-back losses to result scoring", () => {

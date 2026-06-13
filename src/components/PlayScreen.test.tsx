@@ -1382,6 +1382,116 @@ describe("PlayScreen round display", () => {
     expect(screen.queryByTestId("drawn-card-preview")).not.toBeInTheDocument();
   });
 
+  it("keeps the self effect confirmation text even when state.message has a public discard fact", () => {
+    const base = createInitialGame(4, "clockwise");
+    const players = base.players.map((player, index) => ({
+      ...player,
+      id: `p${index + 1}`,
+      name: ["Alice", "Bob", "Carol", "Dave"][index],
+    }));
+    const state: GameState = {
+      ...base,
+      viewerPlayerId: "p1",
+      availableActions: ["answerDaifugoEffect"],
+      stateVersion: 4,
+      phase: "discard",
+      players: players.map((player, index) =>
+        index === 0
+          ? { ...player, discardPile: [card("seven-public", 7, "S")] }
+          : player,
+      ),
+      pendingDaifugoEffect: {
+        kind: "confirm",
+        effect: "sevenExchange",
+        playerIndex: 0,
+        continue: { shouldConfirmReach: false },
+      },
+      message: "7を捨てました。7の効果：次のプレイヤーとカードを1枚交換しますか？",
+    };
+    const { container } = render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} disableLocalCpuAutomation />);
+
+    expect(container.querySelector(".toolbar-action")).toHaveTextContent(
+      "7の効果：次のプレイヤーとカードを1枚交換しますか？",
+    );
+  });
+
+  it("shows another human actor as selecting an effect instead of forcing state.message", () => {
+    const base = createInitialGame(4, "clockwise");
+    const players = base.players.map((player, index) => ({
+      ...player,
+      id: `p${index + 1}`,
+      name: ["Alice", "Bob", "Carol", "Dave"][index],
+    }));
+    const state: GameState = {
+      ...base,
+      viewerPlayerId: "p2",
+      availableActions: [],
+      stateVersion: 4,
+      phase: "discard",
+      players: players.map((player, index) =>
+        index === 0
+          ? { ...player, discardPile: [card("seven-public", 7, "S")] }
+          : player,
+      ),
+      pendingDaifugoEffect: {
+        kind: "confirm",
+        effect: "sevenExchange",
+        playerIndex: 0,
+        continue: { shouldConfirmReach: false },
+      },
+      message: "7を捨てました。7の効果：次のプレイヤーとカードを1枚交換しますか？",
+    };
+    const { container } = render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} disableLocalCpuAutomation />);
+
+    expect(container.querySelector(".toolbar-action")).toHaveTextContent(
+      "Aliceが7の効果を使用するか選択しています。",
+    );
+  });
+
+  it("shows CPU draw and discard as named in-progress actions", () => {
+    const base = createInitialGame(4, "clockwise");
+    const cpuPlayers = base.players.map((player, index) =>
+      index === 1
+        ? {
+            ...player,
+            id: "cpu-2",
+            name: "Player2:standard-CPU1",
+            type: "cpu" as const,
+            isCpu: true,
+            cpuModelId: "standard" as const,
+          }
+        : { ...player, id: `p${index + 1}` },
+    );
+    const drawState: GameState = {
+      ...base,
+      viewerPlayerId: "p1",
+      currentPlayerIndex: 1,
+      phase: "draw",
+      players: cpuPlayers,
+    };
+    const { container, rerender } = render(<PlayScreen state={drawState} dispatch={vi.fn()} currentRound={1} disableLocalCpuAutomation />);
+
+    expect(container.querySelector(".toolbar-action")).toHaveTextContent(
+      "Player2:standard-CPU1が山札または捨て札から選択しています。",
+    );
+
+    rerender(
+      <PlayScreen
+        state={{
+          ...drawState,
+          phase: "discard",
+        }}
+        dispatch={vi.fn()}
+        currentRound={1}
+        disableLocalCpuAutomation
+      />,
+    );
+
+    expect(container.querySelector(".toolbar-action")).toHaveTextContent(
+      "Player2:standard-CPU1が捨てるカードを選択しています。",
+    );
+  });
+
   it("plays the online deck draw animation for an explicit deck draw discard state", async () => {
     const base = createInitialGame(4, "clockwise");
     const state: GameState = {
