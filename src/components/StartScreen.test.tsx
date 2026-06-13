@@ -82,8 +82,9 @@ describe("StartScreen room settings validation", () => {
       roomNameInput.compareDocumentPosition(playerCountLabel) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+    const visibilitySwitch = screen.getAllByRole("switch")[0];
     expect(topRow).toContainElement(roomNameInput);
-    expect(topRow).toContainElement(screen.getByRole("switch"));
+    expect(topRow).toContainElement(visibilitySwitch);
     expect(screen.queryByText("CPUの強さ")).not.toBeInTheDocument();
   });
 
@@ -223,7 +224,7 @@ describe("StartScreen room settings validation", () => {
     const user = userEvent.setup();
     render(<StartScreen onStart={vi.fn()} onBackHome={vi.fn()} />);
 
-    const visibilitySwitch = screen.getByRole("switch");
+    const visibilitySwitch = screen.getAllByRole("switch")[0];
     expect(visibilitySwitch).toHaveAttribute("aria-checked", "false");
     expect(visibilitySwitch).toHaveClass("is-private");
     expect(
@@ -258,6 +259,55 @@ describe("StartScreen room settings validation", () => {
     ).toBeEnabled();
     expect(visibilitySwitch).toBeEnabled();
     expect(visibilitySwitch).toHaveAttribute("aria-checked", "true");
+  });
+
+  it("adds a mid-game join toggle that defaults off and is saved when enabled", async () => {
+    const user = userEvent.setup();
+    const onStart = vi.fn();
+    render(<StartScreen onStart={onStart} onBackHome={vi.fn()} />);
+
+    expect(screen.getByText("途中参加を許可")).toBeInTheDocument();
+    const midGameJoinSwitch = screen.getAllByRole("switch")[1];
+    expect(midGameJoinSwitch).toHaveAttribute("aria-checked", "false");
+
+    await user.click(midGameJoinSwitch);
+    expect(midGameJoinSwitch).toHaveAttribute("aria-checked", "true");
+    await user.click(screen.getByRole("button", { name: "作成" }));
+
+    expect(onStart).toHaveBeenCalledWith(
+      4,
+      "clockwise",
+      "rounds",
+      10,
+      expect.objectContaining({
+        allowMidGameJoin: true,
+      }),
+    );
+  });
+
+  it("disables mid-game join for solo human plus CPU rooms", async () => {
+    const user = userEvent.setup();
+    const onStart = vi.fn();
+    render(<StartScreen onStart={onStart} onBackHome={vi.fn()} />);
+
+    await user.click(
+      screen.getByRole("button", { name: "Player 1人 + CPU 3体" }),
+    );
+    const midGameJoinSwitch = screen.getAllByRole("switch")[1];
+
+    expect(midGameJoinSwitch).toBeDisabled();
+    expect(midGameJoinSwitch).toHaveAttribute("aria-checked", "false");
+
+    await user.click(screen.getByRole("button", { name: "作成" }));
+    expect(onStart).toHaveBeenCalledWith(
+      4,
+      "clockwise",
+      "rounds",
+      10,
+      expect.objectContaining({
+        allowMidGameJoin: false,
+      }),
+    );
   });
 
   it("shows an error and disables create when the target score is out of range", async () => {

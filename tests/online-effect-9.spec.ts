@@ -9,6 +9,8 @@ test("online 9 effect reverses direction and advances to the correct player", as
   submitSocketAction(host, { type: "discard", cardId: nine.id });
   await waitForSocket(() => host.state.view.pendingDaifugoEffect?.kind === "confirm", "9 did not enter effect confirm");
   submitSocketAction(host, { type: "answerDaifugoEffect", activate: true });
+  await waitForSocket(() => host.state.view.phase === "handoff" && host.state.view.direction === "counterclockwise", "9 reverse did not enter handoff");
+  submitSocketAction(host, { type: "confirmHandoff" });
   await waitForSocket(() => host.state.view.phase === "draw" && host.state.view.direction === "counterclockwise", "9 reverse did not resolve");
 
   expect(host.state.view.currentPlayerIndex).toBe(3);

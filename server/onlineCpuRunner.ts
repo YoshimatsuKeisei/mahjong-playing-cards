@@ -11,7 +11,7 @@ import {
   type GameAction,
 } from "../src/game/gameState";
 import { createCpuDecisionContext, getCpuModel } from "../src/game/cpu";
-import type { Card, GameState } from "../src/types";
+import type { Card, CpuModelId, GameState } from "../src/types";
 
 type OnlineCpuRoom = {
   id: string;
@@ -23,7 +23,7 @@ type OnlineCpuRoom = {
 type OnlineCpuCallbacks<Room extends OnlineCpuRoom> = {
   applyNextState: (room: Room, nextState: GameState) => void;
   broadcastPlayerView: (room: Room) => void;
-  getCpuControlledPlayerIds?: (room: Room) => Set<string>;
+  getCpuControlledPlayerModels?: (room: Room) => Map<string, CpuModelId>;
 };
 
 type ScheduledCpuJob = {
@@ -60,9 +60,9 @@ export function scheduleOnlineCpu<Room extends OnlineCpuRoom>(
     return;
   }
 
-  const cpuControlledPlayerIds =
-    callbacks.getCpuControlledPlayerIds?.(room) ?? new Set<string>();
-  const action = chooseOnlineCpuAction(room.state, cpuControlledPlayerIds);
+  const cpuControlledPlayerModels =
+    callbacks.getCpuControlledPlayerModels?.(room) ?? new Map<string, CpuModelId>();
+  const action = chooseOnlineCpuAction(room.state, cpuControlledPlayerModels);
   if (!action) {
     cancelOnlineCpu(room.id);
     return;
@@ -88,11 +88,11 @@ export function scheduleOnlineCpu<Room extends OnlineCpuRoom>(
     if (!room.started || !room.state) return;
     if (room.stateVersion !== scheduledStateVersion) return;
 
-    const latestCpuControlledPlayerIds =
-      callbacks.getCpuControlledPlayerIds?.(room) ?? new Set<string>();
+    const latestCpuControlledPlayerModels =
+      callbacks.getCpuControlledPlayerModels?.(room) ?? new Map<string, CpuModelId>();
     const latestAction = chooseOnlineCpuAction(
       room.state,
-      latestCpuControlledPlayerIds,
+      latestCpuControlledPlayerModels,
     );
     if (!latestAction) return;
 
@@ -195,9 +195,9 @@ function getOnlineCpuDelayMs(state: GameState, action: GameAction): number {
 
 function chooseOnlineCpuAction(
   state: GameState,
-  cpuControlledPlayerIds = new Set<string>(),
+  cpuControlledPlayerModels = new Map<string, CpuModelId>(),
 ): GameAction | null {
-  const cpuState = createCpuControlledState(state, cpuControlledPlayerIds);
+  const cpuState = createCpuControlledState(state, cpuControlledPlayerModels);
   const pending = cpuState.pendingDaifugoEffect;
 
   if (pending) {
@@ -287,18 +287,18 @@ function chooseOnlineCpuAction(
 
 function createCpuControlledState(
   state: GameState,
-  cpuControlledPlayerIds: Set<string>,
+  cpuControlledPlayerModels: Map<string, CpuModelId>,
 ): GameState {
-  if (cpuControlledPlayerIds.size === 0) return state;
+  if (cpuControlledPlayerModels.size === 0) return state;
   return {
     ...state,
     players: state.players.map((player) =>
-      cpuControlledPlayerIds.has(player.id)
+      cpuControlledPlayerModels.has(player.id)
         ? {
             ...player,
             type: "cpu",
             isCpu: true,
-            cpuModelId: player.cpuModelId ?? "standard",
+            cpuModelId: cpuControlledPlayerModels.get(player.id) ?? player.cpuModelId ?? "standard",
           }
         : player,
     ),

@@ -5,9 +5,14 @@ let socket: Socket<ServerToClientEvents, ClientToServerEvents> | null = null;
 
 export function getOnlineSocket() {
   if (!socket) {
-    socket = io(import.meta.env.VITE_ONLINE_SERVER_URL ?? "http://localhost:3001", {
+    const serverUrl =
+      import.meta.env.VITE_ONLINE_SERVER_URL ??
+      `${window.location.protocol}//${window.location.hostname}:3001`;
+
+    socket = io(serverUrl, {
       autoConnect: false,
     });
   }
+
   return socket;
 }

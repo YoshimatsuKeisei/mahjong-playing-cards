@@ -38,9 +38,15 @@ import type {
   ResumableGameSummary,
   ServerToClientEvents,
   TemporaryLeaveMode,
+  LeaveRoomPayload,
   OnlineScenarioId,
 } from "../src/online/types";
-import type { Direction, GameState, MatchState } from "../src/types";
+import type {
+  CpuModelId,
+  Direction,
+  GameState,
+  MatchState,
+} from "../src/types";
 
 interface ServerRoom {
   id: string;
@@ -58,6 +64,7 @@ interface ServerRoom {
   roomSettings?: OnlineRoomCreateSettings;
   nextPlayerNumber: number;
   temporaryLeaves: Map<string, TemporaryLeaveState>;
+  substituteCpuModelIds: Map<string, CpuModelId>;
 }
 
 interface SocketData {
@@ -98,7 +105,7 @@ const io = new Server<
   SocketData
 >(httpServer, {
   cors: {
-    origin: ["http://localhost:5173", "http://127.0.0.1:5173"],
+    origin: true,
   },
 });
 
@@ -137,7 +144,33 @@ function snapshotRoom(room: ServerRoom): OnlineRoomSnapshot {
       expiresAt: leave.expiresAt,
       convertedToCpu: leave.convertedToCpu,
     })),
+    substituteCpuModels: Array.from(room.substituteCpuModelIds.entries()).map(
+      ([playerId, cpuModelId]) => ({ playerId, cpuModelId }),
+    ),
   };
+}
+
+function isJoinableReplacementPlayer(room: ServerRoom, playerId: string) {
+  if (room.temporaryLeaves.has(playerId)) return false;
+  const player = room.state?.players.find((item) => item.id === playerId);
+  return Boolean(player?.isCpu && player.joinableReplacement);
+}
+
+function getJoinableReplacementSeatIndexes(room: ServerRoom) {
+  if (!room.roomSettings?.allowMidGameJoin || !room.started || !room.state) {
+    return [];
+  }
+  return room.state.players
+    .map((player, index) =>
+      isJoinableReplacementPlayer(room, player.id) ? index : -1,
+    )
+    .filter((index) => index >= 0);
+}
+
+function countHumanSeats(room: ServerRoom) {
+  if (!room.state)
+    return room.players.filter((player) => player.connected).length;
+  return room.state.players.filter((player) => !player.isCpu).length;
 }
 
 function listPublicRooms(): OnlinePublicRoom[] {
@@ -145,7 +178,9 @@ function listPublicRooms(): OnlinePublicRoom[] {
     .filter((room) => {
       const settings = room.roomSettings;
       if (!settings || settings.visibility !== "public") return false;
-      if (room.started) return false;
+      if (room.started) {
+        return getJoinableReplacementSeatIndexes(room).length > 0;
+      }
       if (settings.humanPlayers <= 1) return false;
       return room.players.length < settings.humanPlayers;
     })
@@ -157,9 +192,16 @@ function listPublicRooms(): OnlinePublicRoom[] {
         roomName: settings.roomName,
         totalPlayers: settings.totalPlayers,
         humanPlayers: settings.humanPlayers,
-        joinedHumanPlayers: room.players.length,
+        joinedHumanPlayers: room.started
+          ? countHumanSeats(room)
+          : room.players.length,
         cpuPlayers: settings.cpuPlayers,
         cpuModelIds: settings.cpuModelIds.slice(0, settings.cpuPlayers),
+        allowMidGameJoin: Boolean(settings.allowMidGameJoin),
+        started: room.started,
+        currentRound: room.matchState?.currentRound,
+        availableReplacementSeats:
+          getJoinableReplacementSeatIndexes(room).length,
         matchType: settings.matchType,
         roundCount: settings.roundCount,
         targetScore: settings.targetScore,
@@ -233,14 +275,17 @@ function getTemporaryLeaveForPlayer(room: ServerRoom, playerId: string) {
   return room.temporaryLeaves.get(playerId) ?? null;
 }
 
-function getActiveCpuControlledPlayerIds(room: ServerRoom) {
-  const playerIds = new Set<string>();
+function getActiveCpuControlledPlayerModels(room: ServerRoom) {
+  const playerModels = new Map<string, CpuModelId>();
   for (const leave of room.temporaryLeaves.values()) {
     if (leave.mode === "cpuSubstitute" || leave.convertedToCpu) {
-      playerIds.add(leave.playerId);
+      playerModels.set(
+        leave.playerId,
+        room.substituteCpuModelIds.get(leave.playerId) ?? "standard",
+      );
     }
   }
-  return playerIds;
+  return playerModels;
 }
 
 function isPausedCurrentPlayer(room: ServerRoom) {
@@ -257,17 +302,132 @@ function convertTemporaryLeaveToCpu(room: ServerRoom, playerId: string) {
   if (leave.timeoutId) clearTimeout(leave.timeoutId);
   leave.convertedToCpu = true;
   room.temporaryLeaves.set(playerId, leave);
+  replacePlayerSeatWithCpu(room, playerId);
+  if (!hasHumanPlayerSeat(room)) {
+    closeWaitingRoom(room);
+    return;
+  }
+  broadcastPlayerView(room);
+  scheduleRoomCpu(room);
+}
+
+function replacePlayerSeatWithCpu(room: ServerRoom, playerId: string) {
+  if (!room.state) return false;
+  const playerIndex = room.state.players.findIndex(
+    (player) => player.id === playerId,
+  );
+  if (playerIndex < 0) return false;
+  const cpuModelId = room.substituteCpuModelIds.get(playerId) ?? "standard";
+  const cpuName = formatCpuModelName(cpuModelId);
+  const nextPlayers = room.state.players.map((player, index) =>
+    index === playerIndex
+      ? {
+          ...player,
+          name: cpuName,
+          type: "cpu" as const,
+          isCpu: true,
+          cpuModelId,
+          joinableReplacement: Boolean(
+            room.roomSettings?.allowMidGameJoin &&
+            !room.temporaryLeaves.has(playerId),
+          ),
+        }
+      : player,
+  );
+  room.state = { ...room.state, players: nextPlayers };
+  room.matchState = syncMatchGameState(room.matchState, room.state);
   room.players = room.players.map((player) =>
     player.playerId === playerId ? { ...player, connected: false } : player,
   );
   if (room.hostPlayerId === playerId) {
-    const nextHost = room.players.find(
-      (player) => player.connected && player.playerId !== playerId,
-    );
+    const nextHost = findNextHumanHostCandidate(room, playerId);
     if (nextHost) room.hostPlayerId = nextHost.playerId;
   }
-  broadcastPlayerView(room);
-  scheduleRoomCpu(room);
+  return true;
+}
+
+function isHumanHostCandidate(
+  room: ServerRoom,
+  playerId: string,
+  excludedPlayerId?: string,
+  connectedOnly = false,
+) {
+  if (playerId === excludedPlayerId) return false;
+  const roomPlayer = room.players.find(
+    (player) => player.playerId === playerId,
+  );
+  if (!roomPlayer) return false;
+  if (connectedOnly && !roomPlayer.connected) return false;
+  const gamePlayer = room.state?.players.find((item) => item.id === playerId);
+  return Boolean(gamePlayer && !gamePlayer.isCpu);
+}
+
+function findConnectedHumanHostCandidate(
+  room: ServerRoom,
+  excludedPlayerId?: string,
+) {
+  return room.players.find((player) =>
+    isHumanHostCandidate(room, player.playerId, excludedPlayerId, true),
+  );
+}
+
+function findNextHumanHostCandidate(
+  room: ServerRoom,
+  excludedPlayerId?: string,
+) {
+  return (
+    findConnectedHumanHostCandidate(room, excludedPlayerId) ??
+    room.players.find((player) =>
+      isHumanHostCandidate(room, player.playerId, excludedPlayerId),
+    )
+  );
+}
+
+function getConnectedHumanHostCandidates(
+  room: ServerRoom,
+  excludedPlayerId?: string,
+) {
+  return room.players.filter((player) =>
+    isHumanHostCandidate(room, player.playerId, excludedPlayerId, true),
+  );
+}
+
+function getRandomHumanHostCandidate(
+  room: ServerRoom,
+  excludedPlayerId?: string,
+) {
+  const connectedCandidates = getConnectedHumanHostCandidates(
+    room,
+    excludedPlayerId,
+  );
+  const candidates =
+    connectedCandidates.length > 0
+      ? connectedCandidates
+      : room.players.filter((player) =>
+          isHumanHostCandidate(room, player.playerId, excludedPlayerId),
+        );
+  if (candidates.length === 0) return null;
+  return candidates[Math.floor(Math.random() * candidates.length)];
+}
+
+function hasHumanPlayerSeat(room: ServerRoom) {
+  return Boolean(room.state?.players.some((player) => !player.isCpu));
+}
+
+function formatCpuModelName(cpuModelId: CpuModelId) {
+  if (cpuModelId === "easy") return "junior-CPU";
+  if (cpuModelId === "tactical") return "pro-CPU";
+  if (cpuModelId === "master") return "master-CPU";
+  return "standard-CPU";
+}
+
+function isValidCpuModelId(value: unknown): value is CpuModelId {
+  return (
+    value === "easy" ||
+    value === "standard" ||
+    value === "tactical" ||
+    value === "master"
+  );
 }
 
 function createResumableGameSummary(
@@ -276,17 +436,23 @@ function createResumableGameSummary(
 ): ResumableGameSummary {
   return {
     roomId: room.id,
-    roomName: room.matchState?.roomName ?? room.roomSettings?.roomName ?? room.id,
+    roomName:
+      room.matchState?.roomName ?? room.roomSettings?.roomName ?? room.id,
     playerId: leave.playerId,
     playerName:
       room.state?.players[leave.playerIndex]?.name ??
       room.players.find((player) => player.playerId === leave.playerId)?.name ??
       leave.playerId,
+    resumeToken: leave.resumeToken,
     mode: leave.mode,
     expiresAt: leave.expiresAt,
     currentRound: room.matchState?.currentRound ?? 1,
-    matchType: room.matchState?.matchMode ?? room.roomSettings?.matchType ?? "rounds",
-    totalPlayers: room.state?.players.length ?? room.roomSettings?.totalPlayers ?? room.maxPlayers,
+    matchType:
+      room.matchState?.matchMode ?? room.roomSettings?.matchType ?? "rounds",
+    totalPlayers:
+      room.state?.players.length ??
+      room.roomSettings?.totalPlayers ??
+      room.maxPlayers,
     convertedToCpu: leave.convertedToCpu,
   };
 }
@@ -294,7 +460,11 @@ function createResumableGameSummary(
 function findResumableGames(entries: ResumableGameEntry[]) {
   const now = Date.now();
   const summaries: ResumableGameSummary[] = [];
+  const seen = new Set<string>();
   for (const entry of entries) {
+    const key = `${entry.roomId}:${entry.playerId}:${entry.resumeToken}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
     const room = rooms.get(entry.roomId);
     const leave = room?.temporaryLeaves.get(entry.playerId);
     if (!room || !leave) continue;
@@ -345,7 +515,33 @@ function removeWaitingPlayer(
   broadcastPlayerView(room);
 }
 
-function leaveCurrentRoom(socket: OnlineSocket) {
+function resolveHostTransferPlayerId(
+  room: ServerRoom,
+  exitingPlayerId: string,
+  payload?: LeaveRoomPayload,
+) {
+  if (room.hostPlayerId !== exitingPlayerId) return undefined;
+  if (payload?.type !== "hostTransfer") {
+    const nextHost = findNextHumanHostCandidate(room, exitingPlayerId);
+    return nextHost?.playerId;
+  }
+  if (payload.strategy === "named") {
+    const target = room.players.find(
+      (player) => player.playerId === payload.targetPlayerId,
+    );
+    if (
+      !target ||
+      !isHumanHostCandidate(room, target.playerId, exitingPlayerId, true)
+    ) {
+      return null;
+    }
+    return target.playerId;
+  }
+  const randomTarget = getRandomHumanHostCandidate(room, exitingPlayerId);
+  return randomTarget?.playerId;
+}
+
+function leaveCurrentRoom(socket: OnlineSocket, payload?: LeaveRoomPayload) {
   const room = getSocketRoom(socket);
   const playerId = socket.data.playerId;
   if (!room || !playerId) return;
@@ -360,11 +556,33 @@ function leaveCurrentRoom(socket: OnlineSocket) {
     removeWaitingPlayer(socket, room, playerId);
     return;
   }
-  room.socketsByPlayerId.delete(playerId);
-  room.players = room.players.map((player) =>
-    player.playerId === playerId ? { ...player, connected: false } : player,
+  const hostTransferPlayerId = resolveHostTransferPlayerId(
+    room,
+    playerId,
+    payload,
   );
+  if (hostTransferPlayerId === null) {
+    socket.emit("errorMessage", "Host transfer target was not found.");
+    return;
+  }
+  if (hostTransferPlayerId) {
+    room.hostPlayerId = hostTransferPlayerId;
+  }
+  const leave = room.temporaryLeaves.get(playerId);
+  if (leave?.timeoutId) clearTimeout(leave.timeoutId);
+  room.temporaryLeaves.delete(playerId);
+  replacePlayerSeatWithCpu(room, playerId);
+  room.socketsByPlayerId.delete(playerId);
+  socket.leave(room.id);
+  socket.data.roomId = undefined;
+  socket.data.playerId = undefined;
+  if (!hasHumanPlayerSeat(room)) {
+    closeWaitingRoom(room, socket.id);
+    return;
+  }
   broadcastPlayerView(room);
+  scheduleRoomCpu(room);
+  broadcastPublicRooms();
 }
 
 function rejectAction(
@@ -782,7 +1000,7 @@ function scheduleRoomCpu(room: ServerRoom) {
   scheduleOnlineCpu(room, {
     applyNextState: applyOnlineNextState,
     broadcastPlayerView,
-    getCpuControlledPlayerIds: getActiveCpuControlledPlayerIds,
+    getCpuControlledPlayerModels: getActiveCpuControlledPlayerModels,
   });
 }
 
@@ -793,23 +1011,75 @@ function remapOnlinePlayers(room: ServerRoom, state: GameState): GameState {
     players: state.players.map((player, index) => {
       if (!player.isCpu) {
         const onlinePlayer = room.players[index];
+        if (!onlinePlayer && room.roomSettings?.allowMidGameJoin) {
+          return {
+            ...player,
+            id: `replacement-${index + 1}`,
+            name: formatCpuModelName("standard"),
+            type: "cpu",
+            isCpu: true,
+            cpuModelId: "standard",
+            joinableReplacement: true,
+          };
+        }
         return {
           ...player,
           id: onlinePlayer?.playerId ?? player.id,
           name: onlinePlayer?.name ?? player.name,
           type: "human",
           isCpu: false,
+          joinableReplacement: undefined,
         };
       }
       return {
         ...player,
         id: `cpu-${index + 1}`,
-        name: `CPU ${index + 1}`,
+        name: formatCpuModelName(player.cpuModelId ?? "standard"),
         type: "cpu",
         isCpu: true,
+        joinableReplacement: false,
       };
     }),
   };
+}
+
+function joinStartedRoomReplacementSeat(
+  socket: OnlineSocket,
+  room: ServerRoom,
+  playerName: string,
+) {
+  const seatIndex = getJoinableReplacementSeatIndexes(room)[0];
+  if (seatIndex === undefined || !room.state) return null;
+  const playerId = createPlayerId(room);
+  const player: OnlineRoomPlayer = {
+    playerId,
+    name: formatAssignedPlayerName(seatIndex + 1, playerName),
+    ready: true,
+    connected: true,
+  };
+  room.players.push(player);
+  room.socketsByPlayerId.set(playerId, socket.id);
+  room.state = {
+    ...room.state,
+    players: room.state.players.map((statePlayer, index) =>
+      index === seatIndex
+        ? {
+            ...statePlayer,
+            id: playerId,
+            name: player.name,
+            type: "human",
+            isCpu: false,
+            cpuModelId: undefined,
+            joinableReplacement: undefined,
+          }
+        : statePlayer,
+    ),
+  };
+  room.matchState = syncMatchGameState(room.matchState, room.state);
+  socket.data.roomId = room.id;
+  socket.data.playerId = playerId;
+  socket.join(room.id);
+  return playerId;
 }
 
 io.on("connection", (socket) => {
@@ -834,6 +1104,7 @@ io.on("connection", (socket) => {
       roomSettings: payload.roomSettings,
       nextPlayerNumber: 1,
       temporaryLeaves: new Map(),
+      substituteCpuModelIds: new Map(),
     };
     const player: OnlineRoomPlayer = {
       playerId: createPlayerId(room),
@@ -855,6 +1126,7 @@ io.on("connection", (socket) => {
       state: null,
     });
     broadcastPlayerView(room);
+    broadcastPublicRooms();
   });
 
   socket.on("listPublicRooms", (ack) => {
@@ -865,8 +1137,8 @@ io.on("connection", (socket) => {
     ack(findResumableGames(payload.entries ?? []));
   });
 
-  socket.on("leaveRoom", () => {
-    leaveCurrentRoom(socket);
+  socket.on("leaveRoom", (payload) => {
+    leaveCurrentRoom(socket, payload);
   });
 
   socket.on("transferHost", (payload) => {
@@ -911,11 +1183,17 @@ io.on("connection", (socket) => {
     }
     const matchType = (payload as { matchType?: unknown }).matchType;
     if (matchType !== "rounds" && matchType !== "targetScore") {
-      socket.emit("errorMessage", "Match settings cannot be changed for this match type.");
+      socket.emit(
+        "errorMessage",
+        "Match settings cannot be changed for this match type.",
+      );
       return;
     }
     if (!room.started || !room.matchState) {
-      socket.emit("errorMessage", "Match settings can only be changed during a match.");
+      socket.emit(
+        "errorMessage",
+        "Match settings can only be changed during a match.",
+      );
       return;
     }
     if (room.hostPlayerId !== playerId) {
@@ -934,7 +1212,10 @@ io.on("connection", (socket) => {
         return;
       }
       if (roundCount <= room.matchState.currentRound) {
-        socket.emit("errorMessage", "Round count must be greater than the current round.");
+        socket.emit(
+          "errorMessage",
+          "Round count must be greater than the current round.",
+        );
         return;
       }
       if (roundCount > MAX_ROUND_COUNT) {
@@ -960,11 +1241,17 @@ io.on("connection", (socket) => {
         return;
       }
       if (targetScore < MIN_TARGET_SCORE || targetScore > MAX_TARGET_SCORE) {
-        socket.emit("errorMessage", "Target score must be between 50 and 10000.");
+        socket.emit(
+          "errorMessage",
+          "Target score must be between 50 and 10000.",
+        );
         return;
       }
       if (targetScore <= getCurrentHighestMatchScore(room.matchState)) {
-        socket.emit("errorMessage", "Target score must be greater than the current highest score.");
+        socket.emit(
+          "errorMessage",
+          "Target score must be greater than the current highest score.",
+        );
         return;
       }
       room.roomSettings = room.roomSettings
@@ -979,14 +1266,41 @@ io.on("connection", (socket) => {
       return;
     }
 
-    socket.emit("errorMessage", "Match settings cannot be changed for this match type.");
+    socket.emit(
+      "errorMessage",
+      "Match settings cannot be changed for this match type.",
+    );
+  });
+
+  socket.on("updateSubstituteCpuModel", (payload) => {
+    const room = getSocketRoom(socket);
+    const playerId = socket.data.playerId;
+    if (!room || !playerId || !room.started || !room.state) return;
+    if (!isValidCpuModelId(payload.cpuModelId)) {
+      socket.emit("errorMessage", "Invalid CPU model.");
+      return;
+    }
+    const player = room.state.players.find((item) => item.id === playerId);
+    if (!player || player.isCpu) {
+      socket.emit(
+        "errorMessage",
+        "Only human players can change substitute CPU model.",
+      );
+      return;
+    }
+    room.substituteCpuModelIds.set(playerId, payload.cpuModelId);
+    broadcastPlayerView(room);
+    scheduleRoomCpu(room);
   });
 
   socket.on("startTemporaryLeave", (payload, ack) => {
     const room = getSocketRoom(socket);
     const playerId = socket.data.playerId;
     if (!room || !playerId || !room.started || !room.state) {
-      ack({ ok: false, error: "Temporary leave is only available during a match." });
+      ack({
+        ok: false,
+        error: "Temporary leave is only available during a match.",
+      });
       return;
     }
     const mode = payload.mode;
@@ -1010,6 +1324,9 @@ io.on("connection", (socket) => {
     const startedAt = Date.now();
     const expiresAt = startedAt + TEMPORARY_LEAVE_LIMIT_MS;
     const resumeToken = randomUUID();
+    if (!room.substituteCpuModelIds.has(playerId)) {
+      room.substituteCpuModelIds.set(playerId, "standard");
+    }
     const timeoutId = setTimeout(() => {
       convertTemporaryLeaveToCpu(room, playerId);
     }, TEMPORARY_LEAVE_LIMIT_MS);
@@ -1072,7 +1389,30 @@ io.on("connection", (socket) => {
       return;
     }
     if (room.started) {
-      ack({ ok: false, error: "Game has already started." });
+      const playerId = joinStartedRoomReplacementSeat(
+        socket,
+        room,
+        payload.playerName,
+      );
+      if (!playerId) {
+        ack({ ok: false, error: "Game has already started." });
+        return;
+      }
+      if (!room.state) {
+        ack({ ok: false, error: "Game has not started." });
+        return;
+      }
+      ack({
+        ok: true,
+        roomId: room.id,
+        playerId,
+        room: snapshotRoom(room),
+        state: createPlayerViewState(room.state, playerId),
+      });
+      emitPlayerView(room, playerId);
+      broadcastPlayerView(room);
+      scheduleRoomCpu(room);
+      broadcastPublicRooms();
       return;
     }
     if (room.players.length >= room.maxPlayers) {
@@ -1121,9 +1461,15 @@ io.on("connection", (socket) => {
       return;
     }
     const totalSeats = room.roomSettings?.totalPlayers ?? room.maxPlayers;
+    const allowMidGameJoin = Boolean(room.roomSettings?.allowMidGameJoin);
+    const hasSoloCpuComposition =
+      (room.roomSettings?.humanPlayers ?? room.maxPlayers) <= 1 &&
+      (room.roomSettings?.cpuPlayers ?? 0) > 0;
     if (
       totalSeats < 2 ||
-      room.players.length < room.maxPlayers ||
+      (!allowMidGameJoin && room.players.length < room.maxPlayers) ||
+      (allowMidGameJoin &&
+        (room.players.length < 1 || hasSoloCpuComposition)) ||
       !room.players.every(
         (player) => player.ready || player.playerId === room.hostPlayerId,
       )
@@ -1137,6 +1483,7 @@ io.on("connection", (socket) => {
     startRoomGame(room);
     broadcastPlayerView(room);
     scheduleRoomCpu(room);
+    broadcastPublicRooms();
   });
 
   socket.on("submitAction", (payload) => {

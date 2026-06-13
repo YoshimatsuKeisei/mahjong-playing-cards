@@ -136,7 +136,7 @@ describe("online CPU runner", () => {
     const room = createRoom(baseState({ currentPlayerIndex: 0 }));
     const callbacks = {
       ...createCallbacks(),
-      getCpuControlledPlayerIds: () => new Set(["player-1"]),
+      getCpuControlledPlayerModels: () => new Map([["player-1", "standard" as const]]),
     };
 
     scheduleOnlineCpu(room, callbacks);

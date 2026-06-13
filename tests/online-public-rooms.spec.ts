@@ -258,19 +258,104 @@ test("public room list filters, sorts, exposes only public metadata, and joins w
   }
 });
 
-test("online rooms reject CPU settings while CPU support is paused", async () => {
+test("online rooms accept CPU settings and expose public CPU metadata", async () => {
   const host = await connectSocket();
   try {
-    const rejected = await emitAck(
+    const roomName = `CPU Room ${Date.now()}`;
+    const created = await emitAck(
       host,
       "createRoom",
-      makeCreatePayload(`Paused CPU ${Date.now()}`, {
+      makeCreatePayload(roomName, {
         humanPlayers: 3,
         cpuPlayers: 1,
         cpuModelIds: ["tactical"],
       }),
     );
-    expect(rejected.ok).toBe(false);
+    expect(created.ok).toBe(true);
+
+    const rooms = await emitList(host);
+    const room = rooms.find((item) => item.roomName === roomName);
+    expect(room?.cpuPlayers).toBe(1);
+    expect(room?.cpuModelIds).toEqual(["tactical"]);
+  } finally {
+    host.close();
+  }
+});
+
+test("mid-game join rooms can start short and replace joinable CPU seats", async () => {
+  const host = await connectSocket();
+  const lateGuest = await connectSocket();
+  const roomName = `MidGame Join ${Date.now()}`;
+  try {
+    const created = await emitAck(
+      host,
+      "createRoom",
+      makeCreatePayload(roomName, {
+        totalPlayers: 4,
+        humanPlayers: 4,
+        cpuPlayers: 0,
+        cpuModelIds: [],
+        allowMidGameJoin: true,
+      }),
+    );
+    expect(created.ok).toBe(true);
+
+    host.emit("startGame");
+    await waitForPublicRoom(
+      host,
+      roomName,
+      (room) =>
+        room.started === true &&
+        room.allowMidGameJoin === true &&
+        room.availableReplacementSeats === 3,
+    );
+
+    const joined = await emitAck(lateGuest, "joinRoom", {
+      roomId: created.roomId,
+      playerName: "Late Guest",
+    });
+    expect(joined.ok).toBe(true);
+    expect(joined.state.players).toHaveLength(4);
+    expect(
+      joined.state.players.some(
+        (player: { id: string; isCpu: boolean }) =>
+          player.id === joined.playerId && !player.isCpu,
+      ),
+    ).toBe(true);
+
+    await waitForPublicRoom(
+      host,
+      roomName,
+      (room) => room.availableReplacementSeats === 2,
+    );
+  } finally {
+    host.close();
+    lateGuest.close();
+  }
+});
+
+test("mid-game join stays unavailable for solo human plus CPU rooms", async () => {
+  const host = await connectSocket();
+  const roomName = `Solo CPU ${Date.now()}`;
+  try {
+    const created = await emitAck(
+      host,
+      "createRoom",
+      makeCreatePayload(roomName, {
+        totalPlayers: 4,
+        humanPlayers: 1,
+        cpuPlayers: 3,
+        cpuModelIds: ["standard", "standard", "standard"],
+        allowMidGameJoin: true,
+      }),
+    );
+    expect(created.ok).toBe(true);
+
+    host.emit("startGame");
+    await waitForCondition(async () => {
+      const rooms = await emitList(host);
+      return !rooms.some((room) => room.roomName === roomName && room.started);
+    }, "solo CPU room should not be listed for mid-game join");
   } finally {
     host.close();
   }
@@ -366,6 +451,7 @@ function makeCreatePayload(
       cpuModelId: overrides.cpuModelId ?? "tactical",
       cpuModelIds: overrides.cpuModelIds ?? [],
       showCpuActions: overrides.showCpuActions ?? true,
+      allowMidGameJoin: overrides.allowMidGameJoin ?? false,
       daifugoOptions: overrides.daifugoOptions ?? {
         ...daifugoOptions,
         enabled: true,

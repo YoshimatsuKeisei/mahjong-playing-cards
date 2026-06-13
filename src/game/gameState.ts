@@ -308,6 +308,13 @@ function getDiscardHandoffMessage(
   return `${formatRank(discardCard.rank)}を捨てました。${nextTurnMessage}`;
 }
 
+function getDiscardEffectMessage(
+  discardCard: Card,
+  effect: DaifugoEffectId,
+): string {
+  return `${formatRank(discardCard.rank)}を捨てました。${getDaifugoConfirmMessage(effect)}`;
+}
+
 function advanceToNextDraw(
   state: GameState,
   players: Player[],
@@ -2582,11 +2589,13 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           { ...state, pendingDaifugoEffect: null },
           {
             ...pending.continue,
-            message: getNextTurnMessage(
-              state.players,
-              pending.playerIndex,
-              state.direction,
-            ),
+            message:
+              pending.continue.message ??
+              getNextTurnMessage(
+                state.players,
+                pending.playerIndex,
+                state.direction,
+              ),
           },
         );
       }
@@ -3402,7 +3411,10 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         return {
           ...nextState,
           pendingDaifugoEffect,
-          message: getDaifugoConfirmMessage(pendingDaifugoEffect.effect),
+          message: getDiscardEffectMessage(
+            discardCard,
+            pendingDaifugoEffect.effect,
+          ),
         };
       }
       const handoffSourceIndex =
@@ -3454,12 +3466,15 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         nextPlayer,
       );
       const nextState = { ...state, players };
+      const discardHandoffMessage = getDiscardHandoffMessage(
+        players,
+        state.currentPlayerIndex,
+        state.direction,
+        state.drawnCard,
+      );
       const continueState: PendingDaifugoContinue = {
         shouldConfirmReach: false,
-        message:
-          player.isCpu && state.drawnCard
-            ? `${player.name} (CPU) discarded ${formatCpuCard(state.drawnCard)}.`
-            : undefined,
+        message: discardHandoffMessage,
       };
       const pendingDaifugoEffect = createPendingDaifugoEffect(
         nextState,
@@ -3470,15 +3485,12 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         return {
           ...nextState,
           pendingDaifugoEffect,
-          message: getDaifugoConfirmMessage(pendingDaifugoEffect.effect),
+          message: getDiscardEffectMessage(
+            state.drawnCard,
+            pendingDaifugoEffect.effect,
+          ),
         };
       }
-      const discardHandoffMessage = getDiscardHandoffMessage(
-        players,
-        state.currentPlayerIndex,
-        state.direction,
-        state.drawnCard,
-      );
       return advanceToNextDraw(
         nextState,
         players,
