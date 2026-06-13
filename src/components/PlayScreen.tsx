@@ -1796,7 +1796,10 @@ export default function PlayScreen({
             isCurrent={playerIndex === state.currentPlayerIndex}
             seat={getSeat(playerCount, slotIndex)}
             displayName={cpuDisplayNames.get(playerIndex)}
-            temporaryLeaveStatus={getTemporaryLeaveStatus(onlineRoom, player.id)}
+            temporaryLeaveStatus={getTemporaryLeaveStatus(
+              onlineRoom,
+              player.id,
+            )}
             style={getSeatStyle(playerCount, slotIndex)}
           />
         ))}
@@ -3237,7 +3240,11 @@ function RoomManagementDialog({
   >(null);
   const [settingValue, setSettingValue] = useState("");
   const [settingError, setSettingError] = useState<string | null>(null);
-  const tabs: Array<{ id: RoomManagementTab; label: string; hostOnly?: boolean }> = [
+  const tabs: Array<{
+    id: RoomManagementTab;
+    label: string;
+    hostOnly?: boolean;
+  }> = [
     { id: "exit", label: "退出" },
     { id: "temporaryLeave", label: "一時離脱" },
     { id: "transferHost", label: "ホストを変更", hostOnly: true },
@@ -3254,7 +3261,9 @@ function RoomManagementDialog({
   const matchTypeLabel = getMatchModeLabel(matchMode);
   const matchDetail = getMatchDetailText(matchState);
   const canEditRounds =
-    isHost && matchState?.matchMode === "rounds" && Boolean(onUpdateMatchSettings);
+    isHost &&
+    matchState?.matchMode === "rounds" &&
+    Boolean(onUpdateMatchSettings);
   const canEditTargetScore =
     isHost &&
     matchState?.matchMode === "targetScore" &&
@@ -3299,7 +3308,10 @@ function RoomManagementDialog({
         setSettingError("現在の最高得点以下には変更できません。");
         return;
       }
-      onUpdateMatchSettings({ matchType: "targetScore", targetScore: nextValue });
+      onUpdateMatchSettings({
+        matchType: "targetScore",
+        targetScore: nextValue,
+      });
     }
     setEditingSetting(null);
     setSettingValue("");
@@ -3316,7 +3328,11 @@ function RoomManagementDialog({
       <div className="exit-confirm-dialog room-management-dialog">
         <h2 id="room-management-title">設定</h2>
         <div className="room-management-panel">
-          <div className="room-management-tabs" role="tablist" aria-label="設定メニュー">
+          <div
+            className="room-management-tabs"
+            role="tablist"
+            aria-label="設定メニュー"
+          >
             {visibleTabs.map((tab) => (
               <button
                 type="button"
@@ -3332,209 +3348,218 @@ function RoomManagementDialog({
           </div>
 
           <div className="room-management-content">
-          {selectedTab === "exit" && (
-            <>
-              <p>現在の試合から退出しますか？</p>
-              <div className="exit-confirm-actions">
-                <button type="button" className="primary-button" onClick={onExit}>
-                  退出
-                </button>
-                <button type="button" onClick={onClose}>
-                  キャンセル
-                </button>
-              </div>
-            </>
-          )}
-
-          {selectedTab === "temporaryLeave" && (
-            <>
-              <p>一時離脱しますか？</p>
-              <div className="temporary-leave-options">
-                <button
-                  type="button"
-                  className="primary-button"
-                  onClick={() => onStartTemporaryLeave("pause")}
-                >
-                  中断する
-                </button>
-                <p>
-                  あなたの手番で試合を停止します。15分以内に戻らない場合、CPUに置き換わります。
-                </p>
-                <button
-                  type="button"
-                  className="primary-button"
-                  onClick={() => onStartTemporaryLeave("cpuSubstitute")}
-                >
-                  CPUに代行させる
-                </button>
-                <p>
-                  離脱中はCPUがあなたの代わりに手番を進めます。15分以内に戻らない場合、正式にCPUへ置き換わります。
-                </p>
-              </div>
-              <div className="exit-confirm-actions">
-                <button type="button" onClick={onClose}>
-                  閉じる
-                </button>
-              </div>
-            </>
-          )}
-
-          {selectedTab === "transferHost" && (
-            <>
-              <p>ホストを変更するプレイヤーを選択してください。</p>
-              {transferTargets.length > 0 ? (
-                <div className="host-transfer-list">
-                  {transferTargets.map((player) => (
-                    <button
-                      type="button"
-                      onClick={() => onTransferHost(player.playerId)}
-                      key={player.playerId}
-                    >
-                      {player.name}
-                    </button>
-                  ))}
+            {selectedTab === "exit" && (
+              <>
+                <p>現在の試合から退出しますか？</p>
+                <div className="exit-confirm-actions">
+                  <button
+                    type="button"
+                    className="primary-button"
+                    onClick={onExit}
+                  >
+                    退出
+                  </button>
+                  <button type="button" onClick={onClose}>
+                    キャンセル
+                  </button>
                 </div>
-              ) : (
-                <p>ホストを変更できるプレイヤーがいません。</p>
-              )}
-              <div className="exit-confirm-actions">
-                <button type="button" onClick={onClose}>
-                  閉じる
-                </button>
-              </div>
-            </>
-          )}
+              </>
+            )}
 
-          {selectedTab === "matchInfo" && (
-            <>
-              <div className="match-info-list">
-                <div className="match-info-row">
-                  <span>ルーム名</span>
-                  <strong>{matchState?.roomName ?? room?.roomId ?? "ルーム"}</strong>
+            {selectedTab === "temporaryLeave" && (
+              <>
+                <p>一時離脱しますか？</p>
+                <div className="temporary-leave-options">
+                  <button
+                    type="button"
+                    className="primary-button"
+                    onClick={() => onStartTemporaryLeave("pause")}
+                  >
+                    中断する
+                  </button>
+                  <p>
+                    あなたの手番で試合を停止します。15分以内に戻らない場合、CPUに置き換わります。
+                  </p>
+                  <button
+                    type="button"
+                    className="primary-button"
+                    onClick={() => onStartTemporaryLeave("cpuSubstitute")}
+                  >
+                    CPUに代行させる
+                  </button>
+                  <p>
+                    離脱中はCPUがあなたの代わりに手番を進めます。15分以内に戻らない場合、正式にCPUへ置き換わります。
+                  </p>
                 </div>
-                <div className="match-info-row match-info-row--players">
-                  <span>プレイヤー</span>
-                  <div className="match-info-players">
-                    {matchGameState.players.map((player, index) => (
-                      <div className="match-info-player" key={player.id}>
-                        <em>
-                          {!player.isCpu && player.id === room?.hostPlayerId
-                            ? "HOST"
-                            : ""}
-                        </em>
-                        <strong>
-                          Player{index + 1}: {formatMatchInfoPlayerName(player)}
-                        </strong>
-                      </div>
+                <div className="exit-confirm-actions">
+                  <button type="button" onClick={onClose}>
+                    閉じる
+                  </button>
+                </div>
+              </>
+            )}
+
+            {selectedTab === "transferHost" && (
+              <>
+                <p>ホストを変更するプレイヤーを選択してください。</p>
+                {transferTargets.length > 0 ? (
+                  <div className="host-transfer-list">
+                    {transferTargets.map((player) => (
+                      <button
+                        type="button"
+                        onClick={() => onTransferHost(player.playerId)}
+                        key={player.playerId}
+                      >
+                        {player.name}
+                      </button>
                     ))}
                   </div>
-                </div>
-                <div className="match-info-row">
-                  <span>人数</span>
-                  <strong>{matchGameState.players.length}人</strong>
-                </div>
-                <div className="match-info-row">
-                  <span>試合形式</span>
-                  <strong>{matchTypeLabel}</strong>
-                </div>
-                <div className="match-info-row">
-                  <span>試合形式の詳細</span>
-                  <strong>{matchDetail}</strong>
-                  {canEditRounds && (
-                    <button
-                      type="button"
-                      className="match-info-change-button"
-                      onClick={() => startEditingSetting("rounds")}
-                    >
-                      変更
-                    </button>
-                  )}
-                  {canEditTargetScore && (
-                    <button
-                      type="button"
-                      className="match-info-change-button"
-                      onClick={() => startEditingSetting("targetScore")}
-                    >
-                      変更
-                    </button>
-                  )}
-                </div>
-                <div className="match-info-row">
-                  <span>現在の局</span>
-                  <strong>{currentRoundNumber}局目</strong>
-                </div>
-                {onlinePlayerId && onUpdateSubstituteCpuModel && (
-                  <div className="match-info-row">
-                    <span>代行CPUモデル</span>
-                    <strong>{getCpuModelDisplayName(substituteCpuModelId)}</strong>
-                    <select
-                      aria-label="代行CPUモデル"
-                      value={substituteCpuModelId}
-                      onChange={(event) =>
-                        onUpdateSubstituteCpuModel(
-                          event.target.value as CpuModelId,
-                        )
-                      }
-                    >
-                      <option value="easy">junior-CPU</option>
-                      <option value="standard">standard-CPU</option>
-                      <option value="tactical">pro-CPU</option>
-                      <option value="master">master-CPU</option>
-                    </select>
-                  </div>
+                ) : (
+                  <p>ホストを変更できるプレイヤーがいません。</p>
                 )}
-              </div>
-              {editingSetting && (
-                <div className="match-setting-editor">
-                  <label htmlFor="match-setting-value">
-                    {editingSetting === "rounds" ? "最大局数" : "目標点"}
-                  </label>
-                  <input
-                    id="match-setting-value"
-                    type="number"
-                    min="1"
-                    max={
-                      editingSetting === "rounds"
-                        ? MAX_ROUND_COUNT
-                        : MAX_TARGET_SCORE
-                    }
-                    step="1"
-                    value={settingValue}
-                    onChange={(event) => {
-                      setSettingValue(event.target.value);
-                      setSettingError(null);
-                    }}
-                  />
-                  {settingError && (
-                    <p className="match-setting-error">{settingError}</p>
+                <div className="exit-confirm-actions">
+                  <button type="button" onClick={onClose}>
+                    閉じる
+                  </button>
+                </div>
+              </>
+            )}
+
+            {selectedTab === "matchInfo" && (
+              <>
+                <div className="match-info-list">
+                  <div className="match-info-row">
+                    <span>ルーム名</span>
+                    <strong>
+                      {matchState?.roomName ?? room?.roomId ?? "ルーム"}
+                    </strong>
+                  </div>
+                  <div className="match-info-row match-info-row--players">
+                    <span>プレイヤー</span>
+                    <div className="match-info-players">
+                      {matchGameState.players.map((player, index) => (
+                        <div className="match-info-player" key={player.id}>
+                          <em>
+                            {!player.isCpu && player.id === room?.hostPlayerId
+                              ? "HOST"
+                              : ""}
+                          </em>
+                          <strong>
+                            Player{index + 1}:{" "}
+                            {formatMatchInfoPlayerName(player)}
+                          </strong>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="match-info-row">
+                    <span>人数</span>
+                    <strong>{matchGameState.players.length}人</strong>
+                  </div>
+                  <div className="match-info-row">
+                    <span>試合形式</span>
+                    <strong>{matchTypeLabel}</strong>
+                  </div>
+                  <div className="match-info-row">
+                    <span>試合形式の詳細</span>
+                    <strong>{matchDetail}</strong>
+                    {canEditRounds && (
+                      <button
+                        type="button"
+                        className="match-info-change-button"
+                        onClick={() => startEditingSetting("rounds")}
+                      >
+                        変更
+                      </button>
+                    )}
+                    {canEditTargetScore && (
+                      <button
+                        type="button"
+                        className="match-info-change-button"
+                        onClick={() => startEditingSetting("targetScore")}
+                      >
+                        変更
+                      </button>
+                    )}
+                  </div>
+                  <div className="match-info-row">
+                    <span>現在の局</span>
+                    <strong>{currentRoundNumber}局目</strong>
+                  </div>
+                  {onlinePlayerId && onUpdateSubstituteCpuModel && (
+                    <div className="match-info-row">
+                      <span>代行CPUモデル</span>
+                      <strong>
+                        {getCpuModelDisplayName(substituteCpuModelId)}
+                      </strong>
+                      <select
+                        aria-label="代行CPUモデル"
+                        value={substituteCpuModelId}
+                        onChange={(event) =>
+                          onUpdateSubstituteCpuModel(
+                            event.target.value as CpuModelId,
+                          )
+                        }
+                      >
+                        <option value="easy">junior-CPU</option>
+                        <option value="standard">standard-CPU</option>
+                        <option value="tactical">pro-CPU</option>
+                        <option value="master">master-CPU</option>
+                      </select>
+                    </div>
                   )}
-                  <div className="exit-confirm-actions">
-                    <button
-                      type="button"
-                      className="primary-button"
-                      onClick={submitSettingChange}
-                    >
-                      確定
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditingSetting(null);
+                </div>
+                {editingSetting && (
+                  <div className="match-setting-editor">
+                    <label htmlFor="match-setting-value">
+                      {editingSetting === "rounds" ? "最大局数" : "目標点"}
+                    </label>
+                    <input
+                      id="match-setting-value"
+                      type="number"
+                      min="1"
+                      max={
+                        editingSetting === "rounds"
+                          ? MAX_ROUND_COUNT
+                          : MAX_TARGET_SCORE
+                      }
+                      step="1"
+                      value={settingValue}
+                      onChange={(event) => {
+                        setSettingValue(event.target.value);
                         setSettingError(null);
                       }}
-                    >
-                      キャンセル
-                    </button>
+                    />
+                    {settingError && (
+                      <p className="match-setting-error">{settingError}</p>
+                    )}
+                    <div className="exit-confirm-actions">
+                      <button
+                        type="button"
+                        className="primary-button"
+                        onClick={submitSettingChange}
+                      >
+                        確定
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingSetting(null);
+                          setSettingError(null);
+                        }}
+                      >
+                        キャンセル
+                      </button>
+                    </div>
                   </div>
+                )}
+                <div className="exit-confirm-actions">
+                  <button type="button" onClick={onClose}>
+                    閉じる
+                  </button>
                 </div>
-              )}
-              <div className="exit-confirm-actions">
-                <button type="button" onClick={onClose}>
-                  閉じる
-                </button>
-              </div>
-            </>
-          )}
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -3581,7 +3606,9 @@ function getTemporaryLeaveStatus(
   room: OnlineRoomSnapshot | undefined,
   playerId: string,
 ) {
-  const leave = room?.temporaryLeaves?.find((item) => item.playerId === playerId);
+  const leave = room?.temporaryLeaves?.find(
+    (item) => item.playerId === playerId,
+  );
   if (!leave) return null;
   if (leave.convertedToCpu) return "CPU置換済み";
   const remaining = formatRemainingLeaveTime(leave.expiresAt);
@@ -3940,7 +3967,6 @@ function buildCpuDisplayNames(state: GameState) {
     const label = getCpuModelDisplayName(player.cpuModelId);
     counts.set(label, (counts.get(label) ?? 0) + 1);
   }
-
   const seen = new Map<string, number>();
   const labels = new Map<number, string>();
   state.players.forEach((player, index) => {
@@ -3950,7 +3976,7 @@ function buildCpuDisplayNames(state: GameState) {
     seen.set(label, nextSeen);
     labels.set(
       index,
-      `${player.name}:${label}${(counts.get(label) ?? 0) > 1 ? nextSeen : ""}`,
+      `Player${index + 1}:${label}${(counts.get(label) ?? 0) > 1 ? nextSeen : ""}`,
     );
   });
   return labels;

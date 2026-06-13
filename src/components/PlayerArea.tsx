@@ -57,6 +57,5 @@ export default function PlayerArea({
 function getPlayerStatus(player: Player) {
   if (player.isReach) return "リーチ中";
   if (player.hasCalled) return "鳴き済み";
-  if (player.isCpu) return `${player.cpuModelId ?? "standard"}-CPU`;
   return "通常";
 }

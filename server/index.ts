@@ -318,7 +318,7 @@ function replacePlayerSeatWithCpu(room: ServerRoom, playerId: string) {
   );
   if (playerIndex < 0) return false;
   const cpuModelId = room.substituteCpuModelIds.get(playerId) ?? "standard";
-  const cpuName = `Player${playerIndex + 1}: ${formatCpuModelName(cpuModelId)}`;
+  const cpuName = formatCpuModelName(cpuModelId);
   const nextPlayers = room.state.players.map((player, index) =>
     index === playerIndex
       ? {
@@ -1015,7 +1015,7 @@ function remapOnlinePlayers(room: ServerRoom, state: GameState): GameState {
           return {
             ...player,
             id: `replacement-${index + 1}`,
-            name: `Player${index + 1}: standard-CPU`,
+            name: formatCpuModelName("standard"),
             type: "cpu",
             isCpu: true,
             cpuModelId: "standard",
@@ -1034,7 +1034,7 @@ function remapOnlinePlayers(room: ServerRoom, state: GameState): GameState {
       return {
         ...player,
         id: `cpu-${index + 1}`,
-        name: `CPU ${index + 1}`,
+        name: formatCpuModelName(player.cpuModelId ?? "standard"),
         type: "cpu",
         isCpu: true,
         joinableReplacement: false,
