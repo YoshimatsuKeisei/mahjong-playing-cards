@@ -7667,3 +7667,24 @@ h2 {
     line-height: 1.05 !important;
   }
 }
+
+html,
+body,
+#root {
+  overscroll-behavior: none;
+  touch-action: manipulation;
+}
+
+body {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+@media (orientation: landscape) {
+  html,
+  body {
+    width: 100dvw;
+    height: 100dvh;
+    overflow: hidden;
+  }
+}
