@@ -11,11 +11,29 @@ import StartScreen, { type RoomCreateSettings } from "./components/StartScreen";
 import PlayScreen from "./components/PlayScreen";
 import ResultScreen from "./components/ResultScreen";
 import FinalResultScreen from "./components/FinalResultScreen";
-import { createInitialGame, createRandomStartPlayerIndex, gameReducer, type GameAction } from "./game/gameState";
-import { advanceRound, canAdvanceRound, createInterruptedFinalMatchState, createMatchState, syncMatchGameState } from "./game/matchState";
-import { calculatePointDeductions, calculateRawRoundScores } from "./game/scoring";
+import {
+  createInitialGame,
+  createRandomStartPlayerIndex,
+  gameReducer,
+  type GameAction,
+} from "./game/gameState";
+import {
+  advanceRound,
+  canAdvanceRound,
+  createInterruptedFinalMatchState,
+  createMatchState,
+  syncMatchGameState,
+} from "./game/matchState";
+import {
+  calculatePointDeductions,
+  calculateRawRoundScores,
+} from "./game/scoring";
 import { createDefaultDaifugoOptions } from "./game/deck";
-import { createDoubleRonResultFixture, createSingleRonResultFixture, createStartingPointsTsumoResultFixture } from "./game/resultFixtures";
+import {
+  createDoubleRonResultFixture,
+  createSingleRonResultFixture,
+  createStartingPointsTsumoResultFixture,
+} from "./game/resultFixtures";
 import { getOnlineSocket } from "./online/client";
 import type {
   OnlinePublicRoom,
@@ -28,7 +46,15 @@ import type {
   TemporaryLeaveMode,
   UpdateMatchSettingsPayload,
 } from "./online/types";
-import type { Card, CpuModelId, GameState, MatchMode, MatchState, Player, ProfileData } from "./types";
+import type {
+  Card,
+  CpuModelId,
+  GameState,
+  MatchMode,
+  MatchState,
+  Player,
+  ProfileData,
+} from "./types";
 import type { HomeMenuTarget } from "./components/HomeMenu";
 
 const initialState: GameState = {
@@ -53,11 +79,48 @@ const initialState: GameState = {
   message: "",
 };
 
-type AppScreen = "home" | "roomSelect" | "roomList" | "onlineLobby" | "newGame" | "play" | "manual" | "moreGame" | "settings" | "profile" | "result";
+type AppScreen =
+  | "home"
+  | "roomSelect"
+  | "roomList"
+  | "onlineLobby"
+  | "newGame"
+  | "play"
+  | "manual"
+  | "moreGame"
+  | "settings"
+  | "profile"
+  | "result";
 type ExitConfirmKind = "summary" | "home" | null;
 const TEMPORARY_LEAVE_STORAGE_KEY = "mahjong-temporary-leaves";
+const ONLINE_SESSION_STORAGE_KEY = "mahjong-online-session";
+
+type OnlineSessionEntry = {
+  roomId: string;
+  playerId: string;
+  playerName: string;
+  savedAt: number;
+};
+
+function saveOnlineSession(entry: Omit<OnlineSessionEntry, "savedAt">) {
+  localStorage.setItem(
+    ONLINE_SESSION_STORAGE_KEY,
+    JSON.stringify({
+      ...entry,
+      savedAt: Date.now(),
+    }),
+  );
+}
+
+function clearOnlineSession() {
+  localStorage.removeItem(ONLINE_SESSION_STORAGE_KEY);
+}
 type DebugResultKind = "ron" | "tsumo" | "doubleRon";
-type DebugStandingsCase = "roundsNoRankChange" | "roundsRankChange" | "targetNoRankChange" | "pointsLoss";
+type DebugStandingsCase =
+  | "roundsNoRankChange"
+  | "roundsRankChange"
+  | "targetNoRankChange"
+  | "pointsLoss";
 export type DebugDaifugoCase =
   | "jBack"
   | "jackSelect"
@@ -98,14 +161,21 @@ export default function App() {
   const [matchState, setMatchState] = useState<MatchState | null>(null);
   const [screen, setScreen] = useState<AppScreen>("home");
   const [exitConfirmKind, setExitConfirmKind] = useState<ExitConfirmKind>(null);
-  const [interruptedFinalMatchState, setInterruptedFinalMatchState] = useState<MatchState | null>(null);
-  const [homeEntryMode, setHomeEntryMode] = useState<"initial" | "return">("initial");
+  const [interruptedFinalMatchState, setInterruptedFinalMatchState] =
+    useState<MatchState | null>(null);
+  const [homeEntryMode, setHomeEntryMode] = useState<"initial" | "return">(
+    "initial",
+  );
   const [onlineRoom, setOnlineRoom] = useState<OnlineRoomSnapshot | null>(null);
   const [onlinePlayerId, setOnlinePlayerId] = useState<string | null>(null);
   const [onlineError, setOnlineError] = useState<string | null>(null);
   const [publicRooms, setPublicRooms] = useState<OnlinePublicRoom[]>([]);
-  const [resumableGames, setResumableGames] = useState<ResumableGameSummary[]>([]);
-  const [onlineRoomEntry, setOnlineRoomEntry] = useState<"public" | "legacy">("public");
+  const [resumableGames, setResumableGames] = useState<ResumableGameSummary[]>(
+    [],
+  );
+  const [onlineRoomEntry, setOnlineRoomEntry] = useState<"public" | "legacy">(
+    "public",
+  );
   const [profile, setProfile] = useState<ProfileData>({
     userName: "Guest Player",
     comment: "今日も一局、よろしくお願いします。",
@@ -180,19 +250,25 @@ export default function App() {
 
   function dispatch(action: GameAction) {
     if (onlineRoom?.started) {
-      getOnlineSocket().emit("submitAction", { action, stateVersion: state.stateVersion ?? 0 });
+      getOnlineSocket().emit("submitAction", {
+        action,
+        stateVersion: state.stateVersion ?? 0,
+      });
       return;
     }
     setState((currentState) => {
       const nextState = gameReducer(currentState, action);
-      setMatchState((currentMatch) => syncMatchGameState(currentMatch, nextState));
+      setMatchState((currentMatch) =>
+        syncMatchGameState(currentMatch, nextState),
+      );
       return nextState;
     });
   }
 
   function getDevOnlineScenario() {
     return import.meta.env.DEV
-      ? ((new URLSearchParams(window.location.search).get("scenario") || undefined) as OnlineScenarioId | undefined)
+      ? ((new URLSearchParams(window.location.search).get("scenario") ||
+          undefined) as OnlineScenarioId | undefined)
       : undefined;
   }
 
@@ -225,7 +301,8 @@ export default function App() {
 
   function addStoredTemporaryLeave(entry: ResumableGameEntry) {
     const entries = getStoredTemporaryLeaves().filter(
-      (item) => item.roomId !== entry.roomId || item.playerId !== entry.playerId,
+      (item) =>
+        item.roomId !== entry.roomId || item.playerId !== entry.playerId,
     );
     setStoredTemporaryLeaves([...entries, entry]);
   }
@@ -267,7 +344,12 @@ export default function App() {
     });
   }
 
-  function createOnlineRoom(playerName: string, maxPlayers: number, scenario?: OnlineScenarioId, roomSettings?: OnlineRoomCreateSettings) {
+  function createOnlineRoom(
+    playerName: string,
+    maxPlayers: number,
+    scenario?: OnlineScenarioId,
+    roomSettings?: OnlineRoomCreateSettings,
+  ) {
     setOnlineError(null);
     setOnlineRoomEntry(roomSettings ? "public" : "legacy");
     const socket = getOnlineSocket();
@@ -275,18 +357,29 @@ export default function App() {
       socket.connect();
     }
     const timeoutId = window.setTimeout(() => {
-      setOnlineError("オンラインサーバーに接続できません。サーバーを起動してからもう一度作成してください。");
+      setOnlineError(
+        "オンラインサーバーに接続できません。サーバーを起動してからもう一度作成してください。",
+      );
     }, 8_000);
-    socket.emit("createRoom", { playerName, maxPlayers, scenario, roomSettings }, (response) => {
-      window.clearTimeout(timeoutId);
-      if (!response.ok) {
-        setOnlineError(response.error);
-        return;
-      }
-      setOnlinePlayerId(response.playerId);
-      setOnlineRoom(response.room);
-      setScreen("onlineLobby");
-    });
+    socket.emit(
+      "createRoom",
+      { playerName, maxPlayers, scenario, roomSettings },
+      (response) => {
+        window.clearTimeout(timeoutId);
+        if (!response.ok) {
+          setOnlineError(response.error);
+          return;
+        }
+        setOnlinePlayerId(response.playerId);
+        setOnlineRoom(response.room);
+        saveOnlineSession({
+          roomId: response.roomId,
+          playerId: response.playerId,
+          playerName,
+        });
+        setScreen("onlineLobby");
+      },
+    );
   }
 
   function joinOnlineRoom(roomId: string, playerName: string) {
@@ -299,6 +392,11 @@ export default function App() {
       }
       setOnlinePlayerId(response.playerId);
       setOnlineRoom(response.room);
+      saveOnlineSession({
+        roomId: response.roomId,
+        playerId: response.playerId,
+        playerName,
+      });
       setScreen("onlineLobby");
     });
   }
@@ -340,7 +438,12 @@ export default function App() {
   function startOnlineTemporaryLeave(mode: TemporaryLeaveMode) {
     if (!onlineRoom?.started) return;
     getOnlineSocket().emit("startTemporaryLeave", { mode }, (response) => {
-      if (!response.ok || !response.roomId || !response.playerId || !response.resumeToken) {
+      if (
+        !response.ok ||
+        !response.roomId ||
+        !response.playerId ||
+        !response.resumeToken
+      ) {
         setOnlineError(response.error ?? "一時離脱を開始できませんでした。");
         return;
       }
@@ -385,15 +488,30 @@ export default function App() {
     });
   }
 
-  function startGame(playerCount: number, direction: GameState["direction"], matchMode: MatchMode, ruleValue: number, roomSettings?: RoomCreateSettings) {
+  function startGame(
+    playerCount: number,
+    direction: GameState["direction"],
+    matchMode: MatchMode,
+    ruleValue: number,
+    roomSettings?: RoomCreateSettings,
+  ) {
     setInterruptedFinalMatchState(null);
     setExitConfirmKind(null);
     const localRoomSettings = roomSettings;
     if (roomSettings) {
-      createOnlineRoom(profile.userName || "Guest Player", roomSettings.humanPlayers, getDevOnlineScenario(), roomSettings);
+      createOnlineRoom(
+        profile.userName || "Guest Player",
+        roomSettings.humanPlayers,
+        getDevOnlineScenario(),
+        roomSettings,
+      );
       return;
     }
-    if (matchMode === "rounds" || matchMode === "targetScore" || matchMode === "startingPoints") {
+    if (
+      matchMode === "rounds" ||
+      matchMode === "targetScore" ||
+      matchMode === "startingPoints"
+    ) {
       const startPlayerIndex = createRandomStartPlayerIndex(playerCount);
       const nextMatch = createMatchState(
         matchMode,
@@ -451,7 +569,9 @@ export default function App() {
   function confirmExit(payload?: LeaveRoomPayload) {
     if (exitConfirmKind === "summary") {
       if (matchState) {
-        setInterruptedFinalMatchState(createInterruptedFinalMatchState(matchState));
+        setInterruptedFinalMatchState(
+          createInterruptedFinalMatchState(matchState),
+        );
         setExitConfirmKind(null);
         setScreen("result");
         return;
@@ -482,7 +602,10 @@ export default function App() {
     }
     setMatchState((currentMatch) => {
       if (!currentMatch || !canAdvanceRound(currentMatch)) return currentMatch;
-      const nextMatch = advanceRound(currentMatch, createRandomStartPlayerIndex(currentMatch.playerCount));
+      const nextMatch = advanceRound(
+        currentMatch,
+        createRandomStartPlayerIndex(currentMatch.playerCount),
+      );
       setInterruptedFinalMatchState(null);
       setState(nextMatch.gameState);
       setScreen("play");
@@ -496,12 +619,22 @@ export default function App() {
     return createStartingPointsTsumoResultFixture();
   }
 
-  function showDebugResult(matchMode: "rounds" | "targetScore" | "startingPoints", kind: DebugResultKind) {
+  function showDebugResult(
+    matchMode: "rounds" | "targetScore" | "startingPoints",
+    kind: DebugResultKind,
+  ) {
     const debugState = createDebugResultState(kind);
     const playerCount = debugState.players.length;
-    const roundScores = debugState.result ? calculateRawRoundScores(debugState.result, playerCount) : Array.from({ length: playerCount }, () => 0);
-    const normalRoundScores = calculateDebugRoundScores(debugState, playerCount);
-    const pointDeductions = debugState.result ? calculatePointDeductions(debugState.result, playerCount) : Array.from({ length: playerCount }, () => 0);
+    const roundScores = debugState.result
+      ? calculateRawRoundScores(debugState.result, playerCount)
+      : Array.from({ length: playerCount }, () => 0);
+    const normalRoundScores = calculateDebugRoundScores(
+      debugState,
+      playerCount,
+    );
+    const pointDeductions = debugState.result
+      ? calculatePointDeductions(debugState.result, playerCount)
+      : Array.from({ length: playerCount }, () => 0);
     const startingPoints = 40;
     setState(debugState);
     setMatchState({
@@ -514,13 +647,22 @@ export default function App() {
       playerCount,
       humanPlayerCount: playerCount,
       cpuModelId: "standard",
-      cpuModelIds: debugState.players.filter((player) => player.isCpu).map((player) => player.cpuModelId ?? "standard"),
+      cpuModelIds: debugState.players
+        .filter((player) => player.isCpu)
+        .map((player) => player.cpuModelId ?? "standard"),
       showCpuActions: debugState.showCpuActions,
       direction: debugState.direction,
       daifugoOptions: debugState.daifugoOptions,
-      cumulativeScores: matchMode === "rounds" ? normalRoundScores : matchMode === "targetScore" ? roundScores : Array.from({ length: playerCount }, () => 0),
+      cumulativeScores:
+        matchMode === "rounds"
+          ? normalRoundScores
+          : matchMode === "targetScore"
+            ? roundScores
+            : Array.from({ length: playerCount }, () => 0),
       pointBalances:
-        matchMode === "startingPoints" ? pointDeductions.map((deduction) => startingPoints - deduction) : Array.from({ length: playerCount }, () => 0),
+        matchMode === "startingPoints"
+          ? pointDeductions.map((deduction) => startingPoints - deduction)
+          : Array.from({ length: playerCount }, () => 0),
       history: [],
       scoredRound: 4,
       gameState: debugState,
@@ -529,10 +671,20 @@ export default function App() {
   }
 
   function showDebugStandings(caseName: DebugStandingsCase) {
-    const matchMode = caseName === "pointsLoss" ? "startingPoints" : caseName === "targetNoRankChange" ? "targetScore" : "rounds";
-    const debugState = caseName === "pointsLoss" ? createStartingPointsTsumoResultFixture() : createSingleRonResultFixture();
+    const matchMode =
+      caseName === "pointsLoss"
+        ? "startingPoints"
+        : caseName === "targetNoRankChange"
+          ? "targetScore"
+          : "rounds";
+    const debugState =
+      caseName === "pointsLoss"
+        ? createStartingPointsTsumoResultFixture()
+        : createSingleRonResultFixture();
     const playerCount = debugState.players.length;
-    const pointDeductions = debugState.result ? calculatePointDeductions(debugState.result, playerCount) : Array.from({ length: playerCount }, () => 0);
+    const pointDeductions = debugState.result
+      ? calculatePointDeductions(debugState.result, playerCount)
+      : Array.from({ length: playerCount }, () => 0);
     const startingPoints = 100;
     const standingsValues =
       caseName === "roundsNoRankChange"
@@ -541,7 +693,10 @@ export default function App() {
           ? [5200, 4900, 1200]
           : caseName === "targetNoRankChange"
             ? [51, 20, 18]
-            : Array.from({ length: playerCount }, (_, index) => startingPoints - (pointDeductions[index] ?? 0));
+            : Array.from(
+                { length: playerCount },
+                (_, index) => startingPoints - (pointDeductions[index] ?? 0),
+              );
 
     setState(debugState);
     setMatchState({
@@ -554,12 +709,20 @@ export default function App() {
       playerCount,
       humanPlayerCount: playerCount,
       cpuModelId: "standard",
-      cpuModelIds: debugState.players.filter((player) => player.isCpu).map((player) => player.cpuModelId ?? "standard"),
+      cpuModelIds: debugState.players
+        .filter((player) => player.isCpu)
+        .map((player) => player.cpuModelId ?? "standard"),
       showCpuActions: debugState.showCpuActions,
       direction: debugState.direction,
       daifugoOptions: debugState.daifugoOptions,
-      cumulativeScores: matchMode === "startingPoints" ? Array.from({ length: playerCount }, () => 0) : standingsValues,
-      pointBalances: matchMode === "startingPoints" ? standingsValues : Array.from({ length: playerCount }, () => 0),
+      cumulativeScores:
+        matchMode === "startingPoints"
+          ? Array.from({ length: playerCount }, () => 0)
+          : standingsValues,
+      pointBalances:
+        matchMode === "startingPoints"
+          ? standingsValues
+          : Array.from({ length: playerCount }, () => 0),
       history: [],
       scoredRound: 4,
       gameState: debugState,
@@ -577,73 +740,207 @@ export default function App() {
   if (screen === "home") {
     return (
       <>
-      <HomeScreen
-        entryMode={homeEntryMode}
-        onNavigate={handleHomeNavigate}
-        debugResultActions={
-          import.meta.env.DEV
-            ? [
-                { label: "Debug Rounds Ron", onClick: () => showDebugResult("rounds", "ron") },
-                { label: "Debug Rounds Tsumo", onClick: () => showDebugResult("rounds", "tsumo") },
-                { label: "Debug Rounds W Ron", onClick: () => showDebugResult("rounds", "doubleRon") },
-                { label: "Debug Target Ron", onClick: () => showDebugResult("targetScore", "ron") },
-                { label: "Debug Target Tsumo", onClick: () => showDebugResult("targetScore", "tsumo") },
-                { label: "Debug Target W Ron", onClick: () => showDebugResult("targetScore", "doubleRon") },
-                { label: "Debug Points Ron", onClick: () => showDebugResult("startingPoints", "ron") },
-                { label: "Debug Points Tsumo", onClick: () => showDebugResult("startingPoints", "tsumo") },
-                { label: "Debug Points W Ron", onClick: () => showDebugResult("startingPoints", "doubleRon") },
-                { label: "DEV: 成績UI / 局数制 / 順位変動なし", onClick: () => showDebugStandings("roundsNoRankChange") },
-                { label: "DEV: 成績UI / 局数制 / 順位変動あり", onClick: () => showDebugStandings("roundsRankChange") },
-                { label: "DEV: 成績UI / 目標点制 / 順位変動なし", onClick: () => showDebugStandings("targetNoRankChange") },
-                { label: "DEV: 成績UI / 持ち点制 / 減少あり", onClick: () => showDebugStandings("pointsLoss") },
-                { label: "DEV: 8効果ツモ確認", onClick: () => showDebugDaifugo("eightTsumo") },
-                { label: "DEV: 8効果リーチ確認", onClick: () => showDebugDaifugo("eightReach") },
-                { label: "DEV: 10効果ツモ確認", onClick: () => showDebugDaifugo("tenTsumo") },
-                { label: "DEV: 10効果リーチ確認", onClick: () => showDebugDaifugo("tenReach") },
-                { label: "DEV: リーチ中10禁止確認", onClick: () => showDebugDaifugo("reachTenBlocked") },
-                { label: "DEV: リーチ中8確認", onClick: () => showDebugDaifugo("reachEight") },
-                { label: "DEV: Q後リーチ解除", onClick: () => showDebugDaifugo("queenReachRelease") },
-                { label: "DEV: Q後リーチ継続確認", onClick: () => showDebugDaifugo("queenReachContinue") },
-                { label: "DEV: 7交換後リーチ再判定", onClick: () => showDebugDaifugo("sevenReachRecheck") },
-                { label: "DEV: Q候補中央寄せ", onClick: () => showDebugDaifugo("queenSparseChoices") },
-                { label: "DEV: Q補充不能ランク", onClick: () => showDebugDaifugo("queenRefillBlocked") },
-                { label: "DEV: Q候補0件不発", onClick: () => showDebugDaifugo("queenNoChoices") },
-                { label: "DEV: 山札0枚流局", onClick: () => showDebugDaifugo("emptyDeckDraw") },
-                { label: "DEV: Q後山札0枚境界", onClick: () => showDebugDaifugo("queenEndsWithEmptyDeck") },
-                { label: "DEV: Q後即上がり", onClick: () => showDebugDaifugo("queenAfterEffectWin") },
-                { label: "DEV: J特殊効果選択", onClick: () => showDebugDaifugo("jackSelect") },
-                { label: "DEV: J強化権取得", onClick: () => showDebugDaifugo("jEnhancementAcquire") },
-                { label: "DEV: J強化権重複防止", onClick: () => showDebugDaifugo("jEnhancementDuplicate") },
-                { label: "DEV: J強化権保持中5/7", onClick: () => showDebugDaifugo("jEnhancementFiveSeven") },
-                { label: "DEV: 強化7確認 / 5人戦", onClick: () => showDebugDaifugo("jEnhancedSeven") },
-                { label: "DEV: 強化7確認 / 4人戦", onClick: () => showDebugDaifugo("jEnhancedSeven4") },
-                { label: "DEV: 強化7確認 / 3人戦", onClick: () => showDebugDaifugo("jEnhancedSeven3") },
-                { label: "DEV: 強化5確認 / 5人戦", onClick: () => showDebugDaifugo("jEnhancedFive") },
-                { label: "DEV: 強化5確認 / 4人戦", onClick: () => showDebugDaifugo("jEnhancedFive4") },
-                { label: "DEV: 強化5確認 / 3人戦", onClick: () => showDebugDaifugo("jEnhancedFive3") },
-                { label: "DEV: 強化5逆回り確認", onClick: () => showDebugDaifugo("jEnhancedFiveReverse") },
-                { label: "DEV: J情報閲覧3人戦", onClick: () => showDebugDaifugo("jackInspect3") },
-                { label: "DEV: J情報閲覧5人戦", onClick: () => showDebugDaifugo("jackInspect5") },
-                { label: "DEV: CPU J暫定処理", onClick: () => showDebugDaifugo("cpuJack") },
-              ]
-            : undefined
-        }
-      />
-      {exitConfirmKind && (
-        <ExitConfirmDialog
-          kind={exitConfirmKind}
-          onlineRoom={onlineRoom}
-          onlinePlayerId={onlinePlayerId}
-          onCancel={cancelExitConfirm}
-          onConfirm={confirmExit}
+        <HomeScreen
+          entryMode={homeEntryMode}
+          onNavigate={handleHomeNavigate}
+          debugResultActions={
+            import.meta.env.DEV
+              ? [
+                  {
+                    label: "Debug Rounds Ron",
+                    onClick: () => showDebugResult("rounds", "ron"),
+                  },
+                  {
+                    label: "Debug Rounds Tsumo",
+                    onClick: () => showDebugResult("rounds", "tsumo"),
+                  },
+                  {
+                    label: "Debug Rounds W Ron",
+                    onClick: () => showDebugResult("rounds", "doubleRon"),
+                  },
+                  {
+                    label: "Debug Target Ron",
+                    onClick: () => showDebugResult("targetScore", "ron"),
+                  },
+                  {
+                    label: "Debug Target Tsumo",
+                    onClick: () => showDebugResult("targetScore", "tsumo"),
+                  },
+                  {
+                    label: "Debug Target W Ron",
+                    onClick: () => showDebugResult("targetScore", "doubleRon"),
+                  },
+                  {
+                    label: "Debug Points Ron",
+                    onClick: () => showDebugResult("startingPoints", "ron"),
+                  },
+                  {
+                    label: "Debug Points Tsumo",
+                    onClick: () => showDebugResult("startingPoints", "tsumo"),
+                  },
+                  {
+                    label: "Debug Points W Ron",
+                    onClick: () =>
+                      showDebugResult("startingPoints", "doubleRon"),
+                  },
+                  {
+                    label: "DEV: 成績UI / 局数制 / 順位変動なし",
+                    onClick: () => showDebugStandings("roundsNoRankChange"),
+                  },
+                  {
+                    label: "DEV: 成績UI / 局数制 / 順位変動あり",
+                    onClick: () => showDebugStandings("roundsRankChange"),
+                  },
+                  {
+                    label: "DEV: 成績UI / 目標点制 / 順位変動なし",
+                    onClick: () => showDebugStandings("targetNoRankChange"),
+                  },
+                  {
+                    label: "DEV: 成績UI / 持ち点制 / 減少あり",
+                    onClick: () => showDebugStandings("pointsLoss"),
+                  },
+                  {
+                    label: "DEV: 8効果ツモ確認",
+                    onClick: () => showDebugDaifugo("eightTsumo"),
+                  },
+                  {
+                    label: "DEV: 8効果リーチ確認",
+                    onClick: () => showDebugDaifugo("eightReach"),
+                  },
+                  {
+                    label: "DEV: 10効果ツモ確認",
+                    onClick: () => showDebugDaifugo("tenTsumo"),
+                  },
+                  {
+                    label: "DEV: 10効果リーチ確認",
+                    onClick: () => showDebugDaifugo("tenReach"),
+                  },
+                  {
+                    label: "DEV: リーチ中10禁止確認",
+                    onClick: () => showDebugDaifugo("reachTenBlocked"),
+                  },
+                  {
+                    label: "DEV: リーチ中8確認",
+                    onClick: () => showDebugDaifugo("reachEight"),
+                  },
+                  {
+                    label: "DEV: Q後リーチ解除",
+                    onClick: () => showDebugDaifugo("queenReachRelease"),
+                  },
+                  {
+                    label: "DEV: Q後リーチ継続確認",
+                    onClick: () => showDebugDaifugo("queenReachContinue"),
+                  },
+                  {
+                    label: "DEV: 7交換後リーチ再判定",
+                    onClick: () => showDebugDaifugo("sevenReachRecheck"),
+                  },
+                  {
+                    label: "DEV: Q候補中央寄せ",
+                    onClick: () => showDebugDaifugo("queenSparseChoices"),
+                  },
+                  {
+                    label: "DEV: Q補充不能ランク",
+                    onClick: () => showDebugDaifugo("queenRefillBlocked"),
+                  },
+                  {
+                    label: "DEV: Q候補0件不発",
+                    onClick: () => showDebugDaifugo("queenNoChoices"),
+                  },
+                  {
+                    label: "DEV: 山札0枚流局",
+                    onClick: () => showDebugDaifugo("emptyDeckDraw"),
+                  },
+                  {
+                    label: "DEV: Q後山札0枚境界",
+                    onClick: () => showDebugDaifugo("queenEndsWithEmptyDeck"),
+                  },
+                  {
+                    label: "DEV: Q後即上がり",
+                    onClick: () => showDebugDaifugo("queenAfterEffectWin"),
+                  },
+                  {
+                    label: "DEV: J特殊効果選択",
+                    onClick: () => showDebugDaifugo("jackSelect"),
+                  },
+                  {
+                    label: "DEV: J強化権取得",
+                    onClick: () => showDebugDaifugo("jEnhancementAcquire"),
+                  },
+                  {
+                    label: "DEV: J強化権重複防止",
+                    onClick: () => showDebugDaifugo("jEnhancementDuplicate"),
+                  },
+                  {
+                    label: "DEV: J強化権保持中5/7",
+                    onClick: () => showDebugDaifugo("jEnhancementFiveSeven"),
+                  },
+                  {
+                    label: "DEV: 強化7確認 / 5人戦",
+                    onClick: () => showDebugDaifugo("jEnhancedSeven"),
+                  },
+                  {
+                    label: "DEV: 強化7確認 / 4人戦",
+                    onClick: () => showDebugDaifugo("jEnhancedSeven4"),
+                  },
+                  {
+                    label: "DEV: 強化7確認 / 3人戦",
+                    onClick: () => showDebugDaifugo("jEnhancedSeven3"),
+                  },
+                  {
+                    label: "DEV: 強化5確認 / 5人戦",
+                    onClick: () => showDebugDaifugo("jEnhancedFive"),
+                  },
+                  {
+                    label: "DEV: 強化5確認 / 4人戦",
+                    onClick: () => showDebugDaifugo("jEnhancedFive4"),
+                  },
+                  {
+                    label: "DEV: 強化5確認 / 3人戦",
+                    onClick: () => showDebugDaifugo("jEnhancedFive3"),
+                  },
+                  {
+                    label: "DEV: 強化5逆回り確認",
+                    onClick: () => showDebugDaifugo("jEnhancedFiveReverse"),
+                  },
+                  {
+                    label: "DEV: J情報閲覧3人戦",
+                    onClick: () => showDebugDaifugo("jackInspect3"),
+                  },
+                  {
+                    label: "DEV: J情報閲覧5人戦",
+                    onClick: () => showDebugDaifugo("jackInspect5"),
+                  },
+                  {
+                    label: "DEV: CPU J暫定処理",
+                    onClick: () => showDebugDaifugo("cpuJack"),
+                  },
+                ]
+              : undefined
+          }
         />
-      )}
+        {exitConfirmKind && (
+          <ExitConfirmDialog
+            kind={exitConfirmKind}
+            onlineRoom={onlineRoom}
+            onlinePlayerId={onlinePlayerId}
+            onCancel={cancelExitConfirm}
+            onConfirm={confirmExit}
+          />
+        )}
       </>
     );
   }
 
   if (screen === "newGame") {
-    return <StartScreen onStart={startGame} onBackHome={returnToHome} onCancel={() => setScreen("roomSelect")} error={onlineError} />;
+    return (
+      <StartScreen
+        onStart={startGame}
+        onBackHome={returnToHome}
+        onCancel={() => setScreen("roomSelect")}
+        error={onlineError}
+      />
+    );
   }
 
   if (screen === "roomSelect") {
@@ -664,7 +961,9 @@ export default function App() {
       <RoomListScreen
         rooms={publicRooms}
         error={onlineError}
-        onJoinRoom={(roomId) => joinOnlineRoom(roomId, profile.userName || "Guest Player")}
+        onJoinRoom={(roomId) =>
+          joinOnlineRoom(roomId, profile.userName || "Guest Player")
+        }
         onRefresh={requestPublicRooms}
         onBackHome={returnToHome}
         onBackToSelect={() => setScreen("roomSelect")}
@@ -705,11 +1004,23 @@ export default function App() {
   }
 
   if (screen === "settings") {
-    return <PlaceholderScreen title="Setting" body="設定機能は今後追加予定です。" onBackHome={returnToHome} />;
+    return (
+      <PlaceholderScreen
+        title="Setting"
+        body="設定機能は今後追加予定です。"
+        onBackHome={returnToHome}
+      />
+    );
   }
 
   if (screen === "profile") {
-    return <ProfileScreen profile={profile} onSave={setProfile} onBackHome={returnToHome} />;
+    return (
+      <ProfileScreen
+        profile={profile}
+        onSave={setProfile}
+        onBackHome={returnToHome}
+      />
+    );
   }
 
   if (state.phase === "result" && state.result) {
@@ -741,10 +1052,74 @@ export default function App() {
     if (matchState && !canAdvanceRound(matchState)) {
       return (
         <>
-        <FinalResultScreen
-          matchState={matchState}
-          players={state.players}
-          onJoinAnotherMatch={() => setScreen("roomSelect")}
+          <FinalResultScreen
+            matchState={matchState}
+            players={state.players}
+            onJoinAnotherMatch={() => setScreen("roomSelect")}
+            onBackHome={returnToHome}
+          />
+          {exitConfirmKind && (
+            <ExitConfirmDialog
+              kind={exitConfirmKind}
+              onlineRoom={onlineRoom}
+              onlinePlayerId={onlinePlayerId}
+              onCancel={cancelExitConfirm}
+              onConfirm={confirmExit}
+            />
+          )}
+        </>
+      );
+    }
+
+    return (
+      <>
+        <ResultScreen
+          state={state}
+          currentRound={
+            matchState?.matchMode === "rounds" ||
+            matchState?.matchMode === "targetScore" ||
+            matchState?.matchMode === "startingPoints"
+              ? matchState.currentRound
+              : 1
+          }
+          totalRounds={
+            matchState?.matchMode === "rounds"
+              ? matchState.totalRounds
+              : undefined
+          }
+          useRawScore={
+            matchState?.matchMode === "targetScore" ||
+            matchState?.matchMode === "startingPoints"
+          }
+          scoreDisplayMode={
+            matchState?.matchMode === "startingPoints"
+              ? "startingPoints"
+              : matchState?.matchMode === "targetScore"
+                ? "targetScore"
+                : "score"
+          }
+          onNextRound={
+            canAdvanceRound(matchState) ? advanceToNextRound : undefined
+          }
+          currentStandings={
+            matchState && canAdvanceRound(matchState)
+              ? {
+                  mode: matchState.matchMode,
+                  values:
+                    matchState.matchMode === "startingPoints"
+                      ? matchState.pointBalances
+                      : matchState.cumulativeScores,
+                  previousValues: calculatePreviousStandings(matchState, state),
+                  axisMax:
+                    matchState.matchMode === "targetScore"
+                      ? matchState.targetScore
+                      : matchState.matchMode === "startingPoints"
+                        ? matchState.startingPoints
+                        : undefined,
+                }
+              : undefined
+          }
+          onRestart={requestSummaryExit}
           onBackHome={returnToHome}
         />
         {exitConfirmKind && (
@@ -756,42 +1131,31 @@ export default function App() {
             onConfirm={confirmExit}
           />
         )}
-        </>
-      );
-    }
+      </>
+    );
+  }
 
-    return (
-      <>
-      <ResultScreen
+  return (
+    <>
+      <PlayScreen
         state={state}
+        dispatch={dispatch}
         currentRound={
-          matchState?.matchMode === "rounds" || matchState?.matchMode === "targetScore" || matchState?.matchMode === "startingPoints"
+          matchState?.matchMode === "rounds" ||
+          matchState?.matchMode === "targetScore" ||
+          matchState?.matchMode === "startingPoints"
             ? matchState.currentRound
-            : 1
-        }
-        totalRounds={matchState?.matchMode === "rounds" ? matchState.totalRounds : undefined}
-        useRawScore={matchState?.matchMode === "targetScore" || matchState?.matchMode === "startingPoints"}
-        scoreDisplayMode={
-          matchState?.matchMode === "startingPoints" ? "startingPoints" : matchState?.matchMode === "targetScore" ? "targetScore" : "score"
-        }
-        onNextRound={canAdvanceRound(matchState) ? advanceToNextRound : undefined}
-        currentStandings={
-          matchState && canAdvanceRound(matchState)
-            ? {
-                mode: matchState.matchMode,
-                values: matchState.matchMode === "startingPoints" ? matchState.pointBalances : matchState.cumulativeScores,
-                previousValues: calculatePreviousStandings(matchState, state),
-                axisMax:
-                  matchState.matchMode === "targetScore"
-                    ? matchState.targetScore
-                    : matchState.matchMode === "startingPoints"
-                      ? matchState.startingPoints
-                      : undefined,
-              }
             : undefined
         }
-        onRestart={requestSummaryExit}
-        onBackHome={returnToHome}
+        onExitToHome={requestHomeExit}
+        onlineRoom={onlineRoom ?? undefined}
+        onlinePlayerId={onlinePlayerId ?? undefined}
+        onTransferHost={transferOnlineHost}
+        onStartTemporaryLeave={startOnlineTemporaryLeave}
+        matchState={matchState ?? undefined}
+        onUpdateMatchSettings={updateOnlineMatchSettings}
+        onUpdateSubstituteCpuModel={updateOnlineSubstituteCpuModel}
+        disableLocalCpuAutomation={Boolean(onlineRoom?.started)}
       />
       {exitConfirmKind && (
         <ExitConfirmDialog
@@ -802,39 +1166,6 @@ export default function App() {
           onConfirm={confirmExit}
         />
       )}
-      </>
-    );
-  }
-
-  return (
-    <>
-    <PlayScreen
-      state={state}
-      dispatch={dispatch}
-      currentRound={
-        matchState?.matchMode === "rounds" || matchState?.matchMode === "targetScore" || matchState?.matchMode === "startingPoints"
-          ? matchState.currentRound
-          : undefined
-      }
-      onExitToHome={requestHomeExit}
-      onlineRoom={onlineRoom ?? undefined}
-      onlinePlayerId={onlinePlayerId ?? undefined}
-      onTransferHost={transferOnlineHost}
-      onStartTemporaryLeave={startOnlineTemporaryLeave}
-      matchState={matchState ?? undefined}
-      onUpdateMatchSettings={updateOnlineMatchSettings}
-      onUpdateSubstituteCpuModel={updateOnlineSubstituteCpuModel}
-      disableLocalCpuAutomation={Boolean(onlineRoom?.started)}
-    />
-    {exitConfirmKind && (
-      <ExitConfirmDialog
-        kind={exitConfirmKind}
-        onlineRoom={onlineRoom}
-        onlinePlayerId={onlinePlayerId}
-        onCancel={cancelExitConfirm}
-        onConfirm={confirmExit}
-      />
-    )}
     </>
   );
 }
@@ -868,7 +1199,12 @@ function ExitConfirmDialog({
   );
   const canUseNamedTransfer = hostTransferTargets.length > 0 && selectedHostId;
   return (
-    <div className="exit-confirm-overlay" role="dialog" aria-modal="true" aria-labelledby="exit-confirm-title">
+    <div
+      className="exit-confirm-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="exit-confirm-title"
+    >
       <div className="exit-confirm-dialog">
         <h2 id="exit-confirm-title">
           {isSummaryExit
@@ -952,29 +1288,55 @@ function ExitConfirmDialog({
 
 function calculatePreviousStandings(matchState: MatchState, state: GameState) {
   if (!state.result) {
-    return matchState.matchMode === "startingPoints" ? matchState.pointBalances : matchState.cumulativeScores;
+    return matchState.matchMode === "startingPoints"
+      ? matchState.pointBalances
+      : matchState.cumulativeScores;
   }
 
   if (matchState.matchMode === "startingPoints") {
-    const deductions = calculatePointDeductions(state.result, matchState.playerCount);
-    return matchState.pointBalances.map((points, index) => points + (deductions[index] ?? 0));
+    const deductions = calculatePointDeductions(
+      state.result,
+      matchState.playerCount,
+    );
+    return matchState.pointBalances.map(
+      (points, index) => points + (deductions[index] ?? 0),
+    );
   }
 
   const roundScores =
-    matchState.matchMode === "rounds" ? calculateDebugRoundScores(state, matchState.playerCount) : calculateRawRoundScores(state.result, matchState.playerCount);
-  return matchState.cumulativeScores.map((score, index) => Math.max(0, score - (roundScores[index] ?? 0)));
+    matchState.matchMode === "rounds"
+      ? calculateDebugRoundScores(state, matchState.playerCount)
+      : calculateRawRoundScores(state.result, matchState.playerCount);
+  return matchState.cumulativeScores.map((score, index) =>
+    Math.max(0, score - (roundScores[index] ?? 0)),
+  );
 }
 
 function debugCard(id: string, rank: number, suit: Card["suit"] = "S"): Card {
   return { id, rank, suit };
 }
 
-function debugDeck(count: number, prefix: string, ranks: number[] = [1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]): Card[] {
+function debugDeck(
+  count: number,
+  prefix: string,
+  ranks: number[] = [1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13],
+): Card[] {
   const suits: Card["suit"][] = ["S", "H", "D", "C"];
-  return Array.from({ length: count }, (_, index) => debugCard(`${prefix}-${index}`, ranks[index % ranks.length], suits[index % suits.length]));
+  return Array.from({ length: count }, (_, index) =>
+    debugCard(
+      `${prefix}-${index}`,
+      ranks[index % ranks.length],
+      suits[index % suits.length],
+    ),
+  );
 }
 
-function debugPlayer(index: number, hand: Card[], isReach = false, isCpu = false): Player {
+function debugPlayer(
+  index: number,
+  hand: Card[],
+  isReach = false,
+  isCpu = false,
+): Player {
   return {
     id: `debug-player-${index}`,
     name: `プレイヤー${index}`,
@@ -989,9 +1351,14 @@ function debugPlayer(index: number, hand: Card[], isReach = false, isCpu = false
   };
 }
 
-function debugHand(prefix: string, ranks: number[] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 13]): Card[] {
+function debugHand(
+  prefix: string,
+  ranks: number[] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 13],
+): Card[] {
   const suits: Card["suit"][] = ["S", "H", "D", "C"];
-  return ranks.map((rank, index) => debugCard(`${prefix}-${index}`, rank, suits[index % suits.length]));
+  return ranks.map((rank, index) =>
+    debugCard(`${prefix}-${index}`, rank, suits[index % suits.length]),
+  );
 }
 
 function createDebugDaifugoOptions() {
@@ -1011,9 +1378,15 @@ function createDebugDaifugoOptions() {
 
 export function createDebugDaifugoState(caseName: DebugDaifugoCase): GameState {
   const isJBackCase = caseName === "jBack";
-  const isEnhancedSevenCase = caseName === "jEnhancedSeven" || caseName === "jEnhancedSeven4" || caseName === "jEnhancedSeven3";
+  const isEnhancedSevenCase =
+    caseName === "jEnhancedSeven" ||
+    caseName === "jEnhancedSeven4" ||
+    caseName === "jEnhancedSeven3";
   const isEnhancedFiveCase =
-    caseName === "jEnhancedFive" || caseName === "jEnhancedFive4" || caseName === "jEnhancedFive3" || caseName === "jEnhancedFiveReverse";
+    caseName === "jEnhancedFive" ||
+    caseName === "jEnhancedFive4" ||
+    caseName === "jEnhancedFive3" ||
+    caseName === "jEnhancedFiveReverse";
   const isJackCase =
     caseName === "jackSelect" ||
     caseName === "jEnhancementAcquire" ||
@@ -1029,11 +1402,11 @@ export function createDebugDaifugoState(caseName: DebugDaifugoCase): GameState {
     ? debugCard("effect-7", 7, "S")
     : isEnhancedFiveCase
       ? debugCard("effect-5", 5, "S")
-    : isJackCase
-      ? debugCard("effect-j", 11, "S")
-    : caseName.startsWith("ten") || caseName === "reachTenBlocked"
-      ? debugCard("effect-10", 10, "S")
-      : debugCard("effect-8", 8, "S");
+      : isJackCase
+        ? debugCard("effect-j", 11, "S")
+        : caseName.startsWith("ten") || caseName === "reachTenBlocked"
+          ? debugCard("effect-10", 10, "S")
+          : debugCard("effect-8", 8, "S");
   const baseHand = [
     effectCard,
     debugCard("r1", 1, "S"),
@@ -1074,11 +1447,26 @@ export function createDebugDaifugoState(caseName: DebugDaifugoCase): GameState {
     debugCard("junk", 12, "D"),
   ];
   const isTsumoCase = caseName === "eightTsumo" || caseName === "tenTsumo";
-  const isReachCase = caseName === "reachTenBlocked" || caseName === "reachEight";
+  const isReachCase =
+    caseName === "reachTenBlocked" || caseName === "reachEight";
   const players = [
-    debugPlayer(1, isJBackCase ? jBackHand : isTsumoCase ? tsumoHand : baseHand, isReachCase),
-    debugPlayer(2, isJBackCase ? [debugCard("p2-6", 6)] : [debugCard("p2-1", 1), debugCard("p2-5", 5)]),
-    debugPlayer(3, isJBackCase ? [debugCard("p3-6", 6)] : [debugCard("p3-1", 1), debugCard("p3-5", 5)]),
+    debugPlayer(
+      1,
+      isJBackCase ? jBackHand : isTsumoCase ? tsumoHand : baseHand,
+      isReachCase,
+    ),
+    debugPlayer(
+      2,
+      isJBackCase
+        ? [debugCard("p2-6", 6)]
+        : [debugCard("p2-1", 1), debugCard("p2-5", 5)],
+    ),
+    debugPlayer(
+      3,
+      isJBackCase
+        ? [debugCard("p3-6", 6)]
+        : [debugCard("p3-1", 1), debugCard("p3-5", 5)],
+    ),
   ];
 
   const makeState = (overrides: Partial<GameState>): GameState => ({
@@ -1115,7 +1503,8 @@ export function createDebugDaifugoState(caseName: DebugDaifugoCase): GameState {
   ) {
     return makeState({
       players: [
-        caseName === "jEnhancementDuplicate" || caseName === "jEnhancementFiveSeven"
+        caseName === "jEnhancementDuplicate" ||
+        caseName === "jEnhancementFiveSeven"
           ? { ...players[0], hasJEnhancementRight: true }
           : players[0],
         debugPlayer(2, debugHand("j3-p2")),
@@ -1129,28 +1518,63 @@ export function createDebugDaifugoState(caseName: DebugDaifugoCase): GameState {
     });
   }
 
-  if (caseName === "jEnhancedSeven" || caseName === "jEnhancedSeven4" || caseName === "jEnhancedSeven3") {
+  if (
+    caseName === "jEnhancedSeven" ||
+    caseName === "jEnhancedSeven4" ||
+    caseName === "jEnhancedSeven3"
+  ) {
     const enhancedSevenPlayers =
       caseName === "jEnhancedSeven3"
         ? [
             { ...players[0], hasJEnhancementRight: true },
             debugPlayer(2, debugHand("j7-3p-p2")),
-            debugPlayer(3, debugHand("j7-3p-p3", [2, 2, 2, 5, 6, 7, 8, 9, 10, 13])),
+            debugPlayer(
+              3,
+              debugHand("j7-3p-p3", [2, 2, 2, 5, 6, 7, 8, 9, 10, 13]),
+            ),
           ]
         : caseName === "jEnhancedSeven4"
           ? [
               { ...players[0], hasJEnhancementRight: true },
-              { ...debugPlayer(2, debugHand("j7-p2"), false, true), name: "プレイヤー2:standard-CPU1-long" },
-              { ...debugPlayer(3, debugHand("j7-p3", [2, 2, 2, 5, 6, 7, 8, 9, 10, 13]), false, true), name: "プレイヤー3:standard-CPU2-long" },
-              { ...debugPlayer(4, debugHand("j7-p4", [3, 3, 3, 4, 5, 6, 8, 10, 12, 13]), false, true), name: "プレイヤー4:standard-CPU3-long" },
+              {
+                ...debugPlayer(2, debugHand("j7-p2"), false, true),
+                name: "プレイヤー2:standard-CPU1-long",
+              },
+              {
+                ...debugPlayer(
+                  3,
+                  debugHand("j7-p3", [2, 2, 2, 5, 6, 7, 8, 9, 10, 13]),
+                  false,
+                  true,
+                ),
+                name: "プレイヤー3:standard-CPU2-long",
+              },
+              {
+                ...debugPlayer(
+                  4,
+                  debugHand("j7-p4", [3, 3, 3, 4, 5, 6, 8, 10, 12, 13]),
+                  false,
+                  true,
+                ),
+                name: "プレイヤー4:standard-CPU3-long",
+              },
             ]
-        : [
-            { ...players[0], hasJEnhancementRight: true },
-            debugPlayer(2, debugHand("j7-p2")),
-            debugPlayer(3, debugHand("j7-p3", [2, 2, 2, 5, 6, 7, 8, 9, 10, 13])),
-            debugPlayer(4, debugHand("j7-p4", [3, 3, 3, 4, 5, 6, 8, 10, 12, 13])),
-            debugPlayer(5, debugHand("j7-p5", [1, 4, 4, 6, 7, 9, 10, 11, 12, 13])),
-          ];
+          : [
+              { ...players[0], hasJEnhancementRight: true },
+              debugPlayer(2, debugHand("j7-p2")),
+              debugPlayer(
+                3,
+                debugHand("j7-p3", [2, 2, 2, 5, 6, 7, 8, 9, 10, 13]),
+              ),
+              debugPlayer(
+                4,
+                debugHand("j7-p4", [3, 3, 3, 4, 5, 6, 8, 10, 12, 13]),
+              ),
+              debugPlayer(
+                5,
+                debugHand("j7-p5", [1, 4, 4, 6, 7, 9, 10, 11, 12, 13]),
+              ),
+            ];
 
     return makeState({
       players: enhancedSevenPlayers,
@@ -1161,33 +1585,73 @@ export function createDebugDaifugoState(caseName: DebugDaifugoCase): GameState {
     });
   }
 
-  if (caseName === "jEnhancedFive" || caseName === "jEnhancedFive4" || caseName === "jEnhancedFive3" || caseName === "jEnhancedFiveReverse") {
+  if (
+    caseName === "jEnhancedFive" ||
+    caseName === "jEnhancedFive4" ||
+    caseName === "jEnhancedFive3" ||
+    caseName === "jEnhancedFiveReverse"
+  ) {
     const enhancedFivePlayers =
       caseName === "jEnhancedFive3"
         ? [
             { ...players[0], hasJEnhancementRight: true },
             debugPlayer(2, debugHand("j5-3p-p2")),
-            debugPlayer(3, debugHand("j5-3p-p3", [2, 2, 2, 5, 6, 7, 8, 9, 10, 13])),
+            debugPlayer(
+              3,
+              debugHand("j5-3p-p3", [2, 2, 2, 5, 6, 7, 8, 9, 10, 13]),
+            ),
           ]
         : caseName === "jEnhancedFive4"
           ? [
               { ...players[0], hasJEnhancementRight: true },
-              { ...debugPlayer(2, debugHand("j5-skip-p2"), false, true), name: "プレイヤー2:standard-CPU1-long" },
-              { ...debugPlayer(3, debugHand("j5-skip-p3", [2, 2, 2, 5, 6, 7, 8, 9, 10, 13]), false, true), name: "プレイヤー3:standard-CPU2-long" },
-              { ...debugPlayer(4, debugHand("j5-skip-p4", [3, 3, 3, 4, 5, 6, 8, 10, 12, 13]), false, true), name: "プレイヤー4:standard-CPU3-long" },
+              {
+                ...debugPlayer(2, debugHand("j5-skip-p2"), false, true),
+                name: "プレイヤー2:standard-CPU1-long",
+              },
+              {
+                ...debugPlayer(
+                  3,
+                  debugHand("j5-skip-p3", [2, 2, 2, 5, 6, 7, 8, 9, 10, 13]),
+                  false,
+                  true,
+                ),
+                name: "プレイヤー3:standard-CPU2-long",
+              },
+              {
+                ...debugPlayer(
+                  4,
+                  debugHand("j5-skip-p4", [3, 3, 3, 4, 5, 6, 8, 10, 12, 13]),
+                  false,
+                  true,
+                ),
+                name: "プレイヤー4:standard-CPU3-long",
+              },
             ]
-        : [
-            { ...players[0], hasJEnhancementRight: true },
-            debugPlayer(2, debugHand("j5-skip-p2")),
-            debugPlayer(3, debugHand("j5-skip-p3", [2, 2, 2, 5, 6, 7, 8, 9, 10, 13])),
-            debugPlayer(4, debugHand("j5-skip-p4", [3, 3, 3, 4, 5, 6, 8, 10, 12, 13])),
-            debugPlayer(5, debugHand("j5-skip-p5", [1, 4, 4, 6, 7, 9, 10, 11, 12, 13])),
-          ];
+          : [
+              { ...players[0], hasJEnhancementRight: true },
+              debugPlayer(2, debugHand("j5-skip-p2")),
+              debugPlayer(
+                3,
+                debugHand("j5-skip-p3", [2, 2, 2, 5, 6, 7, 8, 9, 10, 13]),
+              ),
+              debugPlayer(
+                4,
+                debugHand("j5-skip-p4", [3, 3, 3, 4, 5, 6, 8, 10, 12, 13]),
+              ),
+              debugPlayer(
+                5,
+                debugHand("j5-skip-p5", [1, 4, 4, 6, 7, 9, 10, 11, 12, 13]),
+              ),
+            ];
 
     return makeState({
       players: enhancedFivePlayers,
-      direction: caseName === "jEnhancedFiveReverse" ? "counterclockwise" : "clockwise",
-      deck: [debugCard("j5-skip-dev-draw", 4, "C"), debugCard("j5-skip-dev-pad", 8, "D")],
+      direction:
+        caseName === "jEnhancedFiveReverse" ? "counterclockwise" : "clockwise",
+      deck: [
+        debugCard("j5-skip-dev-draw", 4, "C"),
+        debugCard("j5-skip-dev-pad", 8, "D"),
+      ],
       drawnCard: effectCard,
       drawnFrom: "deck",
       message: "DEV: J強化権を持った状態で5を使用できます。",
@@ -1229,7 +1693,10 @@ export function createDebugDaifugoState(caseName: DebugDaifugoCase): GameState {
     return makeState({
       players: cpuPlayers,
       currentPlayerIndex: 1,
-      deck: [debugCard("cpu-j-dev-draw", 4, "C"), debugCard("cpu-j-dev-pad", 8, "D")],
+      deck: [
+        debugCard("cpu-j-dev-draw", 4, "C"),
+        debugCard("cpu-j-dev-pad", 8, "D"),
+      ],
       drawnCard: effectCard,
       drawnFrom: "deck",
       message: "DEV: CPUはJシールドを選ばず、既存の自動J処理へ進みます。",
@@ -1252,7 +1719,12 @@ export function createDebugDaifugoState(caseName: DebugDaifugoCase): GameState {
     return makeState({
       players: [debugPlayer(1, reachHand, true), players[1], players[2]],
       deck: debugDeck(24, "qr-refill", [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]),
-      pendingDaifugoEffect: { kind: "queenSelect", effect: "queenNumberVanish", playerIndex: 0, continue: { shouldConfirmReach: false } },
+      pendingDaifugoEffect: {
+        kind: "queenSelect",
+        effect: "queenNumberVanish",
+        playerIndex: 0,
+        continue: { shouldConfirmReach: false },
+      },
       phase: "handoff",
       message: "DEV: Qでリーチ解除されるケースです。",
     });
@@ -1274,14 +1746,23 @@ export function createDebugDaifugoState(caseName: DebugDaifugoCase): GameState {
     return makeState({
       players: [debugPlayer(1, reachHand, true), players[1], players[2]],
       deck: debugDeck(24, "qc-refill", [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]),
-      pendingDaifugoEffect: { kind: "queenSelect", effect: "queenNumberVanish", playerIndex: 0, continue: { shouldConfirmReach: false } },
+      pendingDaifugoEffect: {
+        kind: "queenSelect",
+        effect: "queenNumberVanish",
+        playerIndex: 0,
+        continue: { shouldConfirmReach: false },
+      },
       phase: "handoff",
       message: "DEV: Q後もリーチ可能なため継続確認が出るケースです。",
     });
   }
 
   if (caseName === "sevenReachRecheck") {
-    const actorHand = [debugCard("s7-7", 7, "S"), debugCard("s7-give", 9, "S"), debugCard("s7-junk", 10, "S")];
+    const actorHand = [
+      debugCard("s7-7", 7, "S"),
+      debugCard("s7-give", 9, "S"),
+      debugCard("s7-junk", 10, "S"),
+    ];
     const targetReachHand = [
       debugCard("s7-2s", 2, "S"),
       debugCard("s7-2h", 2, "H"),
@@ -1295,7 +1776,11 @@ export function createDebugDaifugoState(caseName: DebugDaifugoCase): GameState {
       debugCard("s7-8s", 8, "S"),
     ];
     return makeState({
-      players: [debugPlayer(1, actorHand), debugPlayer(2, targetReachHand, true), players[2]],
+      players: [
+        debugPlayer(1, actorHand),
+        debugPlayer(2, targetReachHand, true),
+        players[2],
+      ],
       pendingDaifugoEffect: {
         kind: "sevenExchange",
         effect: "sevenExchange",
@@ -1311,10 +1796,20 @@ export function createDebugDaifugoState(caseName: DebugDaifugoCase): GameState {
 
   if (caseName === "queenSparseChoices") {
     return makeState({
-      pendingDaifugoEffect: { kind: "queenSelect", effect: "queenNumberVanish", playerIndex: 0, continue: { shouldConfirmReach: false } },
+      pendingDaifugoEffect: {
+        kind: "queenSelect",
+        effect: "queenNumberVanish",
+        playerIndex: 0,
+        continue: { shouldConfirmReach: false },
+      },
       phase: "handoff",
       queenVanishedRanks: [2, 3, 6, 8, 9, 11],
-      deck: [debugCard("qs-4", 4, "S"), debugCard("qs-5", 5, "S"), debugCard("qs-7", 7, "S"), debugCard("qs-10", 10, "S")],
+      deck: [
+        debugCard("qs-4", 4, "S"),
+        debugCard("qs-5", 5, "S"),
+        debugCard("qs-7", 7, "S"),
+        debugCard("qs-10", 10, "S"),
+      ],
       message: "DEV: Q候補が減った時の中央寄せ確認です。",
     });
   }
@@ -1322,12 +1817,25 @@ export function createDebugDaifugoState(caseName: DebugDaifugoCase): GameState {
   if (caseName === "queenRefillBlocked") {
     return makeState({
       players: [
-        debugPlayer(1, [debugCard("qb-5s", 5, "S"), debugCard("qb-5h", 5, "H"), debugCard("qb-6s", 6, "S")]),
+        debugPlayer(1, [
+          debugCard("qb-5s", 5, "S"),
+          debugCard("qb-5h", 5, "H"),
+          debugCard("qb-6s", 6, "S"),
+        ]),
         players[1],
         players[2],
       ],
-      deck: [debugCard("qb-5d", 5, "D"), debugCard("qb-8s", 8, "S"), debugCard("qb-9s", 9, "S")],
-      pendingDaifugoEffect: { kind: "queenSelect", effect: "queenNumberVanish", playerIndex: 0, continue: { shouldConfirmReach: false } },
+      deck: [
+        debugCard("qb-5d", 5, "D"),
+        debugCard("qb-8s", 8, "S"),
+        debugCard("qb-9s", 9, "S"),
+      ],
+      pendingDaifugoEffect: {
+        kind: "queenSelect",
+        effect: "queenNumberVanish",
+        playerIndex: 0,
+        continue: { shouldConfirmReach: false },
+      },
       phase: "handoff",
       message: "DEV: Q補充不能ランクの無効表示確認です。",
     });
@@ -1335,9 +1843,21 @@ export function createDebugDaifugoState(caseName: DebugDaifugoCase): GameState {
 
   if (caseName === "queenNoChoices") {
     return makeState({
-      players: [debugPlayer(1, [debugCard("qn-5s", 5, "S"), debugCard("qn-5h", 5, "H")]), players[1], players[2]],
+      players: [
+        debugPlayer(1, [
+          debugCard("qn-5s", 5, "S"),
+          debugCard("qn-5h", 5, "H"),
+        ]),
+        players[1],
+        players[2],
+      ],
       deck: [debugCard("qn-5d", 5, "D")],
-      pendingDaifugoEffect: { kind: "confirm", effect: "queenNumberVanish", playerIndex: 0, continue: { shouldConfirmReach: false } },
+      pendingDaifugoEffect: {
+        kind: "confirm",
+        effect: "queenNumberVanish",
+        playerIndex: 0,
+        continue: { shouldConfirmReach: false },
+      },
       queenVanishedRanks: [1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 12, 13],
       phase: "handoff",
       message: "DEV: Q候補0件時の不発確認です。",
@@ -1354,9 +1874,21 @@ export function createDebugDaifugoState(caseName: DebugDaifugoCase): GameState {
 
   if (caseName === "queenEndsWithEmptyDeck") {
     return makeState({
-      players: [debugPlayer(1, [debugCard("qe-5s", 5, "S"), debugCard("qe-6s", 6, "S")]), players[1], players[2]],
+      players: [
+        debugPlayer(1, [
+          debugCard("qe-5s", 5, "S"),
+          debugCard("qe-6s", 6, "S"),
+        ]),
+        players[1],
+        players[2],
+      ],
       deck: [debugCard("qe-5d", 5, "D"), debugCard("qe-refill", 8, "S")],
-      pendingDaifugoEffect: { kind: "queenSelect", effect: "queenNumberVanish", playerIndex: 0, continue: { shouldConfirmReach: false } },
+      pendingDaifugoEffect: {
+        kind: "queenSelect",
+        effect: "queenNumberVanish",
+        playerIndex: 0,
+        continue: { shouldConfirmReach: false },
+      },
       phase: "handoff",
       message: "DEV: Q完了後に山札が0枚になる境界ケースです。",
     });
@@ -1376,9 +1908,25 @@ export function createDebugDaifugoState(caseName: DebugDaifugoCase): GameState {
       debugCard("qaw-key", 13, "C"),
     ];
     return makeState({
-      players: [{ ...debugPlayer(1, qUserHand), discardPile: [debugCard("qaw-used-q", 12, "D")] }, players[1], players[2]],
-      deck: [debugCard("qaw-refill-5", 5, "S"), debugCard("qaw-pad-6", 6, "H"), debugCard("qaw-pad-7", 7, "D")],
-      pendingDaifugoEffect: { kind: "queenSelect", effect: "queenNumberVanish", playerIndex: 0, continue: { shouldConfirmReach: false } },
+      players: [
+        {
+          ...debugPlayer(1, qUserHand),
+          discardPile: [debugCard("qaw-used-q", 12, "D")],
+        },
+        players[1],
+        players[2],
+      ],
+      deck: [
+        debugCard("qaw-refill-5", 5, "S"),
+        debugCard("qaw-pad-6", 6, "H"),
+        debugCard("qaw-pad-7", 7, "D"),
+      ],
+      pendingDaifugoEffect: {
+        kind: "queenSelect",
+        effect: "queenNumberVanish",
+        playerIndex: 0,
+        continue: { shouldConfirmReach: false },
+      },
       phase: "handoff",
       message: "DEV: Q補充ドローで即上がりするケースです。9を選んでください。",
     });
@@ -1396,7 +1944,9 @@ export function createDebugDaifugoState(caseName: DebugDaifugoCase): GameState {
     queenVanishedRanks: [],
     isJBackActive: caseName === "jBack",
     phase: "discard",
-    drawnCard: isJBackCase ? jBackHand.find((card) => card.id === "r6") ?? null : effectCard,
+    drawnCard: isJBackCase
+      ? (jBackHand.find((card) => card.id === "r6") ?? null)
+      : effectCard,
     drawnFrom: "deck",
     lastDiscarderIndex: null,
     takenDiscardOwnerIndex: null,
