@@ -4405,11 +4405,12 @@ function getAnimationLabel(phase: AnimationPhase) {
 
 function MobileLayoutDebugPanel({ playerCount }: { playerCount: number }) {
   const [targetSeat, setTargetSeat] = useState(1);
+  const [targetKind, setTargetKind] = useState<"marker" | "window">("window");
   const [offsets, setOffsets] = useState<
     Record<string, { x: number; y: number }>
   >({});
 
-  const key = `${playerCount}-p${targetSeat}`;
+  const key = `${targetKind}-${playerCount}-p${targetSeat}`;
   const current = offsets[key] ?? { x: 0, y: 0 };
 
   useEffect(() => {
@@ -4421,10 +4422,61 @@ function MobileLayoutDebugPanel({ playerCount }: { playerCount: number }) {
   useEffect(() => {
     const root = document.documentElement;
 
+    const tableHistoryAreaBySeat: Record<string, "self" | "right" | "left"> = {
+      p1: "self",
+      p2: "right",
+      p3: "left",
+    };
+
     Object.entries(offsets).forEach(([offsetKey, value]) => {
-      const [count, seat] = offsetKey.split("-");
-      root.style.setProperty(`--history-${count}-${seat}-x`, `${value.x}px`);
-      root.style.setProperty(`--history-${count}-${seat}-y`, `${value.y}px`);
+      const [kind, count, seat] = offsetKey.split("-");
+
+      if (kind === "marker") {
+        if (count === "3") {
+          const area = tableHistoryAreaBySeat[seat];
+          if (!area) return;
+
+          root.style.setProperty(
+            `--table-history-3-${area}-marker-x`,
+            `${value.x}px`,
+          );
+          root.style.setProperty(
+            `--table-history-3-${area}-marker-y`,
+            `${value.y}px`,
+          );
+          return;
+        }
+
+        root.style.setProperty(`--history-${count}-${seat}-x`, `${value.x}px`);
+        root.style.setProperty(`--history-${count}-${seat}-y`, `${value.y}px`);
+        return;
+      }
+
+      if (kind === "window") {
+        if (count === "3") {
+          const area = tableHistoryAreaBySeat[seat];
+          if (!area) return;
+
+          root.style.setProperty(
+            `--table-history-3-${area}-window-x`,
+            `${value.x}px`,
+          );
+          root.style.setProperty(
+            `--table-history-3-${area}-window-y`,
+            `${value.y}px`,
+          );
+          return;
+        }
+
+        root.style.setProperty(
+          `--history-${count}-${seat}-window-x`,
+          `${value.x}px`,
+        );
+        root.style.setProperty(
+          `--history-${count}-${seat}-window-y`,
+          `${value.y}px`,
+        );
+      }
     });
   }, [offsets]);
 
@@ -4443,6 +4495,15 @@ function MobileLayoutDebugPanel({ playerCount }: { playerCount: number }) {
     (_, index) => index + 1,
   );
 
+  const cssPreview =
+    playerCount === 3
+      ? targetKind === "marker"
+        ? `3人用 ?：p1=self / p2=right / p3=left\n--table-history-3-${targetSeat === 1 ? "self" : targetSeat === 2 ? "right" : "left"}-marker-x: ${current.x}px;\n--table-history-3-${targetSeat === 1 ? "self" : targetSeat === 2 ? "right" : "left"}-marker-y: ${current.y}px;`
+        : `3人用 window：p1=self / p2=right / p3=left\n--table-history-3-${targetSeat === 1 ? "self" : targetSeat === 2 ? "right" : "left"}-window-x: ${current.x}px;\n--table-history-3-${targetSeat === 1 ? "self" : targetSeat === 2 ? "right" : "left"}-window-y: ${current.y}px;`
+      : targetKind === "marker"
+        ? `4/5人用 ?\n--history-${playerCount}-p${targetSeat}-x: ${current.x}px;\n--history-${playerCount}-p${targetSeat}-y: ${current.y}px;`
+        : `4/5人用 window\n--history-${playerCount}-p${targetSeat}-window-x: ${current.x}px;\n--history-${playerCount}-p${targetSeat}-window-y: ${current.y}px;`;
+
   return (
     <div
       style={{
@@ -4450,7 +4511,7 @@ function MobileLayoutDebugPanel({ playerCount }: { playerCount: number }) {
         left: 8,
         bottom: 8,
         zIndex: 999999,
-        width: "min(44dvw, 300px)",
+        width: "min(46dvw, 320px)",
         maxHeight: "82dvh",
         overflow: "auto",
         padding: 8,
@@ -4463,8 +4524,22 @@ function MobileLayoutDebugPanel({ playerCount }: { playerCount: number }) {
       }}
     >
       <strong style={{ display: "block", marginBottom: 6 }}>
-        ? Position Debug
+        Layout Debug
       </strong>
+
+      <label style={{ display: "block", marginBottom: 6 }}>
+        target:
+        <select
+          value={targetKind}
+          onChange={(event) =>
+            setTargetKind(event.target.value as "marker" | "window")
+          }
+          style={{ width: "100%", marginTop: 4 }}
+        >
+          <option value="marker">? position</option>
+          <option value="window">card window</option>
+        </select>
+      </label>
 
       <label style={{ display: "block", marginBottom: 6 }}>
         player count: {playerCount}
@@ -4480,6 +4555,13 @@ function MobileLayoutDebugPanel({ playerCount }: { playerCount: number }) {
           {seatOptions.map((seat) => (
             <option key={seat} value={seat}>
               p{seat}
+              {playerCount === 3
+                ? seat === 1
+                  ? " / self"
+                  : seat === 2
+                    ? " / right"
+                    : " / left"
+                : ""}
             </option>
           ))}
         </select>
@@ -4490,8 +4572,8 @@ function MobileLayoutDebugPanel({ playerCount }: { playerCount: number }) {
         <input
           style={{ width: "100%" }}
           type="range"
-          min="-500"
-          max="500"
+          min="-600"
+          max="600"
           step="1"
           value={current.x}
           onChange={(event) => updateCurrent({ x: Number(event.target.value) })}
@@ -4503,8 +4585,8 @@ function MobileLayoutDebugPanel({ playerCount }: { playerCount: number }) {
         <input
           style={{ width: "100%" }}
           type="range"
-          min="-300"
-          max="300"
+          min="-400"
+          max="400"
           step="1"
           value={current.y}
           onChange={(event) => updateCurrent({ y: Number(event.target.value) })}
@@ -4512,7 +4594,7 @@ function MobileLayoutDebugPanel({ playerCount }: { playerCount: number }) {
       </label>
 
       <code style={{ display: "block", whiteSpace: "pre-wrap" }}>
-        {`--history-${playerCount}-p${targetSeat}-x: ${current.x}px;\n--history-${playerCount}-p${targetSeat}-y: ${current.y}px;`}
+        {cssPreview}
       </code>
     </div>
   );
