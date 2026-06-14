@@ -1,4 +1,11 @@
-import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { createInitialGame, gameReducer } from "../game/gameState";
@@ -19,8 +26,18 @@ function createHistoryState(playerCount: number): GameState {
       index === 1
         ? {
             ...player,
-            discardPile: [card("discard-3c", 3, "C"), card("discard-7d", 7, "D"), card("discard-10s", 10, "S")],
-            openMelds: [[card("meld-8s", 8, "S"), card("meld-8h", 8, "H"), card("meld-8d", 8, "D")]],
+            discardPile: [
+              card("discard-3c", 3, "C"),
+              card("discard-7d", 7, "D"),
+              card("discard-10s", 10, "S"),
+            ],
+            openMelds: [
+              [
+                card("meld-8s", 8, "S"),
+                card("meld-8h", 8, "H"),
+                card("meld-8d", 8, "D"),
+              ],
+            ],
           }
         : player,
     ),
@@ -61,7 +78,13 @@ function createOnlineMatchState(matchMode: MatchState["matchMode"] = "rounds") {
 
 describe("PlayScreen round display", () => {
   it("shows the current round on the play screen", () => {
-    render(<PlayScreen state={createInitialGame(4, "clockwise")} dispatch={vi.fn()} currentRound={1} />);
+    render(
+      <PlayScreen
+        state={createInitialGame(4, "clockwise")}
+        dispatch={vi.fn()}
+        currentRound={1}
+      />,
+    );
 
     expect(screen.getByText("- 1回戦 -")).toBeInTheDocument();
   });
@@ -69,14 +92,31 @@ describe("PlayScreen round display", () => {
   it("renders the room settings action only when an exit handler is provided", async () => {
     const user = userEvent.setup();
     const onExitToHome = vi.fn();
-    const { rerender } = render(<PlayScreen state={createInitialGame(4, "clockwise")} dispatch={vi.fn()} currentRound={1} />);
+    const { rerender } = render(
+      <PlayScreen
+        state={createInitialGame(4, "clockwise")}
+        dispatch={vi.fn()}
+        currentRound={1}
+      />,
+    );
 
-    expect(screen.queryByRole("button", { name: "設定" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "設定" }),
+    ).not.toBeInTheDocument();
 
-    rerender(<PlayScreen state={createInitialGame(4, "clockwise")} dispatch={vi.fn()} currentRound={1} onExitToHome={onExitToHome} />);
+    rerender(
+      <PlayScreen
+        state={createInitialGame(4, "clockwise")}
+        dispatch={vi.fn()}
+        currentRound={1}
+        onExitToHome={onExitToHome}
+      />,
+    );
     await user.click(screen.getByRole("button", { name: "設定" }));
     const dialog = screen.getByRole("dialog", { name: "設定" });
-    await user.click(within(dialog).getAllByRole("button", { name: "退出" }).at(-1)!);
+    await user.click(
+      within(dialog).getAllByRole("button", { name: "退出" }).at(-1)!,
+    );
 
     expect(onExitToHome).toHaveBeenCalledTimes(1);
   });
@@ -107,7 +147,9 @@ describe("PlayScreen round display", () => {
     );
 
     await user.click(screen.getByRole("button", { name: "設定" }));
-    expect(screen.queryByRole("tab", { name: "ホストを変更" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("tab", { name: "ホストを変更" }),
+    ).not.toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "試合情報" })).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "キャンセル" }));
@@ -123,7 +165,9 @@ describe("PlayScreen round display", () => {
     );
     await user.click(screen.getByRole("button", { name: "設定" }));
 
-    expect(screen.getByRole("tab", { name: "ホストを変更" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("tab", { name: "ホストを変更" }),
+    ).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "試合情報" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "一時離脱" })).toBeInTheDocument();
   });
@@ -162,9 +206,15 @@ describe("PlayScreen round display", () => {
     await user.click(screen.getByRole("tab", { name: "ホストを変更" }));
 
     expect(screen.getByRole("button", { name: "Bob" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Alice" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Carol" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "CPU 1" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Alice" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Carol" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "CPU 1" }),
+    ).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Bob" }));
     expect(onTransferHost).toHaveBeenCalledWith("player-2");
@@ -260,15 +310,23 @@ describe("PlayScreen round display", () => {
     const dialog = screen.getByRole("dialog", { name: "設定" });
 
     expect(within(dialog).getByText("テストルーム")).toBeInTheDocument();
-    expect(within(dialog).getByText("Player1: Guest Player")).toBeInTheDocument();
-    expect(within(dialog).queryByText(/Player1: Player1:/)).not.toBeInTheDocument();
-    expect(within(dialog).getByText("Player3: CPU 3 standard-CPU")).toBeInTheDocument();
+    expect(
+      within(dialog).getByText("Player1: Guest Player"),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).queryByText(/Player1: Player1:/),
+    ).not.toBeInTheDocument();
+    expect(
+      within(dialog).getByText("Player3: CPU 3 standard-CPU"),
+    ).toBeInTheDocument();
     expect(within(dialog).getByText("4人")).toBeInTheDocument();
     expect(within(dialog).getByText("局数制")).toBeInTheDocument();
     expect(within(dialog).getByText("最大4局")).toBeInTheDocument();
     expect(within(dialog).getByText("1局目")).toBeInTheDocument();
     expect(within(dialog).getByText("HOST")).toBeInTheDocument();
-    expect(within(dialog).queryByRole("button", { name: "変更" })).not.toBeInTheDocument();
+    expect(
+      within(dialog).queryByRole("button", { name: "変更" }),
+    ).not.toBeInTheDocument();
   });
 
   it("lets the host increase round count from the match info tab", async () => {
@@ -329,7 +387,9 @@ describe("PlayScreen round display", () => {
     await user.type(input, "3");
     await user.click(screen.getByRole("button", { name: "確定" }));
 
-    expect(screen.getByText("現在の局数以下には変更できません。")).toBeInTheDocument();
+    expect(
+      screen.getByText("現在の局数以下には変更できません。"),
+    ).toBeInTheDocument();
     expect(onUpdateMatchSettings).not.toHaveBeenCalled();
   });
 
@@ -418,7 +478,9 @@ describe("PlayScreen round display", () => {
     await user.click(screen.getByRole("tab", { name: "試合情報" }));
     expect(screen.getByText("持ち点制")).toBeInTheDocument();
     expect(screen.getByText("初期持ち点30点")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "変更" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "変更" }),
+    ).not.toBeInTheDocument();
   });
 
   it("validates target score range and current highest score", async () => {
@@ -450,17 +512,23 @@ describe("PlayScreen round display", () => {
     await user.clear(input);
     await user.type(input, "49");
     await user.click(screen.getByRole("button", { name: "確定" }));
-    expect(screen.getByText("目標点は50〜10000の範囲で入力してください。")).toBeInTheDocument();
+    expect(
+      screen.getByText("目標点は50〜10000の範囲で入力してください。"),
+    ).toBeInTheDocument();
 
     await user.clear(input);
     await user.type(input, "80");
     await user.click(screen.getByRole("button", { name: "確定" }));
-    expect(screen.getByText("現在の最高得点以下には変更できません。")).toBeInTheDocument();
+    expect(
+      screen.getByText("現在の最高得点以下には変更できません。"),
+    ).toBeInTheDocument();
 
     await user.clear(input);
     await user.type(input, "10001");
     await user.click(screen.getByRole("button", { name: "確定" }));
-    expect(screen.getByText("目標点は50〜10000の範囲で入力してください。")).toBeInTheDocument();
+    expect(
+      screen.getByText("目標点は50〜10000の範囲で入力してください。"),
+    ).toBeInTheDocument();
     expect(onUpdateMatchSettings).not.toHaveBeenCalled();
   });
 
@@ -481,12 +549,21 @@ describe("PlayScreen round display", () => {
     render(<PlayScreen state={state} dispatch={dispatch} currentRound={1} />);
 
     expect(screen.getByText("J特殊効果を選択してください")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /情報閲覧/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Jシールド/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /5\/7強化権/ })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /情報閲覧/ }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Jシールド/ }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /5\/7強化権/ }),
+    ).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /情報閲覧/ }));
-    expect(dispatch).toHaveBeenCalledWith({ type: "selectJackSpecialEffect", effect: "inspectHands" });
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "selectJackSpecialEffect",
+      effect: "inspectHands",
+    });
   });
 
   it("disables duplicate J enhancement selection while leaving other J choices available", () => {
@@ -507,16 +584,22 @@ describe("PlayScreen round display", () => {
     render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} />);
 
     expect(screen.getByRole("button", { name: /5\/7強化権/ })).toBeDisabled();
-    expect(screen.getByText("すでに強化権を保持しています")).toBeInTheDocument();
+    expect(
+      screen.getByText("すでに強化権を保持しています"),
+    ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /情報閲覧/ })).not.toBeDisabled();
-    expect(screen.getByRole("button", { name: /Jシールド/ })).not.toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: /Jシールド/ }),
+    ).not.toBeDisabled();
   });
 
   it("shows the public J enhancement right badge only for the holder", () => {
     const baseState = createInitialGame(3, "clockwise");
     const state: GameState = {
       ...baseState,
-      players: baseState.players.map((player, index) => (index === 1 ? { ...player, hasJEnhancementRight: true } : player)),
+      players: baseState.players.map((player, index) =>
+        index === 1 ? { ...player, hasJEnhancementRight: true } : player,
+      ),
     };
 
     render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} />);
@@ -538,14 +621,19 @@ describe("PlayScreen round display", () => {
         playerIndex: 0,
         continue: { shouldConfirmReach: false },
       },
-      players: baseState.players.map((player, index) => (index === 0 ? { ...player, hasJEnhancementRight: true } : player)),
+      players: baseState.players.map((player, index) =>
+        index === 0 ? { ...player, hasJEnhancementRight: true } : player,
+      ),
     };
 
     render(<PlayScreen state={state} dispatch={dispatch} currentRound={1} />);
 
     expect(screen.getByText("J強化を使用しますか？")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "はい" }));
-    expect(dispatch).toHaveBeenCalledWith({ type: "answerSevenEnhancement", useEnhancement: true });
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "answerSevenEnhancement",
+      useEnhancement: true,
+    });
   });
 
   it("shows every opponent and excludes self for enhanced 7 target selection", async () => {
@@ -561,30 +649,55 @@ describe("PlayScreen round display", () => {
         playerIndex: 0,
         continue: { shouldConfirmReach: false },
       },
-      players: baseState.players.map((player, index) => (index === 0 ? { ...player, hasJEnhancementRight: true } : player)),
+      players: baseState.players.map((player, index) =>
+        index === 0 ? { ...player, hasJEnhancementRight: true } : player,
+      ),
     };
 
-    const { container } = render(<PlayScreen state={state} dispatch={dispatch} currentRound={1} />);
+    const { container } = render(
+      <PlayScreen state={state} dispatch={dispatch} currentRound={1} />,
+    );
 
     expect(screen.getByText("交換相手を選択してください")).toBeInTheDocument();
-    expect(screen.getByTestId("enhanced-seven-target-table")).toBeInTheDocument();
+    expect(
+      screen.getByTestId("enhanced-seven-target-table"),
+    ).toBeInTheDocument();
     expect(screen.getByTestId("enhanced-round-table")).toBeInTheDocument();
-    expect(container.querySelector(".enhanced-target-table-core span")).toBeNull();
-    expect(container.querySelector(".action-panel")).toHaveClass("enhanced-target-action-panel");
-    expect(container.querySelectorAll(".enhanced-target-seat-icon")).toHaveLength(4);
-    expect(screen.getAllByTestId("enhanced-target-player-silhouette")).toHaveLength(4);
+    expect(
+      container.querySelector(".enhanced-target-table-core span"),
+    ).toBeNull();
+    expect(container.querySelector(".action-panel")).toHaveClass(
+      "enhanced-target-action-panel",
+    );
+    expect(
+      container.querySelectorAll(".enhanced-target-seat-icon"),
+    ).toHaveLength(4);
+    expect(
+      screen.getAllByTestId("enhanced-target-player-silhouette"),
+    ).toHaveLength(4);
     expect(container.querySelector(".enhanced-target-seat-person")).toBeNull();
-    expect(screen.queryByTestId("enhanced-five-turn-guide-3")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("enhanced-five-turn-guide-3"),
+    ).not.toBeInTheDocument();
     expect(screen.queryByText("宇宙")).not.toBeInTheDocument();
     expect(screen.queryByText("次の手番")).not.toBeInTheDocument();
     expect(screen.queryByText("スキップ")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "プレイヤー1" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "プレイヤー2" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "プレイヤー3" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "プレイヤー4" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "プレイヤー2" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "プレイヤー3" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "プレイヤー4" }),
+    ).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "プレイヤー4" }));
-    expect(dispatch).toHaveBeenCalledWith({ type: "selectEnhancedSevenTarget", targetPlayerIndex: 3 });
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "selectEnhancedSevenTarget",
+      targetPlayerIndex: 3,
+    });
   });
 
   it("marks only the selected enhanced 7 exchange partner", () => {
@@ -599,17 +712,31 @@ describe("PlayScreen round display", () => {
         selectedTargetPlayerIndex: 3,
         continue: { shouldConfirmReach: false },
       },
-      players: baseState.players.map((player, index) => (index === 0 ? { ...player, hasJEnhancementRight: true } : player)),
+      players: baseState.players.map((player, index) =>
+        index === 0 ? { ...player, hasJEnhancementRight: true } : player,
+      ),
     };
 
     render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} />);
 
-    expect(screen.getByTestId("enhanced-seven-exchange-mark")).toBeInTheDocument();
-    expect(screen.queryByTestId("enhanced-five-turn-guide-3")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: baseState.players[3].name })).toHaveClass("exchange-target", "persistent-outline");
-    expect(screen.getByRole("button", { name: baseState.players[1].name })).not.toHaveClass("exchange-target");
-    expect(screen.getByRole("button", { name: baseState.players[1].name })).toHaveClass("selectable-target", "subtle-outline");
-    expect(screen.getByRole("button", { name: baseState.players[1].name })).not.toHaveClass("persistent-outline");
+    expect(
+      screen.getByTestId("enhanced-seven-exchange-mark"),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByTestId("enhanced-five-turn-guide-3"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: baseState.players[3].name }),
+    ).toHaveClass("exchange-target", "persistent-outline");
+    expect(
+      screen.getByRole("button", { name: baseState.players[1].name }),
+    ).not.toHaveClass("exchange-target");
+    expect(
+      screen.getByRole("button", { name: baseState.players[1].name }),
+    ).toHaveClass("selectable-target", "subtle-outline");
+    expect(
+      screen.getByRole("button", { name: baseState.players[1].name }),
+    ).not.toHaveClass("persistent-outline");
     expect(screen.queryByText("スキップ")).not.toBeInTheDocument();
     expect(screen.queryByText("次の手番")).not.toBeInTheDocument();
   });
@@ -627,14 +754,19 @@ describe("PlayScreen round display", () => {
         playerIndex: 0,
         continue: { shouldConfirmReach: false },
       },
-      players: baseState.players.map((player, index) => (index === 0 ? { ...player, hasJEnhancementRight: true } : player)),
+      players: baseState.players.map((player, index) =>
+        index === 0 ? { ...player, hasJEnhancementRight: true } : player,
+      ),
     };
 
     render(<PlayScreen state={state} dispatch={dispatch} currentRound={1} />);
 
     expect(screen.getByText("J強化を使用しますか？")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "はい" }));
-    expect(dispatch).toHaveBeenCalledWith({ type: "answerFiveEnhancement", useEnhancement: true });
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "answerFiveEnhancement",
+      useEnhancement: true,
+    });
   });
 
   it("shows enhanced 5 target options with immediate next disabled", async () => {
@@ -650,32 +782,69 @@ describe("PlayScreen round display", () => {
         playerIndex: 0,
         continue: { shouldConfirmReach: false },
       },
-      players: baseState.players.map((player, index) => (index === 0 ? { ...player, hasJEnhancementRight: true } : player)),
+      players: baseState.players.map((player, index) =>
+        index === 0 ? { ...player, hasJEnhancementRight: true } : player,
+      ),
     };
 
-    const { container } = render(<PlayScreen state={state} dispatch={dispatch} currentRound={1} />);
+    const { container } = render(
+      <PlayScreen state={state} dispatch={dispatch} currentRound={1} />,
+    );
 
-    expect(screen.getByText("次の手番を渡すプレイヤーを選択してください")).toBeInTheDocument();
-    expect(screen.getByTestId("enhanced-five-target-table")).toBeInTheDocument();
+    expect(
+      screen.getByText("次の手番を渡すプレイヤーを選択してください"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId("enhanced-five-target-table"),
+    ).toBeInTheDocument();
     expect(screen.getByTestId("enhanced-round-table")).toBeInTheDocument();
-    expect(container.querySelector(".enhanced-target-table-core span")).toBeNull();
-    expect(container.querySelector(".action-panel")).toHaveClass("enhanced-target-action-panel");
-    expect(container.querySelectorAll(".enhanced-target-seat-icon")).toHaveLength(5);
-    expect(screen.getAllByTestId("enhanced-target-player-silhouette")).toHaveLength(5);
+    expect(
+      container.querySelector(".enhanced-target-table-core span"),
+    ).toBeNull();
+    expect(container.querySelector(".action-panel")).toHaveClass(
+      "enhanced-target-action-panel",
+    );
+    expect(
+      container.querySelectorAll(".enhanced-target-seat-icon"),
+    ).toHaveLength(5);
+    expect(
+      screen.getAllByTestId("enhanced-target-player-silhouette"),
+    ).toHaveLength(5);
     expect(container.querySelector(".enhanced-target-seat-person")).toBeNull();
-    expect(screen.queryByTestId("enhanced-five-turn-guide-3")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("enhanced-five-turn-guide-3"),
+    ).not.toBeInTheDocument();
     expect(screen.queryByText("宇宙")).not.toBeInTheDocument();
     expect(screen.getByText("通常順")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: baseState.players[0].name })).toBeDisabled();
-    expect(screen.getByRole("button", { name: baseState.players[1].name })).toBeDisabled();
-    expect(screen.getByRole("button", { name: baseState.players[2].name })).not.toBeDisabled();
-    expect(screen.getByRole("button", { name: baseState.players[0].name })).toHaveClass("self", "subtle-outline", "persistent-outline");
-    expect(screen.getByRole("button", { name: baseState.players[1].name })).toHaveClass("disabled-target", "subtle-outline");
-    expect(screen.getByRole("button", { name: baseState.players[2].name })).toHaveClass("selectable-target", "subtle-outline");
-    expect(screen.getByRole("button", { name: baseState.players[2].name })).not.toHaveClass("persistent-outline");
+    expect(
+      screen.getByRole("button", { name: baseState.players[0].name }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: baseState.players[1].name }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: baseState.players[2].name }),
+    ).not.toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: baseState.players[0].name }),
+    ).toHaveClass("self", "subtle-outline", "persistent-outline");
+    expect(
+      screen.getByRole("button", { name: baseState.players[1].name }),
+    ).toHaveClass("disabled-target", "subtle-outline");
+    expect(
+      screen.getByRole("button", { name: baseState.players[2].name }),
+    ).toHaveClass("selectable-target", "subtle-outline");
+    expect(
+      screen.getByRole("button", { name: baseState.players[2].name }),
+    ).not.toHaveClass("persistent-outline");
 
-    await user.click(screen.getByRole("button", { name: baseState.players[3].name }));
-    expect(dispatch).toHaveBeenCalledWith({ type: "selectEnhancedFiveTarget", targetPlayerIndex: 3 });
+    await user.click(
+      screen.getByRole("button", { name: baseState.players[3].name }),
+    );
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "selectEnhancedFiveTarget",
+      targetPlayerIndex: 3,
+    });
   });
 
   it("marks enhanced 5 skip and next-turn seats on the circular table", () => {
@@ -690,17 +859,31 @@ describe("PlayScreen round display", () => {
         selectedTargetPlayerIndex: 3,
         continue: { shouldConfirmReach: false },
       },
-      players: baseState.players.map((player, index) => (index === 0 ? { ...player, hasJEnhancementRight: true } : player)),
+      players: baseState.players.map((player, index) =>
+        index === 0 ? { ...player, hasJEnhancementRight: true } : player,
+      ),
     };
 
     render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} />);
 
-    expect(screen.getByRole("button", { name: baseState.players[1].name })).toHaveClass("skip-target", "persistent-outline");
-    expect(screen.getByRole("button", { name: baseState.players[2].name })).toHaveClass("skip-target", "persistent-outline");
-    expect(screen.getByRole("button", { name: baseState.players[3].name })).toHaveClass("next-target", "persistent-outline");
-    expect(screen.getByRole("button", { name: baseState.players[4].name })).not.toHaveClass("skip-target");
-    expect(screen.getByRole("button", { name: baseState.players[4].name })).toHaveClass("selectable-target", "subtle-outline");
-    expect(screen.getByRole("button", { name: baseState.players[4].name })).not.toHaveClass("persistent-outline");
+    expect(
+      screen.getByRole("button", { name: baseState.players[1].name }),
+    ).toHaveClass("skip-target", "persistent-outline");
+    expect(
+      screen.getByRole("button", { name: baseState.players[2].name }),
+    ).toHaveClass("skip-target", "persistent-outline");
+    expect(
+      screen.getByRole("button", { name: baseState.players[3].name }),
+    ).toHaveClass("next-target", "persistent-outline");
+    expect(
+      screen.getByRole("button", { name: baseState.players[4].name }),
+    ).not.toHaveClass("skip-target");
+    expect(
+      screen.getByRole("button", { name: baseState.players[4].name }),
+    ).toHaveClass("selectable-target", "subtle-outline");
+    expect(
+      screen.getByRole("button", { name: baseState.players[4].name }),
+    ).not.toHaveClass("persistent-outline");
   });
 
   it("marks reverse enhanced 5 seats using the current direction", () => {
@@ -715,17 +898,29 @@ describe("PlayScreen round display", () => {
         selectedTargetPlayerIndex: 2,
         continue: { shouldConfirmReach: false },
       },
-      players: baseState.players.map((player, index) => (index === 0 ? { ...player, hasJEnhancementRight: true } : player)),
+      players: baseState.players.map((player, index) =>
+        index === 0 ? { ...player, hasJEnhancementRight: true } : player,
+      ),
     };
 
     render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} />);
 
     expect(screen.getByText("逆回り")).toBeInTheDocument();
-    expect(document.querySelector(".enhanced-target-direction.counterclockwise")).toBeInTheDocument();
-    expect(screen.queryByTestId("enhanced-five-turn-guide-3")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: baseState.players[4].name })).toHaveClass("skip-target");
-    expect(screen.getByRole("button", { name: baseState.players[3].name })).toHaveClass("skip-target");
-    expect(screen.getByRole("button", { name: baseState.players[2].name })).toHaveClass("next-target");
+    expect(
+      document.querySelector(".enhanced-target-direction.counterclockwise"),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByTestId("enhanced-five-turn-guide-3"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: baseState.players[4].name }),
+    ).toHaveClass("skip-target");
+    expect(
+      screen.getByRole("button", { name: baseState.players[3].name }),
+    ).toHaveClass("skip-target");
+    expect(
+      screen.getByRole("button", { name: baseState.players[2].name }),
+    ).toHaveClass("next-target");
   });
 
   it("renders enhanced 5 circular table for three-player games", async () => {
@@ -741,23 +936,50 @@ describe("PlayScreen round display", () => {
         playerIndex: 0,
         continue: { shouldConfirmReach: false },
       },
-      players: baseState.players.map((player, index) => (index === 0 ? { ...player, hasJEnhancementRight: true } : player)),
+      players: baseState.players.map((player, index) =>
+        index === 0 ? { ...player, hasJEnhancementRight: true } : player,
+      ),
     };
 
-    const { container } = render(<PlayScreen state={state} dispatch={dispatch} currentRound={1} />);
+    const { container } = render(
+      <PlayScreen state={state} dispatch={dispatch} currentRound={1} />,
+    );
 
-    expect(screen.getByTestId("enhanced-five-target-table")).toBeInTheDocument();
-    expect(container.querySelector(".action-panel")).toHaveClass("enhanced-target-action-panel--3");
-    expect(screen.getAllByTestId("enhanced-target-player-silhouette")).toHaveLength(3);
-    expect(screen.getByTestId("enhanced-five-turn-guide-3")).toHaveClass("clockwise");
-    expect(screen.getByTestId("enhanced-five-turn-guide-3").parentElement).toHaveClass("enhanced-target-table-core");
-    expect(screen.queryByTestId("enhanced-five-route-svg")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: baseState.players[0].name })).toBeDisabled();
-    expect(screen.getByRole("button", { name: baseState.players[1].name })).toBeDisabled();
-    expect(screen.getByRole("button", { name: baseState.players[2].name })).not.toBeDisabled();
+    expect(
+      screen.getByTestId("enhanced-five-target-table"),
+    ).toBeInTheDocument();
+    expect(container.querySelector(".action-panel")).toHaveClass(
+      "enhanced-target-action-panel--3",
+    );
+    expect(
+      screen.getAllByTestId("enhanced-target-player-silhouette"),
+    ).toHaveLength(3);
+    expect(screen.getByTestId("enhanced-five-turn-guide-3")).toHaveClass(
+      "clockwise",
+    );
+    expect(
+      screen.getByTestId("enhanced-five-turn-guide-3").parentElement,
+    ).toHaveClass("enhanced-target-table-core");
+    expect(
+      screen.queryByTestId("enhanced-five-route-svg"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: baseState.players[0].name }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: baseState.players[1].name }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: baseState.players[2].name }),
+    ).not.toBeDisabled();
 
-    await user.click(screen.getByRole("button", { name: baseState.players[2].name }));
-    expect(dispatch).toHaveBeenCalledWith({ type: "selectEnhancedFiveTarget", targetPlayerIndex: 2 });
+    await user.click(
+      screen.getByRole("button", { name: baseState.players[2].name }),
+    );
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "selectEnhancedFiveTarget",
+      targetPlayerIndex: 2,
+    });
   });
 
   it("mirrors the three-player enhanced 5 turn guide for reverse play", () => {
@@ -771,12 +993,16 @@ describe("PlayScreen round display", () => {
         playerIndex: 0,
         continue: { shouldConfirmReach: false },
       },
-      players: baseState.players.map((player, index) => (index === 0 ? { ...player, hasJEnhancementRight: true } : player)),
+      players: baseState.players.map((player, index) =>
+        index === 0 ? { ...player, hasJEnhancementRight: true } : player,
+      ),
     };
 
     render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} />);
 
-    expect(screen.getByTestId("enhanced-five-turn-guide-3")).toHaveClass("counterclockwise");
+    expect(screen.getByTestId("enhanced-five-turn-guide-3")).toHaveClass(
+      "counterclockwise",
+    );
   });
 
   it("uses the compact enhanced target layout for three-player enhanced 7", async () => {
@@ -792,23 +1018,50 @@ describe("PlayScreen round display", () => {
         playerIndex: 0,
         continue: { shouldConfirmReach: false },
       },
-      players: baseState.players.map((player, index) => (index === 0 ? { ...player, hasJEnhancementRight: true } : player)),
+      players: baseState.players.map((player, index) =>
+        index === 0 ? { ...player, hasJEnhancementRight: true } : player,
+      ),
     };
 
-    const { container } = render(<PlayScreen state={state} dispatch={dispatch} currentRound={1} />);
+    const { container } = render(
+      <PlayScreen state={state} dispatch={dispatch} currentRound={1} />,
+    );
 
-    expect(screen.getByTestId("enhanced-seven-target-table")).toBeInTheDocument();
-    expect(container.querySelector(".action-panel")).toHaveClass("enhanced-target-action-panel--3");
-    expect(container.querySelector(".enhanced-target-select-panel")).toHaveClass("seven-enhancement-panel");
-    expect(screen.getAllByTestId("enhanced-target-player-silhouette")).toHaveLength(3);
-    expect(screen.queryByTestId("enhanced-five-turn-guide-3")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("enhanced-five-route-svg")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: baseState.players[0].name })).toBeDisabled();
-    expect(screen.getByRole("button", { name: baseState.players[1].name })).not.toBeDisabled();
-    expect(screen.getByRole("button", { name: baseState.players[2].name })).not.toBeDisabled();
+    expect(
+      screen.getByTestId("enhanced-seven-target-table"),
+    ).toBeInTheDocument();
+    expect(container.querySelector(".action-panel")).toHaveClass(
+      "enhanced-target-action-panel--3",
+    );
+    expect(
+      container.querySelector(".enhanced-target-select-panel"),
+    ).toHaveClass("seven-enhancement-panel");
+    expect(
+      screen.getAllByTestId("enhanced-target-player-silhouette"),
+    ).toHaveLength(3);
+    expect(
+      screen.queryByTestId("enhanced-five-turn-guide-3"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("enhanced-five-route-svg"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: baseState.players[0].name }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: baseState.players[1].name }),
+    ).not.toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: baseState.players[2].name }),
+    ).not.toBeDisabled();
 
-    await user.click(screen.getByRole("button", { name: baseState.players[2].name }));
-    expect(dispatch).toHaveBeenCalledWith({ type: "selectEnhancedSevenTarget", targetPlayerIndex: 2 });
+    await user.click(
+      screen.getByRole("button", { name: baseState.players[2].name }),
+    );
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "selectEnhancedSevenTarget",
+      targetPlayerIndex: 2,
+    });
   });
 
   it("shows a short J enhancement splash before enhanced 5 target selection", () => {
@@ -824,28 +1077,38 @@ describe("PlayScreen round display", () => {
         playerIndex: 0,
         continue: { shouldConfirmReach: false },
       },
-      players: baseState.players.map((player, index) => (index === 0 ? { ...player, hasJEnhancementRight: true } : player)),
+      players: baseState.players.map((player, index) =>
+        index === 0 ? { ...player, hasJEnhancementRight: true } : player,
+      ),
     };
 
     render(<PlayScreen state={state} dispatch={dispatch} currentRound={1} />);
 
     expect(screen.getByText("J強化発動！")).toBeInTheDocument();
     expect(screen.getByText("5：スキップ強化")).toBeInTheDocument();
-    expect(screen.queryByText("次の手番を渡すプレイヤーを選択してください")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("次の手番を渡すプレイヤーを選択してください"),
+    ).not.toBeInTheDocument();
 
-    expect(screen.getByRole("status")).toHaveStyle("--reach-splash-duration: 1350ms");
+    expect(screen.getByRole("status")).toHaveStyle(
+      "--reach-splash-duration: 1350ms",
+    );
 
     act(() => {
       vi.advanceTimersByTime(1349);
     });
 
-    expect(dispatch).not.toHaveBeenCalledWith({ type: "finishFiveEnhancementSplash" });
+    expect(dispatch).not.toHaveBeenCalledWith({
+      type: "finishFiveEnhancementSplash",
+    });
 
     act(() => {
       vi.advanceTimersByTime(1);
     });
 
-    expect(dispatch).toHaveBeenCalledWith({ type: "finishFiveEnhancementSplash" });
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "finishFiveEnhancementSplash",
+    });
     vi.useRealTimers();
   });
 
@@ -862,28 +1125,38 @@ describe("PlayScreen round display", () => {
         playerIndex: 0,
         continue: { shouldConfirmReach: false },
       },
-      players: baseState.players.map((player, index) => (index === 0 ? { ...player, hasJEnhancementRight: true } : player)),
+      players: baseState.players.map((player, index) =>
+        index === 0 ? { ...player, hasJEnhancementRight: true } : player,
+      ),
     };
 
     render(<PlayScreen state={state} dispatch={dispatch} currentRound={1} />);
 
     expect(screen.getByText("J強化発動！")).toBeInTheDocument();
     expect(screen.getByText("7：交換相手選択")).toBeInTheDocument();
-    expect(screen.queryByText("交換相手を選択してください")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("交換相手を選択してください"),
+    ).not.toBeInTheDocument();
 
-    expect(screen.getByRole("status")).toHaveStyle("--reach-splash-duration: 1350ms");
+    expect(screen.getByRole("status")).toHaveStyle(
+      "--reach-splash-duration: 1350ms",
+    );
 
     act(() => {
       vi.advanceTimersByTime(1349);
     });
 
-    expect(dispatch).not.toHaveBeenCalledWith({ type: "finishSevenEnhancementSplash" });
+    expect(dispatch).not.toHaveBeenCalledWith({
+      type: "finishSevenEnhancementSplash",
+    });
 
     act(() => {
       vi.advanceTimersByTime(1);
     });
 
-    expect(dispatch).toHaveBeenCalledWith({ type: "finishSevenEnhancementSplash" });
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "finishSevenEnhancementSplash",
+    });
     vi.useRealTimers();
   });
 
@@ -897,8 +1170,12 @@ describe("PlayScreen round display", () => {
 
     render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} />);
 
-    expect(screen.getByText("Player 2をスキップ！次の手番はPlayer 3です。")).toBeInTheDocument();
-    expect(screen.queryByText("次のプレイヤーへ交代してください。")).not.toBeInTheDocument();
+    expect(
+      screen.getByText("Player 2をスキップ！次の手番はPlayer 3です。"),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText("次のプレイヤーへ交代してください。"),
+    ).not.toBeInTheDocument();
   });
 
   it("shows the enhanced 5 skip result in the top toolbar during handoff", () => {
@@ -911,28 +1188,49 @@ describe("PlayScreen round display", () => {
 
     render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} />);
 
-    expect(screen.getByText("Player 2、Player 3をスキップ！次の手番はPlayer 4です。")).toBeInTheDocument();
-    expect(screen.queryByText("次のプレイヤーへ交代してください。")).not.toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Player 2、Player 3をスキップ！次の手番はPlayer 4です。",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText("次のプレイヤーへ交代してください。"),
+    ).not.toBeInTheDocument();
   });
 
   it("confirms a Q after-effect win only after the Q discard and draw animation finishes", async () => {
     vi.useFakeTimers();
     const dispatch = vi.fn();
     const scenario = createDebugDaifugoState("queenAfterEffectWin");
-    const state = gameReducer(scenario, { type: "selectQueenVanishRank", rank: 9 });
+    const state = gameReducer(scenario, {
+      type: "selectQueenVanishRank",
+      rank: 9,
+    });
 
     render(<PlayScreen state={state} dispatch={dispatch} currentRound={1} />);
 
-    expect(state.pendingDaifugoEffect).toMatchObject({ kind: "queenWinConfirm" });
-    expect(screen.getByText("プレイヤー1が9を捨てることになります。")).toBeInTheDocument();
-    expect(screen.queryByText("Qの効果で上がれます。上がりますか？")).not.toBeInTheDocument();
-    expect(dispatch).not.toHaveBeenCalledWith({ type: "answerQueenWin", takeWin: true });
+    expect(state.pendingDaifugoEffect).toMatchObject({
+      kind: "queenWinConfirm",
+    });
+    expect(
+      screen.getByText("プレイヤー1が9を捨てることになります。"),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText("Qの効果で上がれます。上がりますか？"),
+    ).not.toBeInTheDocument();
+    expect(dispatch).not.toHaveBeenCalledWith({
+      type: "answerQueenWin",
+      takeWin: true,
+    });
 
     await act(async () => {
       await vi.runAllTimersAsync();
     });
 
-    expect(dispatch).toHaveBeenCalledWith({ type: "answerQueenWin", takeWin: true });
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "answerQueenWin",
+      takeWin: true,
+    });
     vi.useRealTimers();
   });
 
@@ -952,15 +1250,23 @@ describe("PlayScreen round display", () => {
       },
     };
     const naturalOrder = state.players[1].hand.map((card) => card.id);
-    const { container } = render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} />);
+    const { container } = render(
+      <PlayScreen state={state} dispatch={vi.fn()} currentRound={1} />,
+    );
     const grid = container.querySelector(".jack-inspect-card-grid");
     const panel = container.querySelector(".action-panel");
-    const buttons = Array.from(grid?.querySelectorAll(".jack-inspect-card-button") ?? []);
+    const buttons = Array.from(
+      grid?.querySelectorAll(".jack-inspect-card-button") ?? [],
+    );
 
     expect(panel).toHaveClass("jack-inspect-action-panel");
     expect(buttons).toHaveLength(10);
-    expect(grid?.querySelector(".playing-card.compact")).not.toBeInTheDocument();
-    expect(buttons.map((button) => button.getAttribute("data-card-id"))).not.toEqual(naturalOrder);
+    expect(
+      grid?.querySelector(".playing-card.compact"),
+    ).not.toBeInTheDocument();
+    expect(
+      buttons.map((button) => button.getAttribute("data-card-id")),
+    ).not.toEqual(naturalOrder);
     randomSpy.mockRestore();
   });
 
@@ -974,10 +1280,21 @@ describe("PlayScreen round display", () => {
         effect: "jackBack",
         playerIndex: 0,
         selectableRanks: [7],
-        selectableRuns: [{ key: "3s|4s|5s", label: "345", ranks: [3, 4, 5], cardIds: ["3s", "4s", "5s"] }],
+        selectableRuns: [
+          {
+            key: "3s|4s|5s",
+            label: "345",
+            ranks: [3, 4, 5],
+            cardIds: ["3s", "4s", "5s"],
+          },
+        ],
         continue: { shouldConfirmReach: false },
       },
-      players: baseState.players.map((player, index) => (index === 0 ? { ...player, isCpu: false, type: "human" as const } : player)),
+      players: baseState.players.map((player, index) =>
+        index === 0
+          ? { ...player, isCpu: false, type: "human" as const }
+          : player,
+      ),
     };
 
     render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} />);
@@ -1003,43 +1320,99 @@ describe("PlayScreen round display", () => {
       },
     };
 
-    const { container } = render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} />);
-    const revealedButton = container.querySelector(`[data-card-id="${revealedCardId}"]`);
+    const { container } = render(
+      <PlayScreen state={state} dispatch={vi.fn()} currentRound={1} />,
+    );
+    const revealedButton = container.querySelector(
+      `[data-card-id="${revealedCardId}"]`,
+    );
 
     expect(revealedButton).toHaveClass("revealed");
-    expect(revealedButton?.querySelector(".playing-card.compact")).not.toBeInTheDocument();
+    expect(
+      revealedButton?.querySelector(".playing-card.compact"),
+    ).not.toBeInTheDocument();
   });
 
   it("updates the round display after advancing to the next round", () => {
-    const { rerender } = render(<PlayScreen state={createInitialGame(4, "clockwise")} dispatch={vi.fn()} currentRound={1} />);
+    const { rerender } = render(
+      <PlayScreen
+        state={createInitialGame(4, "clockwise")}
+        dispatch={vi.fn()}
+        currentRound={1}
+      />,
+    );
 
-    rerender(<PlayScreen state={createInitialGame(4, "clockwise")} dispatch={vi.fn()} currentRound={2} />);
+    rerender(
+      <PlayScreen
+        state={createInitialGame(4, "clockwise")}
+        dispatch={vi.fn()}
+        currentRound={2}
+      />,
+    );
 
     expect(screen.queryByText("- 1回戦 -")).not.toBeInTheDocument();
     expect(screen.getByText("- 2回戦 -")).toBeInTheDocument();
   });
 
-  it.each([3, 4, 5])("uses a player-count specific table scene for %i players", (playerCount) => {
-    render(<PlayScreen state={createInitialGame(playerCount, "clockwise")} dispatch={vi.fn()} currentRound={1} />);
+  it.each([3, 4, 5])(
+    "uses a player-count specific table scene for %i players",
+    (playerCount) => {
+      render(
+        <PlayScreen
+          state={createInitialGame(playerCount, "clockwise")}
+          dispatch={vi.fn()}
+          currentRound={1}
+        />,
+      );
 
-    expect(screen.getByLabelText(`${playerCount}人用テーブル`)).toHaveClass(`table-${playerCount}`);
-    expect(screen.getByText(`プレイヤー${playerCount}`)).toBeInTheDocument();
-  });
+      expect(screen.getByLabelText(`${playerCount}人用テーブル`)).toHaveClass(
+        `table-${playerCount}`,
+      );
+      expect(screen.getByText(`プレイヤー${playerCount}`)).toBeInTheDocument();
+    },
+  );
 
   it("maps four-player online seats relative to the viewer without changing fixed slot positions", () => {
     const base = createInitialGame(4, "clockwise");
     const state: GameState = {
       ...base,
       viewerPlayerId: "p3",
-      players: base.players.map((player, index) => ({ ...player, id: `p${index + 1}`, name: `Player ${index + 1}` })),
+      players: base.players.map((player, index) => ({
+        ...player,
+        id: `p${index + 1}`,
+        name: `Player ${index + 1}`,
+      })),
     };
 
-    const { container } = render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} disableLocalCpuAutomation />);
+    const { container } = render(
+      <PlayScreen
+        state={state}
+        dispatch={vi.fn()}
+        currentRound={1}
+        disableLocalCpuAutomation
+      />,
+    );
 
-    expect(container.querySelector(".player-area.seat-bottom")?.getAttribute("data-player-id")).toBe("p3");
-    expect(container.querySelector(".player-area.seat-left")?.getAttribute("data-player-id")).toBe("p4");
-    expect(container.querySelector(".player-area.seat-top")?.getAttribute("data-player-id")).toBe("p1");
-    expect(container.querySelector(".player-area.seat-right")?.getAttribute("data-player-id")).toBe("p2");
+    expect(
+      container
+        .querySelector(".player-area.seat-bottom")
+        ?.getAttribute("data-player-id"),
+    ).toBe("p3");
+    expect(
+      container
+        .querySelector(".player-area.seat-left")
+        ?.getAttribute("data-player-id"),
+    ).toBe("p4");
+    expect(
+      container
+        .querySelector(".player-area.seat-top")
+        ?.getAttribute("data-player-id"),
+    ).toBe("p1");
+    expect(
+      container
+        .querySelector(".player-area.seat-right")
+        ?.getAttribute("data-player-id"),
+    ).toBe("p2");
   });
 
   it("maps three-player online table cards to the same viewer-relative seats as their players", () => {
@@ -1055,14 +1428,45 @@ describe("PlayScreen round display", () => {
       })),
     };
 
-    const { container } = render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} disableLocalCpuAutomation />);
+    const { container } = render(
+      <PlayScreen
+        state={state}
+        dispatch={vi.fn()}
+        currentRound={1}
+        disableLocalCpuAutomation
+      />,
+    );
 
-    expect(container.querySelector(".player-area.seat-bottom")?.getAttribute("data-player-id")).toBe("p1");
-    expect(container.querySelector(".player-area.seat-left")?.getAttribute("data-player-id")).toBe("p2");
-    expect(container.querySelector(".player-area.seat-right")?.getAttribute("data-player-id")).toBe("p3");
-    expect(container.querySelector('[data-testid="discard-pile-self"] [data-card-id="discard-p1"]')).toBeInTheDocument();
-    expect(container.querySelector('[data-testid="discard-pile-left"] [data-card-id="discard-p2"]')).toBeInTheDocument();
-    expect(container.querySelector('[data-testid="discard-pile-right"] [data-card-id="discard-p3"]')).toBeInTheDocument();
+    expect(
+      container
+        .querySelector(".player-area.seat-bottom")
+        ?.getAttribute("data-player-id"),
+    ).toBe("p1");
+    expect(
+      container
+        .querySelector(".player-area.seat-left")
+        ?.getAttribute("data-player-id"),
+    ).toBe("p2");
+    expect(
+      container
+        .querySelector(".player-area.seat-right")
+        ?.getAttribute("data-player-id"),
+    ).toBe("p3");
+    expect(
+      container.querySelector(
+        '[data-testid="discard-pile-self"] [data-card-id="discard-p1"]',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      container.querySelector(
+        '[data-testid="discard-pile-left"] [data-card-id="discard-p2"]',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      container.querySelector(
+        '[data-testid="discard-pile-right"] [data-card-id="discard-p3"]',
+      ),
+    ).toBeInTheDocument();
   });
 
   it("maps five-player online seats clockwise from the viewer", () => {
@@ -1070,15 +1474,36 @@ describe("PlayScreen round display", () => {
     const state: GameState = {
       ...base,
       viewerPlayerId: "p3",
-      players: base.players.map((player, index) => ({ ...player, id: `p${index + 1}`, name: `Player ${index + 1}` })),
+      players: base.players.map((player, index) => ({
+        ...player,
+        id: `p${index + 1}`,
+        name: `Player ${index + 1}`,
+      })),
     };
 
-    const { container } = render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} disableLocalCpuAutomation />);
-    const renderedIds = [...container.querySelectorAll(".player-area")].map((area) => area.getAttribute("data-player-id"));
+    const { container } = render(
+      <PlayScreen
+        state={state}
+        dispatch={vi.fn()}
+        currentRound={1}
+        disableLocalCpuAutomation
+      />,
+    );
+    const renderedIds = [...container.querySelectorAll(".player-area")].map(
+      (area) => area.getAttribute("data-player-id"),
+    );
 
     expect(renderedIds).toEqual(["p5", "p1", "p2", "p3", "p4"]);
-    expect(container.querySelector(".player-area.seat-bottom")?.getAttribute("data-player-id")).toBe("p3");
-    expect(container.querySelector(".player-area.seat-left")?.getAttribute("data-player-id")).toBe("p4");
+    expect(
+      container
+        .querySelector(".player-area.seat-bottom")
+        ?.getAttribute("data-player-id"),
+    ).toBe("p3");
+    expect(
+      container
+        .querySelector(".player-area.seat-left")
+        ?.getAttribute("data-player-id"),
+    ).toBe("p4");
   });
 
   it("maps enhanced target table seats relative to the online viewer", () => {
@@ -1102,12 +1527,28 @@ describe("PlayScreen round display", () => {
       })),
     };
 
-    render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} disableLocalCpuAutomation />);
+    render(
+      <PlayScreen
+        state={state}
+        dispatch={vi.fn()}
+        currentRound={1}
+        disableLocalCpuAutomation
+      />,
+    );
 
-    expect(screen.getByRole("button", { name: "Player 2" })).toHaveClass("enhanced-target-seat--4-1", "self");
-    expect(screen.getByRole("button", { name: "Player 3" })).toHaveClass("enhanced-target-seat--4-2");
-    expect(screen.getByRole("button", { name: "Player 4" })).toHaveClass("enhanced-target-seat--4-3");
-    expect(screen.getByRole("button", { name: "Player 1" })).toHaveClass("enhanced-target-seat--4-4");
+    expect(screen.getByRole("button", { name: "Player 2" })).toHaveClass(
+      "enhanced-target-seat--4-1",
+      "self",
+    );
+    expect(screen.getByRole("button", { name: "Player 3" })).toHaveClass(
+      "enhanced-target-seat--4-2",
+    );
+    expect(screen.getByRole("button", { name: "Player 4" })).toHaveClass(
+      "enhanced-target-seat--4-3",
+    );
+    expect(screen.getByRole("button", { name: "Player 1" })).toHaveClass(
+      "enhanced-target-seat--4-4",
+    );
   });
 
   it("maps three-player enhanced target table clockwise from the online viewer", () => {
@@ -1131,11 +1572,25 @@ describe("PlayScreen round display", () => {
       })),
     };
 
-    render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} disableLocalCpuAutomation />);
+    render(
+      <PlayScreen
+        state={state}
+        dispatch={vi.fn()}
+        currentRound={1}
+        disableLocalCpuAutomation
+      />,
+    );
 
-    expect(screen.getByRole("button", { name: "Player 2" })).toHaveClass("enhanced-target-seat--3-1", "self");
-    expect(screen.getByRole("button", { name: "Player 3" })).toHaveClass("enhanced-target-seat--3-2");
-    expect(screen.getByRole("button", { name: "Player 1" })).toHaveClass("enhanced-target-seat--3-3");
+    expect(screen.getByRole("button", { name: "Player 2" })).toHaveClass(
+      "enhanced-target-seat--3-1",
+      "self",
+    );
+    expect(screen.getByRole("button", { name: "Player 3" })).toHaveClass(
+      "enhanced-target-seat--3-2",
+    );
+    expect(screen.getByRole("button", { name: "Player 1" })).toHaveClass(
+      "enhanced-target-seat--3-3",
+    );
   });
 
   it("shows only the online viewer's own Q bomber discard cards in the center animation", () => {
@@ -1145,29 +1600,52 @@ describe("PlayScreen round display", () => {
       ...base,
       viewerPlayerId: "p2",
       phase: "handoff",
-      players: base.players.map((player, index) => ({ ...player, id: `p${index + 1}`, name: `Player ${index + 1}` })),
+      players: base.players.map((player, index) => ({
+        ...player,
+        id: `p${index + 1}`,
+        name: `Player ${index + 1}`,
+      })),
       daifugoEffectEvent: {
         id: "queenNumberVanish-test",
         kind: "queenNumberVanish",
         actorIndex: 0,
         rank: 12,
         queenDiscardResults: [
-          { playerIndex: 0, discardedCards: [card("p1-q", 12, "S")], drawnCards: [] },
-          { playerIndex: 1, discardedCards: [card("p2-q1", 12, "H"), card("p2-q2", 12, "D")], drawnCards: [] },
-          { playerIndex: 2, discardedCards: [card("p3-q", 12, "C")], drawnCards: [] },
+          {
+            playerIndex: 0,
+            discardedCards: [card("p1-q", 12, "S")],
+            drawnCards: [],
+          },
+          {
+            playerIndex: 1,
+            discardedCards: [card("p2-q1", 12, "H"), card("p2-q2", 12, "D")],
+            drawnCards: [],
+          },
+          {
+            playerIndex: 2,
+            discardedCards: [card("p3-q", 12, "C")],
+            drawnCards: [],
+          },
         ],
       },
     };
 
-    const { container } = render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} disableLocalCpuAutomation />);
+    const { container } = render(
+      <PlayScreen
+        state={state}
+        dispatch={vi.fn()}
+        currentRound={1}
+        disableLocalCpuAutomation
+      />,
+    );
 
     act(() => {
       vi.advanceTimersByTime(650);
     });
 
-    const animatedCardIds = [...container.querySelectorAll(".daifugo-animation-cards [data-card-id]")].map((node) =>
-      node.getAttribute("data-card-id"),
-    );
+    const animatedCardIds = [
+      ...container.querySelectorAll(".daifugo-animation-cards [data-card-id]"),
+    ].map((node) => node.getAttribute("data-card-id"));
     expect(animatedCardIds).toEqual(["p2-q1", "p2-q2"]);
     vi.useRealTimers();
   });
@@ -1185,7 +1663,12 @@ describe("PlayScreen round display", () => {
         name: `Player ${index + 1}`,
         hand:
           index === 1
-            ? [card("p2-q1", 12, "S"), card("p2-q2", 12, "H"), card("p2-3", 3, "D"), card("p2-4", 4, "C")]
+            ? [
+                card("p2-q1", 12, "S"),
+                card("p2-q2", 12, "H"),
+                card("p2-3", 3, "D"),
+                card("p2-4", 4, "C"),
+              ]
             : player.hand,
       })),
       pendingDaifugoEffect: {
@@ -1198,13 +1681,32 @@ describe("PlayScreen round display", () => {
       },
     };
 
-    render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} disableLocalCpuAutomation />);
+    render(
+      <PlayScreen
+        state={state}
+        dispatch={vi.fn()}
+        currentRound={1}
+        disableLocalCpuAutomation
+      />,
+    );
 
-    const qCards = screen.getAllByTestId("hand-card").filter((button) => button.getAttribute("data-card-rank") === "Q");
-    const nonPairCards = screen.getAllByTestId("hand-card").filter((button) => button.getAttribute("data-card-rank") !== "Q");
+    const qCards = screen
+      .getAllByTestId("hand-card")
+      .filter((button) => button.getAttribute("data-card-rank") === "Q");
+    const nonPairCards = screen
+      .getAllByTestId("hand-card")
+      .filter((button) => button.getAttribute("data-card-rank") !== "Q");
     expect(qCards).toHaveLength(2);
-    expect(qCards.every((button) => !(button as HTMLButtonElement).disabled)).toBe(true);
-    expect(nonPairCards.every((button) => (button as HTMLButtonElement).disabled && button.classList.contains("unselectable-card"))).toBe(true);
+    expect(
+      qCards.every((button) => !(button as HTMLButtonElement).disabled),
+    ).toBe(true);
+    expect(
+      nonPairCards.every(
+        (button) =>
+          (button as HTMLButtonElement).disabled &&
+          button.classList.contains("unselectable-card"),
+      ),
+    ).toBe(true);
   });
 
   it("hides the bottom action panel for online viewers who are not involved in seven exchange", () => {
@@ -1229,7 +1731,14 @@ describe("PlayScreen round display", () => {
       },
     };
 
-    const { container } = render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} disableLocalCpuAutomation />);
+    const { container } = render(
+      <PlayScreen
+        state={state}
+        dispatch={vi.fn()}
+        currentRound={1}
+        disableLocalCpuAutomation
+      />,
+    );
 
     expect(container.querySelector(".action-panel")).not.toBeInTheDocument();
   });
@@ -1255,10 +1764,21 @@ describe("PlayScreen round display", () => {
         continue: { shouldConfirmReach: false },
       },
     };
-    const { container, rerender } = render(<PlayScreen state={sevenState} dispatch={vi.fn()} currentRound={1} disableLocalCpuAutomation />);
+    const { container, rerender } = render(
+      <PlayScreen
+        state={sevenState}
+        dispatch={vi.fn()}
+        currentRound={1}
+        disableLocalCpuAutomation
+      />,
+    );
 
-    expect(container.querySelector(".reach-splash")).toHaveTextContent("Player 1");
-    expect(container.querySelector(".reach-splash")).toHaveTextContent("カード交換!!");
+    expect(container.querySelector(".reach-splash")).toHaveTextContent(
+      "Player 1",
+    );
+    expect(container.querySelector(".reach-splash")).toHaveTextContent(
+      "カード交換!!",
+    );
     expect(container.querySelector(".action-panel")).not.toBeInTheDocument();
 
     const queenState: GameState = {
@@ -1270,10 +1790,21 @@ describe("PlayScreen round display", () => {
         continue: { shouldConfirmReach: false },
       },
     };
-    rerender(<PlayScreen state={queenState} dispatch={vi.fn()} currentRound={1} disableLocalCpuAutomation />);
+    rerender(
+      <PlayScreen
+        state={queenState}
+        dispatch={vi.fn()}
+        currentRound={1}
+        disableLocalCpuAutomation
+      />,
+    );
 
-    expect(container.querySelector(".reach-splash")).toHaveTextContent("Player 1");
-    expect(container.querySelector(".reach-splash")).toHaveTextContent("数字消去!!");
+    expect(container.querySelector(".reach-splash")).toHaveTextContent(
+      "Player 1",
+    );
+    expect(container.querySelector(".reach-splash")).toHaveTextContent(
+      "数字消去!!",
+    );
     expect(container.querySelector(".action-panel")).not.toBeInTheDocument();
   });
 
@@ -1290,7 +1821,14 @@ describe("PlayScreen round display", () => {
       viewerPlayerId: "p2",
       players,
     };
-    const { container, rerender } = render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} disableLocalCpuAutomation />);
+    const { container, rerender } = render(
+      <PlayScreen
+        state={state}
+        dispatch={vi.fn()}
+        currentRound={1}
+        disableLocalCpuAutomation
+      />,
+    );
 
     expect(container.querySelector(".reach-splash")).not.toBeInTheDocument();
 
@@ -1298,7 +1836,9 @@ describe("PlayScreen round display", () => {
       <PlayScreen
         state={{
           ...state,
-          players: players.map((player, index) => (index === 0 ? { ...player, isReach: true } : player)),
+          players: players.map((player, index) =>
+            index === 0 ? { ...player, isReach: true } : player,
+          ),
         }}
         dispatch={vi.fn()}
         currentRound={1}
@@ -1306,53 +1846,114 @@ describe("PlayScreen round display", () => {
       />,
     );
 
-    expect(container.querySelector(".reach-splash")).toHaveTextContent("Player 1");
-    expect(container.querySelector(".reach-splash")).toHaveTextContent("リーチ!!");
+    expect(container.querySelector(".reach-splash")).toHaveTextContent(
+      "Player 1",
+    );
+    expect(container.querySelector(".reach-splash")).toHaveTextContent(
+      "リーチ!!",
+    );
   });
 
   it("shows table discard and meld placement only for three-player games", () => {
-    const { rerender } = render(<PlayScreen state={createInitialGame(3, "clockwise")} dispatch={vi.fn()} currentRound={1} />);
+    const { rerender } = render(
+      <PlayScreen
+        state={createInitialGame(3, "clockwise")}
+        dispatch={vi.fn()}
+        currentRound={1}
+      />,
+    );
 
     expect(screen.getByLabelText("捨て札と公開役")).toBeInTheDocument();
 
-    rerender(<PlayScreen state={createInitialGame(4, "clockwise")} dispatch={vi.fn()} currentRound={1} />);
+    rerender(
+      <PlayScreen
+        state={createInitialGame(4, "clockwise")}
+        dispatch={vi.fn()}
+        currentRound={1}
+      />,
+    );
     expect(screen.queryByLabelText("捨て札と公開役")).not.toBeInTheDocument();
 
-    rerender(<PlayScreen state={createInitialGame(5, "clockwise")} dispatch={vi.fn()} currentRound={1} />);
+    rerender(
+      <PlayScreen
+        state={createInitialGame(5, "clockwise")}
+        dispatch={vi.fn()}
+        currentRound={1}
+      />,
+    );
     expect(screen.queryByLabelText("捨て札と公開役")).not.toBeInTheDocument();
   });
 
   it("keeps the three-player table display and adds discard-only hover history", () => {
-    const { container } = render(<PlayScreen state={createHistoryState(3)} dispatch={vi.fn()} currentRound={1} />);
+    const { container } = render(
+      <PlayScreen
+        state={createHistoryState(3)}
+        dispatch={vi.fn()}
+        currentRound={1}
+      />,
+    );
 
     expect(container.querySelector(".table-card-layer")).toBeInTheDocument();
     expect(screen.getAllByText("過去の捨て札").length).toBeGreaterThan(0);
     expect(screen.queryByText("鳴いた役")).not.toBeInTheDocument();
     expect(screen.getAllByLabelText(/過去の捨て札/).length).toBeGreaterThan(0);
-    expect(screen.getAllByRole("button", { name: /捨て札履歴を確認/ }).every((button) => button.textContent === "?")).toBe(true);
+    expect(
+      screen
+        .getAllByRole("button", { name: /捨て札履歴を確認/ })
+        .every((button) => button.textContent === "?"),
+    ).toBe(true);
   });
 
   it("does not render a three-player hover history when there are no discards", () => {
-    const { container } = render(<PlayScreen state={createInitialGame(3, "clockwise")} dispatch={vi.fn()} currentRound={1} />);
+    const { container } = render(
+      <PlayScreen
+        state={createInitialGame(3, "clockwise")}
+        dispatch={vi.fn()}
+        currentRound={1}
+      />,
+    );
 
     expect(container.querySelector(".table-card-layer")).toBeInTheDocument();
     expect(screen.queryByText("まだ捨てていません")).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /捨て札履歴を確認/ })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /捨て札履歴を確認/ }),
+    ).not.toBeInTheDocument();
   });
 
-  it.each([4, 5])("shows two-column hover history markers for %i-player games", (playerCount) => {
-    const { container } = render(<PlayScreen state={createHistoryState(playerCount)} dispatch={vi.fn()} currentRound={1} />);
+  it.each([4, 5])(
+    "shows two-column hover history markers for %i-player games",
+    (playerCount) => {
+      const { container } = render(
+        <PlayScreen
+          state={createHistoryState(playerCount)}
+          dispatch={vi.fn()}
+          currentRound={1}
+        />,
+      );
 
-    expect(container.querySelector(".table-card-layer")).not.toBeInTheDocument();
-    expect(screen.getAllByLabelText(/履歴を確認/).length).toBeGreaterThan(0);
-    expect(screen.getAllByRole("button", { name: /履歴を確認/ }).every((button) => button.textContent === "?")).toBe(true);
-    expect(screen.getAllByText("過去の捨て札").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("鳴いた役").length).toBeGreaterThan(0);
-    expect(screen.getAllByLabelText(/鳴いた役/).length).toBeGreaterThan(0);
-  });
+      expect(
+        container.querySelector(".table-card-layer"),
+      ).not.toBeInTheDocument();
+      expect(screen.getAllByLabelText(/履歴を確認/).length).toBeGreaterThan(0);
+      expect(
+        screen
+          .getAllByRole("button", { name: /履歴を確認/ })
+          .every((button) => button.textContent === "?"),
+      ).toBe(true);
+      expect(screen.getAllByText("過去の捨て札").length).toBeGreaterThan(0);
+      expect(screen.getAllByText("鳴いた役").length).toBeGreaterThan(0);
+      expect(screen.getAllByLabelText(/鳴いた役/).length).toBeGreaterThan(0);
+    },
+  );
 
   it("shows empty messages in hover history when a player has no discard or meld data", () => {
-    render(<PlayScreen state={createInitialGame(4, "clockwise")} dispatch={vi.fn()} currentRound={1} />);
+    render(
+      <PlayScreen
+        state={createInitialGame(4, "clockwise")}
+        dispatch={vi.fn()}
+        currentRound={1}
+      />,
+    );
 
     expect(screen.getAllByText("まだ捨てていません").length).toBeGreaterThan(0);
     expect(screen.getAllByText("まだ鳴いていません").length).toBeGreaterThan(0);
@@ -1376,7 +1977,14 @@ describe("PlayScreen round display", () => {
       },
     };
 
-    render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} disableLocalCpuAutomation />);
+    render(
+      <PlayScreen
+        state={state}
+        dispatch={vi.fn()}
+        currentRound={1}
+        disableLocalCpuAutomation
+      />,
+    );
 
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(screen.queryByTestId("drawn-card-preview")).not.toBeInTheDocument();
@@ -1406,12 +2014,20 @@ describe("PlayScreen round display", () => {
         playerIndex: 0,
         continue: { shouldConfirmReach: false },
       },
-      message: "7を捨てました。7の効果：次のプレイヤーとカードを1枚交換しますか？",
+      message:
+        "7を捨てました。7の効果：次のプレイヤーとカードを1枚交換しますか？",
     };
-    const { container } = render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} disableLocalCpuAutomation />);
+    const { container } = render(
+      <PlayScreen
+        state={state}
+        dispatch={vi.fn()}
+        currentRound={1}
+        disableLocalCpuAutomation
+      />,
+    );
 
     expect(container.querySelector(".toolbar-action")).toHaveTextContent(
-      "7の効果：次のプレイヤーとカードを1枚交換しますか？",
+      "効果を使用するか選択してください",
     );
   });
 
@@ -1439,12 +2055,20 @@ describe("PlayScreen round display", () => {
         playerIndex: 0,
         continue: { shouldConfirmReach: false },
       },
-      message: "7を捨てました。7の効果：次のプレイヤーとカードを1枚交換しますか？",
+      message:
+        "7を捨てました。7の効果：次のプレイヤーとカードを1枚交換しますか？",
     };
-    const { container } = render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} disableLocalCpuAutomation />);
+    const { container } = render(
+      <PlayScreen
+        state={state}
+        dispatch={vi.fn()}
+        currentRound={1}
+        disableLocalCpuAutomation
+      />,
+    );
 
     expect(container.querySelector(".toolbar-action")).toHaveTextContent(
-      "Aliceが7の効果を使用するか選択しています。",
+      "7を捨てました。",
     );
   });
 
@@ -1469,10 +2093,17 @@ describe("PlayScreen round display", () => {
       phase: "draw",
       players: cpuPlayers,
     };
-    const { container, rerender } = render(<PlayScreen state={drawState} dispatch={vi.fn()} currentRound={1} disableLocalCpuAutomation />);
+    const { container, rerender } = render(
+      <PlayScreen
+        state={drawState}
+        dispatch={vi.fn()}
+        currentRound={1}
+        disableLocalCpuAutomation
+      />,
+    );
 
     expect(container.querySelector(".toolbar-action")).toHaveTextContent(
-      "Player2:standard-CPU1が山札または捨て札から選択しています。",
+      "山札または直前の捨て札から選択しています",
     );
 
     rerender(
@@ -1488,7 +2119,7 @@ describe("PlayScreen round display", () => {
     );
 
     expect(container.querySelector(".toolbar-action")).toHaveTextContent(
-      "Player2:standard-CPU1が捨てるカードを選択しています。",
+      "捨てるカードを選択しています。",
     );
   });
 
@@ -1505,9 +2136,18 @@ describe("PlayScreen round display", () => {
       pendingDaifugoEffect: null,
     };
 
-    render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} disableLocalCpuAutomation />);
+    render(
+      <PlayScreen
+        state={state}
+        dispatch={vi.fn()}
+        currentRound={1}
+        disableLocalCpuAutomation
+      />,
+    );
 
-    await waitFor(() => expect(screen.getByTestId("drawn-card-preview")).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByTestId("drawn-card-preview")).toBeInTheDocument(),
+    );
   });
 
   it("plays the online daifugo 8/10 deck draw animation from the explicit draw event", async () => {
@@ -1535,9 +2175,18 @@ describe("PlayScreen round display", () => {
       },
     };
 
-    render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} disableLocalCpuAutomation />);
+    render(
+      <PlayScreen
+        state={state}
+        dispatch={vi.fn()}
+        currentRound={1}
+        disableLocalCpuAutomation
+      />,
+    );
 
-    await waitFor(() => expect(screen.getByTestId("drawn-card-preview")).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByTestId("drawn-card-preview")).toBeInTheDocument(),
+    );
   });
 
   it("does not play another player's online daifugo deck draw animation without the card body", async () => {
@@ -1564,7 +2213,14 @@ describe("PlayScreen round display", () => {
       },
     };
 
-    render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} disableLocalCpuAutomation />);
+    render(
+      <PlayScreen
+        state={state}
+        dispatch={vi.fn()}
+        currentRound={1}
+        disableLocalCpuAutomation
+      />,
+    );
 
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(screen.queryByTestId("drawn-card-preview")).not.toBeInTheDocument();
@@ -1580,7 +2236,10 @@ describe("PlayScreen round display", () => {
       stateVersion: 7,
       currentPlayerIndex: 0,
       phase: "discard",
-      players: base.players.map((player, index) => ({ ...player, name: ["Alice", "Bob", "Carol", "Dave"][index] })),
+      players: base.players.map((player, index) => ({
+        ...player,
+        name: ["Alice", "Bob", "Carol", "Dave"][index],
+      })),
       pendingDaifugoEffect: {
         kind: "sevenExchange",
         effect: "sevenExchange",
@@ -1592,13 +2251,26 @@ describe("PlayScreen round display", () => {
     };
 
     try {
-      render(<PlayScreen state={state} dispatch={dispatch} currentRound={1} disableLocalCpuAutomation />);
+      render(
+        <PlayScreen
+          state={state}
+          dispatch={dispatch}
+          currentRound={1}
+          disableLocalCpuAutomation
+        />,
+      );
 
-      expect(screen.getAllByText("相手に渡すカードを1枚選択してください。").length).toBeGreaterThan(0);
+      expect(
+        screen.getAllByText("相手に渡すカードを1枚選択してください。").length,
+      ).toBeGreaterThan(0);
       await act(async () => {
         await vi.runAllTimersAsync();
       });
-      const selectableCard = screen.getAllByTestId("hand-card").find((button) => !(button as HTMLButtonElement).disabled) as HTMLButtonElement | undefined;
+      const selectableCard = screen
+        .getAllByTestId("hand-card")
+        .find((button) => !(button as HTMLButtonElement).disabled) as
+        | HTMLButtonElement
+        | undefined;
       expect(selectableCard).toBeTruthy();
       fireEvent.click(selectableCard!);
       expect(selectableCard).toHaveClass("selected-card");
@@ -1624,7 +2296,10 @@ describe("PlayScreen round display", () => {
       stateVersion: 7,
       currentPlayerIndex: 0,
       phase: "discard",
-      players: base.players.map((player, index) => ({ ...player, name: ["Alice", "Bob", "Carol", "Dave"][index] })),
+      players: base.players.map((player, index) => ({
+        ...player,
+        name: ["Alice", "Bob", "Carol", "Dave"][index],
+      })),
       pendingDaifugoEffect: {
         kind: "sevenExchange",
         effect: "sevenExchange",
@@ -1635,10 +2310,21 @@ describe("PlayScreen round display", () => {
       },
     };
 
-    render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} disableLocalCpuAutomation />);
+    render(
+      <PlayScreen
+        state={state}
+        dispatch={vi.fn()}
+        currentRound={1}
+        disableLocalCpuAutomation
+      />,
+    );
 
-    expect(screen.getAllByText("Bobが渡すカードを選択しています。").length).toBeGreaterThan(0);
-    expect(screen.queryByTestId("seven-exchange-confirm-button")).not.toBeInTheDocument();
+    expect(
+      screen.getAllByText("Bobが渡すカードを選択しています。").length,
+    ).toBeGreaterThan(0);
+    expect(
+      screen.queryByTestId("seven-exchange-confirm-button"),
+    ).not.toBeInTheDocument();
   });
 
   it("keeps third-party online viewers read-only during seven exchange", () => {
@@ -1649,7 +2335,10 @@ describe("PlayScreen round display", () => {
       stateVersion: 7,
       currentPlayerIndex: 0,
       phase: "discard",
-      players: base.players.map((player, index) => ({ ...player, name: ["Alice", "Bob", "Carol", "Dave"][index] })),
+      players: base.players.map((player, index) => ({
+        ...player,
+        name: ["Alice", "Bob", "Carol", "Dave"][index],
+      })),
       pendingDaifugoEffect: {
         kind: "sevenExchange",
         effect: "sevenExchange",
@@ -1660,10 +2349,26 @@ describe("PlayScreen round display", () => {
       },
     };
 
-    render(<PlayScreen state={state} dispatch={vi.fn()} currentRound={1} disableLocalCpuAutomation />);
+    render(
+      <PlayScreen
+        state={state}
+        dispatch={vi.fn()}
+        currentRound={1}
+        disableLocalCpuAutomation
+      />,
+    );
 
-    expect(screen.getAllByText("AliceとBobが互いに渡すカードを選択しています。").length).toBeGreaterThan(0);
-    expect(screen.getAllByTestId("hand-card").every((button) => (button as HTMLButtonElement).disabled)).toBe(true);
-    expect(screen.queryByTestId("seven-exchange-confirm-button")).not.toBeInTheDocument();
+    expect(
+      screen.getAllByText("AliceとBobが互いに渡すカードを選択しています。")
+        .length,
+    ).toBeGreaterThan(0);
+    expect(
+      screen
+        .getAllByTestId("hand-card")
+        .every((button) => (button as HTMLButtonElement).disabled),
+    ).toBe(true);
+    expect(
+      screen.queryByTestId("seven-exchange-confirm-button"),
+    ).not.toBeInTheDocument();
   });
 });
