@@ -4404,6 +4404,18 @@ function getAnimationLabel(phase: AnimationPhase) {
 }
 
 function MobileLayoutDebugPanel({ playerCount }: { playerCount: number }) {
+  const [panelCorner, setPanelCorner] = useState<
+    "top-left" | "top-right" | "bottom-left" | "bottom-right"
+  >("top-right");
+
+  const panelPositionStyle: CSSProperties =
+    panelCorner === "top-left"
+      ? { left: 8, top: 8 }
+      : panelCorner === "top-right"
+        ? { right: 8, top: 8 }
+        : panelCorner === "bottom-left"
+          ? { left: 8, bottom: 8 }
+          : { right: 8, bottom: 8 };
   const [targetSeat, setTargetSeat] = useState(1);
   const [targetKind, setTargetKind] = useState<"marker" | "window">("window");
   const [offsets, setOffsets] = useState<
@@ -4508,17 +4520,16 @@ function MobileLayoutDebugPanel({ playerCount }: { playerCount: number }) {
     <div
       style={{
         position: "fixed",
-        left: 8,
-        bottom: 8,
+        ...panelPositionStyle,
         zIndex: 999999,
-        width: "min(46dvw, 320px)",
-        maxHeight: "82dvh",
+        width: "min(34dvw, 260px)",
+        maxHeight: "76dvh",
         overflow: "auto",
         padding: 8,
         borderRadius: 10,
-        background: "rgba(0, 0, 0, 0.86)",
+        background: "rgba(0, 0, 0, 0.78)",
         color: "white",
-        fontSize: 11,
+        fontSize: 10,
         lineHeight: 1.2,
         boxShadow: "0 0 0 2px red",
       }}
@@ -4526,6 +4537,27 @@ function MobileLayoutDebugPanel({ playerCount }: { playerCount: number }) {
       <strong style={{ display: "block", marginBottom: 6 }}>
         Layout Debug
       </strong>
+      <label style={{ display: "block", marginBottom: 6 }}>
+        panel:
+        <select
+          value={panelCorner}
+          onChange={(event) =>
+            setPanelCorner(
+              event.target.value as
+                | "top-left"
+                | "top-right"
+                | "bottom-left"
+                | "bottom-right",
+            )
+          }
+          style={{ width: "100%", marginTop: 4 }}
+        >
+          <option value="top-left">top-left</option>
+          <option value="top-right">top-right</option>
+          <option value="bottom-left">bottom-left</option>
+          <option value="bottom-right">bottom-right</option>
+        </select>
+      </label>
 
       <label style={{ display: "block", marginBottom: 6 }}>
         target:

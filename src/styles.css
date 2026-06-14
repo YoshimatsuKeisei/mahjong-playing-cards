@@ -7911,7 +7911,11 @@ body {
 }
 
 @media (orientation: landscape) and (max-height: 700px) and (hover: none) and (pointer: coarse) {
-  /* ① 3人用 ? の位置調整 */
+  /* =========================
+     3人用 ? 位置調整
+     3人用は p1/p2/p3 ではなく self/right/left
+     p1 = self, p2 = right, p3 = left
+  ========================= */
   .table-3 .table-history-anchor .history-hover-marker {
     position: relative !important;
     left: var(--history-marker-x, 0px) !important;
@@ -7935,7 +7939,25 @@ body {
     --history-marker-y: var(--table-history-3-left-marker-y, 0px);
   }
 
-  /* ② 3〜5人用 カードウィンドウの共通配置 */
+  /* =========================
+     4人用 ? 入れ替え修正
+     前回座標ベース:
+     p3 = player1
+     p4 = player2
+  ========================= */
+  .table-4 .history-hover-anchor--p3 {
+    --history-marker-x: 570px;
+    --history-marker-y: 226px;
+  }
+
+  .table-4 .history-hover-anchor--p4 {
+    --history-marker-x: -392px;
+    --history-marker-y: -102px;
+  }
+
+  /* =========================
+     3〜5人用 カードウィンドウ共通
+  ========================= */
   .history-hover-anchor .player-history-popover {
     position: fixed !important;
     left: calc(50dvw + var(--history-window-x, 0px)) !important;
@@ -7958,7 +7980,10 @@ body {
     transform: translate(-50%, -50%) scale(0.82) !important;
   }
 
-  /* 3人用カードウィンドウ */
+  /* =========================
+     3人用 カードウィンドウ
+     まだ座標未取得なので0px
+  ========================= */
   .table-3 .table-history-anchor--self {
     --history-window-x: var(--table-history-3-self-window-x, 0px);
     --history-window-y: var(--table-history-3-self-window-y, 0px);
@@ -7974,15 +7999,18 @@ body {
     --history-window-y: var(--table-history-3-left-window-y, 0px);
   }
 
-  /* 4人用カードウィンドウ */
+  /* =========================
+     4人用 カードウィンドウ
+     p3 = player1 は未測定
+  ========================= */
   .table-4 .history-hover-anchor--p1 {
-    --history-window-x: var(--history-4-p1-window-x, 0px);
-    --history-window-y: var(--history-4-p1-window-y, 0px);
+    --history-window-x: -313px;
+    --history-window-y: -189px;
   }
 
   .table-4 .history-hover-anchor--p2 {
-    --history-window-x: var(--history-4-p2-window-x, 0px);
-    --history-window-y: var(--history-4-p2-window-y, 0px);
+    --history-window-x: -253px;
+    --history-window-y: -209px;
   }
 
   .table-4 .history-hover-anchor--p3 {
@@ -7991,29 +8019,32 @@ body {
   }
 
   .table-4 .history-hover-anchor--p4 {
-    --history-window-x: var(--history-4-p4-window-x, 0px);
-    --history-window-y: var(--history-4-p4-window-y, 0px);
+    --history-window-x: -343px;
+    --history-window-y: -231px;
   }
 
-  /* 5人用カードウィンドウ */
+  /* =========================
+     5人用 カードウィンドウ
+     p5 = player2 は未測定
+  ========================= */
   .table-5 .history-hover-anchor--p1 {
-    --history-window-x: var(--history-5-p1-window-x, 0px);
-    --history-window-y: var(--history-5-p1-window-y, 0px);
+    --history-window-x: -347px;
+    --history-window-y: -149px;
   }
 
   .table-5 .history-hover-anchor--p2 {
-    --history-window-x: var(--history-5-p2-window-x, 0px);
-    --history-window-y: var(--history-5-p2-window-y, 0px);
+    --history-window-x: -287px;
+    --history-window-y: -171px;
   }
 
   .table-5 .history-hover-anchor--p3 {
-    --history-window-x: var(--history-5-p3-window-x, 0px);
-    --history-window-y: var(--history-5-p3-window-y, 0px);
+    --history-window-x: -287px;
+    --history-window-y: -186px;
   }
 
   .table-5 .history-hover-anchor--p4 {
-    --history-window-x: var(--history-5-p4-window-x, 0px);
-    --history-window-y: var(--history-5-p4-window-y, 0px);
+    --history-window-x: -240px;
+    --history-window-y: -160px;
   }
 
   .table-5 .history-hover-anchor--p5 {
