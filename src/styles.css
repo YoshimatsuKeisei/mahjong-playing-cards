@@ -7835,63 +7835,71 @@ body {
 }
 
 @media (orientation: landscape) and (max-height: 700px) {
+  .history-hover-marker {
+    position: relative !important;
+    left: var(--history-marker-x, 0px) !important;
+    top: var(--history-marker-y, 0px) !important;
+    right: auto !important;
+    bottom: auto !important;
+  }
+
   .table-3 .history-hover-anchor--p1 {
-    --history-p1-x: 0px;
-    --history-p1-y: 0px;
+    --history-marker-x: var(--history-3-p1-x, 0px);
+    --history-marker-y: var(--history-3-p1-y, 0px);
   }
 
   .table-3 .history-hover-anchor--p2 {
-    --history-p2-x: 0px;
-    --history-p2-y: 0px;
+    --history-marker-x: var(--history-3-p2-x, 0px);
+    --history-marker-y: var(--history-3-p2-y, 0px);
   }
 
   .table-3 .history-hover-anchor--p3 {
-    --history-p3-x: 0px;
-    --history-p3-y: 0px;
+    --history-marker-x: var(--history-3-p3-x, 0px);
+    --history-marker-y: var(--history-3-p3-y, 0px);
   }
 
   .table-4 .history-hover-anchor--p1 {
-    --history-p1-x: 0px;
-    --history-p1-y: 0px;
+    --history-marker-x: var(--history-4-p1-x, 0px);
+    --history-marker-y: var(--history-4-p1-y, 0px);
   }
 
   .table-4 .history-hover-anchor--p2 {
-    --history-p2-x: 0px;
-    --history-p2-y: 0px;
+    --history-marker-x: var(--history-4-p2-x, 0px);
+    --history-marker-y: var(--history-4-p2-y, 0px);
   }
 
   .table-4 .history-hover-anchor--p3 {
-    --history-p3-x: 0px;
-    --history-p3-y: 0px;
+    --history-marker-x: var(--history-4-p3-x, 0px);
+    --history-marker-y: var(--history-4-p3-y, 0px);
   }
 
   .table-4 .history-hover-anchor--p4 {
-    --history-p4-x: 0px;
-    --history-p4-y: 0px;
+    --history-marker-x: var(--history-4-p4-x, 0px);
+    --history-marker-y: var(--history-4-p4-y, 0px);
   }
 
   .table-5 .history-hover-anchor--p1 {
-    --history-p1-x: 0px;
-    --history-p1-y: 0px;
+    --history-marker-x: var(--history-5-p1-x, 0px);
+    --history-marker-y: var(--history-5-p1-y, 0px);
   }
 
   .table-5 .history-hover-anchor--p2 {
-    --history-p2-x: 0px;
-    --history-p2-y: 0px;
+    --history-marker-x: var(--history-5-p2-x, 0px);
+    --history-marker-y: var(--history-5-p2-y, 0px);
   }
 
   .table-5 .history-hover-anchor--p3 {
-    --history-p3-x: 0px;
-    --history-p3-y: 0px;
+    --history-marker-x: var(--history-5-p3-x, 0px);
+    --history-marker-y: var(--history-5-p3-y, 0px);
   }
 
   .table-5 .history-hover-anchor--p4 {
-    --history-p4-x: 0px;
-    --history-p4-y: 0px;
+    --history-marker-x: var(--history-5-p4-x, 0px);
+    --history-marker-y: var(--history-5-p4-y, 0px);
   }
 
   .table-5 .history-hover-anchor--p5 {
-    --history-p5-x: 0px;
-    --history-p5-y: 0px;
+    --history-marker-x: var(--history-5-p5-x, 0px);
+    --history-marker-y: var(--history-5-p5-y, 0px);
   }
 }
