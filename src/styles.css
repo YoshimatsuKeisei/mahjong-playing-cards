@@ -7800,3 +7800,36 @@ body {
 .mobile-layout-debug-panel input {
   width: 100%;
 }
+
+@media (orientation: landscape) and (max-height: 700px) {
+  .history-hover-anchor .player-history-popover,
+  .table-history-anchor .player-history-popover {
+    position: fixed !important;
+
+    left: auto !important;
+    top: auto !important;
+    right: calc(
+      env(safe-area-inset-right, 0px) + var(--history-right, 10px)
+    ) !important;
+    bottom: calc(
+      env(safe-area-inset-bottom, 0px) + var(--history-bottom, 58px)
+    ) !important;
+
+    width: var(--history-width, 46dvw) !important;
+    max-width: 96dvw !important;
+
+    max-height: var(--history-height, 48dvh) !important;
+    overflow: auto !important;
+
+    transform: none !important;
+    transform-origin: bottom right !important;
+    z-index: 9999 !important;
+  }
+
+  .history-hover-anchor:focus-within .player-history-popover,
+  .history-hover-anchor:hover .player-history-popover,
+  .table-history-anchor:focus-within .player-history-popover,
+  .table-history-anchor:hover .player-history-popover {
+    transform: none !important;
+  }
+}
