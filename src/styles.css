@@ -7985,17 +7985,17 @@ body {
 }
 
 @media (orientation: landscape) and (max-height: 700px) and (hover: none) and (pointer: coarse) {
-  .table-3 .history-hover-anchor--p1 {
+  .table-3 .table-history-anchor--self {
     --history-window-x: 0px;
     --history-window-y: 0px;
   }
 
-  .table-3 .history-hover-anchor--p2 {
+  .table-3 .table-history-anchor--left {
     --history-window-x: 0px;
     --history-window-y: 0px;
   }
 
-  .table-3 .history-hover-anchor--p3 {
+  .table-3 .table-history-anchor--right {
     --history-window-x: 0px;
     --history-window-y: 0px;
   }
