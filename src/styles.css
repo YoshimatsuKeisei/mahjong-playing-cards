@@ -7909,3 +7909,94 @@ body {
     --history-marker-y: 0px;
   }
 }
+
+@media (orientation: landscape) and (max-height: 700px) and (hover: none) and (pointer: coarse) {
+  .history-hover-anchor .player-history-popover {
+    position: fixed !important;
+
+    left: calc(50dvw + var(--history-window-x, 0px)) !important;
+    top: calc(46dvh + var(--history-window-y, 0px)) !important;
+    right: auto !important;
+    bottom: auto !important;
+
+    width: var(--history-window-width, min(52dvw, 340px)) !important;
+    max-width: var(--history-window-width, min(52dvw, 340px)) !important;
+    max-height: var(--history-window-height, 34dvh) !important;
+    overflow: auto !important;
+
+    transform: translate(-50%, -50%) scale(0.82) !important;
+    transform-origin: center center !important;
+    z-index: 9999 !important;
+  }
+
+  .history-hover-anchor:focus-within .player-history-popover,
+  .history-hover-anchor:hover .player-history-popover {
+    transform: translate(-50%, -50%) scale(0.82) !important;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 700px) and (hover: none) and (pointer: coarse) {
+  .table-4 .history-hover-anchor--p1 {
+    --history-window-x: 0px;
+    --history-window-y: 0px;
+  }
+
+  .table-4 .history-hover-anchor--p2 {
+    --history-window-x: 0px;
+    --history-window-y: 0px;
+  }
+
+  .table-4 .history-hover-anchor--p3 {
+    --history-window-x: 0px;
+    --history-window-y: 0px;
+  }
+
+  .table-4 .history-hover-anchor--p4 {
+    --history-window-x: 0px;
+    --history-window-y: 0px;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 700px) and (hover: none) and (pointer: coarse) {
+  .table-5 .history-hover-anchor--p1 {
+    --history-window-x: 0px;
+    --history-window-y: 0px;
+  }
+
+  .table-5 .history-hover-anchor--p2 {
+    --history-window-x: 0px;
+    --history-window-y: 0px;
+  }
+
+  .table-5 .history-hover-anchor--p3 {
+    --history-window-x: 0px;
+    --history-window-y: 0px;
+  }
+
+  .table-5 .history-hover-anchor--p4 {
+    --history-window-x: 0px;
+    --history-window-y: 0px;
+  }
+
+  .table-5 .history-hover-anchor--p5 {
+    --history-window-x: 0px;
+    --history-window-y: 0px;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 700px) and (hover: none) and (pointer: coarse) {
+  .table-3 .history-hover-anchor--p1 {
+    --history-window-x: 0px;
+    --history-window-y: 0px;
+  }
+
+  .table-3 .history-hover-anchor--p2 {
+    --history-window-x: 0px;
+    --history-window-y: 0px;
+  }
+
+  .table-3 .history-hover-anchor--p3 {
+    --history-window-x: 0px;
+    --history-window-y: 0px;
+  }
+}

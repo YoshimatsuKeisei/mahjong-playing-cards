@@ -1827,7 +1827,7 @@ export default function PlayScreen({
               />
             );
           })}
-        {playerCount >= 4 &&
+        {playerCount >= 3 &&
           displaySlots.map(({ player, slotIndex }) => (
             <div
               className={`history-hover-anchor history-hover-anchor--${getSeat(playerCount, slotIndex)} history-hover-anchor--p${slotIndex + 1}`}
