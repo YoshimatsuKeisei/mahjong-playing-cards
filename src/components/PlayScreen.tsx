@@ -1529,7 +1529,7 @@ export default function PlayScreen({
       data-phase={state.phase}
       data-state-version={state.stateVersion ?? ""}
     >
-      <MobileLayoutDebugPanel />
+      <MobileLayoutDebugPanel playerCount={playerCount} />
       <section
         className={`table-scene table-${playerCount}`}
         aria-label={`${playerCount}人用テーブル`}
@@ -4403,31 +4403,45 @@ function getAnimationLabel(phase: AnimationPhase) {
   return "";
 }
 
-function MobileLayoutDebugPanel() {
-  const [historyRight, setHistoryRight] = React.useState(10);
-  const [historyBottom, setHistoryBottom] = React.useState(58);
-  const [historyWidth, setHistoryWidth] = React.useState(46);
-  const [historyHeight, setHistoryHeight] = React.useState(48);
-  const [helpTop, setHelpTop] = React.useState(8);
-  const [helpRight, setHelpRight] = React.useState(8);
+function MobileLayoutDebugPanel({ playerCount }: { playerCount: number }) {
+  const [targetSeat, setTargetSeat] = useState(1);
+  const [offsets, setOffsets] = useState<
+    Record<string, { x: number; y: number }>
+  >({});
 
-  React.useEffect(() => {
+  const key = `${playerCount}-p${targetSeat}`;
+  const current = offsets[key] ?? { x: 0, y: 0 };
+
+  useEffect(() => {
+    if (targetSeat > playerCount) {
+      setTargetSeat(playerCount);
+    }
+  }, [playerCount, targetSeat]);
+
+  useEffect(() => {
     const root = document.documentElement;
 
-    root.style.setProperty("--history-right", `${historyRight}px`);
-    root.style.setProperty("--history-bottom", `${historyBottom}px`);
-    root.style.setProperty("--history-width", `${historyWidth}dvw`);
-    root.style.setProperty("--history-height", `${historyHeight}dvh`);
-    root.style.setProperty("--help-top", `${helpTop}px`);
-    root.style.setProperty("--help-right", `${helpRight}px`);
-  }, [
-    historyRight,
-    historyBottom,
-    historyWidth,
-    historyHeight,
-    helpTop,
-    helpRight,
-  ]);
+    Object.entries(offsets).forEach(([offsetKey, value]) => {
+      const [count, seat] = offsetKey.split("-");
+      root.style.setProperty(`--history-${count}-${seat}-x`, `${value.x}px`);
+      root.style.setProperty(`--history-${count}-${seat}-y`, `${value.y}px`);
+    });
+  }, [offsets]);
+
+  const updateCurrent = (next: { x?: number; y?: number }) => {
+    setOffsets((previous) => ({
+      ...previous,
+      [key]: {
+        x: next.x ?? current.x,
+        y: next.y ?? current.y,
+      },
+    }));
+  };
+
+  const seatOptions = Array.from(
+    { length: playerCount },
+    (_, index) => index + 1,
+  );
 
   return (
     <div
@@ -4449,80 +4463,57 @@ function MobileLayoutDebugPanel() {
       }}
     >
       <strong style={{ display: "block", marginBottom: 6 }}>
-        Layout Debug ACTIVE
+        ? Position Debug
       </strong>
 
       <label style={{ display: "block", marginBottom: 6 }}>
-        history right: {historyRight}px
-        <input
-          type="range"
-          min="-300"
-          max="700"
-          step="1"
-          value={historyRight}
-          onChange={(event) => setHistoryRight(Number(event.target.value))}
-        />
+        player count: {playerCount}
       </label>
 
       <label style={{ display: "block", marginBottom: 6 }}>
-        history bottom: {historyBottom}px
+        target seat:
+        <select
+          value={targetSeat}
+          onChange={(event) => setTargetSeat(Number(event.target.value))}
+          style={{ width: "100%", marginTop: 4 }}
+        >
+          {seatOptions.map((seat) => (
+            <option key={seat} value={seat}>
+              p{seat}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <label style={{ display: "block", marginBottom: 6 }}>
+        x: {current.x}px
         <input
+          style={{ width: "100%" }}
           type="range"
-          min="-200"
+          min="-500"
           max="500"
           step="1"
-          value={historyBottom}
-          onChange={(event) => setHistoryBottom(Number(event.target.value))}
+          value={current.x}
+          onChange={(event) => updateCurrent({ x: Number(event.target.value) })}
         />
       </label>
 
       <label style={{ display: "block", marginBottom: 6 }}>
-        history width: {historyWidth}dvw
+        y: {current.y}px
         <input
-          type="range"
-          min="20"
-          max="100"
-          step="1"
-          value={historyWidth}
-          onChange={(event) => setHistoryWidth(Number(event.target.value))}
-        />
-      </label>
-
-      <label style={{ display: "block", marginBottom: 6 }}>
-        history height: {historyHeight}dvh
-        <input
-          type="range"
-          min="15"
-          max="95"
-          step="1"
-          value={historyHeight}
-          onChange={(event) => setHistoryHeight(Number(event.target.value))}
-        />
-      </label>
-
-      <label style={{ display: "block", marginBottom: 6 }}>
-        ? top: {helpTop}px
-        <input
-          type="range"
-          min="-200"
-          max="500"
-          step="1"
-          value={helpTop}
-          onChange={(event) => setHelpTop(Number(event.target.value))}
-        />
-      </label>
-
-      <label style={{ display: "block", marginBottom: 6 }}>
-        ? right: {helpRight}px
-        <input
+          style={{ width: "100%" }}
           type="range"
           min="-300"
-          max="700"
+          max="300"
           step="1"
-          value={helpRight}
-          onChange={(event) => setHelpRight(Number(event.target.value))}
+          value={current.y}
+          onChange={(event) => updateCurrent({ y: Number(event.target.value) })}
         />
       </label>
+
+      <code style={{ display: "block", whiteSpace: "pre-wrap" }}>
+        {`--history-${playerCount}-p${targetSeat}-x: ${current.x}px;\n--history-${playerCount}-p${targetSeat}-y: ${current.y}px;`}
+      </code>
     </div>
   );
 }
