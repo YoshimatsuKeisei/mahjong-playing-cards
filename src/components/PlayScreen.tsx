@@ -1,3 +1,4 @@
+import React from "react";
 import {
   useEffect,
   useLayoutEffect,
@@ -1528,6 +1529,7 @@ export default function PlayScreen({
       data-phase={state.phase}
       data-state-version={state.stateVersion ?? ""}
     >
+      <MobileLayoutDebugPanel />
       <section
         className={`table-scene table-${playerCount}`}
         aria-label={`${playerCount}人用テーブル`}
@@ -4054,26 +4056,6 @@ function getRequiredActionPlayerIndex(state: GameState): number | null {
   }
   return "playerIndex" in pending ? pending.playerIndex : null;
 }
-
-function getPlayerActionName(state: GameState, playerIndex: number | null) {
-  return playerIndex === null
-    ? "プレイヤー"
-    : (state.players[playerIndex]?.name ?? "プレイヤー");
-}
-
-function getDaifugoEffectRankLabel(
-  effect: NonNullable<GameState["pendingDaifugoEffect"]>["effect"],
-) {
-  if (effect === "fiveSkip") return "5";
-  if (effect === "sevenExchange") return "7";
-  if (effect === "eightExtraTurn") return "8";
-  if (effect === "nineReverse") return "9";
-  if (effect === "tenSwapDraw") return "10";
-  if (effect === "jackBack") return "J";
-  if (effect === "queenNumberVanish") return "Q";
-  return "カード";
-}
-
 // 上部ナビ文言生成 通常フェーズ、効果選択中、7渡し中、8/10効果中、リーチ継続確認中などの上部メッセージを返す。
 // toolbar-action の通常表示を作る。
 // ただし、効果演出中は daifugoAnimationStep.message が優先される。
@@ -4116,28 +4098,35 @@ function getActionText(state: GameState, viewerPlayerId?: string) {
   }
   if (pending?.kind === "queenSelect") {
     return isViewerRequiredActionPlayer
-      ? "Qの効果：消す数字を選んでください。"
-      : `${getPlayerActionName(state, pending.playerIndex)}がQの効果で消す数字を選択しています。`;
+      ? "Qの効果で消す数字を選んでください。"
+      : "Qの効果で消す数字を選択しています。";
   }
   if (pending?.kind === "queenWinConfirm") {
     return isViewerRequiredActionPlayer
       ? "Qの効果後の上がりを確認してください。"
-      : `${getPlayerActionName(state, pending.playerIndex)}がQの効果後の上がりを確認しています。`;
+      : "Qの効果後の上がりを確認しています。";
   }
   if (pending?.kind === "jackSelect") {
+    const actor = state.players[pending.playerIndex];
     return isViewerRequiredActionPlayer
       ? "J特殊効果を選択してください。"
-      : `${getPlayerActionName(state, pending.playerIndex)}がJ特殊効果を選択しています。`;
+      : "Jを捨てました。";
   }
   if (pending?.kind === "jackShieldSelect") {
+    const actor = state.players[pending.playerIndex];
     return isViewerRequiredActionPlayer
       ? "Jシールドの対象数字を選択してください。"
-      : `${getPlayerActionName(state, pending.playerIndex)}がJシールドの対象を選択しています。`;
+      : "Jを捨てました。";
   }
   if (pending?.kind === "jackInspect") {
+    const targetNames =
+      pending.targetPlayerIndexes
+        .map((playerIndex) => state.players[playerIndex]?.name)
+        .filter((name): name is string => Boolean(name))
+        .join("と") || "相手";
     return isViewerRequiredActionPlayer
       ? "J効果で相手の手札を確認してください。"
-      : `${getPlayerActionName(state, pending.playerIndex)}が情報閲覧をしています。`;
+      : "J効果を使用し、他のプレイヤーの手札を閲覧しています。";
   }
   if (pending?.kind === "reachContinueConfirm") {
     if (!isViewerRequiredActionPlayer) {
@@ -4149,89 +4138,90 @@ function getActionText(state: GameState, viewerPlayerId?: string) {
       : "カード交換により手札構成が変化しました。";
   }
   if (pending?.kind === "confirm") {
+    const actor = state.players[pending.playerIndex];
+    const discardedCard = actor?.discardPile.at(-1) ?? null;
+    const rankLabel = discardedCard
+      ? formatRankLabel(discardedCard.rank)
+      : "カード";
     const viewerIsActor = viewerIndex === pending.playerIndex;
     return viewerIsActor
-      ? getDaifugoEffectText(pending.effect)
-      : `${getPlayerActionName(state, pending.playerIndex)}が${getDaifugoEffectRankLabel(pending.effect)}の効果を使用するか選択しています。`;
+      ? "効果を使用するか選択してください。"
+      : `${rankLabel}を捨てました。`;
   }
 
   if (pending?.kind === "effectDraw") {
-    const actorName = getPlayerActionName(state, pending.playerIndex);
     if (pending.effect === "eightExtraTurn") {
-      return isViewerRequiredActionPlayer
-        ? "8の効果で山札から引いてください。"
-        : `${actorName}が8の効果で山札から引いています。`;
+      return "8の効果で山札から引きます。";
     }
     if (pending.effect === "tenSwapDraw") {
       return isViewerRequiredActionPlayer
-        ? "10の効果で山札から1枚引いてください。"
-        : `${actorName}が10の効果で山札から引いています。`;
+        ? "山札から1枚引きます。"
+        : state.message || "10の効果で山札から1枚引きます。";
     }
-    return `${actorName}が効果で山札から引いています。`;
+    return `${requiredPlayer?.name ?? "プレイヤー"}が効果で山札から引いています。`;
   }
   if (pending?.kind === "extraDiscard") {
-    const actorName = getPlayerActionName(state, pending.playerIndex);
     if (pending.effect === "tenSwapDraw") {
       return isViewerRequiredActionPlayer
         ? "10の効果：追加で1枚捨ててください。"
-        : `${actorName}が10の効果で追加の捨て札を選択しています。`;
+        : "10の効果で追加の捨て札を選んでいます。";
     }
     if (pending.effect === "eightExtraTurn") {
       return isViewerRequiredActionPlayer
         ? "8の効果：追加で1枚捨ててください。"
-        : `${actorName}が8の効果で追加の捨て札を選択しています。`;
+        : "8の効果で追加の捨て札を選んでいます。";
     }
 
     if (!isViewerRequiredActionPlayer) {
-      return `${actorName}が捨てるカードを選択しています。`;
+      return "捨てるカードを選択しています。";
     }
   }
   const currentPlayer = state.players[state.currentPlayerIndex];
   const isViewerTurn = !viewerPlayerId || currentPlayer?.id === viewerPlayerId;
   if (currentPlayer?.isCpu) {
     if (state.phase === "draw")
-      return `${currentPlayer.name}が山札または捨て札から選択しています。`;
-    if (state.phase === "discard")
-      return `${currentPlayer.name}が捨てるカードを選択しています。`;
+      return "山札または直前の捨て札から選択しています";
+    if (state.phase === "discard") return "捨てるカードを選択しています。";
     if (state.phase === "reachConfirm")
-      return `${currentPlayer.name}がリーチを宣言するか確認しています。`;
+      return `${currentPlayer.name}（CPU）がリーチを確認しています。`;
     if (state.phase === "ronCheck")
-      return `${currentPlayer.name}がロンするか確認しています。`;
+      return `${currentPlayer.name}（CPU）がロンを確認しています。`;
   }
 
   if (
     pending?.kind === "sevenEnhancementSplash" ||
     pending?.kind === "sevenEnhancedTargetSelect"
   ) {
+    const actor = state.players[pending.playerIndex];
     return isViewerRequiredActionPlayer
       ? "交換相手を選択してください。"
-      : `${getPlayerActionName(state, pending.playerIndex)}が7渡しの相手を選んでいます。J強化により次の手番以外の人も交換対象になります。`;
+      : "7渡しの相手を選んでいます。J強化により次の手番以外の人も交換対象になります。";
   }
   if (
     pending?.kind === "fiveEnhancementSplash" ||
     pending?.kind === "fiveEnhancedTargetSelect"
   ) {
+    const actor = state.players[pending.playerIndex];
     return isViewerRequiredActionPlayer
       ? "次の手番を渡すプレイヤーを選択してください。"
-      : `${getPlayerActionName(state, pending.playerIndex)}が次の手番の人を選んでいます。J強化により複数人飛ばすことが可能です。`;
+      : "次の手番の人を選んでいます。J強化により複数人飛ばすことが可能です。";
   }
 
   if (!isViewerTurn && currentPlayer) {
-    if (state.phase === "draw")
-      return `${currentPlayer.name}が山札または捨て札から選択しています。`;
+    if (state.phase === "draw") return "山札または捨て札から選択しています。";
     if (state.phase === "discard") {
       if (
         state.message.includes("8の効果：山札から1枚引きます") ||
         state.message.includes("8の効果で山札から引きます")
       ) {
-        return `${currentPlayer.name}が8の効果で山札から引いています。`;
+        return "8の効果で山札から引きます。";
       }
       if (
         state.message.includes("8の効果：追加で1枚捨ててください") ||
         state.message.includes("8の効果：追加行動で1枚捨ててください") ||
         state.message.includes("8の効果で追加行動中")
       ) {
-        return `${currentPlayer.name}が8の効果で追加の捨て札を選択しています。`;
+        return "8の効果で追加の捨て札を選んでいます。";
       }
       if (
         state.message.includes("10の効果を使用し") &&
@@ -4246,7 +4236,7 @@ function getActionText(state: GameState, viewerPlayerId?: string) {
         ) ||
         state.message.includes("10の効果：追加で1枚捨ててください")
       ) {
-        return `${currentPlayer.name}が10の効果で追加の捨て札を選択しています。`;
+        return "10の効果で追加の捨て札を選んでいます。";
       }
       const latestDiscard = currentPlayer.discardPile.at(-1) ?? null;
       if (
@@ -4254,26 +4244,26 @@ function getActionText(state: GameState, viewerPlayerId?: string) {
         (state.message.includes("J特殊効果を発動しました") ||
           state.message.includes("Jシールドの対象数字を選んでいます"))
       ) {
-        return `${currentPlayer.name}がJ特殊効果を選択しています。`;
+        return "Jを捨てました。";
       }
       if (
         state.message.includes("J効果を使用し") &&
         state.message.includes("他のプレイヤーの手札を閲覧しています")
       ) {
-        return `${currentPlayer.name}が情報閲覧をしています。`;
+        return state.message;
       }
 
       if (
         state.message.includes("7渡しの相手を選んでいます") ||
         state.message.includes("強化7の交換相手を選択しています")
       ) {
-        return `${currentPlayer.name}が7渡しの相手を選んでいます。J強化により次の手番以外の人も交換対象になります。`;
+        return "7渡しの相手を選んでいます。J強化により次の手番以外の人も交換対象になります。";
       }
       if (
         state.message.includes("次の手番の人を選んでいます") ||
         state.message.includes("強化5の次手番相手を選択しています")
       ) {
-        return `${currentPlayer.name}が次の手番の人を選んでいます。J強化により複数人飛ばすことが可能です。`;
+        return "次の手番の人を選んでいます。J強化により複数人飛ばすことが可能です。";
       }
 
       const lastDiscard = currentPlayer.discardPile.at(-1) ?? null;
@@ -4283,7 +4273,7 @@ function getActionText(state: GameState, viewerPlayerId?: string) {
         (state.message.includes("J強化を使用できます") ||
           state.message.includes("can use J enhancement"))
       ) {
-        return `${currentPlayer.name}が${formatRankLabel(lastDiscard.rank)}の効果でJ強化を使用するか選択しています。`;
+        return `${formatRankLabel(lastDiscard.rank)}を捨てました。`;
       }
       if (
         lastDiscard &&
@@ -4296,14 +4286,12 @@ function getActionText(state: GameState, viewerPlayerId?: string) {
           state.message.includes("Qの効果") ||
           state.message.includes("カード効果"))
       ) {
-        return `${currentPlayer.name}が${formatRankLabel(lastDiscard.rank)}の効果を使用するか選択しています。`;
+        return `${formatRankLabel(lastDiscard.rank)}を捨てました。`;
       }
-      return `${currentPlayer.name}が捨てるカードを選択しています。`;
+      return "捨てるカードを選択しています。";
     }
-    if (state.phase === "reachConfirm")
-      return `${currentPlayer.name}がリーチを宣言するか確認しています。`;
-    if (state.phase === "ronCheck")
-      return `${currentPlayer.name}がロンするか確認しています。`;
+    if (state.phase === "reachConfirm") return "リーチを確認しています。";
+    if (state.phase === "ronCheck") return "ロンを確認しています。";
   }
 
   if (state.phase === "draw")
@@ -4413,4 +4401,128 @@ function getAnimationLabel(phase: AnimationPhase) {
   if (phase === "movingDrawnCardToHand") return "手札へ";
   if (phase === "discardingCard") return "捨て札へ";
   return "";
+}
+
+function MobileLayoutDebugPanel() {
+  const [historyRight, setHistoryRight] = React.useState(10);
+  const [historyBottom, setHistoryBottom] = React.useState(58);
+  const [historyWidth, setHistoryWidth] = React.useState(46);
+  const [historyHeight, setHistoryHeight] = React.useState(48);
+  const [helpTop, setHelpTop] = React.useState(8);
+  const [helpRight, setHelpRight] = React.useState(8);
+
+  React.useEffect(() => {
+    const root = document.documentElement;
+
+    root.style.setProperty("--history-right", `${historyRight}px`);
+    root.style.setProperty("--history-bottom", `${historyBottom}px`);
+    root.style.setProperty("--history-width", `${historyWidth}dvw`);
+    root.style.setProperty("--history-height", `${historyHeight}dvh`);
+    root.style.setProperty("--help-top", `${helpTop}px`);
+    root.style.setProperty("--help-right", `${helpRight}px`);
+  }, [
+    historyRight,
+    historyBottom,
+    historyWidth,
+    historyHeight,
+    helpTop,
+    helpRight,
+  ]);
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        left: 8,
+        bottom: 8,
+        zIndex: 999999,
+        width: "min(44dvw, 300px)",
+        maxHeight: "82dvh",
+        overflow: "auto",
+        padding: 8,
+        borderRadius: 10,
+        background: "rgba(0, 0, 0, 0.86)",
+        color: "white",
+        fontSize: 11,
+        lineHeight: 1.2,
+        boxShadow: "0 0 0 2px red",
+      }}
+    >
+      <strong style={{ display: "block", marginBottom: 6 }}>
+        Layout Debug ACTIVE
+      </strong>
+
+      <label style={{ display: "block", marginBottom: 6 }}>
+        history right: {historyRight}px
+        <input
+          style={{ width: "100%" }}
+          type="range"
+          min="-80"
+          max="160"
+          value={historyRight}
+          onChange={(event) => setHistoryRight(Number(event.target.value))}
+        />
+      </label>
+
+      <label style={{ display: "block", marginBottom: 6 }}>
+        history bottom: {historyBottom}px
+        <input
+          style={{ width: "100%" }}
+          type="range"
+          min="-40"
+          max="180"
+          value={historyBottom}
+          onChange={(event) => setHistoryBottom(Number(event.target.value))}
+        />
+      </label>
+
+      <label style={{ display: "block", marginBottom: 6 }}>
+        history width: {historyWidth}dvw
+        <input
+          style={{ width: "100%" }}
+          type="range"
+          min="25"
+          max="80"
+          value={historyWidth}
+          onChange={(event) => setHistoryWidth(Number(event.target.value))}
+        />
+      </label>
+
+      <label style={{ display: "block", marginBottom: 6 }}>
+        history height: {historyHeight}dvh
+        <input
+          style={{ width: "100%" }}
+          type="range"
+          min="20"
+          max="70"
+          value={historyHeight}
+          onChange={(event) => setHistoryHeight(Number(event.target.value))}
+        />
+      </label>
+
+      <label style={{ display: "block", marginBottom: 6 }}>
+        ? top: {helpTop}px
+        <input
+          style={{ width: "100%" }}
+          type="range"
+          min="-40"
+          max="120"
+          value={helpTop}
+          onChange={(event) => setHelpTop(Number(event.target.value))}
+        />
+      </label>
+
+      <label style={{ display: "block", marginBottom: 6 }}>
+        ? right: {helpRight}px
+        <input
+          style={{ width: "100%" }}
+          type="range"
+          min="-40"
+          max="160"
+          value={helpRight}
+          onChange={(event) => setHelpRight(Number(event.target.value))}
+        />
+      </label>
+    </div>
+  );
 }
