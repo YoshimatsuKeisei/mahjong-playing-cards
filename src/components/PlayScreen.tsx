@@ -4455,10 +4455,10 @@ function MobileLayoutDebugPanel() {
       <label style={{ display: "block", marginBottom: 6 }}>
         history right: {historyRight}px
         <input
-          style={{ width: "100%" }}
           type="range"
-          min="-80"
-          max="160"
+          min="-300"
+          max="700"
+          step="1"
           value={historyRight}
           onChange={(event) => setHistoryRight(Number(event.target.value))}
         />
@@ -4467,10 +4467,10 @@ function MobileLayoutDebugPanel() {
       <label style={{ display: "block", marginBottom: 6 }}>
         history bottom: {historyBottom}px
         <input
-          style={{ width: "100%" }}
           type="range"
-          min="-40"
-          max="180"
+          min="-200"
+          max="500"
+          step="1"
           value={historyBottom}
           onChange={(event) => setHistoryBottom(Number(event.target.value))}
         />
@@ -4479,10 +4479,10 @@ function MobileLayoutDebugPanel() {
       <label style={{ display: "block", marginBottom: 6 }}>
         history width: {historyWidth}dvw
         <input
-          style={{ width: "100%" }}
           type="range"
-          min="25"
-          max="80"
+          min="20"
+          max="100"
+          step="1"
           value={historyWidth}
           onChange={(event) => setHistoryWidth(Number(event.target.value))}
         />
@@ -4491,10 +4491,10 @@ function MobileLayoutDebugPanel() {
       <label style={{ display: "block", marginBottom: 6 }}>
         history height: {historyHeight}dvh
         <input
-          style={{ width: "100%" }}
           type="range"
-          min="20"
-          max="70"
+          min="15"
+          max="95"
+          step="1"
           value={historyHeight}
           onChange={(event) => setHistoryHeight(Number(event.target.value))}
         />
@@ -4503,10 +4503,10 @@ function MobileLayoutDebugPanel() {
       <label style={{ display: "block", marginBottom: 6 }}>
         ? top: {helpTop}px
         <input
-          style={{ width: "100%" }}
           type="range"
-          min="-40"
-          max="120"
+          min="-200"
+          max="500"
+          step="1"
           value={helpTop}
           onChange={(event) => setHelpTop(Number(event.target.value))}
         />
@@ -4515,10 +4515,10 @@ function MobileLayoutDebugPanel() {
       <label style={{ display: "block", marginBottom: 6 }}>
         ? right: {helpRight}px
         <input
-          style={{ width: "100%" }}
           type="range"
-          min="-40"
-          max="160"
+          min="-300"
+          max="700"
+          step="1"
           value={helpRight}
           onChange={(event) => setHelpRight(Number(event.target.value))}
         />
