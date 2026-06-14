@@ -7833,3 +7833,25 @@ body {
     transform: none !important;
   }
 }
+
+@media (orientation: landscape) and (max-height: 700px) {
+  .history-hover-marker {
+    position: fixed !important;
+
+    top: calc(env(safe-area-inset-top, 0px) + var(--help-top, 8px)) !important;
+    right: calc(
+      env(safe-area-inset-right, 0px) + var(--help-right, 8px)
+    ) !important;
+    left: auto !important;
+    bottom: auto !important;
+
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+    min-height: 34px !important;
+    padding: 0 !important;
+
+    transform: none !important;
+    z-index: 10000 !important;
+  }
+}
