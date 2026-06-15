@@ -8321,3 +8321,473 @@ body {
     transform-origin: top left !important;
   }
 }
+
+@media (orientation: landscape) and (max-height: 700px) and (hover: none) and (pointer: coarse) {
+  /* ===== 判明済み：上部ナビ ===== */
+  .table-scene .top-toolbar {
+    width: min(var(--debug-top-nav-width, 600px), 94dvw) !important;
+    height: var(--debug-top-nav-height, 50px) !important;
+    min-height: var(--debug-top-nav-height, 50px) !important;
+    max-height: var(--debug-top-nav-height, 50px) !important;
+    font-size: var(--debug-top-nav-font-size, 13px) !important;
+    translate: var(--debug-top-nav-x, 0px) var(--debug-top-nav-y, 11px);
+    overflow: visible !important;
+    box-sizing: border-box !important;
+  }
+
+  .table-scene .top-toolbar,
+  .table-scene .top-toolbar span,
+  .table-scene .top-toolbar strong,
+  .table-scene .top-toolbar em,
+  .table-scene .toolbar-player,
+  .table-scene .toolbar-action,
+  .table-scene .toolbar-deck,
+  .table-scene .daifugo-status {
+    font-size: var(--debug-top-nav-font-size, 13px) !important;
+    line-height: 1.05 !important;
+  }
+
+  .table-scene .toolbar-player {
+    overflow: visible !important;
+  }
+
+  .table-scene .toolbar-player span {
+    display: inline-block !important;
+    translate: var(--debug-top-nav-player-label-x, 21px)
+      var(--debug-top-nav-player-label-y, 0px);
+  }
+
+  .table-scene .toolbar-player em {
+    display: inline-block !important;
+    translate: var(--debug-top-nav-player-status-x, 46px)
+      var(--debug-top-nav-player-status-y, 0px);
+  }
+
+  /* ===== 判明済み：-〇回戦- ===== */
+  .table-scene .round-scroll-banner {
+    width: var(--debug-round-banner-width, 150px) !important;
+    min-width: var(--debug-round-banner-width, 150px) !important;
+    max-width: var(--debug-round-banner-width, 150px) !important;
+
+    height: var(--debug-round-banner-height, 28px) !important;
+    min-height: var(--debug-round-banner-height, 28px) !important;
+    max-height: var(--debug-round-banner-height, 28px) !important;
+
+    box-sizing: border-box !important;
+    display: grid !important;
+    place-items: center !important;
+    padding: 0 0.5rem !important;
+    font-size: var(--debug-round-banner-font-size, 20px) !important;
+    line-height: 1 !important;
+    translate: var(--debug-round-banner-x, 0px) var(--debug-round-banner-y, 0px);
+  }
+
+  /* ===== 判明済み：手札カード ===== */
+  .hand-section .hand-view .card-button .playing-card:not(.compact),
+  .hand-section .hand-view .playing-card:not(.compact) {
+    width: var(--debug-hand-card-width, 70px) !important;
+  }
+
+  .hand-section .hand-card-group {
+    transform: scale(var(--debug-hand-card-scale, 1)) !important;
+    transform-origin: bottom center !important;
+  }
+
+  /* ===== プレイヤーステータス：文字見切れ対策 ===== */
+  .player-status-slot {
+    width: var(--status-common-width, 250px) !important;
+    min-width: var(--status-common-width, 250px) !important;
+    max-width: var(--status-common-width, 250px) !important;
+
+    /* 上端位置を維持し、下方向へ伸ばす */
+    align-items: flex-start !important;
+    overflow: visible !important;
+  }
+
+  .player-status-slot .seat-label {
+    width: var(--status-common-width, 250px) !important;
+    min-width: var(--status-common-width, 250px) !important;
+    max-width: var(--status-common-width, 250px) !important;
+
+    height: var(--status-common-height, auto) !important;
+    min-height: var(--status-common-height, 54px) !important;
+    max-height: var(--status-common-max-height, 130px) !important;
+
+    box-sizing: border-box !important;
+    display: grid !important;
+    align-content: start !important;
+    justify-items: center !important;
+    gap: 2px !important;
+
+    /* ここが重要：文字を一定サイズで切らない */
+    overflow: visible !important;
+    white-space: normal !important;
+  }
+
+  .player-status-slot .seat-label strong {
+    max-width: 100% !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    white-space: normal !important;
+    font-size: var(--status-common-name-font-size, 20px) !important;
+    line-height: 1.05 !important;
+  }
+
+  .player-status-slot .seat-label span,
+  .player-status-slot .temporary-leave-seat-status,
+  .player-status-slot .j-enhancement-badge,
+  .player-status-slot .j-shield-badge {
+    max-width: 100% !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    white-space: normal !important;
+    font-size: var(--status-common-text-font-size, 20px) !important;
+    line-height: 1.05 !important;
+  }
+
+  /* ===== ? を後段で確実に動かす ===== */
+  .history-hover-anchor .history-hover-marker {
+    position: relative !important;
+    left: var(--history-marker-x, 0px) !important;
+    top: var(--history-marker-y, 0px) !important;
+    right: auto !important;
+    bottom: auto !important;
+  }
+
+  .table-3 .table-history-anchor--self {
+    --history-marker-x: var(--table-history-3-self-marker-x, 71px);
+    --history-marker-y: var(--table-history-3-self-marker-y, 40px);
+  }
+
+  .table-3 .table-history-anchor--right {
+    --history-marker-x: var(--table-history-3-right-marker-x, 125px);
+    --history-marker-y: var(--table-history-3-right-marker-y, 80px);
+  }
+
+  .table-3 .table-history-anchor--left {
+    --history-marker-x: var(--table-history-3-left-marker-x, 98px);
+    --history-marker-y: var(--table-history-3-left-marker-y, 33px);
+  }
+
+  .table-4 .history-hover-anchor--p1 {
+    --history-marker-x: var(--history-4-p1-x, 88px);
+    --history-marker-y: var(--history-4-p1-y, 0px);
+  }
+
+  .table-4 .history-hover-anchor--p2 {
+    --history-marker-x: var(--history-4-p2-x, 138px);
+    --history-marker-y: var(--history-4-p2-y, 0px);
+  }
+
+  .table-4 .history-hover-anchor--p3 {
+    --history-marker-x: var(--history-4-p3-x, 0px);
+    --history-marker-y: var(--history-4-p3-y, 0px);
+  }
+
+  .table-4 .history-hover-anchor--p4 {
+    --history-marker-x: var(--history-4-p4-x, 0px);
+    --history-marker-y: var(--history-4-p4-y, 0px);
+  }
+
+  .table-5 .history-hover-anchor--p1 {
+    --history-marker-x: var(--history-5-p1-x, 42px);
+    --history-marker-y: var(--history-5-p1-y, 28px);
+  }
+
+  .table-5 .history-hover-anchor--p2 {
+    --history-marker-x: var(--history-5-p2-x, 119px);
+    --history-marker-y: var(--history-5-p2-y, -2px);
+  }
+
+  .table-5 .history-hover-anchor--p3 {
+    --history-marker-x: var(--history-5-p3-x, 119px);
+    --history-marker-y: var(--history-5-p3-y, 0px);
+  }
+
+  .table-5 .history-hover-anchor--p4 {
+    --history-marker-x: var(--history-5-p4-x, 165px);
+    --history-marker-y: var(--history-5-p4-y, 113px);
+  }
+
+  .table-5 .history-hover-anchor--p5 {
+    --history-marker-x: var(--history-5-p5-x, 50px);
+    --history-marker-y: var(--history-5-p5-y, 0px);
+  }
+}
+
+@media (orientation: landscape) and (max-height: 700px) and (hover: none) and (pointer: coarse) {
+  /* ===== 設定歯車 ===== */
+  .room-menu-trigger,
+  .room-menu-button,
+  .settings-button,
+  .gear-button,
+  button[aria-label*="設定"],
+  button[aria-label*="ルーム"] {
+    width: var(--debug-gear-size, 44px) !important;
+    min-width: var(--debug-gear-size, 44px) !important;
+    height: var(--debug-gear-size, 44px) !important;
+    min-height: var(--debug-gear-size, 44px) !important;
+    padding: 0 !important;
+    font-size: var(--debug-gear-font-size, 20px) !important;
+    line-height: 1 !important;
+    translate: var(--debug-gear-x, 0px) var(--debug-gear-y, 0px);
+  }
+
+  /* ===== カードウィンドウ共通サイズ ===== */
+  .history-hover-anchor .player-history-popover {
+    width: var(--debug-history-window-width, 340px) !important;
+    max-width: var(--debug-history-window-width, 340px) !important;
+    height: var(--debug-history-window-height, 180px) !important;
+    max-height: var(--debug-history-window-height, 180px) !important;
+    overflow: auto !important;
+  }
+
+  .player-history-popover,
+  .player-history-popover h3,
+  .player-history-popover .history-empty,
+  .player-history-popover .history-column {
+    font-size: var(--debug-history-window-font-size, 14px) !important;
+    line-height: 1.15 !important;
+  }
+
+  .player-history-popover .history-card-grid .playing-card.compact,
+  .player-history-popover .history-meld-row .playing-card.compact {
+    width: var(--debug-history-window-card-width, 46px) !important;
+  }
+
+  /* ===== 下部ナビ：灰色背景 ===== */
+  .action-panel {
+    width: min(var(--debug-bottom-nav-panel-width, 520px), 94dvw) !important;
+    min-width: 0 !important;
+    min-height: var(--debug-bottom-nav-panel-height, 112px) !important;
+    height: auto !important;
+    box-sizing: border-box !important;
+  }
+
+  .action-panel .hint,
+  .action-panel p,
+  .action-panel strong,
+  .action-panel span {
+    font-size: var(--debug-bottom-nav-message-font-size, 14px) !important;
+    line-height: 1.15 !important;
+  }
+
+  /* ===== 下部ナビ：山札から引く / 手札から捨てる等の主要ボタン ===== */
+  .action-panel button,
+  .action-panel .primary-button {
+    min-width: var(--debug-bottom-nav-button-width, 150px) !important;
+    width: var(--debug-bottom-nav-button-width, 150px) !important;
+    min-height: var(--debug-bottom-nav-button-height, 44px) !important;
+    height: var(--debug-bottom-nav-button-height, 44px) !important;
+    box-sizing: border-box !important;
+    padding: 0 0.65rem !important;
+  }
+
+  /* ===== 鳴く / 上がる / ロン等の選択肢ボタン ===== */
+  .call-options button,
+  .win-options button,
+  .ron-check-actions button,
+  .reaction-options button,
+  .action-panel .choice-button {
+    min-width: var(--debug-bottom-nav-choice-width, 120px) !important;
+    width: var(--debug-bottom-nav-choice-width, 120px) !important;
+    min-height: var(--debug-bottom-nav-choice-height, 42px) !important;
+    height: var(--debug-bottom-nav-choice-height, 42px) !important;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 700px) and (hover: none) and (pointer: coarse) {
+  /* =========================
+     固定値：設定歯車
+  ========================= */
+  .play-exit-button.room-management-button[aria-label="設定"] {
+    width: var(--debug-gear-size, 75px) !important;
+    min-width: var(--debug-gear-size, 75px) !important;
+    height: var(--debug-gear-size, 75px) !important;
+    min-height: var(--debug-gear-size, 75px) !important;
+    padding: 0 !important;
+    font-size: var(--debug-gear-font-size, 40px) !important;
+    line-height: 1 !important;
+    translate: var(--debug-gear-x, 0px) var(--debug-gear-y, 0px);
+  }
+
+  /* =========================
+     固定値：4人用 ? 位置
+     p3 = player1, p4 = player2
+  ========================= */
+  .table-4 .history-hover-anchor--p3 {
+    --history-marker-x: var(--history-4-p3-x, 192px);
+    --history-marker-y: var(--history-4-p3-y, 108px);
+  }
+
+  .table-4 .history-hover-anchor--p4 {
+    --history-marker-x: var(--history-4-p4-x, 24px);
+    --history-marker-y: var(--history-4-p4-y, 0px);
+  }
+
+  .history-hover-anchor .history-hover-marker {
+    position: relative !important;
+    left: var(--history-marker-x, 0px) !important;
+    top: var(--history-marker-y, 0px) !important;
+    right: auto !important;
+    bottom: auto !important;
+  }
+
+  /* =========================
+     カードウィンドウ共通
+  ========================= */
+  .history-hover-anchor .player-history-popover {
+    width: var(--debug-history-window-width, 510px) !important;
+    max-width: var(--debug-history-window-width, 510px) !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+
+    box-sizing: border-box !important;
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 0.7rem !important;
+    padding: 0.7rem !important;
+
+    font-size: var(--debug-history-window-font-size, 18px) !important;
+  }
+
+  .player-history-popover.discard-only {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .player-history-popover .history-column {
+    min-width: 0 !important;
+    display: grid !important;
+    grid-template-rows: auto minmax(0, auto) !important;
+    align-content: start !important;
+  }
+
+  .player-history-popover .history-column h3 {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 2 !important;
+    margin: 0 0 0.35rem !important;
+    padding: 0.1rem 0 !important;
+    background: inherit !important;
+    font-size: var(--debug-history-window-font-size, 18px) !important;
+    line-height: 1.1 !important;
+  }
+
+  .player-history-popover .history-empty {
+    font-size: var(--debug-history-window-font-size, 18px) !important;
+    line-height: 1.15 !important;
+  }
+
+  .player-history-popover .history-card-grid {
+    display: grid !important;
+    grid-template-columns: repeat(3, max-content) !important;
+    gap: 0.36rem !important;
+    max-width: none !important;
+
+    /*
+      3列まで表示。
+      4〜6枚で2段、7〜9枚で3段。
+      10枚以上はこの領域だけスクロール。
+    */
+    max-height: calc(
+      (var(--debug-history-window-card-width, 75px) * 7 / 5 + 0.36rem) * 3
+    ) !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    padding-right: 0.25rem !important;
+  }
+
+  .player-history-popover .history-meld-list {
+    display: grid !important;
+    gap: 0.42rem !important;
+
+    /*
+      鳴いた役は1行3枚なので、3行ぶんまで表示。
+      4行目以降はスクロール。
+    */
+    max-height: calc(
+      (var(--debug-history-window-card-width, 75px) * 7 / 5 + 0.42rem) * 3
+    ) !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    padding-right: 0.25rem !important;
+  }
+
+  .player-history-popover .history-meld-row {
+    display: grid !important;
+    grid-template-columns: repeat(3, max-content) !important;
+    gap: 0.28rem !important;
+    width: max-content !important;
+    max-width: none !important;
+  }
+
+  .player-history-popover .playing-card.compact {
+    width: var(--debug-history-window-card-width, 75px) !important;
+  }
+
+  .player-history-popover,
+  .player-history-popover h3,
+  .player-history-popover .history-empty,
+  .player-history-popover .history-column {
+    font-size: var(--debug-history-window-font-size, 18px) !important;
+  }
+
+  /* =========================
+     下部ナビ：状況に応じて自然に伸縮
+  ========================= */
+  .action-panel {
+    width: fit-content !important;
+    min-width: var(--debug-bottom-nav-panel-min-width, 180px) !important;
+    max-width: min(
+      var(--debug-bottom-nav-panel-max-width, 760px),
+      94dvw
+    ) !important;
+    min-height: var(--debug-bottom-nav-panel-min-height, 72px) !important;
+    height: auto !important;
+
+    box-sizing: border-box !important;
+    padding: 0.5rem 0.7rem !important;
+    translate: var(--debug-bottom-nav-x, 0px) var(--debug-bottom-nav-y, 0px);
+  }
+
+  .action-panel .hint,
+  .action-panel p,
+  .action-panel strong,
+  .action-panel span {
+    font-size: var(--debug-bottom-nav-message-font-size, 14px) !important;
+    line-height: 1.15 !important;
+  }
+
+  /*
+    山札から引く、手札から捨てる、リーチ、効果使用などの主要ボタン
+  */
+  .action-panel button,
+  .action-panel .primary-button {
+    min-width: var(--debug-bottom-nav-button-width, 150px) !important;
+    width: var(--debug-bottom-nav-button-width, 150px) !important;
+    min-height: var(--debug-bottom-nav-button-height, 44px) !important;
+    height: var(--debug-bottom-nav-button-height, 44px) !important;
+    box-sizing: border-box !important;
+    padding: 0 0.7rem !important;
+    font-size: var(--debug-bottom-nav-button-font-size, 14px) !important;
+    line-height: 1.1 !important;
+  }
+
+  /*
+    鳴く / 上がる / ロン / はい・いいえ などの選択肢系
+  */
+  .discard-source button,
+  .ron-check-actions button,
+  .daifugo-effect-actions button,
+  .action-panel [data-testid="call-button"],
+  .action-panel [data-testid="ron-button"],
+  .action-panel [data-testid="reaction-pass-button"] {
+    min-width: var(--debug-bottom-nav-choice-width, 120px) !important;
+    width: var(--debug-bottom-nav-choice-width, 120px) !important;
+    min-height: var(--debug-bottom-nav-choice-height, 42px) !important;
+    height: var(--debug-bottom-nav-choice-height, 42px) !important;
+    font-size: var(--debug-bottom-nav-choice-font-size, 14px) !important;
+    line-height: 1.1 !important;
+  }
+}
