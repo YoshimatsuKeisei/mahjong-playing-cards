@@ -1858,12 +1858,10 @@ export default function PlayScreen({
             return visibleDiscardPile.length > 0 ? (
               <div
                 className={`history-hover-anchor table-history-anchor table-history-anchor--${getAreaName(getSeat(playerCount, slotIndex))}`}
-                style={{
-                  ...(measuredPosition ??
-                    getHistoryAnchorStyle(playerCount, slotIndex)),
-                  opacity: measuredPosition ? undefined : 0,
-                  pointerEvents: measuredPosition ? undefined : "none",
-                }}
+                style={
+                  measuredPosition ??
+                  getHistoryAnchorStyle(playerCount, slotIndex)
+                }
                 key={`${player.id}-table-history-hover`}
               >
                 <button

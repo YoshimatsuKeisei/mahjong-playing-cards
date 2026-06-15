@@ -7946,13 +7946,13 @@ body {
      p4 = player2
   ========================= */
   .table-4 .history-hover-anchor--p3 {
-    --history-marker-x: 570px;
-    --history-marker-y: 226px;
+    --history-marker-x: 0px;
+    --history-marker-y: 0px;
   }
 
   .table-4 .history-hover-anchor--p4 {
-    --history-marker-x: -392px;
-    --history-marker-y: -102px;
+    --history-marker-x: 0px;
+    --history-marker-y: 0px;
   }
 
   /* =========================
@@ -8048,7 +8048,7 @@ body {
   }
 
   .table-5 .history-hover-anchor--p5 {
-    --history-window-x: var(--history-5-p5-window-x, 0px);
-    --history-window-y: var(--history-5-p5-window-y, 0px);
+    --history-window-x: var(--history-5-p5-window-x, -344px);
+    --history-window-y: var(--history-5-p5-window-y, -240px);
   }
 }
