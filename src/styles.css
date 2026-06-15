@@ -8056,55 +8056,116 @@ body {
     font-size: var(--status-text-font-size, 12px);
   }
 
-  .table-3 .player-status-slot--p1,
-  .table-4 .player-status-slot--p1,
+  .table-3 .player-status-slot--p1 {
+    --status-x: var(--status-3-p1-x, 0px);
+    --status-y: var(--status-3-p1-y, 0px);
+    --status-width: var(--status-3-p1-width, 96px);
+    --status-height: var(--status-3-p1-height, 44px);
+    --status-name-font-size: var(--status-3-p1-name-font-size, 14px);
+    --status-text-font-size: var(--status-3-p1-text-font-size, 12px);
+  }
+
+  .table-3 .player-status-slot--p2 {
+    --status-x: var(--status-3-p2-x, 0px);
+    --status-y: var(--status-3-p2-y, 0px);
+    --status-width: var(--status-3-p2-width, 96px);
+    --status-height: var(--status-33-p1-text-font-size, 12px);
+  }
+
+  .table-3 .player-status-slot--p2 {
+    --status-x: var(--status-3-p2-x, 0px);
+    --status-y: var(--status--p2-height, 44px);
+    --status-name-font-size: var(--status-3-p2-name-font-size, 14px);
+    --status-text-font-size: var(--status-3-p2-text-font-size, 12px);
+  }
+
+  .table-3 .player-status-slot--p3 {
+    --status-x: var(--status-3-p3-x, 0px);
+    --status-y: var(--status-3-p3-y, 0px);
+    --status-width: var(--status-3-p3-width, 96px);
+    --status-height: var(--status-3-p3-height, 44px);
+    --status-name-font-size: var(--status-3-p3-name-font-size, 14px);
+    --status-text-font-size: var(--status-3-p3-text-font-size, 12px);
+  }
+
+  .table-4 .player-status-slot--p1 {
+    --status-x: var(--status-4-p1-x, 0px);
+    --status-y: var(--status-4-p1-y, 0px);
+    --status-width: var(--status-4-p1-width, 96px);
+    --status-height: var(--status-4-p1-height, 44px);
+    --status-name-font-size: var(--status-4-p1-name-font-size, 14px);
+    --status-text-font-size: var(--status-4-p1-text-font-size, 12px);
+  }
+
+  .table-4 .player-status-slot--p2 {
+    --status-x: var(--status-4-p2-x, 0px);
+    --status-y: var(--status-4-p2-y, 0px);
+    --status-width: var(--status-4-p2-width, 96px);
+    --status-height: var(--status-4-p2-height, 44px);
+    --status-name-font-size: var(--status-4-p2-name-font-size, 14px);
+    --status-text-font-size: var(--status-4-p2-text-font-size, 12px);
+  }
+
+  .table-4 .player-status-slot--p3 {
+    --status-x: var(--status-4-p3-x, 0px);
+    --status-y: var(--status-4-p3-y, 0px);
+    --status-width: var(--status-4-p3-width, 96px);
+    --status-height: var(--status-4-p3-height, 44px);
+    --status-name-font-size: var(--status-4-p3-name-font-size, 14px);
+    --status-text-font-size: var(--status-4-p3-text-font-size, 12px);
+  }
+
+  .table-4 .player-status-slot--p4 {
+    --status-x: var(--status-4-p4-x, 0px);
+    --status-y: var(--status-4-p4-y, 0px);
+    --status-width: var(--status-4-p4-width, 96px);
+    --status-height: var(--status-4-p4-height, 44px);
+    --status-name-font-size: var(--status-4-p4-name-font-size, 14px);
+    --status-text-font-size: var(--status-4-p4-text-font-size, 12px);
+  }
+
   .table-5 .player-status-slot--p1 {
-    --status-x: var(--status-current-p1-x, 0px);
-    --status-y: var(--status-current-p1-y, 0px);
-    --status-width: var(--status-current-p1-width, 96px);
-    --status-height: var(--status-current-p1-height, 44px);
-    --status-name-font-size: var(--status-current-p1-name-font-size, 14px);
-    --status-text-font-size: var(--status-current-p1-text-font-size, 12px);
+    --status-x: var(--status-5-p1-x, 0px);
+    --status-y: var(--status-5-p1-y, 0px);
+    --status-width: var(--status-5-p1-width, 96px);
+    --status-height: var(--status-5-p1-height, 44px);
+    --status-name-font-size: var(--status-5-p1-name-font-size, 14px);
+    --status-text-font-size: var(--status-5-p1-text-font-size, 12px);
   }
 
-  .table-3 .player-status-slot--p2,
-  .table-4 .player-status-slot--p2,
   .table-5 .player-status-slot--p2 {
-    --status-x: var(--status-current-p2-x, 0px);
-    --status-y: var(--status-current-p2-y, 0px);
-    --status-width: var(--status-current-p2-width, 96px);
-    --status-height: var(--status-current-p2-height, 44px);
-    --status-name-font-size: var(--status-current-p2-name-font-size, 14px);
-    --status-text-font-size: var(--status-current-p2-text-font-size, 12px);
+    --status-x: var(--status-5-p2-x, 0px);
+    --status-y: var(--status-5-p2-y, 0px);
+    --status-width: var(--status-5-p2-width, 96px);
+    --status-height: var(--status-5-p2-height, 44px);
+    --status-name-font-size: var(--status-5-p2-name-font-size, 14px);
+    --status-text-font-size: var(--status-5-p2-text-font-size, 12px);
   }
 
-  .table-3 .player-status-slot--p3,
-  .table-4 .player-status-slot--p3,
   .table-5 .player-status-slot--p3 {
-    --status-x: var(--status-current-p3-x, 0px);
-    --status-y: var(--status-current-p3-y, 0px);
-    --status-width: var(--status-current-p3-width, 96px);
-    --status-height: var(--status-current-p3-height, 44px);
-    --status-name-font-size: var(--status-current-p3-name-font-size, 14px);
-    --status-text-font-size: var(--status-current-p3-text-font-size, 12px);
+    --status-x: var(--status-5-p3-x, 0px);
+    --status-y: var(--status-5-p3-y, 0px);
+    --status-width: var(--status-5-p3-width, 96px);
+    --status-height: var(--status-5-p3-height, 44px);
+    --status-name-font-size: var(--status-5-p3-name-font-size, 14px);
+    --status-text-font-size: var(--status-5-p3-text-font-size, 12px);
   }
 
-  .table-4 .player-status-slot--p4,
   .table-5 .player-status-slot--p4 {
-    --status-x: var(--status-current-p4-x, 0px);
-    --status-y: var(--status-current-p4-y, 0px);
-    --status-width: var(--status-current-p4-width, 96px);
-    --status-height: var(--status-current-p4-height, 44px);
-    --status-name-font-size: var(--status-current-p4-name-font-size, 14px);
-    --status-text-font-size: var(--status-current-p4-text-font-size, 12px);
+    --status-x: var(--status-5-p4-x, 0px);
+    --status-y: var(--status-5-p4-y, 0px);
+    --status-width: var(--status-5-p4-width, 96px);
+    --status-height: var(--status-5-p4-height, 44px);
+    --status-name-font-size: var(--status-5-p4-name-font-size, 14px);
+    --status-text-font-size: var(--status-5-p4-text-font-size, 12px);
   }
 
   .table-5 .player-status-slot--p5 {
-    --status-x: var(--status-current-p5-x, 0px);
-    --status-y: var(--status-current-p5-y, 0px);
-    --status-width: var(--status-current-p5-width, 96px);
-    --status-height: var(--status-current-p5-height, 44px);
-    --status-name-font-size: var(--status-current-p5-name-font-size, 14px);
-    --status-text-font-size: var(--status-current-p5-text-font-size, 12px);
+    --status-x: var(--status-5-p5-x, 0px);
+    --status-y: var(--status-5-p5-y, 0px);
+    --status-width: var(--status-5-p5-width, 96px);
+    --status-height: var(--status-5-p5-height, 44px);
+    --status-name-font-size: var(--status-5-p5-name-font-size, 14px);
+    --status-text-font-size: var(--status-5-p5-text-font-size, 12px);
   }
 }
