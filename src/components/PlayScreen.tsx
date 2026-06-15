@@ -4403,7 +4403,12 @@ function getAnimationLabel(phase: AnimationPhase) {
 }
 
 function MobileLayoutDebugPanel({ playerCount }: { playerCount: number }) {
-  type LayoutDebugTargetKind = "marker" | "window" | "status";
+  type LayoutDebugTargetKind =
+    | "marker"
+    | "window"
+    | "status"
+    | "topNav"
+    | "handCard";
 
   type LayoutDebugValue = {
     x: number;
@@ -4425,6 +4430,14 @@ function MobileLayoutDebugPanel({ playerCount }: { playerCount: number }) {
     height: 32,
     nameFontSize: 10,
     textFontSize: 9,
+  });
+  const [topNavCommon, setTopNavCommon] = useState({
+    width: 520,
+    height: 30,
+    fontSize: 10,
+  });
+  const [handCardCommon, setHandCardCommon] = useState({
+    width: 58,
   });
   const key = `${targetKind}-${playerCount}-p${targetSeat}`;
   const current = offsets[key] ?? {
@@ -4554,6 +4567,29 @@ function MobileLayoutDebugPanel({ playerCount }: { playerCount: number }) {
     );
   }, [statusCommon]);
 
+  useEffect(() => {
+    const root = document.documentElement;
+
+    root.style.setProperty("--debug-top-nav-width", `${topNavCommon.width}px`);
+    root.style.setProperty(
+      "--debug-top-nav-height",
+      `${topNavCommon.height}px`,
+    );
+    root.style.setProperty(
+      "--debug-top-nav-font-size",
+      `${topNavCommon.fontSize}px`,
+    );
+  }, [topNavCommon]);
+
+  useEffect(() => {
+    const root = document.documentElement;
+
+    root.style.setProperty(
+      "--debug-hand-card-width",
+      `${handCardCommon.width}px`,
+    );
+  }, [handCardCommon]);
+
   const updateCurrent = (next: Partial<LayoutDebugValue>) => {
     setOffsets((previous) => ({
       ...previous,
@@ -4578,14 +4614,18 @@ function MobileLayoutDebugPanel({ playerCount }: { playerCount: number }) {
 
   const cssPreview =
     targetKind === "status"
-      ? `player status\n--status-${playerCount}-p${targetSeat}-x: ${current.x}px;\n--status-${playerCount}-p${targetSeat}-y: ${current.y}px;\n--status-${playerCount}-p${targetSeat}-width: ${current.width ?? 96}px;\n--status-${playerCount}-p${targetSeat}-height: ${current.height ?? 44}px;\n--status-${playerCount}-p${targetSeat}-name-font-size: ${current.nameFontSize ?? 14}px;\n--status-${playerCount}-p${targetSeat}-text-font-size: ${current.textFontSize ?? 12}px;`
-      : playerCount === 3
-        ? targetKind === "marker"
-          ? `3人用 ?：p1=self / p2=right / p3=left\n--table-history-3-${areaName}-marker-x: ${current.x}px;\n--table-history-3-${areaName}-marker-y: ${current.y}px;`
-          : `3人用 window：p1=self / p2=right / p3=left\n--table-history-3-${areaName}-window-x: ${current.x}px;\n--table-history-3-${areaName}-window-y: ${current.y}px;`
-        : targetKind === "marker"
-          ? `4/5人用 ?\n--history-${playerCount}-p${targetSeat}-x: ${current.x}px;\n--history-${playerCount}-p${targetSeat}-y: ${current.y}px;`
-          : `4/5人用 window\n--history-${playerCount}-p${targetSeat}-window-x: ${current.x}px;\n--history-${playerCount}-p${targetSeat}-window-y: ${current.y}px;`;
+      ? `player status\n--status-${playerCount}-p${targetSeat}-x: ${current.x}px;\n--status-${playerCount}-p${targetSeat}-y: ${current.y}px;\n--status-common-width: ${statusCommon.width}px;\n--status-common-height: ${statusCommon.height}px;\n--status-common-name-font-size: ${statusCommon.nameFontSize}px;\n--status-common-text-font-size: ${statusCommon.textFontSize}px;`
+      : targetKind === "topNav"
+        ? `top nav\n--debug-top-nav-width: ${topNavCommon.width}px;\n--debug-top-nav-height: ${topNavCommon.height}px;\n--debug-top-nav-font-size: ${topNavCommon.fontSize}px;`
+        : targetKind === "handCard"
+          ? `hand card\n--debug-hand-card-width: ${handCardCommon.width}px;`
+          : playerCount === 3
+            ? targetKind === "marker"
+              ? `3人用 ?：p1=self / p2=right / p3=left\n--table-history-3-${areaName}-marker-x: ${current.x}px;\n--table-history-3-${areaName}-marker-y: ${current.y}px;`
+              : `3人用 window：p1=self / p2=right / p3=left\n--table-history-3-${areaName}-window-x: ${current.x}px;\n--table-history-3-${areaName}-window-y: ${current.y}px;`
+            : targetKind === "marker"
+              ? `4/5人用 ?\n--history-${playerCount}-p${targetSeat}-x: ${current.x}px;\n--history-${playerCount}-p${targetSeat}-y: ${current.y}px;`
+              : `4/5人用 window\n--history-${playerCount}-p${targetSeat}-window-x: ${current.x}px;\n--history-${playerCount}-p${targetSeat}-window-y: ${current.y}px;`;
 
   return (
     <div
@@ -4643,6 +4683,8 @@ function MobileLayoutDebugPanel({ playerCount }: { playerCount: number }) {
           <option value="marker">? position</option>
           <option value="window">card window</option>
           <option value="status">player status</option>
+          <option value="topNav">top nav</option>
+          <option value="handCard">hand card</option>
         </select>
       </label>
 
@@ -4650,53 +4692,63 @@ function MobileLayoutDebugPanel({ playerCount }: { playerCount: number }) {
         player count: {playerCount}
       </label>
 
-      <label style={{ display: "block", marginBottom: 6 }}>
-        target seat:
-        <select
-          value={targetSeat}
-          onChange={(event) => setTargetSeat(Number(event.target.value))}
-          style={{ width: "100%", marginTop: 4 }}
-        >
-          {seatOptions.map((seat) => (
-            <option key={seat} value={seat}>
-              p{seat}
-              {playerCount === 3
-                ? seat === 1
-                  ? " / self"
-                  : seat === 2
-                    ? " / right"
-                    : " / left"
-                : ""}
-            </option>
-          ))}
-        </select>
-      </label>
+      {(targetKind === "marker" ||
+        targetKind === "window" ||
+        targetKind === "status") && (
+        <>
+          <label style={{ display: "block", marginBottom: 6 }}>
+            target seat:
+            <select
+              value={targetSeat}
+              onChange={(event) => setTargetSeat(Number(event.target.value))}
+              style={{ width: "100%", marginTop: 4 }}
+            >
+              {seatOptions.map((seat) => (
+                <option key={seat} value={seat}>
+                  p{seat}
+                  {playerCount === 3
+                    ? seat === 1
+                      ? " / self"
+                      : seat === 2
+                        ? " / right"
+                        : " / left"
+                    : ""}
+                </option>
+              ))}
+            </select>
+          </label>
 
-      <label style={{ display: "block", marginBottom: 6 }}>
-        x: {current.x}px
-        <input
-          style={{ width: "100%" }}
-          type="range"
-          min="-600"
-          max="600"
-          step="1"
-          value={current.x}
-          onChange={(event) => updateCurrent({ x: Number(event.target.value) })}
-        />
-      </label>
+          <label style={{ display: "block", marginBottom: 6 }}>
+            x: {current.x}px
+            <input
+              style={{ width: "100%" }}
+              type="range"
+              min="-600"
+              max="600"
+              step="1"
+              value={current.x}
+              onChange={(event) =>
+                updateCurrent({ x: Number(event.target.value) })
+              }
+            />
+          </label>
 
-      <label style={{ display: "block", marginBottom: 6 }}>
-        y: {current.y}px
-        <input
-          style={{ width: "100%" }}
-          type="range"
-          min="-400"
-          max="400"
-          step="1"
-          value={current.y}
-          onChange={(event) => updateCurrent({ y: Number(event.target.value) })}
-        />
-      </label>
+          <label style={{ display: "block", marginBottom: 6 }}>
+            y: {current.y}px
+            <input
+              style={{ width: "100%" }}
+              type="range"
+              min="-400"
+              max="400"
+              step="1"
+              value={current.y}
+              onChange={(event) =>
+                updateCurrent({ y: Number(event.target.value) })
+              }
+            />
+          </label>
+        </>
+      )}
 
       {targetKind === "status" && (
         <>
@@ -4767,6 +4819,64 @@ function MobileLayoutDebugPanel({ playerCount }: { playerCount: number }) {
                 setStatusCommon((previous) => ({
                   ...previous,
                   textFontSize: Number(event.target.value),
+                }))
+              }
+            />
+          </label>
+        </>
+      )}
+
+      {targetKind === "topNav" && (
+        <>
+          <label style={{ display: "block", marginBottom: 6 }}>
+            top nav width: {topNavCommon.width}px
+            <input
+              style={{ width: "100%" }}
+              type="range"
+              min="260"
+              max="760"
+              step="1"
+              value={topNavCommon.width}
+              onChange={(event) =>
+                setTopNavCommon((previous) => ({
+                  ...previous,
+                  width: Number(event.target.value),
+                }))
+              }
+            />
+          </label>
+
+          <label style={{ display: "block", marginBottom: 6 }}>
+            top nav height: {topNavCommon.height}px
+            <input
+              style={{ width: "100%" }}
+              type="range"
+              min="20"
+              max="90"
+              step="1"
+              value={topNavCommon.height}
+              onChange={(event) =>
+                setTopNavCommon((previous) => ({
+                  ...previous,
+                  height: Number(event.target.value),
+                }))
+              }
+            />
+          </label>
+
+          <label style={{ display: "block", marginBottom: 6 }}>
+            top nav font: {topNavCommon.fontSize}px
+            <input
+              style={{ width: "100%" }}
+              type="range"
+              min="7"
+              max="24"
+              step="1"
+              value={topNavCommon.fontSize}
+              onChange={(event) =>
+                setTopNavCommon((previous) => ({
+                  ...previous,
+                  fontSize: Number(event.target.value),
                 }))
               }
             />
