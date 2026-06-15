@@ -8,6 +8,7 @@ interface PlayerAreaProps {
   displayName?: string;
   temporaryLeaveStatus?: string | null;
   style?: CSSProperties;
+  className?: string;
 }
 
 export default function PlayerArea({
@@ -17,10 +18,11 @@ export default function PlayerArea({
   displayName,
   temporaryLeaveStatus,
   style,
+  className,
 }: PlayerAreaProps) {
   return (
     <article
-      className={`player-area seat-${seat} ${isCurrent ? "current" : ""}`}
+      className={`player-area seat-${seat} ${isCurrent ? "current" : ""}${className ?? ""}`}
       data-testid="player-area"
       data-player-id={player.id}
       data-open-meld-count={player.openMelds.length}
