@@ -4420,7 +4420,12 @@ function MobileLayoutDebugPanel({ playerCount }: { playerCount: number }) {
     "top-left" | "top-right" | "bottom-left" | "bottom-right"
   >("top-right");
   const [offsets, setOffsets] = useState<Record<string, LayoutDebugValue>>({});
-
+  const [statusCommon, setStatusCommon] = useState({
+    width: 78,
+    height: 32,
+    nameFontSize: 10,
+    textFontSize: 9,
+  });
   const key = `${targetKind}-${playerCount}-p${targetSeat}`;
   const current = offsets[key] ?? {
     x: 0,
@@ -4530,6 +4535,24 @@ function MobileLayoutDebugPanel({ playerCount }: { playerCount: number }) {
       }
     });
   }, [offsets]);
+
+  useEffect(() => {
+    const root = document.documentElement;
+
+    root.style.setProperty("--status-common-width", `${statusCommon.width}px`);
+    root.style.setProperty(
+      "--status-common-height",
+      `${statusCommon.height}px`,
+    );
+    root.style.setProperty(
+      "--status-common-name-font-size",
+      `${statusCommon.nameFontSize}px`,
+    );
+    root.style.setProperty(
+      "--status-common-text-font-size",
+      `${statusCommon.textFontSize}px`,
+    );
+  }, [statusCommon]);
 
   const updateCurrent = (next: Partial<LayoutDebugValue>) => {
     setOffsets((previous) => ({
@@ -4678,61 +4701,73 @@ function MobileLayoutDebugPanel({ playerCount }: { playerCount: number }) {
       {targetKind === "status" && (
         <>
           <label style={{ display: "block", marginBottom: 6 }}>
-            width: {current.width ?? 96}px
+            common width: {statusCommon.width}px
             <input
               style={{ width: "100%" }}
               type="range"
               min="40"
               max="220"
               step="1"
-              value={current.width ?? 96}
+              value={statusCommon.width}
               onChange={(event) =>
-                updateCurrent({ width: Number(event.target.value) })
+                setStatusCommon((previous) => ({
+                  ...previous,
+                  width: Number(event.target.value),
+                }))
               }
             />
           </label>
 
           <label style={{ display: "block", marginBottom: 6 }}>
-            height: {current.height ?? 44}px
+            common height: {statusCommon.height}px
             <input
               style={{ width: "100%" }}
               type="range"
               min="24"
               max="120"
               step="1"
-              value={current.height ?? 44}
+              value={statusCommon.height}
               onChange={(event) =>
-                updateCurrent({ height: Number(event.target.value) })
+                setStatusCommon((previous) => ({
+                  ...previous,
+                  height: Number(event.target.value),
+                }))
               }
             />
           </label>
 
           <label style={{ display: "block", marginBottom: 6 }}>
-            name font: {current.nameFontSize ?? 14}px
+            common name font: {statusCommon.nameFontSize}px
             <input
               style={{ width: "100%" }}
               type="range"
               min="8"
               max="28"
               step="1"
-              value={current.nameFontSize ?? 14}
+              value={statusCommon.nameFontSize}
               onChange={(event) =>
-                updateCurrent({ nameFontSize: Number(event.target.value) })
+                setStatusCommon((previous) => ({
+                  ...previous,
+                  nameFontSize: Number(event.target.value),
+                }))
               }
             />
           </label>
 
           <label style={{ display: "block", marginBottom: 6 }}>
-            text font: {current.textFontSize ?? 12}px
+            common text font: {statusCommon.textFontSize}px
             <input
               style={{ width: "100%" }}
               type="range"
               min="8"
               max="24"
               step="1"
-              value={current.textFontSize ?? 12}
+              value={statusCommon.textFontSize}
               onChange={(event) =>
-                updateCurrent({ textFontSize: Number(event.target.value) })
+                setStatusCommon((previous) => ({
+                  ...previous,
+                  textFontSize: Number(event.target.value),
+                }))
               }
             />
           </label>

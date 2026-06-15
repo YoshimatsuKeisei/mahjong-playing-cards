@@ -8039,133 +8039,108 @@ body {
 
 @media (orientation: landscape) and (max-height: 700px) and (hover: none) and (pointer: coarse) {
   .player-status-slot {
+    width: var(--status-common-width, 78px) !important;
+    min-width: var(--status-common-width, 78px) !important;
+    max-width: var(--status-common-width, 78px) !important;
     translate: var(--status-x, 0px) var(--status-y, 0px);
   }
 
   .player-status-slot .seat-label {
-    min-width: var(--status-width, 96px);
-    min-height: var(--status-height, 44px);
-    padding: var(--status-padding-y, 8px) var(--status-padding-x, 12px);
+    width: var(--status-common-width, 78px) !important;
+    min-width: var(--status-common-width, 78px) !important;
+    max-width: var(--status-common-width, 78px) !important;
+    height: var(--status-common-height, 32px) !important;
+    min-height: var(--status-common-height, 32px) !important;
+    max-height: var(--status-common-height, 32px) !important;
+    padding: 4px 7px;
+    overflow: hidden;
   }
 
   .player-status-slot .seat-label strong {
-    font-size: var(--status-name-font-size, 14px);
+    max-width: 100%;
+    font-size: var(--status-common-name-font-size, 10px) !important;
   }
 
   .player-status-slot .seat-label span {
-    font-size: var(--status-text-font-size, 12px);
+    font-size: var(--status-common-text-font-size, 9px) !important;
   }
 
+  /* 3人用
+     p1 = player1
+     p2 = player3
+     p3 = player2
+     player3-p2 の y は未確定なので暫定0
+  */
   .table-3 .player-status-slot--p1 {
-    --status-x: var(--status-3-p1-x, 0px);
+    --status-x: var(--status-3-p1-x, 222px);
     --status-y: var(--status-3-p1-y, 0px);
-    --status-width: var(--status-3-p1-width, 96px);
-    --status-height: var(--status-3-p1-height, 44px);
-    --status-name-font-size: var(--status-3-p1-name-font-size, 14px);
-    --status-text-font-size: var(--status-3-p1-text-font-size, 12px);
   }
 
   .table-3 .player-status-slot--p2 {
     --status-x: var(--status-3-p2-x, 0px);
     --status-y: var(--status-3-p2-y, 0px);
-    --status-width: var(--status-3-p2-width, 96px);
-    --status-height: var(--status-33-p1-text-font-size, 12px);
-  }
-
-  .table-3 .player-status-slot--p2 {
-    --status-x: var(--status-3-p2-x, 0px);
-    --status-y: var(--status--p2-height, 44px);
-    --status-name-font-size: var(--status-3-p2-name-font-size, 14px);
-    --status-text-font-size: var(--status-3-p2-text-font-size, 12px);
   }
 
   .table-3 .player-status-slot--p3 {
     --status-x: var(--status-3-p3-x, 0px);
     --status-y: var(--status-3-p3-y, 0px);
-    --status-width: var(--status-3-p3-width, 96px);
-    --status-height: var(--status-3-p3-height, 44px);
-    --status-name-font-size: var(--status-3-p3-name-font-size, 14px);
-    --status-text-font-size: var(--status-3-p3-text-font-size, 12px);
   }
 
+  /* 4人用
+     p1 = player3
+     p2 = player4
+     p3 = player1
+     p4 = player2
+  */
   .table-4 .player-status-slot--p1 {
-    --status-x: var(--status-4-p1-x, 0px);
+    --status-x: var(--status-4-p1-x, -24px);
     --status-y: var(--status-4-p1-y, 0px);
-    --status-width: var(--status-4-p1-width, 96px);
-    --status-height: var(--status-4-p1-height, 44px);
-    --status-name-font-size: var(--status-4-p1-name-font-size, 14px);
-    --status-text-font-size: var(--status-4-p1-text-font-size, 12px);
   }
 
   .table-4 .player-status-slot--p2 {
-    --status-x: var(--status-4-p2-x, 0px);
-    --status-y: var(--status-4-p2-y, 0px);
-    --status-width: var(--status-4-p2-width, 96px);
-    --status-height: var(--status-4-p2-height, 44px);
-    --status-name-font-size: var(--status-4-p2-name-font-size, 14px);
-    --status-text-font-size: var(--status-4-p2-text-font-size, 12px);
+    --status-x: var(--status-4-p2-x, 6px);
+    --status-y: var(--status-4-p2-y, 36px);
   }
 
   .table-4 .player-status-slot--p3 {
-    --status-x: var(--status-4-p3-x, 0px);
-    --status-y: var(--status-4-p3-y, 0px);
-    --status-width: var(--status-4-p3-width, 96px);
-    --status-height: var(--status-4-p3-height, 44px);
-    --status-name-font-size: var(--status-4-p3-name-font-size, 14px);
-    --status-text-font-size: var(--status-4-p3-text-font-size, 12px);
+    --status-x: var(--status-4-p3-x, 222px);
+    --status-y: var(--status-4-p3-y, -4px);
   }
 
   .table-4 .player-status-slot--p4 {
-    --status-x: var(--status-4-p4-x, 0px);
-    --status-y: var(--status-4-p4-y, 0px);
-    --status-width: var(--status-4-p4-width, 96px);
-    --status-height: var(--status-4-p4-height, 44px);
-    --status-name-font-size: var(--status-4-p4-name-font-size, 14px);
-    --status-text-font-size: var(--status-4-p4-text-font-size, 12px);
+    --status-x: var(--status-4-p4-x, -96px);
+    --status-y: var(--status-4-p4-y, 44px);
   }
 
+  /* 5人用
+     p1 = player3
+     p2 = player4
+     p3 = player5
+     p4 = player1
+     p5 = player2
+  */
   .table-5 .player-status-slot--p1 {
-    --status-x: var(--status-5-p1-x, 0px);
+    --status-x: var(--status-5-p1-x, -18px);
     --status-y: var(--status-5-p1-y, 0px);
-    --status-width: var(--status-5-p1-width, 96px);
-    --status-height: var(--status-5-p1-height, 44px);
-    --status-name-font-size: var(--status-5-p1-name-font-size, 14px);
-    --status-text-font-size: var(--status-5-p1-text-font-size, 12px);
   }
 
   .table-5 .player-status-slot--p2 {
-    --status-x: var(--status-5-p2-x, 0px);
+    --status-x: var(--status-5-p2-x, 60px);
     --status-y: var(--status-5-p2-y, 0px);
-    --status-width: var(--status-5-p2-width, 96px);
-    --status-height: var(--status-5-p2-height, 44px);
-    --status-name-font-size: var(--status-5-p2-name-font-size, 14px);
-    --status-text-font-size: var(--status-5-p2-text-font-size, 12px);
   }
 
   .table-5 .player-status-slot--p3 {
-    --status-x: var(--status-5-p3-x, 0px);
+    --status-x: var(--status-5-p3-x, 72px);
     --status-y: var(--status-5-p3-y, 0px);
-    --status-width: var(--status-5-p3-width, 96px);
-    --status-height: var(--status-5-p3-height, 44px);
-    --status-name-font-size: var(--status-5-p3-name-font-size, 14px);
-    --status-text-font-size: var(--status-5-p3-text-font-size, 12px);
   }
 
   .table-5 .player-status-slot--p4 {
-    --status-x: var(--status-5-p4-x, 0px);
+    --status-x: var(--status-5-p4-x, 222px);
     --status-y: var(--status-5-p4-y, 0px);
-    --status-width: var(--status-5-p4-width, 96px);
-    --status-height: var(--status-5-p4-height, 44px);
-    --status-name-font-size: var(--status-5-p4-name-font-size, 14px);
-    --status-text-font-size: var(--status-5-p4-text-font-size, 12px);
   }
 
   .table-5 .player-status-slot--p5 {
-    --status-x: var(--status-5-p5-x, 0px);
+    --status-x: var(--status-5-p5-x, -96px);
     --status-y: var(--status-5-p5-y, 0px);
-    --status-width: var(--status-5-p5-width, 96px);
-    --status-height: var(--status-5-p5-height, 44px);
-    --status-name-font-size: var(--status-5-p5-name-font-size, 14px);
-    --status-text-font-size: var(--status-5-p5-text-font-size, 12px);
   }
 }
