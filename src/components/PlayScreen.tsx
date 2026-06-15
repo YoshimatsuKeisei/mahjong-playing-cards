@@ -4408,7 +4408,8 @@ function MobileLayoutDebugPanel({ playerCount }: { playerCount: number }) {
     | "window"
     | "status"
     | "topNav"
-    | "handCard";
+    | "handCard"
+    | "roundBanner";
 
   type LayoutDebugValue = {
     x: number;
@@ -4426,18 +4427,32 @@ function MobileLayoutDebugPanel({ playerCount }: { playerCount: number }) {
   >("top-right");
   const [offsets, setOffsets] = useState<Record<string, LayoutDebugValue>>({});
   const [statusCommon, setStatusCommon] = useState({
-    width: 78,
-    height: 32,
-    nameFontSize: 10,
-    textFontSize: 9,
+    width: 250,
+    height: 70,
+    nameFontSize: 20,
+    textFontSize: 20,
   });
   const [topNavCommon, setTopNavCommon] = useState({
+    x: 0,
+    y: 0,
     width: 520,
-    height: 30,
+    height: 42,
     fontSize: 10,
+    playerLabelX: 0,
+    playerLabelY: 0,
+    playerStatusX: 0,
+    playerStatusY: 0,
   });
   const [handCardCommon, setHandCardCommon] = useState({
     width: 58,
+    scale: 0.92,
+  });
+  const [roundBannerCommon, setRoundBannerCommon] = useState({
+    width: 230,
+    height: 28,
+    fontSize: 14,
+    x: 0,
+    y: 0,
   });
   const key = `${targetKind}-${playerCount}-p${targetSeat}`;
   const current = offsets[key] ?? {
@@ -4570,6 +4585,8 @@ function MobileLayoutDebugPanel({ playerCount }: { playerCount: number }) {
   useEffect(() => {
     const root = document.documentElement;
 
+    root.style.setProperty("--debug-top-nav-x", `${topNavCommon.x}px`);
+    root.style.setProperty("--debug-top-nav-y", `${topNavCommon.y}px`);
     root.style.setProperty("--debug-top-nav-width", `${topNavCommon.width}px`);
     root.style.setProperty(
       "--debug-top-nav-height",
@@ -4578,6 +4595,22 @@ function MobileLayoutDebugPanel({ playerCount }: { playerCount: number }) {
     root.style.setProperty(
       "--debug-top-nav-font-size",
       `${topNavCommon.fontSize}px`,
+    );
+    root.style.setProperty(
+      "--debug-top-nav-player-label-x",
+      `${topNavCommon.playerLabelX}px`,
+    );
+    root.style.setProperty(
+      "--debug-top-nav-player-label-y",
+      `${topNavCommon.playerLabelY}px`,
+    );
+    root.style.setProperty(
+      "--debug-top-nav-player-status-x",
+      `${topNavCommon.playerStatusX}px`,
+    );
+    root.style.setProperty(
+      "--debug-top-nav-player-status-y",
+      `${topNavCommon.playerStatusY}px`,
     );
   }, [topNavCommon]);
 
@@ -4588,7 +4621,36 @@ function MobileLayoutDebugPanel({ playerCount }: { playerCount: number }) {
       "--debug-hand-card-width",
       `${handCardCommon.width}px`,
     );
+    root.style.setProperty(
+      "--debug-hand-card-scale",
+      String(handCardCommon.scale),
+    );
   }, [handCardCommon]);
+
+  useEffect(() => {
+    const root = document.documentElement;
+
+    root.style.setProperty(
+      "--debug-round-banner-width",
+      `${roundBannerCommon.width}px`,
+    );
+    root.style.setProperty(
+      "--debug-round-banner-height",
+      `${roundBannerCommon.height}px`,
+    );
+    root.style.setProperty(
+      "--debug-round-banner-font-size",
+      `${roundBannerCommon.fontSize}px`,
+    );
+    root.style.setProperty(
+      "--debug-round-banner-x",
+      `${roundBannerCommon.x}px`,
+    );
+    root.style.setProperty(
+      "--debug-round-banner-y",
+      `${roundBannerCommon.y}px`,
+    );
+  }, [roundBannerCommon]);
 
   const updateCurrent = (next: Partial<LayoutDebugValue>) => {
     setOffsets((previous) => ({
@@ -4616,16 +4678,18 @@ function MobileLayoutDebugPanel({ playerCount }: { playerCount: number }) {
     targetKind === "status"
       ? `player status\n--status-${playerCount}-p${targetSeat}-x: ${current.x}px;\n--status-${playerCount}-p${targetSeat}-y: ${current.y}px;\n--status-common-width: ${statusCommon.width}px;\n--status-common-height: ${statusCommon.height}px;\n--status-common-name-font-size: ${statusCommon.nameFontSize}px;\n--status-common-text-font-size: ${statusCommon.textFontSize}px;`
       : targetKind === "topNav"
-        ? `top nav\n--debug-top-nav-width: ${topNavCommon.width}px;\n--debug-top-nav-height: ${topNavCommon.height}px;\n--debug-top-nav-font-size: ${topNavCommon.fontSize}px;`
+        ? `top nav\n--debug-top-nav-x: ${topNavCommon.x}px;\n--debug-top-nav-y: ${topNavCommon.y}px;\n--debug-top-nav-width: ${topNavCommon.width}px;\n--debug-top-nav-height: ${topNavCommon.height}px;\n--debug-top-nav-font-size: ${topNavCommon.fontSize}px;\n--debug-top-nav-player-label-x: ${topNavCommon.playerLabelX}px;\n--debug-top-nav-player-label-y: ${topNavCommon.playerLabelY}px;\n--debug-top-nav-player-status-x: ${topNavCommon.playerStatusX}px;\n--debug-top-nav-player-status-y: ${topNavCommon.playerStatusY}px;`
         : targetKind === "handCard"
-          ? `hand card\n--debug-hand-card-width: ${handCardCommon.width}px;`
-          : playerCount === 3
-            ? targetKind === "marker"
-              ? `3人用 ?：p1=self / p2=right / p3=left\n--table-history-3-${areaName}-marker-x: ${current.x}px;\n--table-history-3-${areaName}-marker-y: ${current.y}px;`
-              : `3人用 window：p1=self / p2=right / p3=left\n--table-history-3-${areaName}-window-x: ${current.x}px;\n--table-history-3-${areaName}-window-y: ${current.y}px;`
-            : targetKind === "marker"
-              ? `4/5人用 ?\n--history-${playerCount}-p${targetSeat}-x: ${current.x}px;\n--history-${playerCount}-p${targetSeat}-y: ${current.y}px;`
-              : `4/5人用 window\n--history-${playerCount}-p${targetSeat}-window-x: ${current.x}px;\n--history-${playerCount}-p${targetSeat}-window-y: ${current.y}px;`;
+          ? `hand card\n--debug-hand-card-width: ${handCardCommon.width}px;\n--debug-hand-card-scale: ${handCardCommon.scale};`
+          : targetKind === "roundBanner"
+            ? `round banner\n--debug-round-banner-width: ${roundBannerCommon.width}px;\n--debug-round-banner-height: ${roundBannerCommon.height}px;\n--debug-round-banner-font-size: ${roundBannerCommon.fontSize}px;\n--debug-round-banner-x: ${roundBannerCommon.x}px;\n--debug-round-banner-y: ${roundBannerCommon.y}px;`
+            : playerCount === 3
+              ? targetKind === "marker"
+                ? `3人用 ?：p1=self / p2=right / p3=left\n--table-history-3-${areaName}-marker-x: ${current.x}px;\n--table-history-3-${areaName}-marker-y: ${current.y}px;`
+                : `3人用 window：p1=self / p2=right / p3=left\n--table-history-3-${areaName}-window-x: ${current.x}px;\n--table-history-3-${areaName}-window-y: ${current.y}px;`
+              : targetKind === "marker"
+                ? `4/5人用 ?\n--history-${playerCount}-p${targetSeat}-x: ${current.x}px;\n--history-${playerCount}-p${targetSeat}-y: ${current.y}px;`
+                : `4/5人用 window\n--history-${playerCount}-p${targetSeat}-window-x: ${current.x}px;\n--history-${playerCount}-p${targetSeat}-window-y: ${current.y}px;`;
 
   return (
     <div
@@ -4685,6 +4749,7 @@ function MobileLayoutDebugPanel({ playerCount }: { playerCount: number }) {
           <option value="status">player status</option>
           <option value="topNav">top nav</option>
           <option value="handCard">hand card</option>
+          <option value="roundBanner">round banner</option>
         </select>
       </label>
 
@@ -4757,8 +4822,8 @@ function MobileLayoutDebugPanel({ playerCount }: { playerCount: number }) {
             <input
               style={{ width: "100%" }}
               type="range"
-              min="40"
-              max="220"
+              min="120"
+              max="320"
               step="1"
               value={statusCommon.width}
               onChange={(event) =>
@@ -4775,8 +4840,8 @@ function MobileLayoutDebugPanel({ playerCount }: { playerCount: number }) {
             <input
               style={{ width: "100%" }}
               type="range"
-              min="24"
-              max="120"
+              min="36"
+              max="130"
               step="1"
               value={statusCommon.height}
               onChange={(event) =>
@@ -4793,7 +4858,7 @@ function MobileLayoutDebugPanel({ playerCount }: { playerCount: number }) {
             <input
               style={{ width: "100%" }}
               type="range"
-              min="8"
+              min="10"
               max="28"
               step="1"
               value={statusCommon.nameFontSize}
@@ -4811,8 +4876,8 @@ function MobileLayoutDebugPanel({ playerCount }: { playerCount: number }) {
             <input
               style={{ width: "100%" }}
               type="range"
-              min="8"
-              max="24"
+              min="10"
+              max="28"
               step="1"
               value={statusCommon.textFontSize}
               onChange={(event) =>
@@ -4828,6 +4893,42 @@ function MobileLayoutDebugPanel({ playerCount }: { playerCount: number }) {
 
       {targetKind === "topNav" && (
         <>
+          <label style={{ display: "block", marginBottom: 6 }}>
+            top nav x: {topNavCommon.x}px
+            <input
+              style={{ width: "100%" }}
+              type="range"
+              min="-300"
+              max="300"
+              step="1"
+              value={topNavCommon.x}
+              onChange={(event) =>
+                setTopNavCommon((previous) => ({
+                  ...previous,
+                  x: Number(event.target.value),
+                }))
+              }
+            />
+          </label>
+
+          <label style={{ display: "block", marginBottom: 6 }}>
+            top nav y: {topNavCommon.y}px
+            <input
+              style={{ width: "100%" }}
+              type="range"
+              min="-160"
+              max="160"
+              step="1"
+              value={topNavCommon.y}
+              onChange={(event) =>
+                setTopNavCommon((previous) => ({
+                  ...previous,
+                  y: Number(event.target.value),
+                }))
+              }
+            />
+          </label>
+
           <label style={{ display: "block", marginBottom: 6 }}>
             top nav width: {topNavCommon.width}px
             <input
@@ -4851,8 +4952,8 @@ function MobileLayoutDebugPanel({ playerCount }: { playerCount: number }) {
             <input
               style={{ width: "100%" }}
               type="range"
-              min="20"
-              max="90"
+              min="24"
+              max="100"
               step="1"
               value={topNavCommon.height}
               onChange={(event) =>
@@ -4877,6 +4978,212 @@ function MobileLayoutDebugPanel({ playerCount }: { playerCount: number }) {
                 setTopNavCommon((previous) => ({
                   ...previous,
                   fontSize: Number(event.target.value),
+                }))
+              }
+            />
+          </label>
+
+          <label style={{ display: "block", marginBottom: 6 }}>
+            「現在のプレイヤー」x: {topNavCommon.playerLabelX}px
+            <input
+              style={{ width: "100%" }}
+              type="range"
+              min="-160"
+              max="160"
+              step="1"
+              value={topNavCommon.playerLabelX}
+              onChange={(event) =>
+                setTopNavCommon((previous) => ({
+                  ...previous,
+                  playerLabelX: Number(event.target.value),
+                }))
+              }
+            />
+          </label>
+
+          <label style={{ display: "block", marginBottom: 6 }}>
+            「現在のプレイヤー」y: {topNavCommon.playerLabelY}px
+            <input
+              style={{ width: "100%" }}
+              type="range"
+              min="-80"
+              max="80"
+              step="1"
+              value={topNavCommon.playerLabelY}
+              onChange={(event) =>
+                setTopNavCommon((previous) => ({
+                  ...previous,
+                  playerLabelY: Number(event.target.value),
+                }))
+              }
+            />
+          </label>
+
+          <label style={{ display: "block", marginBottom: 6 }}>
+            「通常/リーチ中」x: {topNavCommon.playerStatusX}px
+            <input
+              style={{ width: "100%" }}
+              type="range"
+              min="-160"
+              max="160"
+              step="1"
+              value={topNavCommon.playerStatusX}
+              onChange={(event) =>
+                setTopNavCommon((previous) => ({
+                  ...previous,
+                  playerStatusX: Number(event.target.value),
+                }))
+              }
+            />
+          </label>
+
+          <label style={{ display: "block", marginBottom: 6 }}>
+            「通常/リーチ中」y: {topNavCommon.playerStatusY}px
+            <input
+              style={{ width: "100%" }}
+              type="range"
+              min="-80"
+              max="80"
+              step="1"
+              value={topNavCommon.playerStatusY}
+              onChange={(event) =>
+                setTopNavCommon((previous) => ({
+                  ...previous,
+                  playerStatusY: Number(event.target.value),
+                }))
+              }
+            />
+          </label>
+        </>
+      )}
+
+      {targetKind === "handCard" && (
+        <>
+          <label style={{ display: "block", marginBottom: 6 }}>
+            hand card width: {handCardCommon.width}px
+            <input
+              style={{ width: "100%" }}
+              type="range"
+              min="32"
+              max="110"
+              step="1"
+              value={handCardCommon.width}
+              onChange={(event) =>
+                setHandCardCommon((previous) => ({
+                  ...previous,
+                  width: Number(event.target.value),
+                }))
+              }
+            />
+          </label>
+
+          <label style={{ display: "block", marginBottom: 6 }}>
+            hand card scale: {handCardCommon.scale}
+            <input
+              style={{ width: "100%" }}
+              type="range"
+              min="0.5"
+              max="1.4"
+              step="0.01"
+              value={handCardCommon.scale}
+              onChange={(event) =>
+                setHandCardCommon((previous) => ({
+                  ...previous,
+                  scale: Number(event.target.value),
+                }))
+              }
+            />
+          </label>
+        </>
+      )}
+
+      {targetKind === "roundBanner" && (
+        <>
+          <label style={{ display: "block", marginBottom: 6 }}>
+            round banner width: {roundBannerCommon.width}px
+            <input
+              style={{ width: "100%" }}
+              type="range"
+              min="120"
+              max="460"
+              step="1"
+              value={roundBannerCommon.width}
+              onChange={(event) =>
+                setRoundBannerCommon((previous) => ({
+                  ...previous,
+                  width: Number(event.target.value),
+                }))
+              }
+            />
+          </label>
+
+          <label style={{ display: "block", marginBottom: 6 }}>
+            round banner height: {roundBannerCommon.height}px
+            <input
+              style={{ width: "100%" }}
+              type="range"
+              min="16"
+              max="80"
+              step="1"
+              value={roundBannerCommon.height}
+              onChange={(event) =>
+                setRoundBannerCommon((previous) => ({
+                  ...previous,
+                  height: Number(event.target.value),
+                }))
+              }
+            />
+          </label>
+
+          <label style={{ display: "block", marginBottom: 6 }}>
+            round banner font: {roundBannerCommon.fontSize}px
+            <input
+              style={{ width: "100%" }}
+              type="range"
+              min="8"
+              max="32"
+              step="1"
+              value={roundBannerCommon.fontSize}
+              onChange={(event) =>
+                setRoundBannerCommon((previous) => ({
+                  ...previous,
+                  fontSize: Number(event.target.value),
+                }))
+              }
+            />
+          </label>
+
+          <label style={{ display: "block", marginBottom: 6 }}>
+            round banner x: {roundBannerCommon.x}px
+            <input
+              style={{ width: "100%" }}
+              type="range"
+              min="-240"
+              max="240"
+              step="1"
+              value={roundBannerCommon.x}
+              onChange={(event) =>
+                setRoundBannerCommon((previous) => ({
+                  ...previous,
+                  x: Number(event.target.value),
+                }))
+              }
+            />
+          </label>
+
+          <label style={{ display: "block", marginBottom: 6 }}>
+            round banner y: {roundBannerCommon.y}px
+            <input
+              style={{ width: "100%" }}
+              type="range"
+              min="-120"
+              max="120"
+              step="1"
+              value={roundBannerCommon.y}
+              onChange={(event) =>
+                setRoundBannerCommon((previous) => ({
+                  ...previous,
+                  y: Number(event.target.value),
                 }))
               }
             />

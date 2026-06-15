@@ -8213,3 +8213,111 @@ body {
     width: var(--debug-hand-card-width, 58px) !important;
   }
 }
+
+@media (orientation: landscape) and (max-height: 700px) and (hover: none) and (pointer: coarse) {
+  /* プレイヤーステータス：上端固定、下方向へ伸ばす */
+  .player-status-slot {
+    width: var(--status-common-width, 250px) !important;
+    min-width: var(--status-common-width, 250px) !important;
+    max-width: var(--status-common-width, 250px) !important;
+    align-items: flex-start !important;
+  }
+
+  .player-status-slot .seat-label {
+    width: var(--status-common-width, 250px) !important;
+    min-width: var(--status-common-width, 250px) !important;
+    max-width: var(--status-common-width, 250px) !important;
+
+    height: var(--status-common-height, 70px) !important;
+    min-height: var(--status-common-height, 70px) !important;
+    max-height: var(--status-common-height, 70px) !important;
+
+    box-sizing: border-box !important;
+    align-content: start !important;
+    overflow: hidden !important;
+  }
+
+  .player-status-slot .seat-label strong {
+    font-size: var(--status-common-name-font-size, 20px) !important;
+    line-height: 1.05 !important;
+  }
+
+  .player-status-slot .seat-label span,
+  .player-status-slot .temporary-leave-seat-status,
+  .player-status-slot .j-enhancement-badge,
+  .player-status-slot .j-shield-badge {
+    font-size: var(--status-common-text-font-size, 20px) !important;
+    line-height: 1.05 !important;
+  }
+
+  /* 上部ナビ全体 */
+  .table-scene .top-toolbar {
+    width: min(var(--debug-top-nav-width, 520px), 94dvw) !important;
+    min-width: 0 !important;
+
+    height: var(--debug-top-nav-height, 42px) !important;
+    min-height: var(--debug-top-nav-height, 42px) !important;
+    max-height: var(--debug-top-nav-height, 42px) !important;
+
+    box-sizing: border-box !important;
+    overflow: visible !important;
+    font-size: var(--debug-top-nav-font-size, 10px) !important;
+    translate: var(--debug-top-nav-x, 0px) var(--debug-top-nav-y, 0px);
+  }
+
+  .table-scene .top-toolbar,
+  .table-scene .top-toolbar span,
+  .table-scene .top-toolbar strong,
+  .table-scene .top-toolbar em,
+  .table-scene .toolbar-player,
+  .table-scene .toolbar-action,
+  .table-scene .toolbar-deck,
+  .table-scene .daifugo-status {
+    font-size: var(--debug-top-nav-font-size, 10px) !important;
+    line-height: 1.05 !important;
+  }
+
+  .table-scene .toolbar-player {
+    overflow: visible !important;
+  }
+
+  .table-scene .toolbar-player span {
+    display: inline-block !important;
+    translate: var(--debug-top-nav-player-label-x, 0px)
+      var(--debug-top-nav-player-label-y, 0px);
+  }
+
+  .table-scene .toolbar-player em {
+    display: inline-block !important;
+    translate: var(--debug-top-nav-player-status-x, 0px)
+      var(--debug-top-nav-player-status-y, 0px);
+  }
+
+  /* -〇回戦- */
+  .table-scene .round-scroll-banner {
+    min-width: var(--debug-round-banner-width, 230px) !important;
+    width: var(--debug-round-banner-width, 230px) !important;
+
+    height: var(--debug-round-banner-height, 28px) !important;
+    min-height: var(--debug-round-banner-height, 28px) !important;
+    max-height: var(--debug-round-banner-height, 28px) !important;
+
+    box-sizing: border-box !important;
+    display: grid !important;
+    place-items: center !important;
+    padding: 0 0.8rem !important;
+    font-size: var(--debug-round-banner-font-size, 14px) !important;
+    translate: var(--debug-round-banner-x, 0px) var(--debug-round-banner-y, 0px);
+  }
+
+  /* 手札カード：width と group scale の両方を上書き */
+  .hand-section .hand-view .card-button .playing-card:not(.compact),
+  .hand-section .hand-view .playing-card:not(.compact) {
+    width: var(--debug-hand-card-width, 58px) !important;
+  }
+
+  .hand-section .hand-card-group {
+    transform: scale(var(--debug-hand-card-scale, 0.92)) !important;
+    transform-origin: top left !important;
+  }
+}
