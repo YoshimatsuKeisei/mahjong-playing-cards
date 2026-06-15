@@ -1,28 +1,25 @@
 # Diff Summary
 
-Date : 2026-06-12 14:18:18
+Date : 2026-06-16 07:32:19
 
 Directory c:\\Users\\jingc\\Documents\\8番出口
 
-Total : 9 files,  1402 codes, 0 comments, 199 blanks, all 1601 lines
+Total : 2 files,  746 codes, 40 comments, 85 blanks, all 871 lines
 
 [Summary](results.md) / [Details](details.md) / Diff Summary / [Diff Details](diff-details.md)
 
 ## Languages
 | language | files | code | comment | blank | total |
 | :--- | ---: | ---: | ---: | ---: | ---: |
-| TypeScript | 6 | 1,092 | 0 | 188 | 1,280 |
-| TypeScript JSX | 3 | 310 | 0 | 11 | 321 |
+| TypeScript JSX | 1 | 378 | 0 | 23 | 401 |
+| PostCSS | 1 | 368 | 40 | 62 | 470 |
 
 ## Directories
 | path | files | code | comment | blank | total |
 | :--- | ---: | ---: | ---: | ---: | ---: |
-| . | 9 | 1,402 | 0 | 199 | 1,601 |
-| server | 3 | 781 | 0 | 162 | 943 |
-| src | 5 | 507 | 0 | 37 | 544 |
-| src\\components | 3 | 310 | 0 | 11 | 321 |
-| src\\game | 1 | 183 | 0 | 26 | 209 |
-| src\\online | 1 | 14 | 0 | 0 | 14 |
-| tests | 1 | 114 | 0 | 0 | 114 |
+| . | 2 | 746 | 40 | 85 | 871 |
+| src | 2 | 746 | 40 | 85 | 871 |
+| src (Files) | 1 | 368 | 40 | 62 | 470 |
+| src\\components | 1 | 378 | 0 | 23 | 401 |
 
 [Summary](results.md) / [Details](details.md) / Diff Summary / [Diff Details](diff-details.md)

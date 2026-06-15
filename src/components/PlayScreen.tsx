@@ -4459,25 +4459,30 @@ function MobileLayoutDebugPanel({ playerCount }: { playerCount: number }) {
   const [gearCommon, setGearCommon] = useState({
     x: 0,
     y: 0,
-    size: 44,
-    fontSize: 20,
+    size: 75,
+    fontSize: 40,
   });
 
   const [historyWindowCommon, setHistoryWindowCommon] = useState({
-    width: 340,
+    width: 510,
     height: 180,
-    cardWidth: 46,
-    fontSize: 14,
+    cardWidth: 75,
+    fontSize: 18,
   });
 
   const [bottomNavCommon, setBottomNavCommon] = useState({
-    panelWidth: 520,
-    panelHeight: 112,
+    x: 0,
+    y: 0,
+    panelMinWidth: 180,
+    panelMaxWidth: 760,
+    panelMinHeight: 72,
     buttonWidth: 150,
     buttonHeight: 44,
+    buttonFontSize: 14,
     messageFontSize: 14,
     choiceWidth: 120,
     choiceHeight: 42,
+    choiceFontSize: 14,
   });
   const key = `${targetKind}-${playerCount}-p${targetSeat}`;
   const current = offsets[key] ?? {
@@ -4713,13 +4718,19 @@ function MobileLayoutDebugPanel({ playerCount }: { playerCount: number }) {
   useEffect(() => {
     const root = document.documentElement;
 
+    root.style.setProperty("--debug-bottom-nav-x", `${bottomNavCommon.x}px`);
+    root.style.setProperty("--debug-bottom-nav-y", `${bottomNavCommon.y}px`);
     root.style.setProperty(
-      "--debug-bottom-nav-panel-width",
-      `${bottomNavCommon.panelWidth}px`,
+      "--debug-bottom-nav-panel-min-width",
+      `${bottomNavCommon.panelMinWidth}px`,
     );
     root.style.setProperty(
-      "--debug-bottom-nav-panel-height",
-      `${bottomNavCommon.panelHeight}px`,
+      "--debug-bottom-nav-panel-max-width",
+      `${bottomNavCommon.panelMaxWidth}px`,
+    );
+    root.style.setProperty(
+      "--debug-bottom-nav-panel-min-height",
+      `${bottomNavCommon.panelMinHeight}px`,
     );
     root.style.setProperty(
       "--debug-bottom-nav-button-width",
@@ -4728,6 +4739,10 @@ function MobileLayoutDebugPanel({ playerCount }: { playerCount: number }) {
     root.style.setProperty(
       "--debug-bottom-nav-button-height",
       `${bottomNavCommon.buttonHeight}px`,
+    );
+    root.style.setProperty(
+      "--debug-bottom-nav-button-font-size",
+      `${bottomNavCommon.buttonFontSize}px`,
     );
     root.style.setProperty(
       "--debug-bottom-nav-message-font-size",
@@ -4740,6 +4755,10 @@ function MobileLayoutDebugPanel({ playerCount }: { playerCount: number }) {
     root.style.setProperty(
       "--debug-bottom-nav-choice-height",
       `${bottomNavCommon.choiceHeight}px`,
+    );
+    root.style.setProperty(
+      "--debug-bottom-nav-choice-font-size",
+      `${bottomNavCommon.choiceFontSize}px`,
     );
   }, [bottomNavCommon]);
 
@@ -4779,7 +4798,7 @@ function MobileLayoutDebugPanel({ playerCount }: { playerCount: number }) {
               : targetKind === "historyWindowSize"
                 ? `history window size\n--debug-history-window-width: ${historyWindowCommon.width}px;\n--debug-history-window-height: ${historyWindowCommon.height}px;\n--debug-history-window-card-width: ${historyWindowCommon.cardWidth}px;\n--debug-history-window-font-size: ${historyWindowCommon.fontSize}px;`
                 : targetKind === "bottomNav"
-                  ? `bottom nav\n--debug-bottom-nav-panel-width: ${bottomNavCommon.panelWidth}px;\n--debug-bottom-nav-panel-height: ${bottomNavCommon.panelHeight}px;\n--debug-bottom-nav-button-width: ${bottomNavCommon.buttonWidth}px;\n--debug-bottom-nav-button-height: ${bottomNavCommon.buttonHeight}px;\n--debug-bottom-nav-message-font-size: ${bottomNavCommon.messageFontSize}px;\n--debug-bottom-nav-choice-width: ${bottomNavCommon.choiceWidth}px;\n--debug-bottom-nav-choice-height: ${bottomNavCommon.choiceHeight}px;`
+                  ? `bottom nav\n--debug-bottom-nav-x: ${bottomNavCommon.x}px;\n--debug-bottom-nav-y: ${bottomNavCommon.y}px;\n--debug-bottom-nav-panel-min-width: ${bottomNavCommon.panelMinWidth}px;\n--debug-bottom-nav-panel-max-width: ${bottomNavCommon.panelMaxWidth}px;\n--debug-bottom-nav-panel-min-height: ${bottomNavCommon.panelMinHeight}px;\n--debug-bottom-nav-button-width: ${bottomNavCommon.buttonWidth}px;\n--debug-bottom-nav-button-height: ${bottomNavCommon.buttonHeight}px;\n--debug-bottom-nav-button-font-size: ${bottomNavCommon.buttonFontSize}px;\n--debug-bottom-nav-message-font-size: ${bottomNavCommon.messageFontSize}px;\n--debug-bottom-nav-choice-width: ${bottomNavCommon.choiceWidth}px;\n--debug-bottom-nav-choice-height: ${bottomNavCommon.choiceHeight}px;\n--debug-bottom-nav-choice-font-size: ${bottomNavCommon.choiceFontSize}px;`
                   : playerCount === 3
                     ? targetKind === "marker"
                       ? `3人用 ?：p1=self / p2=right / p3=left\n--table-history-3-${areaName}-marker-x: ${current.x}px;\n--table-history-3-${areaName}-marker-y: ${current.y}px;`
@@ -5446,48 +5465,102 @@ function MobileLayoutDebugPanel({ playerCount }: { playerCount: number }) {
       {targetKind === "bottomNav" && (
         <>
           <label style={{ display: "block", marginBottom: 6 }}>
-            gray panel width: {bottomNavCommon.panelWidth}px
+            bottom nav x: {bottomNavCommon.x}px
+            <input
+              style={{ width: "100%" }}
+              type="range"
+              min="-320"
+              max="320"
+              step="1"
+              value={bottomNavCommon.x}
+              onChange={(event) =>
+                setBottomNavCommon((previous) => ({
+                  ...previous,
+                  x: Number(event.target.value),
+                }))
+              }
+            />
+          </label>
+
+          <label style={{ display: "block", marginBottom: 6 }}>
+            bottom nav y: {bottomNavCommon.y}px
+            <input
+              style={{ width: "100%" }}
+              type="range"
+              min="-180"
+              max="180"
+              step="1"
+              value={bottomNavCommon.y}
+              onChange={(event) =>
+                setBottomNavCommon((previous) => ({
+                  ...previous,
+                  y: Number(event.target.value),
+                }))
+              }
+            />
+          </label>
+
+          <label style={{ display: "block", marginBottom: 6 }}>
+            panel min width: {bottomNavCommon.panelMinWidth}px
+            <input
+              style={{ width: "100%" }}
+              type="range"
+              min="120"
+              max="520"
+              step="1"
+              value={bottomNavCommon.panelMinWidth}
+              onChange={(event) =>
+                setBottomNavCommon((previous) => ({
+                  ...previous,
+                  panelMinWidth: Number(event.target.value),
+                }))
+              }
+            />
+          </label>
+
+          <label style={{ display: "block", marginBottom: 6 }}>
+            panel max width: {bottomNavCommon.panelMaxWidth}px
             <input
               style={{ width: "100%" }}
               type="range"
               min="260"
-              max="860"
+              max="920"
               step="1"
-              value={bottomNavCommon.panelWidth}
+              value={bottomNavCommon.panelMaxWidth}
               onChange={(event) =>
                 setBottomNavCommon((previous) => ({
                   ...previous,
-                  panelWidth: Number(event.target.value),
+                  panelMaxWidth: Number(event.target.value),
                 }))
               }
             />
           </label>
 
           <label style={{ display: "block", marginBottom: 6 }}>
-            gray panel height: {bottomNavCommon.panelHeight}px
+            panel min height: {bottomNavCommon.panelMinHeight}px
             <input
               style={{ width: "100%" }}
               type="range"
-              min="60"
+              min="40"
               max="240"
               step="1"
-              value={bottomNavCommon.panelHeight}
+              value={bottomNavCommon.panelMinHeight}
               onChange={(event) =>
                 setBottomNavCommon((previous) => ({
                   ...previous,
-                  panelHeight: Number(event.target.value),
+                  panelMinHeight: Number(event.target.value),
                 }))
               }
             />
           </label>
 
           <label style={{ display: "block", marginBottom: 6 }}>
-            green button width: {bottomNavCommon.buttonWidth}px
+            button width: {bottomNavCommon.buttonWidth}px
             <input
               style={{ width: "100%" }}
               type="range"
-              min="80"
-              max="260"
+              min="70"
+              max="280"
               step="1"
               value={bottomNavCommon.buttonWidth}
               onChange={(event) =>
@@ -5500,12 +5573,12 @@ function MobileLayoutDebugPanel({ playerCount }: { playerCount: number }) {
           </label>
 
           <label style={{ display: "block", marginBottom: 6 }}>
-            green button height: {bottomNavCommon.buttonHeight}px
+            button height: {bottomNavCommon.buttonHeight}px
             <input
               style={{ width: "100%" }}
               type="range"
               min="28"
-              max="90"
+              max="100"
               step="1"
               value={bottomNavCommon.buttonHeight}
               onChange={(event) =>
@@ -5518,12 +5591,30 @@ function MobileLayoutDebugPanel({ playerCount }: { playerCount: number }) {
           </label>
 
           <label style={{ display: "block", marginBottom: 6 }}>
+            button font: {bottomNavCommon.buttonFontSize}px
+            <input
+              style={{ width: "100%" }}
+              type="range"
+              min="8"
+              max="32"
+              step="1"
+              value={bottomNavCommon.buttonFontSize}
+              onChange={(event) =>
+                setBottomNavCommon((previous) => ({
+                  ...previous,
+                  buttonFontSize: Number(event.target.value),
+                }))
+              }
+            />
+          </label>
+
+          <label style={{ display: "block", marginBottom: 6 }}>
             message font: {bottomNavCommon.messageFontSize}px
             <input
               style={{ width: "100%" }}
               type="range"
               min="8"
-              max="28"
+              max="32"
               step="1"
               value={bottomNavCommon.messageFontSize}
               onChange={(event) =>
@@ -5541,7 +5632,7 @@ function MobileLayoutDebugPanel({ playerCount }: { playerCount: number }) {
               style={{ width: "100%" }}
               type="range"
               min="70"
-              max="240"
+              max="280"
               step="1"
               value={bottomNavCommon.choiceWidth}
               onChange={(event) =>
@@ -5559,13 +5650,31 @@ function MobileLayoutDebugPanel({ playerCount }: { playerCount: number }) {
               style={{ width: "100%" }}
               type="range"
               min="28"
-              max="90"
+              max="100"
               step="1"
               value={bottomNavCommon.choiceHeight}
               onChange={(event) =>
                 setBottomNavCommon((previous) => ({
                   ...previous,
                   choiceHeight: Number(event.target.value),
+                }))
+              }
+            />
+          </label>
+
+          <label style={{ display: "block", marginBottom: 6 }}>
+            choice font: {bottomNavCommon.choiceFontSize}px
+            <input
+              style={{ width: "100%" }}
+              type="range"
+              min="8"
+              max="32"
+              step="1"
+              value={bottomNavCommon.choiceFontSize}
+              onChange={(event) =>
+                setBottomNavCommon((previous) => ({
+                  ...previous,
+                  choiceFontSize: Number(event.target.value),
                 }))
               }
             />

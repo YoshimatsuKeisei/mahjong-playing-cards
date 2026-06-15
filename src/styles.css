@@ -8595,3 +8595,199 @@ body {
     height: var(--debug-bottom-nav-choice-height, 42px) !important;
   }
 }
+
+@media (orientation: landscape) and (max-height: 700px) and (hover: none) and (pointer: coarse) {
+  /* =========================
+     固定値：設定歯車
+  ========================= */
+  .play-exit-button.room-management-button[aria-label="設定"] {
+    width: var(--debug-gear-size, 75px) !important;
+    min-width: var(--debug-gear-size, 75px) !important;
+    height: var(--debug-gear-size, 75px) !important;
+    min-height: var(--debug-gear-size, 75px) !important;
+    padding: 0 !important;
+    font-size: var(--debug-gear-font-size, 40px) !important;
+    line-height: 1 !important;
+    translate: var(--debug-gear-x, 0px) var(--debug-gear-y, 0px);
+  }
+
+  /* =========================
+     固定値：4人用 ? 位置
+     p3 = player1, p4 = player2
+  ========================= */
+  .table-4 .history-hover-anchor--p3 {
+    --history-marker-x: var(--history-4-p3-x, 192px);
+    --history-marker-y: var(--history-4-p3-y, 108px);
+  }
+
+  .table-4 .history-hover-anchor--p4 {
+    --history-marker-x: var(--history-4-p4-x, 24px);
+    --history-marker-y: var(--history-4-p4-y, 0px);
+  }
+
+  .history-hover-anchor .history-hover-marker {
+    position: relative !important;
+    left: var(--history-marker-x, 0px) !important;
+    top: var(--history-marker-y, 0px) !important;
+    right: auto !important;
+    bottom: auto !important;
+  }
+
+  /* =========================
+     カードウィンドウ共通
+  ========================= */
+  .history-hover-anchor .player-history-popover {
+    width: var(--debug-history-window-width, 510px) !important;
+    max-width: var(--debug-history-window-width, 510px) !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+
+    box-sizing: border-box !important;
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 0.7rem !important;
+    padding: 0.7rem !important;
+
+    font-size: var(--debug-history-window-font-size, 18px) !important;
+  }
+
+  .player-history-popover.discard-only {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .player-history-popover .history-column {
+    min-width: 0 !important;
+    display: grid !important;
+    grid-template-rows: auto minmax(0, auto) !important;
+    align-content: start !important;
+  }
+
+  .player-history-popover .history-column h3 {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 2 !important;
+    margin: 0 0 0.35rem !important;
+    padding: 0.1rem 0 !important;
+    background: inherit !important;
+    font-size: var(--debug-history-window-font-size, 18px) !important;
+    line-height: 1.1 !important;
+  }
+
+  .player-history-popover .history-empty {
+    font-size: var(--debug-history-window-font-size, 18px) !important;
+    line-height: 1.15 !important;
+  }
+
+  .player-history-popover .history-card-grid {
+    display: grid !important;
+    grid-template-columns: repeat(3, max-content) !important;
+    gap: 0.36rem !important;
+    max-width: none !important;
+
+    /*
+      3列まで表示。
+      4〜6枚で2段、7〜9枚で3段。
+      10枚以上はこの領域だけスクロール。
+    */
+    max-height: calc(
+      (var(--debug-history-window-card-width, 75px) * 7 / 5 + 0.36rem) * 3
+    ) !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    padding-right: 0.25rem !important;
+  }
+
+  .player-history-popover .history-meld-list {
+    display: grid !important;
+    gap: 0.42rem !important;
+
+    /*
+      鳴いた役は1行3枚なので、3行ぶんまで表示。
+      4行目以降はスクロール。
+    */
+    max-height: calc(
+      (var(--debug-history-window-card-width, 75px) * 7 / 5 + 0.42rem) * 3
+    ) !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    padding-right: 0.25rem !important;
+  }
+
+  .player-history-popover .history-meld-row {
+    display: grid !important;
+    grid-template-columns: repeat(3, max-content) !important;
+    gap: 0.28rem !important;
+    width: max-content !important;
+    max-width: none !important;
+  }
+
+  .player-history-popover .playing-card.compact {
+    width: var(--debug-history-window-card-width, 75px) !important;
+  }
+
+  .player-history-popover,
+  .player-history-popover h3,
+  .player-history-popover .history-empty,
+  .player-history-popover .history-column {
+    font-size: var(--debug-history-window-font-size, 18px) !important;
+  }
+
+  /* =========================
+     下部ナビ：状況に応じて自然に伸縮
+  ========================= */
+  .action-panel {
+    width: fit-content !important;
+    min-width: var(--debug-bottom-nav-panel-min-width, 180px) !important;
+    max-width: min(
+      var(--debug-bottom-nav-panel-max-width, 760px),
+      94dvw
+    ) !important;
+    min-height: var(--debug-bottom-nav-panel-min-height, 72px) !important;
+    height: auto !important;
+
+    box-sizing: border-box !important;
+    padding: 0.5rem 0.7rem !important;
+    translate: var(--debug-bottom-nav-x, 0px) var(--debug-bottom-nav-y, 0px);
+  }
+
+  .action-panel .hint,
+  .action-panel p,
+  .action-panel strong,
+  .action-panel span {
+    font-size: var(--debug-bottom-nav-message-font-size, 14px) !important;
+    line-height: 1.15 !important;
+  }
+
+  /*
+    山札から引く、手札から捨てる、リーチ、効果使用などの主要ボタン
+  */
+  .action-panel button,
+  .action-panel .primary-button {
+    min-width: var(--debug-bottom-nav-button-width, 150px) !important;
+    width: var(--debug-bottom-nav-button-width, 150px) !important;
+    min-height: var(--debug-bottom-nav-button-height, 44px) !important;
+    height: var(--debug-bottom-nav-button-height, 44px) !important;
+    box-sizing: border-box !important;
+    padding: 0 0.7rem !important;
+    font-size: var(--debug-bottom-nav-button-font-size, 14px) !important;
+    line-height: 1.1 !important;
+  }
+
+  /*
+    鳴く / 上がる / ロン / はい・いいえ などの選択肢系
+  */
+  .discard-source button,
+  .ron-check-actions button,
+  .daifugo-effect-actions button,
+  .action-panel [data-testid="call-button"],
+  .action-panel [data-testid="ron-button"],
+  .action-panel [data-testid="reaction-pass-button"] {
+    min-width: var(--debug-bottom-nav-choice-width, 120px) !important;
+    width: var(--debug-bottom-nav-choice-width, 120px) !important;
+    min-height: var(--debug-bottom-nav-choice-height, 42px) !important;
+    height: var(--debug-bottom-nav-choice-height, 42px) !important;
+    font-size: var(--debug-bottom-nav-choice-font-size, 14px) !important;
+    line-height: 1.1 !important;
+  }
+}
