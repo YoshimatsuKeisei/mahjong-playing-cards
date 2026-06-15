@@ -2687,7 +2687,6 @@ export default function PlayScreen({
                   )}
                   {canChooseDiscard && (
                     <>
-                      <p className="hint">手札のカードを選んでから捨てます。</p>
                       <button
                         type="button"
                         className="primary-button"
@@ -4409,7 +4408,10 @@ function MobileLayoutDebugPanel({ playerCount }: { playerCount: number }) {
     | "status"
     | "topNav"
     | "handCard"
-    | "roundBanner";
+    | "roundBanner"
+    | "gear"
+    | "historyWindowSize"
+    | "bottomNav";
 
   type LayoutDebugValue = {
     x: number;
@@ -4453,6 +4455,29 @@ function MobileLayoutDebugPanel({ playerCount }: { playerCount: number }) {
     fontSize: 14,
     x: 0,
     y: 0,
+  });
+  const [gearCommon, setGearCommon] = useState({
+    x: 0,
+    y: 0,
+    size: 44,
+    fontSize: 20,
+  });
+
+  const [historyWindowCommon, setHistoryWindowCommon] = useState({
+    width: 340,
+    height: 180,
+    cardWidth: 46,
+    fontSize: 14,
+  });
+
+  const [bottomNavCommon, setBottomNavCommon] = useState({
+    panelWidth: 520,
+    panelHeight: 112,
+    buttonWidth: 150,
+    buttonHeight: 44,
+    messageFontSize: 14,
+    choiceWidth: 120,
+    choiceHeight: 42,
   });
   const key = `${targetKind}-${playerCount}-p${targetSeat}`;
   const current = offsets[key] ?? {
@@ -4652,6 +4677,72 @@ function MobileLayoutDebugPanel({ playerCount }: { playerCount: number }) {
     );
   }, [roundBannerCommon]);
 
+  useEffect(() => {
+    const root = document.documentElement;
+
+    root.style.setProperty("--debug-gear-x", `${gearCommon.x}px`);
+    root.style.setProperty("--debug-gear-y", `${gearCommon.y}px`);
+    root.style.setProperty("--debug-gear-size", `${gearCommon.size}px`);
+    root.style.setProperty(
+      "--debug-gear-font-size",
+      `${gearCommon.fontSize}px`,
+    );
+  }, [gearCommon]);
+
+  useEffect(() => {
+    const root = document.documentElement;
+
+    root.style.setProperty(
+      "--debug-history-window-width",
+      `${historyWindowCommon.width}px`,
+    );
+    root.style.setProperty(
+      "--debug-history-window-height",
+      `${historyWindowCommon.height}px`,
+    );
+    root.style.setProperty(
+      "--debug-history-window-card-width",
+      `${historyWindowCommon.cardWidth}px`,
+    );
+    root.style.setProperty(
+      "--debug-history-window-font-size",
+      `${historyWindowCommon.fontSize}px`,
+    );
+  }, [historyWindowCommon]);
+
+  useEffect(() => {
+    const root = document.documentElement;
+
+    root.style.setProperty(
+      "--debug-bottom-nav-panel-width",
+      `${bottomNavCommon.panelWidth}px`,
+    );
+    root.style.setProperty(
+      "--debug-bottom-nav-panel-height",
+      `${bottomNavCommon.panelHeight}px`,
+    );
+    root.style.setProperty(
+      "--debug-bottom-nav-button-width",
+      `${bottomNavCommon.buttonWidth}px`,
+    );
+    root.style.setProperty(
+      "--debug-bottom-nav-button-height",
+      `${bottomNavCommon.buttonHeight}px`,
+    );
+    root.style.setProperty(
+      "--debug-bottom-nav-message-font-size",
+      `${bottomNavCommon.messageFontSize}px`,
+    );
+    root.style.setProperty(
+      "--debug-bottom-nav-choice-width",
+      `${bottomNavCommon.choiceWidth}px`,
+    );
+    root.style.setProperty(
+      "--debug-bottom-nav-choice-height",
+      `${bottomNavCommon.choiceHeight}px`,
+    );
+  }, [bottomNavCommon]);
+
   const updateCurrent = (next: Partial<LayoutDebugValue>) => {
     setOffsets((previous) => ({
       ...previous,
@@ -4683,13 +4774,19 @@ function MobileLayoutDebugPanel({ playerCount }: { playerCount: number }) {
           ? `hand card\n--debug-hand-card-width: ${handCardCommon.width}px;\n--debug-hand-card-scale: ${handCardCommon.scale};`
           : targetKind === "roundBanner"
             ? `round banner\n--debug-round-banner-width: ${roundBannerCommon.width}px;\n--debug-round-banner-height: ${roundBannerCommon.height}px;\n--debug-round-banner-font-size: ${roundBannerCommon.fontSize}px;\n--debug-round-banner-x: ${roundBannerCommon.x}px;\n--debug-round-banner-y: ${roundBannerCommon.y}px;`
-            : playerCount === 3
-              ? targetKind === "marker"
-                ? `3人用 ?：p1=self / p2=right / p3=left\n--table-history-3-${areaName}-marker-x: ${current.x}px;\n--table-history-3-${areaName}-marker-y: ${current.y}px;`
-                : `3人用 window：p1=self / p2=right / p3=left\n--table-history-3-${areaName}-window-x: ${current.x}px;\n--table-history-3-${areaName}-window-y: ${current.y}px;`
-              : targetKind === "marker"
-                ? `4/5人用 ?\n--history-${playerCount}-p${targetSeat}-x: ${current.x}px;\n--history-${playerCount}-p${targetSeat}-y: ${current.y}px;`
-                : `4/5人用 window\n--history-${playerCount}-p${targetSeat}-window-x: ${current.x}px;\n--history-${playerCount}-p${targetSeat}-window-y: ${current.y}px;`;
+            : targetKind === "gear"
+              ? `settings gear\n--debug-gear-x: ${gearCommon.x}px;\n--debug-gear-y: ${gearCommon.y}px;\n--debug-gear-size: ${gearCommon.size}px;\n--debug-gear-font-size: ${gearCommon.fontSize}px;`
+              : targetKind === "historyWindowSize"
+                ? `history window size\n--debug-history-window-width: ${historyWindowCommon.width}px;\n--debug-history-window-height: ${historyWindowCommon.height}px;\n--debug-history-window-card-width: ${historyWindowCommon.cardWidth}px;\n--debug-history-window-font-size: ${historyWindowCommon.fontSize}px;`
+                : targetKind === "bottomNav"
+                  ? `bottom nav\n--debug-bottom-nav-panel-width: ${bottomNavCommon.panelWidth}px;\n--debug-bottom-nav-panel-height: ${bottomNavCommon.panelHeight}px;\n--debug-bottom-nav-button-width: ${bottomNavCommon.buttonWidth}px;\n--debug-bottom-nav-button-height: ${bottomNavCommon.buttonHeight}px;\n--debug-bottom-nav-message-font-size: ${bottomNavCommon.messageFontSize}px;\n--debug-bottom-nav-choice-width: ${bottomNavCommon.choiceWidth}px;\n--debug-bottom-nav-choice-height: ${bottomNavCommon.choiceHeight}px;`
+                  : playerCount === 3
+                    ? targetKind === "marker"
+                      ? `3人用 ?：p1=self / p2=right / p3=left\n--table-history-3-${areaName}-marker-x: ${current.x}px;\n--table-history-3-${areaName}-marker-y: ${current.y}px;`
+                      : `3人用 window：p1=self / p2=right / p3=left\n--table-history-3-${areaName}-window-x: ${current.x}px;\n--table-history-3-${areaName}-window-y: ${current.y}px;`
+                    : targetKind === "marker"
+                      ? `4/5人用 ?\n--history-${playerCount}-p${targetSeat}-x: ${current.x}px;\n--history-${playerCount}-p${targetSeat}-y: ${current.y}px;`
+                      : `4/5人用 window\n--history-${playerCount}-p${targetSeat}-window-x: ${current.x}px;\n--history-${playerCount}-p${targetSeat}-window-y: ${current.y}px;`;
 
   return (
     <div
@@ -4750,6 +4847,9 @@ function MobileLayoutDebugPanel({ playerCount }: { playerCount: number }) {
           <option value="topNav">top nav</option>
           <option value="handCard">hand card</option>
           <option value="roundBanner">round banner</option>
+          <option value="gear">settings gear</option>
+          <option value="historyWindowSize">history window size</option>
+          <option value="bottomNav">bottom nav</option>
         </select>
       </label>
 
@@ -5184,6 +5284,288 @@ function MobileLayoutDebugPanel({ playerCount }: { playerCount: number }) {
                 setRoundBannerCommon((previous) => ({
                   ...previous,
                   y: Number(event.target.value),
+                }))
+              }
+            />
+          </label>
+        </>
+      )}
+
+      {targetKind === "gear" && (
+        <>
+          <label style={{ display: "block", marginBottom: 6 }}>
+            gear x: {gearCommon.x}px
+            <input
+              style={{ width: "100%" }}
+              type="range"
+              min="-240"
+              max="240"
+              step="1"
+              value={gearCommon.x}
+              onChange={(event) =>
+                setGearCommon((previous) => ({
+                  ...previous,
+                  x: Number(event.target.value),
+                }))
+              }
+            />
+          </label>
+
+          <label style={{ display: "block", marginBottom: 6 }}>
+            gear y: {gearCommon.y}px
+            <input
+              style={{ width: "100%" }}
+              type="range"
+              min="-160"
+              max="160"
+              step="1"
+              value={gearCommon.y}
+              onChange={(event) =>
+                setGearCommon((previous) => ({
+                  ...previous,
+                  y: Number(event.target.value),
+                }))
+              }
+            />
+          </label>
+
+          <label style={{ display: "block", marginBottom: 6 }}>
+            gear size: {gearCommon.size}px
+            <input
+              style={{ width: "100%" }}
+              type="range"
+              min="24"
+              max="88"
+              step="1"
+              value={gearCommon.size}
+              onChange={(event) =>
+                setGearCommon((previous) => ({
+                  ...previous,
+                  size: Number(event.target.value),
+                }))
+              }
+            />
+          </label>
+
+          <label style={{ display: "block", marginBottom: 6 }}>
+            gear font: {gearCommon.fontSize}px
+            <input
+              style={{ width: "100%" }}
+              type="range"
+              min="12"
+              max="40"
+              step="1"
+              value={gearCommon.fontSize}
+              onChange={(event) =>
+                setGearCommon((previous) => ({
+                  ...previous,
+                  fontSize: Number(event.target.value),
+                }))
+              }
+            />
+          </label>
+        </>
+      )}
+
+      {targetKind === "historyWindowSize" && (
+        <>
+          <label style={{ display: "block", marginBottom: 6 }}>
+            window width: {historyWindowCommon.width}px
+            <input
+              style={{ width: "100%" }}
+              type="range"
+              min="180"
+              max="620"
+              step="1"
+              value={historyWindowCommon.width}
+              onChange={(event) =>
+                setHistoryWindowCommon((previous) => ({
+                  ...previous,
+                  width: Number(event.target.value),
+                }))
+              }
+            />
+          </label>
+
+          <label style={{ display: "block", marginBottom: 6 }}>
+            window height: {historyWindowCommon.height}px
+            <input
+              style={{ width: "100%" }}
+              type="range"
+              min="90"
+              max="420"
+              step="1"
+              value={historyWindowCommon.height}
+              onChange={(event) =>
+                setHistoryWindowCommon((previous) => ({
+                  ...previous,
+                  height: Number(event.target.value),
+                }))
+              }
+            />
+          </label>
+
+          <label style={{ display: "block", marginBottom: 6 }}>
+            inner card width: {historyWindowCommon.cardWidth}px
+            <input
+              style={{ width: "100%" }}
+              type="range"
+              min="28"
+              max="90"
+              step="1"
+              value={historyWindowCommon.cardWidth}
+              onChange={(event) =>
+                setHistoryWindowCommon((previous) => ({
+                  ...previous,
+                  cardWidth: Number(event.target.value),
+                }))
+              }
+            />
+          </label>
+
+          <label style={{ display: "block", marginBottom: 6 }}>
+            text font: {historyWindowCommon.fontSize}px
+            <input
+              style={{ width: "100%" }}
+              type="range"
+              min="8"
+              max="28"
+              step="1"
+              value={historyWindowCommon.fontSize}
+              onChange={(event) =>
+                setHistoryWindowCommon((previous) => ({
+                  ...previous,
+                  fontSize: Number(event.target.value),
+                }))
+              }
+            />
+          </label>
+        </>
+      )}
+
+      {targetKind === "bottomNav" && (
+        <>
+          <label style={{ display: "block", marginBottom: 6 }}>
+            gray panel width: {bottomNavCommon.panelWidth}px
+            <input
+              style={{ width: "100%" }}
+              type="range"
+              min="260"
+              max="860"
+              step="1"
+              value={bottomNavCommon.panelWidth}
+              onChange={(event) =>
+                setBottomNavCommon((previous) => ({
+                  ...previous,
+                  panelWidth: Number(event.target.value),
+                }))
+              }
+            />
+          </label>
+
+          <label style={{ display: "block", marginBottom: 6 }}>
+            gray panel height: {bottomNavCommon.panelHeight}px
+            <input
+              style={{ width: "100%" }}
+              type="range"
+              min="60"
+              max="240"
+              step="1"
+              value={bottomNavCommon.panelHeight}
+              onChange={(event) =>
+                setBottomNavCommon((previous) => ({
+                  ...previous,
+                  panelHeight: Number(event.target.value),
+                }))
+              }
+            />
+          </label>
+
+          <label style={{ display: "block", marginBottom: 6 }}>
+            green button width: {bottomNavCommon.buttonWidth}px
+            <input
+              style={{ width: "100%" }}
+              type="range"
+              min="80"
+              max="260"
+              step="1"
+              value={bottomNavCommon.buttonWidth}
+              onChange={(event) =>
+                setBottomNavCommon((previous) => ({
+                  ...previous,
+                  buttonWidth: Number(event.target.value),
+                }))
+              }
+            />
+          </label>
+
+          <label style={{ display: "block", marginBottom: 6 }}>
+            green button height: {bottomNavCommon.buttonHeight}px
+            <input
+              style={{ width: "100%" }}
+              type="range"
+              min="28"
+              max="90"
+              step="1"
+              value={bottomNavCommon.buttonHeight}
+              onChange={(event) =>
+                setBottomNavCommon((previous) => ({
+                  ...previous,
+                  buttonHeight: Number(event.target.value),
+                }))
+              }
+            />
+          </label>
+
+          <label style={{ display: "block", marginBottom: 6 }}>
+            message font: {bottomNavCommon.messageFontSize}px
+            <input
+              style={{ width: "100%" }}
+              type="range"
+              min="8"
+              max="28"
+              step="1"
+              value={bottomNavCommon.messageFontSize}
+              onChange={(event) =>
+                setBottomNavCommon((previous) => ({
+                  ...previous,
+                  messageFontSize: Number(event.target.value),
+                }))
+              }
+            />
+          </label>
+
+          <label style={{ display: "block", marginBottom: 6 }}>
+            choice width: {bottomNavCommon.choiceWidth}px
+            <input
+              style={{ width: "100%" }}
+              type="range"
+              min="70"
+              max="240"
+              step="1"
+              value={bottomNavCommon.choiceWidth}
+              onChange={(event) =>
+                setBottomNavCommon((previous) => ({
+                  ...previous,
+                  choiceWidth: Number(event.target.value),
+                }))
+              }
+            />
+          </label>
+
+          <label style={{ display: "block", marginBottom: 6 }}>
+            choice height: {bottomNavCommon.choiceHeight}px
+            <input
+              style={{ width: "100%" }}
+              type="range"
+              min="28"
+              max="90"
+              step="1"
+              value={bottomNavCommon.choiceHeight}
+              onChange={(event) =>
+                setBottomNavCommon((previous) => ({
+                  ...previous,
+                  choiceHeight: Number(event.target.value),
                 }))
               }
             />
