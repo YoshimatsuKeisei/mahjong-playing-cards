@@ -2277,7 +2277,7 @@ export default function PlayScreen({
                 {canActOnSevenExchangeSelection ? (
                   <>
                     <strong>
-                      カードをクリックして選択、もう一度クリックするかボタンで確定します。
+                      カードを選択、再度クリックするかボタンで確定。
                     </strong>
                     <button
                       type="button"
@@ -2583,9 +2583,6 @@ export default function PlayScreen({
                       state.players[ownerIndex].discardPile.at(-1) ?? null;
                     return (
                       <div className="discard-source" key={ownerIndex}>
-                        <strong>
-                          {state.players[ownerIndex].name}の捨て札
-                        </strong>
                         {callOptions.map((meld, optionIndex) => (
                           <button
                             type="button"
@@ -4472,16 +4469,16 @@ function MobileLayoutDebugPanel({ playerCount }: { playerCount: number }) {
 
   const [bottomNavCommon, setBottomNavCommon] = useState({
     x: 0,
-    y: 0,
+    y: -34,
     panelMinWidth: 180,
     panelMaxWidth: 760,
     panelMinHeight: 72,
     buttonWidth: 150,
-    buttonHeight: 44,
-    buttonFontSize: 14,
-    messageFontSize: 14,
+    buttonHeight: 40,
+    buttonFontSize: 18,
+    messageFontSize: 20,
     choiceWidth: 120,
-    choiceHeight: 42,
+    choiceHeight: 40,
     choiceFontSize: 14,
   });
   const key = `${targetKind}-${playerCount}-p${targetSeat}`;
@@ -5524,7 +5521,7 @@ function MobileLayoutDebugPanel({ playerCount }: { playerCount: number }) {
               style={{ width: "100%" }}
               type="range"
               min="260"
-              max="920"
+              max="1500"
               step="1"
               value={bottomNavCommon.panelMaxWidth}
               onChange={(event) =>

@@ -8791,3 +8791,461 @@ body {
     line-height: 1.1 !important;
   }
 }
+
+@media (orientation: landscape) and (max-height: 700px) and (hover: none) and (pointer: coarse) {
+  /* =========================================================
+     スマホ最終調整：固定値
+     PC表示には影響させない
+  ========================================================= */
+
+  /* ===== プレイヤーステータス位置 =====
+     3人用:
+       p1 = player1
+       p2 = player3
+       p3 = player2
+  */
+  .table-3 .player-status-slot--p1 {
+    --status-x: var(--status-3-p1-x, 258px);
+    --status-y: var(--status-3-p1-y, 0px);
+  }
+
+  .table-3 .player-status-slot--p2 {
+    --status-x: var(--status-3-p2-x, -120px);
+    --status-y: var(--status-3-p2-y, 0px);
+  }
+
+  .table-3 .player-status-slot--p3 {
+    --status-x: var(--status-3-p3-x, -72px);
+    --status-y: var(--status-3-p3-y, 0px);
+  }
+
+  /* 4人用:
+     p1 = player3
+     p2 = player4
+     p3 = player1
+     p4 = player2
+  */
+  .table-4 .player-status-slot--p1 {
+    --status-x: var(--status-4-p1-x, -66px);
+    --status-y: var(--status-4-p1-y, 0px);
+  }
+
+  .table-4 .player-status-slot--p2 {
+    --status-x: var(--status-4-p2-x, -36px);
+    --status-y: var(--status-4-p2-y, 28px);
+  }
+
+  .table-4 .player-status-slot--p3 {
+    --status-x: var(--status-4-p3-x, 240px);
+    --status-y: var(--status-4-p3-y, 0px);
+  }
+
+  .table-4 .player-status-slot--p4 {
+    --status-x: var(--status-4-p4-x, -144px);
+    --status-y: var(--status-4-p4-y, 40px);
+  }
+
+  /* 5人用:
+     p1 = player3
+     p2 = player4
+     p3 = player5
+     p4 = player1
+     p5 = player2
+  */
+  .table-5 .player-status-slot--p1 {
+    --status-x: var(--status-5-p1-x, -132px);
+    --status-y: var(--status-5-p1-y, 20px);
+  }
+
+  .table-5 .player-status-slot--p2 {
+    --status-x: var(--status-5-p2-x, -66px);
+    --status-y: var(--status-5-p2-y, 20px);
+  }
+
+  .table-5 .player-status-slot--p3 {
+    --status-x: var(--status-5-p3-x, -24px);
+    --status-y: var(--status-5-p3-y, 0px);
+  }
+
+  .table-5 .player-status-slot--p4 {
+    --status-x: var(--status-5-p4-x, 270px);
+    --status-y: var(--status-5-p4-y, 0px);
+  }
+
+  .table-5 .player-status-slot--p5 {
+    --status-x: var(--status-5-p5-x, -180px);
+    --status-y: var(--status-5-p5-y, 0px);
+  }
+
+  .player-status-slot {
+    translate: var(--status-x, 0px) var(--status-y, 0px);
+  }
+
+  /* ===== プレイヤーステータス共通サイズ ===== */
+  .player-status-slot {
+    width: var(--status-common-width, 250px) !important;
+    min-width: var(--status-common-width, 250px) !important;
+    max-width: var(--status-common-width, 250px) !important;
+    overflow: visible !important;
+  }
+
+  .player-status-slot .seat-label {
+    width: var(--status-common-width, 250px) !important;
+    min-width: var(--status-common-width, 250px) !important;
+    max-width: var(--status-common-width, 250px) !important;
+
+    min-height: var(--status-common-min-height, 54px) !important;
+    max-height: var(--status-common-max-height, 130px) !important;
+    height: auto !important;
+
+    display: grid !important;
+    align-content: start !important;
+    justify-items: center !important;
+    gap: 2px !important;
+    overflow: visible !important;
+    white-space: normal !important;
+  }
+
+  .player-status-slot .seat-label strong {
+    max-width: 100% !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    white-space: normal !important;
+    font-size: var(--status-common-name-font-size, 20px) !important;
+    line-height: 1.05 !important;
+  }
+
+  .player-status-slot .seat-label span,
+  .player-status-slot .temporary-leave-seat-status,
+  .player-status-slot .j-enhancement-badge,
+  .player-status-slot .j-shield-badge {
+    max-width: 100% !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    white-space: normal !important;
+    font-size: var(--status-common-text-font-size, 20px) !important;
+    line-height: 1.05 !important;
+  }
+
+  /* ===== ? 位置 =====
+     5人用 p4 = player1
+  */
+  .table-5 .history-hover-anchor--p4 {
+    --history-marker-x: var(--history-5-p4-x, 192px);
+    --history-marker-y: var(--history-5-p4-y, 108px);
+  }
+
+  .history-hover-anchor .history-hover-marker {
+    position: relative !important;
+    left: var(--history-marker-x, 0px) !important;
+    top: var(--history-marker-y, 0px) !important;
+    right: auto !important;
+    bottom: auto !important;
+  }
+
+  /* ===== bottom nav 固定値 ===== */
+  .action-panel {
+    width: fit-content !important;
+    min-width: var(--debug-bottom-nav-panel-min-width, 180px) !important;
+    max-width: min(
+      var(--debug-bottom-nav-panel-max-width, 94dvw),
+      94dvw
+    ) !important;
+    height: auto !important;
+    min-height: var(--debug-bottom-nav-panel-min-height, 72px) !important;
+
+    translate: var(--debug-bottom-nav-x, 0px) var(--debug-bottom-nav-y, -34px);
+    box-sizing: border-box !important;
+    padding: 0.5rem 0.7rem !important;
+    overflow: visible !important;
+  }
+
+  .action-panel .hint,
+  .action-panel p,
+  .action-panel strong,
+  .action-panel span {
+    font-size: var(--debug-bottom-nav-message-font-size, 20px) !important;
+    line-height: 1.15 !important;
+  }
+
+  .action-panel button,
+  .action-panel .primary-button {
+    min-height: var(--debug-bottom-nav-button-height, 40px) !important;
+    height: var(--debug-bottom-nav-button-height, 40px) !important;
+    font-size: var(--debug-bottom-nav-button-font-size, 18px) !important;
+    line-height: 1.1 !important;
+  }
+
+  .discard-source button,
+  .ron-check-actions button,
+  .daifugo-effect-actions button,
+  .rank-choice-button,
+  .action-panel [data-testid="call-button"],
+  .action-panel [data-testid="ron-button"],
+  .action-panel [data-testid="reaction-pass-button"] {
+    min-height: var(--debug-bottom-nav-choice-height, 40px) !important;
+    height: var(--debug-bottom-nav-choice-height, 40px) !important;
+    font-size: var(--debug-bottom-nav-choice-font-size, 14px) !important;
+    line-height: 1.1 !important;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 700px) and (hover: none) and (pointer: coarse) {
+  /* =========================================================
+     下部ナビ：1列ボタンUI
+     ボタン幅は文字数に応じて自然に伸びる
+  ========================================================= */
+
+  .action-panel,
+  .daifugo-effect-panel,
+  .queen-effect-panel,
+  .seven-exchange-panel,
+  .reach-win-options,
+  .discard-source,
+  .ron-check-actions,
+  .daifugo-effect-actions {
+    max-width: 94dvw !important;
+  }
+
+  .daifugo-effect-panel,
+  .queen-effect-panel,
+  .seven-exchange-panel,
+  .reach-win-options {
+    width: max-content !important;
+    max-width: 94dvw !important;
+  }
+
+  .action-panel button,
+  .action-panel .primary-button,
+  .rank-choice-button,
+  .daifugo-effect-actions button,
+  .ron-check-actions button,
+  .discard-source button {
+    width: max-content !important;
+    min-width: max-content !important;
+    max-width: none !important;
+    white-space: nowrap !important;
+    padding-left: 0.9rem !important;
+    padding-right: 0.9rem !important;
+    box-sizing: border-box !important;
+  }
+
+  /*
+    複数ボタンは必ず1列。
+    画面幅を超える場合は横スクロール。
+  */
+  .daifugo-effect-actions,
+  .ron-check-actions,
+  .discard-source,
+  .rank-choice-grid {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0.55rem !important;
+
+    width: max-content !important;
+    max-width: 92dvw !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    padding: 0.25rem 0.35rem !important;
+    box-sizing: border-box !important;
+  }
+
+  /*
+    Qボンバー：数字選択専用
+    13個を折り返さず横1列にする。
+  */
+  .queen-effect-panel .rank-choice-grid {
+    justify-content: flex-start !important;
+    scrollbar-width: thin;
+  }
+
+  .queen-effect-panel .rank-choice-button {
+    flex: 0 0 auto !important;
+    min-width: max-content !important;
+    width: max-content !important;
+    height: var(--debug-bottom-nav-choice-height, 40px) !important;
+    font-size: var(--debug-bottom-nav-choice-font-size, 14px) !important;
+    white-space: nowrap !important;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 700px) and (hover: none) and (pointer: coarse) {
+  /* =========================================================
+     カードウィンドウ：位置調整を復旧
+  ========================================================= */
+
+  .history-hover-anchor .player-history-popover {
+    position: fixed !important;
+    left: calc(50dvw + var(--history-window-x, 0px)) !important;
+    top: calc(46dvh + var(--history-window-y, 0px)) !important;
+    right: auto !important;
+    bottom: auto !important;
+
+    transform: translate(-50%, -50%) scale(0.82) !important;
+    transform-origin: center center !important;
+    z-index: 9999 !important;
+  }
+
+  .history-hover-anchor:focus-within .player-history-popover,
+  .history-hover-anchor:hover .player-history-popover {
+    transform: translate(-50%, -50%) scale(0.82) !important;
+  }
+
+  /* 3人用 window */
+  .table-3 .table-history-anchor--self {
+    --history-window-x: var(--table-history-3-self-window-x, -349px);
+    --history-window-y: var(--table-history-3-self-window-y, -124px);
+  }
+
+  .table-3 .table-history-anchor--right {
+    --history-window-x: var(--table-history-3-right-window-x, -120px);
+    --history-window-y: var(--table-history-3-right-window-y, -47px);
+  }
+
+  .table-3 .table-history-anchor--left {
+    --history-window-x: var(--table-history-3-left-window-x, -316px);
+    --history-window-y: var(--table-history-3-left-window-y, -138px);
+  }
+
+  /* 4人用 window */
+  .table-4 .history-hover-anchor--p1 {
+    --history-window-x: var(--history-4-p1-window-x, -313px);
+    --history-window-y: var(--history-4-p1-window-y, -189px);
+  }
+
+  .table-4 .history-hover-anchor--p2 {
+    --history-window-x: var(--history-4-p2-window-x, -253px);
+    --history-window-y: var(--history-4-p2-window-y, -209px);
+  }
+
+  .table-4 .history-hover-anchor--p3 {
+    --history-window-x: var(--history-4-p3-window-x, -224px);
+    --history-window-y: var(--history-4-p3-window-y, -182px);
+  }
+
+  .table-4 .history-hover-anchor--p4 {
+    --history-window-x: var(--history-4-p4-window-x, -343px);
+    --history-window-y: var(--history-4-p4-window-y, -231px);
+  }
+
+  /* 5人用 window */
+  .table-5 .history-hover-anchor--p1 {
+    --history-window-x: var(--history-5-p1-window-x, -347px);
+    --history-window-y: var(--history-5-p1-window-y, -149px);
+  }
+
+  .table-5 .history-hover-anchor--p2 {
+    --history-window-x: var(--history-5-p2-window-x, -287px);
+    --history-window-y: var(--history-5-p2-window-y, -171px);
+  }
+
+  .table-5 .history-hover-anchor--p3 {
+    --history-window-x: var(--history-5-p3-window-x, -287px);
+    --history-window-y: var(--history-5-p3-window-y, -186px);
+  }
+
+  .table-5 .history-hover-anchor--p4 {
+    --history-window-x: var(--history-5-p4-window-x, -240px);
+    --history-window-y: var(--history-5-p4-window-y, -160px);
+  }
+
+  .table-5 .history-hover-anchor--p5 {
+    --history-window-x: var(--history-5-p5-window-x, -344px);
+    --history-window-y: var(--history-5-p5-window-y, -240px);
+  }
+}
+
+@media (orientation: landscape) and (max-height: 700px) and (hover: none) and (pointer: coarse) {
+  /* =========================================================
+     カードウィンドウ共通サイズ
+  ========================================================= */
+
+  .history-hover-anchor .player-history-popover {
+    width: var(--debug-history-window-width, 510px) !important;
+    max-width: var(--debug-history-window-width, 510px) !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+
+    box-sizing: border-box !important;
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 0.7rem !important;
+    padding: 0.7rem !important;
+
+    font-size: var(--debug-history-window-font-size, 18px) !important;
+  }
+
+  .player-history-popover.discard-only {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .player-history-popover .history-column {
+    min-width: 0 !important;
+    display: grid !important;
+    grid-template-rows: auto minmax(0, auto) !important;
+    align-content: start !important;
+  }
+
+  .player-history-popover .history-column h3 {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 2 !important;
+    margin: 0 0 0.35rem !important;
+    padding: 0.1rem 0 !important;
+    background: inherit !important;
+    font-size: var(--debug-history-window-font-size, 18px) !important;
+    line-height: 1.1 !important;
+  }
+
+  .player-history-popover .history-empty {
+    font-size: var(--debug-history-window-font-size, 18px) !important;
+    line-height: 1.15 !important;
+  }
+
+  .player-history-popover .history-card-grid {
+    display: grid !important;
+    grid-template-columns: repeat(3, max-content) !important;
+    gap: 0.36rem !important;
+    max-width: none !important;
+
+    max-height: calc(
+      (var(--debug-history-window-card-width, 75px) * 7 / 5 + 0.36rem) * 3
+    ) !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    padding-right: 0.25rem !important;
+  }
+
+  .player-history-popover .history-meld-list {
+    display: grid !important;
+    gap: 0.42rem !important;
+    max-height: calc(
+      (var(--debug-history-window-card-width, 75px) * 7 / 5 + 0.42rem) * 3
+    ) !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    padding-right: 0.25rem !important;
+  }
+
+  .player-history-popover .history-meld-row {
+    display: grid !important;
+    grid-template-columns: repeat(3, max-content) !important;
+    gap: 0.28rem !important;
+    width: max-content !important;
+    max-width: none !important;
+  }
+
+  .player-history-popover .playing-card.compact {
+    width: var(--debug-history-window-card-width, 75px) !important;
+  }
+
+  .player-history-popover,
+  .player-history-popover h3,
+  .player-history-popover .history-empty,
+  .player-history-popover .history-column {
+    font-size: var(--debug-history-window-font-size, 18px) !important;
+  }
+}
