@@ -22,7 +22,7 @@ export default function PlayerArea({
 }: PlayerAreaProps) {
   return (
     <article
-      className={`player-area seat-${seat} ${isCurrent ? "current" : ""}${className ?? ""}`}
+      className={`player-area seat-${seat} ${isCurrent ? "current" : ""} ${className ?? ""}`}
       data-testid="player-area"
       data-player-id={player.id}
       data-open-meld-count={player.openMelds.length}
