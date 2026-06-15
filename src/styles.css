@@ -7911,11 +7911,11 @@ body {
 }
 
 @media (orientation: landscape) and (max-height: 700px) and (hover: none) and (pointer: coarse) {
-  /* =========================
-     3人用 ? 位置調整
-     3人用は p1/p2/p3 ではなく self/right/left
-     p1 = self, p2 = right, p3 = left
-  ========================= */
+  /* ===== 3人用 ? 位置 =====
+     p1 = self = player1
+     p2 = right = player3
+     p3 = left = player2
+  */
   .table-3 .table-history-anchor .history-hover-marker {
     position: relative !important;
     left: var(--history-marker-x, 0px) !important;
@@ -7925,39 +7925,21 @@ body {
   }
 
   .table-3 .table-history-anchor--self {
-    --history-marker-x: var(--table-history-3-self-marker-x, 0px);
-    --history-marker-y: var(--table-history-3-self-marker-y, 0px);
+    --history-marker-x: 71px;
+    --history-marker-y: 40px;
   }
 
   .table-3 .table-history-anchor--right {
-    --history-marker-x: var(--table-history-3-right-marker-x, 0px);
-    --history-marker-y: var(--table-history-3-right-marker-y, 0px);
+    --history-marker-x: 125px;
+    --history-marker-y: 80px;
   }
 
   .table-3 .table-history-anchor--left {
-    --history-marker-x: var(--table-history-3-left-marker-x, 0px);
-    --history-marker-y: var(--table-history-3-left-marker-y, 0px);
+    --history-marker-x: 98px;
+    --history-marker-y: 33px;
   }
 
-  /* =========================
-     4人用 ? 入れ替え修正
-     前回座標ベース:
-     p3 = player1
-     p4 = player2
-  ========================= */
-  .table-4 .history-hover-anchor--p3 {
-    --history-marker-x: 0px;
-    --history-marker-y: 0px;
-  }
-
-  .table-4 .history-hover-anchor--p4 {
-    --history-marker-x: 0px;
-    --history-marker-y: 0px;
-  }
-
-  /* =========================
-     3〜5人用 カードウィンドウ共通
-  ========================= */
+  /* ===== 3〜5人用カードウィンドウ共通 ===== */
   .history-hover-anchor .player-history-popover {
     position: fixed !important;
     left: calc(50dvw + var(--history-window-x, 0px)) !important;
@@ -7980,29 +7962,28 @@ body {
     transform: translate(-50%, -50%) scale(0.82) !important;
   }
 
-  /* =========================
-     3人用 カードウィンドウ
-     まだ座標未取得なので0px
-  ========================= */
+  /* ===== 3人用カードウィンドウ ===== */
   .table-3 .table-history-anchor--self {
-    --history-window-x: var(--table-history-3-self-window-x, 0px);
-    --history-window-y: var(--table-history-3-self-window-y, 0px);
+    --history-window-x: -349px;
+    --history-window-y: -124px;
   }
 
   .table-3 .table-history-anchor--right {
-    --history-window-x: var(--table-history-3-right-window-x, 0px);
-    --history-window-y: var(--table-history-3-right-window-y, 0px);
+    --history-window-x: -120px;
+    --history-window-y: -47px;
   }
 
   .table-3 .table-history-anchor--left {
-    --history-window-x: var(--table-history-3-left-window-x, 0px);
-    --history-window-y: var(--table-history-3-left-window-y, 0px);
+    --history-window-x: -316px;
+    --history-window-y: -138px;
   }
 
-  /* =========================
-     4人用 カードウィンドウ
-     p3 = player1 は未測定
-  ========================= */
+  /* ===== 4人用カードウィンドウ =====
+     p1 = player3
+     p2 = player4
+     p3 = player1
+     p4 = player2
+  */
   .table-4 .history-hover-anchor--p1 {
     --history-window-x: -313px;
     --history-window-y: -189px;
@@ -8014,8 +7995,8 @@ body {
   }
 
   .table-4 .history-hover-anchor--p3 {
-    --history-window-x: var(--history-4-p3-window-x, 0px);
-    --history-window-y: var(--history-4-p3-window-y, 0px);
+    --history-window-x: -224px;
+    --history-window-y: -182px;
   }
 
   .table-4 .history-hover-anchor--p4 {
@@ -8023,10 +8004,13 @@ body {
     --history-window-y: -231px;
   }
 
-  /* =========================
-     5人用 カードウィンドウ
-     p5 = player2 は未測定
-  ========================= */
+  /* ===== 5人用カードウィンドウ =====
+     p1 = player3
+     p2 = player4
+     p3 = player5
+     p4 = player1
+     p5 = player2
+  */
   .table-5 .history-hover-anchor--p1 {
     --history-window-x: -347px;
     --history-window-y: -149px;
@@ -8048,7 +8032,79 @@ body {
   }
 
   .table-5 .history-hover-anchor--p5 {
-    --history-window-x: var(--history-5-p5-window-x, -344px);
-    --history-window-y: var(--history-5-p5-window-y, -240px);
+    --history-window-x: -344px;
+    --history-window-y: -240px;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 700px) and (hover: none) and (pointer: coarse) {
+  .player-status-slot {
+    translate: var(--status-x, 0px) var(--status-y, 0px);
+  }
+
+  .player-status-slot .seat-label {
+    min-width: var(--status-width, 96px);
+    min-height: var(--status-height, 44px);
+    padding: var(--status-padding-y, 8px) var(--status-padding-x, 12px);
+  }
+
+  .player-status-slot .seat-label strong {
+    font-size: var(--status-name-font-size, 14px);
+  }
+
+  .player-status-slot .seat-label span {
+    font-size: var(--status-text-font-size, 12px);
+  }
+
+  .table-3 .player-status-slot--p1,
+  .table-4 .player-status-slot--p1,
+  .table-5 .player-status-slot--p1 {
+    --status-x: var(--status-current-p1-x, 0px);
+    --status-y: var(--status-current-p1-y, 0px);
+    --status-width: var(--status-current-p1-width, 96px);
+    --status-height: var(--status-current-p1-height, 44px);
+    --status-name-font-size: var(--status-current-p1-name-font-size, 14px);
+    --status-text-font-size: var(--status-current-p1-text-font-size, 12px);
+  }
+
+  .table-3 .player-status-slot--p2,
+  .table-4 .player-status-slot--p2,
+  .table-5 .player-status-slot--p2 {
+    --status-x: var(--status-current-p2-x, 0px);
+    --status-y: var(--status-current-p2-y, 0px);
+    --status-width: var(--status-current-p2-width, 96px);
+    --status-height: var(--status-current-p2-height, 44px);
+    --status-name-font-size: var(--status-current-p2-name-font-size, 14px);
+    --status-text-font-size: var(--status-current-p2-text-font-size, 12px);
+  }
+
+  .table-3 .player-status-slot--p3,
+  .table-4 .player-status-slot--p3,
+  .table-5 .player-status-slot--p3 {
+    --status-x: var(--status-current-p3-x, 0px);
+    --status-y: var(--status-current-p3-y, 0px);
+    --status-width: var(--status-current-p3-width, 96px);
+    --status-height: var(--status-current-p3-height, 44px);
+    --status-name-font-size: var(--status-current-p3-name-font-size, 14px);
+    --status-text-font-size: var(--status-current-p3-text-font-size, 12px);
+  }
+
+  .table-4 .player-status-slot--p4,
+  .table-5 .player-status-slot--p4 {
+    --status-x: var(--status-current-p4-x, 0px);
+    --status-y: var(--status-current-p4-y, 0px);
+    --status-width: var(--status-current-p4-width, 96px);
+    --status-height: var(--status-current-p4-height, 44px);
+    --status-name-font-size: var(--status-current-p4-name-font-size, 14px);
+    --status-text-font-size: var(--status-current-p4-text-font-size, 12px);
+  }
+
+  .table-5 .player-status-slot--p5 {
+    --status-x: var(--status-current-p5-x, 0px);
+    --status-y: var(--status-current-p5-y, 0px);
+    --status-width: var(--status-current-p5-width, 96px);
+    --status-height: var(--status-current-p5-height, 44px);
+    --status-name-font-size: var(--status-current-p5-name-font-size, 14px);
+    --status-text-font-size: var(--status-current-p5-text-font-size, 12px);
   }
 }

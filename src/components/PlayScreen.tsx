@@ -1802,6 +1802,7 @@ export default function PlayScreen({
               onlineRoom,
               player.id,
             )}
+            className={`player-status-slot player-status-slot--p${slotIndex + 1}`}
             style={getSeatStyle(playerCount, slotIndex)}
           />
         ))}
@@ -4402,9 +4403,33 @@ function getAnimationLabel(phase: AnimationPhase) {
 }
 
 function MobileLayoutDebugPanel({ playerCount }: { playerCount: number }) {
+  type LayoutDebugTargetKind = "marker" | "window" | "status";
+
+  type LayoutDebugValue = {
+    x: number;
+    y: number;
+    width?: number;
+    height?: number;
+    nameFontSize?: number;
+    textFontSize?: number;
+  };
+
+  const [targetSeat, setTargetSeat] = useState(1);
+  const [targetKind, setTargetKind] = useState<LayoutDebugTargetKind>("window");
   const [panelCorner, setPanelCorner] = useState<
     "top-left" | "top-right" | "bottom-left" | "bottom-right"
   >("top-right");
+  const [offsets, setOffsets] = useState<Record<string, LayoutDebugValue>>({});
+
+  const key = `${targetKind}-${playerCount}-p${targetSeat}`;
+  const current = offsets[key] ?? {
+    x: 0,
+    y: 0,
+    width: 96,
+    height: 44,
+    nameFontSize: 14,
+    textFontSize: 12,
+  };
 
   const panelPositionStyle: CSSProperties =
     panelCorner === "top-left"
@@ -4414,14 +4439,6 @@ function MobileLayoutDebugPanel({ playerCount }: { playerCount: number }) {
         : panelCorner === "bottom-left"
           ? { left: 8, bottom: 8 }
           : { right: 8, bottom: 8 };
-  const [targetSeat, setTargetSeat] = useState(1);
-  const [targetKind, setTargetKind] = useState<"marker" | "window">("window");
-  const [offsets, setOffsets] = useState<
-    Record<string, { x: number; y: number }>
-  >({});
-
-  const key = `${targetKind}-${playerCount}-p${targetSeat}`;
-  const current = offsets[key] ?? { x: 0, y: 0 };
 
   useEffect(() => {
     if (targetSeat > playerCount) {
@@ -4440,6 +4457,8 @@ function MobileLayoutDebugPanel({ playerCount }: { playerCount: number }) {
 
     Object.entries(offsets).forEach(([offsetKey, value]) => {
       const [kind, count, seat] = offsetKey.split("-");
+
+      if (!kind || !count || !seat) return;
 
       if (kind === "marker") {
         if (count === "3") {
@@ -4486,16 +4505,42 @@ function MobileLayoutDebugPanel({ playerCount }: { playerCount: number }) {
           `--history-${count}-${seat}-window-y`,
           `${value.y}px`,
         );
+        return;
+      }
+
+      if (kind === "status") {
+        root.style.setProperty(`--status-${count}-${seat}-x`, `${value.x}px`);
+        root.style.setProperty(`--status-${count}-${seat}-y`, `${value.y}px`);
+        root.style.setProperty(
+          `--status-${count}-${seat}-width`,
+          `${value.width ?? 96}px`,
+        );
+        root.style.setProperty(
+          `--status-${count}-${seat}-height`,
+          `${value.height ?? 44}px`,
+        );
+        root.style.setProperty(
+          `--status-${count}-${seat}-name-font-size`,
+          `${value.nameFontSize ?? 14}px`,
+        );
+        root.style.setProperty(
+          `--status-${count}-${seat}-text-font-size`,
+          `${value.textFontSize ?? 12}px`,
+        );
       }
     });
   }, [offsets]);
 
-  const updateCurrent = (next: { x?: number; y?: number }) => {
+  const updateCurrent = (next: Partial<LayoutDebugValue>) => {
     setOffsets((previous) => ({
       ...previous,
       [key]: {
         x: next.x ?? current.x,
         y: next.y ?? current.y,
+        width: next.width ?? current.width,
+        height: next.height ?? current.height,
+        nameFontSize: next.nameFontSize ?? current.nameFontSize,
+        textFontSize: next.textFontSize ?? current.textFontSize,
       },
     }));
   };
@@ -4505,14 +4550,19 @@ function MobileLayoutDebugPanel({ playerCount }: { playerCount: number }) {
     (_, index) => index + 1,
   );
 
+  const areaName =
+    targetSeat === 1 ? "self" : targetSeat === 2 ? "right" : "left";
+
   const cssPreview =
-    playerCount === 3
-      ? targetKind === "marker"
-        ? `3人用 ?：p1=self / p2=right / p3=left\n--table-history-3-${targetSeat === 1 ? "self" : targetSeat === 2 ? "right" : "left"}-marker-x: ${current.x}px;\n--table-history-3-${targetSeat === 1 ? "self" : targetSeat === 2 ? "right" : "left"}-marker-y: ${current.y}px;`
-        : `3人用 window：p1=self / p2=right / p3=left\n--table-history-3-${targetSeat === 1 ? "self" : targetSeat === 2 ? "right" : "left"}-window-x: ${current.x}px;\n--table-history-3-${targetSeat === 1 ? "self" : targetSeat === 2 ? "right" : "left"}-window-y: ${current.y}px;`
-      : targetKind === "marker"
-        ? `4/5人用 ?\n--history-${playerCount}-p${targetSeat}-x: ${current.x}px;\n--history-${playerCount}-p${targetSeat}-y: ${current.y}px;`
-        : `4/5人用 window\n--history-${playerCount}-p${targetSeat}-window-x: ${current.x}px;\n--history-${playerCount}-p${targetSeat}-window-y: ${current.y}px;`;
+    targetKind === "status"
+      ? `player status\n--status-${playerCount}-p${targetSeat}-x: ${current.x}px;\n--status-${playerCount}-p${targetSeat}-y: ${current.y}px;\n--status-${playerCount}-p${targetSeat}-width: ${current.width ?? 96}px;\n--status-${playerCount}-p${targetSeat}-height: ${current.height ?? 44}px;\n--status-${playerCount}-p${targetSeat}-name-font-size: ${current.nameFontSize ?? 14}px;\n--status-${playerCount}-p${targetSeat}-text-font-size: ${current.textFontSize ?? 12}px;`
+      : playerCount === 3
+        ? targetKind === "marker"
+          ? `3人用 ?：p1=self / p2=right / p3=left\n--table-history-3-${areaName}-marker-x: ${current.x}px;\n--table-history-3-${areaName}-marker-y: ${current.y}px;`
+          : `3人用 window：p1=self / p2=right / p3=left\n--table-history-3-${areaName}-window-x: ${current.x}px;\n--table-history-3-${areaName}-window-y: ${current.y}px;`
+        : targetKind === "marker"
+          ? `4/5人用 ?\n--history-${playerCount}-p${targetSeat}-x: ${current.x}px;\n--history-${playerCount}-p${targetSeat}-y: ${current.y}px;`
+          : `4/5人用 window\n--history-${playerCount}-p${targetSeat}-window-x: ${current.x}px;\n--history-${playerCount}-p${targetSeat}-window-y: ${current.y}px;`;
 
   return (
     <div
@@ -4520,8 +4570,8 @@ function MobileLayoutDebugPanel({ playerCount }: { playerCount: number }) {
         position: "fixed",
         ...panelPositionStyle,
         zIndex: 999999,
-        width: "min(34dvw, 260px)",
-        maxHeight: "76dvh",
+        width: "min(30dvw, 240px)",
+        maxHeight: "72dvh",
         overflow: "auto",
         padding: 8,
         borderRadius: 10,
@@ -4535,6 +4585,7 @@ function MobileLayoutDebugPanel({ playerCount }: { playerCount: number }) {
       <strong style={{ display: "block", marginBottom: 6 }}>
         Layout Debug
       </strong>
+
       <label style={{ display: "block", marginBottom: 6 }}>
         panel:
         <select
@@ -4562,12 +4613,13 @@ function MobileLayoutDebugPanel({ playerCount }: { playerCount: number }) {
         <select
           value={targetKind}
           onChange={(event) =>
-            setTargetKind(event.target.value as "marker" | "window")
+            setTargetKind(event.target.value as LayoutDebugTargetKind)
           }
           style={{ width: "100%", marginTop: 4 }}
         >
           <option value="marker">? position</option>
           <option value="window">card window</option>
+          <option value="status">player status</option>
         </select>
       </label>
 
@@ -4622,6 +4674,70 @@ function MobileLayoutDebugPanel({ playerCount }: { playerCount: number }) {
           onChange={(event) => updateCurrent({ y: Number(event.target.value) })}
         />
       </label>
+
+      {targetKind === "status" && (
+        <>
+          <label style={{ display: "block", marginBottom: 6 }}>
+            width: {current.width ?? 96}px
+            <input
+              style={{ width: "100%" }}
+              type="range"
+              min="40"
+              max="220"
+              step="1"
+              value={current.width ?? 96}
+              onChange={(event) =>
+                updateCurrent({ width: Number(event.target.value) })
+              }
+            />
+          </label>
+
+          <label style={{ display: "block", marginBottom: 6 }}>
+            height: {current.height ?? 44}px
+            <input
+              style={{ width: "100%" }}
+              type="range"
+              min="24"
+              max="120"
+              step="1"
+              value={current.height ?? 44}
+              onChange={(event) =>
+                updateCurrent({ height: Number(event.target.value) })
+              }
+            />
+          </label>
+
+          <label style={{ display: "block", marginBottom: 6 }}>
+            name font: {current.nameFontSize ?? 14}px
+            <input
+              style={{ width: "100%" }}
+              type="range"
+              min="8"
+              max="28"
+              step="1"
+              value={current.nameFontSize ?? 14}
+              onChange={(event) =>
+                updateCurrent({ nameFontSize: Number(event.target.value) })
+              }
+            />
+          </label>
+
+          <label style={{ display: "block", marginBottom: 6 }}>
+            text font: {current.textFontSize ?? 12}px
+            <input
+              style={{ width: "100%" }}
+              type="range"
+              min="8"
+              max="24"
+              step="1"
+              value={current.textFontSize ?? 12}
+              onChange={(event) =>
+                updateCurrent({ textFontSize: Number(event.target.value) })
+              }
+            />
+          </label>
+        </>
+      )}
 
       <code style={{ display: "block", whiteSpace: "pre-wrap" }}>
         {cssPreview}
