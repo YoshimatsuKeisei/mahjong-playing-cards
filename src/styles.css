@@ -8144,3 +8144,72 @@ body {
     --status-y: var(--status-5-p5-y, 0px);
   }
 }
+
+@media (orientation: landscape) and (max-height: 700px) and (hover: none) and (pointer: coarse) {
+  /* プレイヤーステータス共通サイズ。既に幅が動いているなら、この後段指定で高さと文字サイズも揃える */
+  .player-status-slot {
+    width: var(--status-common-width, 78px) !important;
+    min-width: var(--status-common-width, 78px) !important;
+    max-width: var(--status-common-width, 78px) !important;
+  }
+
+  .player-status-slot .seat-label {
+    width: var(--status-common-width, 78px) !important;
+    min-width: var(--status-common-width, 78px) !important;
+    max-width: var(--status-common-width, 78px) !important;
+
+    height: var(--status-common-height, 32px) !important;
+    min-height: var(--status-common-height, 32px) !important;
+    max-height: var(--status-common-height, 32px) !important;
+
+    overflow: hidden !important;
+  }
+
+  .player-status-slot .seat-label strong {
+    font-size: var(--status-common-name-font-size, 10px) !important;
+    line-height: 1.05 !important;
+  }
+
+  .player-status-slot .seat-label span {
+    font-size: var(--status-common-text-font-size, 9px) !important;
+    line-height: 1.05 !important;
+  }
+
+  /* 上部ナビ */
+  .table-scene .top-toolbar {
+    width: min(var(--debug-top-nav-width, 520px), 92dvw) !important;
+    min-width: 0 !important;
+
+    height: var(--debug-top-nav-height, 30px) !important;
+    min-height: var(--debug-top-nav-height, 30px) !important;
+    max-height: var(--debug-top-nav-height, 30px) !important;
+
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+    font-size: var(--debug-top-nav-font-size, 10px) !important;
+  }
+
+  .table-scene .top-toolbar,
+  .table-scene .top-toolbar span,
+  .table-scene .top-toolbar strong,
+  .table-scene .top-toolbar em,
+  .table-scene .toolbar-player,
+  .table-scene .toolbar-action,
+  .table-scene .toolbar-deck,
+  .table-scene .daifugo-status {
+    font-size: var(--debug-top-nav-font-size, 10px) !important;
+    line-height: 1.05 !important;
+  }
+
+  .table-scene .toolbar-player,
+  .table-scene .toolbar-action,
+  .table-scene .toolbar-deck {
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  /* 手札カードだけ。山札・捨て札・鳴きカードは巻き込まない */
+  .hand-section .hand-view .playing-card {
+    width: var(--debug-hand-card-width, 58px) !important;
+  }
+}
