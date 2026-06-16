@@ -2643,7 +2643,7 @@ h2 {
 .history-hover-anchor:focus-within,
 .table-history-anchor:hover,
 .table-history-anchor:focus-within {
-  z-index: var(--z-action-nav);
+  z-index: var(--z-card-window);
 }
 
 .history-hover-anchor--top {
