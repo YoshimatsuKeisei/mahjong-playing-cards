@@ -79,6 +79,32 @@ const initialState: GameState = {
   message: "",
 };
 
+const RESULT_INTRO_DELAY_MS = 1700;
+
+function getResultIntroKey(state: GameState): string | null {
+  const result = state.result;
+  if (state.phase !== "result" || !result || result.winType === "deckout") {
+    return null;
+  }
+  const winnerKey =
+    result.winType === "ron"
+      ? (result.ronResults ?? [{ winnerIndex: result.winnerIndex }])
+          .map((item) => item.winnerIndex)
+          .join(",")
+      : String(result.winnerIndex);
+  const discardCounts = state.players
+    .map((player) => player.discardPile.length)
+    .join(",");
+  return [
+    result.winType,
+    winnerKey,
+    result.discarderIndex ?? "none",
+    state.currentPlayerIndex,
+    state.deck.length,
+    discardCounts,
+  ].join(":");
+}
+
 type AppScreen =
   | "home"
   | "roomSelect"
@@ -181,6 +207,25 @@ export default function App() {
     comment: "今日も一局、よろしくお願いします。",
     avatarId: "fantasy-mage",
   });
+  const [completedResultIntroKey, setCompletedResultIntroKey] = useState<
+    string | null
+  >(null);
+  const resultIntroKey = getResultIntroKey(state);
+  const shouldDelayResultScreen =
+    resultIntroKey !== null && completedResultIntroKey !== resultIntroKey;
+
+  useEffect(() => {
+    if (!resultIntroKey) {
+      setCompletedResultIntroKey(null);
+      return;
+    }
+    if (completedResultIntroKey === resultIntroKey) return;
+    const timeoutId = window.setTimeout(
+      () => setCompletedResultIntroKey(resultIntroKey),
+      RESULT_INTRO_DELAY_MS,
+    );
+    return () => window.clearTimeout(timeoutId);
+  }, [completedResultIntroKey, resultIntroKey]);
 
   useEffect(() => {
     const socket = getOnlineSocket();
@@ -1023,7 +1068,7 @@ export default function App() {
     );
   }
 
-  if (state.phase === "result" && state.result) {
+  if (!shouldDelayResultScreen && state.phase === "result" && state.result) {
     if (interruptedFinalMatchState) {
       return (
         <>

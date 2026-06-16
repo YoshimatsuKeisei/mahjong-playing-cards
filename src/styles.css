@@ -5,8 +5,10 @@
   --z-help-icon: 20;
   --z-player-status: 30;
   --z-action-nav: 40;
-  --z-reach-banner: 60;
-  --z-modal: 100;
+  --z-card-window: 50;
+  --z-reach-banner: 70;
+  --z-effect-overlay: 80;
+  --z-modal: 30000;
   font-family:
     Inter,
     ui-sans-serif,
@@ -2774,7 +2776,7 @@ h2 {
   position: absolute;
   left: 50%;
   bottom: calc(100% + 0.5rem);
-  z-index: var(--z-action-nav);
+  z-index: var(--z-card-window);
   display: grid;
   gap: 0.58rem;
   width: max-content;
@@ -4412,7 +4414,7 @@ h2 {
   position: absolute;
   left: 50%;
   top: 50%;
-  z-index: var(--z-reach-banner);
+  z-index: var(--z-effect-overlay);
   width: min(58vw, 520px);
   pointer-events: none;
   transform: translate(-50%, -50%);
@@ -4875,7 +4877,7 @@ h2 {
   position: absolute;
   left: 50%;
   top: 50%;
-  z-index: 12;
+  z-index: var(--z-effect-overlay);
   display: grid;
   justify-items: center;
   gap: 0.45rem;
