@@ -3245,8 +3245,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           )
         : undefined;
 
-      const handoffSourceIndex =
-        state.lastDiscarderIndex ?? state.currentPlayerIndex;
+      const handoffSourceIndex = state.currentPlayerIndex;
 
       const nextHandoffMessage =
         handoffSourceIndex !== state.currentPlayerIndex
@@ -3417,8 +3416,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           ),
         };
       }
-      const handoffSourceIndex =
-        state.lastDiscarderIndex ?? state.currentPlayerIndex;
+      const handoffSourceIndex = state.currentPlayerIndex;
       if (shouldConfirmReach) {
         return {
           ...nextState,

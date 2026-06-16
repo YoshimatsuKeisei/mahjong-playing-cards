@@ -2189,6 +2189,103 @@ describe("PlayScreen round display", () => {
     );
   });
 
+  it("hides the bottom action panel while an 8/10 effect draw is pending", () => {
+    const base = createInitialGame(4, "clockwise");
+    const state: GameState = {
+      ...base,
+      phase: "discard",
+      pendingDaifugoEffect: {
+        kind: "effectDraw",
+        effect: "eightExtraTurn",
+        playerIndex: 0,
+        continue: { shouldConfirmReach: false },
+      },
+    };
+
+    const { container } = render(
+      <PlayScreen
+        state={state}
+        dispatch={vi.fn()}
+        currentRound={1}
+        disableLocalCpuAutomation
+      />,
+    );
+
+    expect(container.querySelector(".action-panel")).not.toBeInTheDocument();
+  });
+
+  it("keeps the bottom action panel for daifugo states that need human input", () => {
+    const base = createInitialGame(4, "clockwise");
+    const state: GameState = {
+      ...base,
+      phase: "discard",
+      drawnCard: base.players[0].hand[0],
+      drawnFrom: "deck",
+      pendingDaifugoEffect: {
+        kind: "extraDiscard",
+        effect: "eightExtraTurn",
+        playerIndex: 0,
+      },
+    };
+
+    const { container } = render(
+      <PlayScreen
+        state={state}
+        dispatch={vi.fn()}
+        currentRound={1}
+        disableLocalCpuAutomation
+      />,
+    );
+
+    expect(container.querySelector(".action-panel")).toBeInTheDocument();
+  });
+
+  it("shows a temporary ron result splash before clearing it", () => {
+    vi.useFakeTimers();
+    const base = createInitialGame(4, "clockwise");
+    const state: GameState = {
+      ...base,
+      phase: "result",
+      winner: 1,
+      result: {
+        winnerIndex: 1,
+        winType: "ron",
+        winningResult: { canWin: true, melds: [], keyCard: null },
+        score: { winnerScore: 1000, playerLosses: [10, 0, 0, 0] },
+        discarderIndex: 0,
+        ronResults: [
+          {
+            winnerIndex: 1,
+            winningResult: { canWin: true, melds: [], keyCard: null },
+            score: { winnerScore: 1000, playerLosses: [10, 0, 0, 0] },
+          },
+        ],
+      },
+    };
+
+    try {
+      const { container } = render(
+        <PlayScreen
+          state={state}
+          dispatch={vi.fn()}
+          currentRound={1}
+          disableLocalCpuAutomation
+        />,
+      );
+
+      expect(container.querySelector(".reach-splash")).toHaveTextContent(
+        base.players[1].name,
+      );
+      expect(container.querySelector(".reach-splash")).toHaveTextContent("ロン!");
+
+      act(() => vi.advanceTimersByTime(1600));
+
+      expect(container.querySelector(".reach-splash")).not.toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("does not play another player's online daifugo deck draw animation without the card body", async () => {
     const base = createInitialGame(4, "clockwise");
     const state: GameState = {

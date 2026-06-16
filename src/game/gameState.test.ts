@@ -2205,6 +2205,53 @@ describe("daifugo game state", () => {
     expect(reachConfirm.phase).toBe("reachConfirm");
   });
 
+  it("does not treat stale lastDiscarderIndex as a 5 skip after reach confirmation", () => {
+    const createReachPendingState = () => {
+      const state = stateForDiscard(card("junk", 12));
+      state.players[0] = player(1, [
+        card("ten", 10),
+        card("r1s", 1, "S"),
+        card("r1h", 1, "H"),
+        card("r1d", 1, "D"),
+        card("r4s", 4, "S"),
+        card("r4h", 4, "H"),
+        card("r4d", 4, "D"),
+        card("r7s", 7, "S"),
+        card("r7h", 7, "H"),
+        card("key", 13, "C"),
+        card("junk", 12, "D"),
+      ]);
+      state.deck = [card("drawn-junk", 9, "C"), card("r7d", 7, "D")];
+      state.lastDiscarderIndex = 1;
+      return gameReducer(state, { type: "discard", cardId: "junk" });
+    };
+
+    const reachPending = createReachPendingState();
+    expect(reachPending.phase).toBe("reachConfirm");
+    expect(reachPending.lastDiscarderIndex).toBe(0);
+
+    const declared = gameReducer(reachPending, {
+      type: "answerReachAfterDiscard",
+      declareReach: true,
+    });
+    const declined = gameReducer(createReachPendingState(), {
+      type: "answerReachAfterDiscard",
+      declareReach: false,
+    });
+
+    expect(declared.phase).toBe("handoff");
+    expect(declared.lastDiscarderIndex).toBe(0);
+    expect(declared.players[0].isReach).toBe(true);
+    expect(declared.message).not.toContain("5繧ｹ繧ｭ");
+    expect(gameReducer(declared, { type: "confirmHandoff" }).currentPlayerIndex).toBe(1);
+
+    expect(declined.phase).toBe("handoff");
+    expect(declined.lastDiscarderIndex).toBe(0);
+    expect(declined.players[0].isReach).toBe(false);
+    expect(declined.message).not.toContain("5繧ｹ繧ｭ");
+    expect(gameReducer(declined, { type: "confirmHandoff" }).currentPlayerIndex).toBe(1);
+  });
+
   it("locks other reducer actions while an effect confirmation is pending", () => {
     const pending = gameReducer(stateForDiscard(card("five", 5)), { type: "discard", cardId: "five" });
     const attemptedDraw = gameReducer(pending, { type: "drawFromDeck" });

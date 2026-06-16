@@ -515,6 +515,7 @@ export default function PlayScreen({
   const shouldForceHideActionPanel =
     state.phase === "handoff" ||
     state.phase === "result" ||
+    isDaifugoEffectDraw ||
     isDaifugoEventPlaying ||
     isBlockingSplashVisible;
   const sevenExchangeParticipantIndexes =
@@ -776,6 +777,14 @@ export default function PlayScreen({
     if (!isSevenEnhancementMessage && !isFiveEnhancementMessage) return;
 
     const kind = isFiveEnhancementMessage ? "five" : "seven";
+    if (
+      (kind === "five" &&
+        pendingDaifugoEffect?.kind !== "fiveEnhancedTargetSelect") ||
+      (kind === "seven" &&
+        pendingDaifugoEffect?.kind !== "sevenEnhancedTargetSelect")
+    ) {
+      return;
+    }
     const call = kind === "five" ? "5：スキップ強化" : "7：交換相手選択";
     const actorIndex = state.currentPlayerIndex;
     const actor = state.players[actorIndex];
@@ -791,7 +800,12 @@ export default function PlayScreen({
 
     lastEnhancementSplashKeyRef.current = splashKey;
     showTimedReachSplash("J強化発動！", call, J_ENHANCEMENT_SPLASH_MS);
-  }, [state.currentPlayerIndex, state.message, state.players]);
+  }, [
+    pendingDaifugoEffect?.kind,
+    state.currentPlayerIndex,
+    state.message,
+    state.players,
+  ]);
 
   useEffect(() => {
     const previousReachFlags = previousReachFlagsRef.current;
@@ -805,6 +819,25 @@ export default function PlayScreen({
     if (reachedPlayerIndex < 0) return;
     showReachSplash(state.players[reachedPlayerIndex]?.name ?? "プレイヤー");
   }, [state.players]);
+
+  useEffect(() => {
+    const result = state.result;
+    if (state.phase !== "result" || !result || result.winType === "deckout") {
+      return;
+    }
+    const winnerNames =
+      result.winType === "ron"
+        ? (result.ronResults ?? [{ winnerIndex: result.winnerIndex }])
+            .map((item) => state.players[item.winnerIndex]?.name)
+            .filter(Boolean)
+            .join("・")
+        : state.players[result.winnerIndex]?.name;
+    showTimedReachSplash(
+      winnerNames || "プレイヤー",
+      result.winType === "ron" ? "ロン!" : "ツモ!",
+      1600,
+    );
+  }, [state.phase, state.result, state.players]);
 
   useEffect(() => {
     const pending = state.pendingDaifugoEffect;
