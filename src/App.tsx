@@ -11,6 +11,7 @@ import StartScreen, { type RoomCreateSettings } from "./components/StartScreen";
 import PlayScreen from "./components/PlayScreen";
 import ResultScreen from "./components/ResultScreen";
 import FinalResultScreen from "./components/FinalResultScreen";
+import { preloadPlayingCardImages } from "./cardImages";
 import {
   createInitialGame,
   createRandomStartPlayerIndex,
@@ -213,6 +214,10 @@ export default function App() {
   const resultIntroKey = getResultIntroKey(state);
   const shouldDelayResultScreen =
     resultIntroKey !== null && completedResultIntroKey !== resultIntroKey;
+
+  useEffect(() => {
+    void preloadPlayingCardImages();
+  }, []);
 
   useEffect(() => {
     if (!resultIntroKey) {

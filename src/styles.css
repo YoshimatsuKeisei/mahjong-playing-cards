@@ -11,16 +11,23 @@
   --z-modal: 30000;
   --z-manual-overlay: 31000;
   --manual-board-bg:
-    radial-gradient(circle at 20% 18%, rgba(255, 255, 255, 0.22), transparent 24%),
+    radial-gradient(
+      circle at 20% 18%,
+      rgba(255, 255, 255, 0.22),
+      transparent 24%
+    ),
     linear-gradient(180deg, rgba(255, 248, 218, 0.5), rgba(94, 55, 24, 0.14)),
     url("../全体ボード.png"),
     linear-gradient(135deg, #7a4b25 0%, #a06a35 42%, #5e371c 100%);
   --manual-illustration-bg:
-    radial-gradient(circle at 24% 16%, rgba(255, 248, 218, 0.2), transparent 24%),
+    radial-gradient(
+      circle at 24% 16%,
+      rgba(255, 248, 218, 0.2),
+      transparent 24%
+    ),
     linear-gradient(120deg, rgba(255, 255, 255, 0.12), transparent 34%),
     linear-gradient(180deg, rgba(34, 20, 8, 0.02), rgba(34, 20, 8, 0.1)),
-    url("./assets/manual-illustration-board.jpg"),
-    #d5a77b;
+    url("./assets/manual-illustration-board.jpg"), #d5a77b;
   --manual-board-border: rgba(81, 49, 21, 0.62);
   --manual-board-shadow: 0 16px 30px rgba(61, 43, 28, 0.24);
   --manual-accent-gold: #d7ad55;
@@ -1838,7 +1845,11 @@ h2 {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(circle at 50% 0%, rgba(255, 248, 218, 0.15), transparent 38%),
+    radial-gradient(
+      circle at 50% 0%,
+      rgba(255, 248, 218, 0.15),
+      transparent 38%
+    ),
     linear-gradient(180deg, transparent 72%, rgba(52, 31, 12, 0.12));
   pointer-events: none;
   content: "";
@@ -1908,11 +1919,7 @@ h2 {
 
 .manual-example p {
   font-family:
-    ui-monospace,
-    SFMono-Regular,
-    Consolas,
-    "Liberation Mono",
-    monospace;
+    ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
   font-weight: 900;
   line-height: 1.45;
 }
@@ -4771,10 +4778,12 @@ h2 {
 .playing-card {
   position: relative;
   display: block;
+  overflow: hidden;
   width: clamp(58px, 5.8vw, 82px);
   aspect-ratio: 5 / 7;
-  border: 1px solid #b8ad99;
+  border: 0.1px solid #b8ad99;
   border-radius: 7px;
+  box-sizing: border-box;
   background:
     linear-gradient(
       145deg,
@@ -4787,6 +4796,26 @@ h2 {
     inset 0 0 0 2px rgba(255, 255, 255, 0.8),
     0 5px 12px rgba(36, 42, 37, 0.2);
   font-family: Georgia, "Times New Roman", serif;
+}
+
+.playing-card.image-card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-color: #b8ad99;
+  background: #ffffff;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.86),
+    0 5px 12px rgba(36, 42, 37, 0.2);
+}
+
+.playing-card-image {
+  display: block;
+  width: 92%;
+  height: 92%;
+  object-fit: contain;
+  user-select: none;
+  pointer-events: none;
 }
 
 .playing-card.red {
@@ -4970,6 +4999,10 @@ h2 {
       transparent 4px 8px
     ),
     #1f5b91;
+}
+
+.card-back.image-card {
+  background: #ffffff;
 }
 
 .card-back-pattern {
