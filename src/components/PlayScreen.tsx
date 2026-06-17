@@ -40,6 +40,7 @@ import type {
 import DiscardPile from "./DiscardPile";
 import HandView from "./HandView";
 import MeldArea from "./MeldArea";
+import ManualScreen from "./ManualScreen";
 import PlayerArea from "./PlayerArea";
 import PlayingCard, { formatCard } from "./PlayingCard";
 
@@ -62,7 +63,8 @@ type RoomManagementTab =
   | "exit"
   | "temporaryLeave"
   | "transferHost"
-  | "matchInfo";
+  | "matchInfo"
+  | "manual";
 
 type AnimationPhase =
   | "idle"
@@ -325,6 +327,7 @@ export default function PlayScreen({
   disableLocalCpuAutomation = false,
 }: PlayScreenProps) {
   const [isRoomMenuOpen, setIsRoomMenuOpen] = useState(false);
+  const [isManualOpen, setIsManualOpen] = useState(false);
   const [roomMenuTab, setRoomMenuTab] = useState<RoomManagementTab>("exit");
   const currentPlayer = state.players[state.currentPlayerIndex];
   console.log("[phase check]", {
@@ -1635,6 +1638,10 @@ export default function PlayScreen({
               setIsRoomMenuOpen(false);
               onExitToHome();
             }}
+            onOpenManual={() => {
+              setIsRoomMenuOpen(false);
+              setIsManualOpen(true);
+            }}
             onTransferHost={(targetPlayerId) => {
               onTransferHost?.(targetPlayerId);
               setIsRoomMenuOpen(false);
@@ -1646,6 +1653,11 @@ export default function PlayScreen({
             onUpdateMatchSettings={onUpdateMatchSettings}
             onUpdateSubstituteCpuModel={onUpdateSubstituteCpuModel}
           />
+        )}
+        {isManualOpen && (
+          <div className="play-manual-overlay">
+            <ManualScreen onBackHome={() => setIsManualOpen(false)} />
+          </div>
         )}
 
         <div className="table-shape">
@@ -3245,6 +3257,7 @@ function RoomManagementDialog({
   onSelectTab,
   onClose,
   onExit,
+  onOpenManual,
   onTransferHost,
   onStartTemporaryLeave,
   onUpdateMatchSettings,
@@ -3260,6 +3273,7 @@ function RoomManagementDialog({
   onSelectTab: (tab: RoomManagementTab) => void;
   onClose: () => void;
   onExit: () => void;
+  onOpenManual: () => void;
   onTransferHost: (targetPlayerId: string) => void;
   onStartTemporaryLeave: (mode: TemporaryLeaveMode) => void;
   onUpdateMatchSettings?: (payload: UpdateMatchSettingsPayload) => void;
@@ -3279,6 +3293,7 @@ function RoomManagementDialog({
     { id: "temporaryLeave", label: "一時離脱" },
     { id: "transferHost", label: "ホストを変更", hostOnly: true },
     { id: "matchInfo", label: "試合情報" },
+    { id: "manual", label: "マニュアル" },
   ];
   const visibleTabs = tabs.filter((tab) => !tab.hostOnly || isHost);
   const selectedTab = visibleTabs.some((tab) => tab.id === activeTab)
@@ -3450,6 +3465,24 @@ function RoomManagementDialog({
                 <div className="exit-confirm-actions">
                   <button type="button" onClick={onClose}>
                     閉じる
+                  </button>
+                </div>
+              </>
+            )}
+
+            {selectedTab === "manual" && (
+              <>
+                <p>マニュアルを読みますか？</p>
+                <div className="exit-confirm-actions">
+                  <button
+                    type="button"
+                    className="primary-button"
+                    onClick={onOpenManual}
+                  >
+                    はい
+                  </button>
+                  <button type="button" onClick={onClose}>
+                    いいえ
                   </button>
                 </div>
               </>

@@ -121,6 +121,57 @@ describe("PlayScreen round display", () => {
     expect(onExitToHome).toHaveBeenCalledTimes(1);
   });
 
+  it("opens the shared manual from the room management manual tab without exiting", async () => {
+    const user = userEvent.setup();
+    const onExitToHome = vi.fn();
+
+    render(
+      <PlayScreen
+        state={createInitialGame(4, "clockwise")}
+        dispatch={vi.fn()}
+        currentRound={1}
+        onExitToHome={onExitToHome}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "設定" }));
+    expect(screen.getByRole("tab", { name: "マニュアル" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("tab", { name: "マニュアル" }));
+    expect(screen.getByText("マニュアルを読みますか？")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "はい" }));
+
+    expect(screen.getByText("Manual")).toBeInTheDocument();
+    expect(screen.queryByText("マニュアルを読みますか？")).not.toBeInTheDocument();
+    expect(onExitToHome).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: "ホームへ戻る" }));
+
+    expect(screen.queryByText("Manual")).not.toBeInTheDocument();
+    expect(screen.getByTestId("deck-stack")).toBeInTheDocument();
+  });
+
+  it("does not open the manual when declining from the manual tab", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <PlayScreen
+        state={createInitialGame(4, "clockwise")}
+        dispatch={vi.fn()}
+        currentRound={1}
+        onExitToHome={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "設定" }));
+    await user.click(screen.getByRole("tab", { name: "マニュアル" }));
+    await user.click(screen.getByRole("button", { name: "いいえ" }));
+
+    expect(screen.queryByText("Manual")).not.toBeInTheDocument();
+    expect(screen.queryByText("マニュアルを読みますか？")).not.toBeInTheDocument();
+  });
+
   it("shows host-only room management tabs only to the host", async () => {
     const user = userEvent.setup();
     const room = {

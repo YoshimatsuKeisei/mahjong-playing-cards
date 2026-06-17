@@ -9,6 +9,7 @@
   --z-reach-banner: 70;
   --z-effect-overlay: 80;
   --z-modal: 30000;
+  --z-manual-overlay: 31000;
   --manual-board-bg:
     radial-gradient(circle at 20% 18%, rgba(255, 255, 255, 0.22), transparent 24%),
     linear-gradient(180deg, rgba(255, 248, 218, 0.5), rgba(94, 55, 24, 0.14)),
@@ -5404,6 +5405,17 @@ h2 {
   place-items: center;
   background: rgba(0, 0, 0, 0.48);
   padding: 1rem;
+}
+
+.play-manual-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-manual-overlay);
+  pointer-events: auto;
+}
+
+.play-manual-overlay .manual-screen {
+  min-height: 100%;
 }
 
 .exit-confirm-dialog {
