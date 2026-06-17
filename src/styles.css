@@ -13,7 +13,7 @@
   --manual-board-bg:
     radial-gradient(circle at 20% 18%, rgba(255, 255, 255, 0.22), transparent 24%),
     linear-gradient(180deg, rgba(255, 248, 218, 0.5), rgba(94, 55, 24, 0.14)),
-    url("./assets/manual-board-wood.png"),
+    url("../全体ボード.png"),
     linear-gradient(135deg, #7a4b25 0%, #a06a35 42%, #5e371c 100%);
   --manual-illustration-bg:
     radial-gradient(circle at 24% 16%, rgba(255, 248, 218, 0.2), transparent 24%),
