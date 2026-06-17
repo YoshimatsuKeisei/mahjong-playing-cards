@@ -1,8 +1,5 @@
 import { useState, type ComponentType } from "react";
-import {
-  CpuLevelsIllustration,
-  ScoreComparisonIllustration,
-} from "./manual/ManualIllustrations";
+import { CpuLevelsIllustration } from "./manual/ManualIllustrations";
 
 interface ManualScreenProps {
   onBackHome: () => void;
@@ -28,6 +25,7 @@ const manualPage1ImageSrc = new URL("../../冒頭-page1.png", import.meta.url).h
 const manualPage2ImageSrc = new URL("../../手番順-page2.png", import.meta.url).href;
 const manualPage3ImageSrc = new URL("../../役の作り方-page3.png", import.meta.url).href;
 const manualPage4ImageSrc = new URL("../../鳴き解説-page4.png", import.meta.url).href;
+const manualPage5ImageSrc = new URL("../../得点計算-page5.png", import.meta.url).href;
 const manualPage6ImageSrc = new URL("../../大富豪効果-page6.png", import.meta.url).href;
 const manualPage7ImageSrc = new URL("../../Jシールド効果-page7.png", import.meta.url).href;
 
@@ -105,7 +103,7 @@ const manualPages: ManualPage[] = [
   },
   {
     title: "得点計算",
-    illustration: { kind: "component", Component: ScoreComparisonIllustration },
+    illustration: { kind: "image", src: manualPage5ImageSrc, alt: "得点計算の図表" },
     body: [
       p("このゲームの得点は、「失点」をもとに計算されます。"),
       p("上がったプレイヤーは、役3つと余り札1枚の状態になります。この余り札の数字が、勝者の失点になります。"),

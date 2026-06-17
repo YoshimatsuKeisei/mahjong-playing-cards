@@ -1,3 +1,4 @@
+import { cardBackImageSrc, getCardFaceImageSrc } from "../cardImages";
 import type { Card } from "../types";
 
 interface PlayingCardProps {
@@ -8,8 +9,31 @@ interface PlayingCardProps {
   testId?: string;
 }
 
-export default function PlayingCard({ card, isDrawn = false, isBack = false, compact = false, testId }: PlayingCardProps) {
+export default function PlayingCard({
+  card,
+  isDrawn = false,
+  isBack = false,
+  compact = false,
+  testId,
+}: PlayingCardProps) {
   if (isBack || !card) {
+    if (cardBackImageSrc) {
+      return (
+        <span
+          className={`playing-card card-back image-card ${compact ? "compact" : ""}`}
+          aria-label="裏向きのカード"
+        >
+          <img
+            className="playing-card-image"
+            src={cardBackImageSrc}
+            alt=""
+            aria-hidden="true"
+            draggable={false}
+          />
+        </span>
+      );
+    }
+
     return (
       <span className={`playing-card card-back ${compact ? "compact" : ""}`} aria-label="裏向きのカード">
         <span className="card-back-pattern" />
@@ -20,6 +44,30 @@ export default function PlayingCard({ card, isDrawn = false, isBack = false, com
   const red = card.suit === "H" || card.suit === "D";
   const rank = formatRank(card.rank);
   const suit = formatSuit(card.suit);
+  const cardLabel = formatCard(card);
+  const cardImageSrc = getCardFaceImageSrc(card);
+
+  if (cardImageSrc) {
+    return (
+      <span
+        className={`playing-card image-card ${red ? "red" : "black"} ${isDrawn ? "drawn" : ""} ${compact ? "compact" : ""}`}
+        data-testid={testId}
+        data-card-id={card.id}
+        data-card-rank={rank}
+        data-card-suit={card.suit}
+        data-card-label={cardLabel}
+        aria-label={cardLabel}
+      >
+        <img
+          className="playing-card-image"
+          src={cardImageSrc}
+          alt=""
+          aria-hidden="true"
+          draggable={false}
+        />
+      </span>
+    );
+  }
 
   return (
     <span
@@ -28,7 +76,7 @@ export default function PlayingCard({ card, isDrawn = false, isBack = false, com
       data-card-id={card.id}
       data-card-rank={rank}
       data-card-suit={card.suit}
-      data-card-label={formatCard(card)}
+      data-card-label={cardLabel}
     >
       <span className="card-corner top-corner">
         <strong data-testid={testId ? `${testId}-rank` : undefined}>{rank}</strong>
