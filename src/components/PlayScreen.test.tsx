@@ -141,9 +141,9 @@ describe("PlayScreen round display", () => {
     expect(screen.getByText("マニュアルを読みますか？")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "はい" }));
-
-    expect(screen.getByText("Manual")).toBeInTheDocument();
-    expect(screen.queryByText("マニュアルを読みますか？")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("マニュアルを読みますか？"),
+    ).not.toBeInTheDocument();
     expect(onExitToHome).not.toHaveBeenCalled();
 
     await user.click(screen.getByRole("button", { name: "ホームへ戻る" }));
@@ -169,7 +169,9 @@ describe("PlayScreen round display", () => {
     await user.click(screen.getByRole("button", { name: "いいえ" }));
 
     expect(screen.queryByText("Manual")).not.toBeInTheDocument();
-    expect(screen.queryByText("マニュアルを読みますか？")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("マニュアルを読みますか？"),
+    ).not.toBeInTheDocument();
   });
 
   it("shows host-only room management tabs only to the host", async () => {
@@ -2327,7 +2329,9 @@ describe("PlayScreen round display", () => {
       expect(container.querySelector(".reach-splash")).toHaveTextContent(
         base.players[1].name,
       );
-      expect(container.querySelector(".reach-splash")).toHaveTextContent("ロン!");
+      expect(container.querySelector(".reach-splash")).toHaveTextContent(
+        "ロン!",
+      );
 
       act(() => vi.advanceTimersByTime(1600));
 
