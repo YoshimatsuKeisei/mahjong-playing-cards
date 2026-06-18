@@ -3538,7 +3538,8 @@ export function getAvailableDiscardSources(state: GameState): number[] {
   );
 
   const discard = topDiscard(state.players[previousIndex]);
-  return discard && findCallMeldOptions(current.hand, discard).length > 0
+  const callHand = getUnshieldedHand(current);
+  return discard && findCallMeldOptions(callHand, discard).length > 0
     ? [previousIndex]
     : [];
 }
@@ -3556,5 +3557,5 @@ export function getCallOptionsForSource(
   if (ownerIndex !== previousIndex) return [];
   const discard = topDiscard(state.players[ownerIndex]);
   if (!current || !discard || current.isReach) return [];
-  return findCallMeldOptions(current.hand, discard);
+  return findCallMeldOptions(getUnshieldedHand(current), discard);
 }

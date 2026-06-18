@@ -4,6 +4,8 @@ import { createDebugDaifugoState } from "../App";
 import { createDefaultDaifugoOptions } from "./deck";
 import {
   gameReducer,
+  getAvailableDiscardSources,
+  getCallOptionsForSource,
   getEnhancedFiveTurnOptions,
   getJackShieldRunOptions,
   getNextPlayerIndex,
@@ -1061,6 +1063,43 @@ describe("daifugo game state", () => {
 
     expect(resolved.phase).toBe("result");
     expect(resolved.result?.winningResult.melds.some((meld) => meld.map((item) => item.id).sort().join("|") === "3s|4s|5s")).toBe(true);
+  });
+
+  it("excludes J-shielded cards from call candidates", () => {
+    const shieldedCard = card("shielded-7", 7, "H");
+    const state: GameState = {
+      players: [
+        {
+          ...player(1, [shieldedCard, card("free-9", 9, "H")]),
+          jShield: { rank: 7, cardIds: [shieldedCard.id] },
+        },
+        player(2, []),
+        {
+          ...player(3, []),
+          discardPile: [card("discard-8", 8, "H")],
+        },
+      ],
+      deck: [],
+      currentPlayerIndex: 0,
+      direction: "clockwise",
+      daifugoOptions: createDefaultDaifugoOptions(),
+      pendingDaifugoEffect: null,
+      isJBackActive: false,
+      phase: "draw",
+      drawnCard: null,
+      drawnFrom: null,
+      lastDiscarderIndex: 2,
+      takenDiscardOwnerIndex: null,
+      winner: null,
+      result: null,
+      pendingRonResult: null,
+      declaredReachThisTurn: false,
+      showCpuActions: true,
+      message: "",
+    };
+
+    expect(getAvailableDiscardSources(state)).toEqual([]);
+    expect(getCallOptionsForSource(state, 2)).toEqual([]);
   });
 
   it("uses a decoy card when 7 exchange selects a shielded card", () => {

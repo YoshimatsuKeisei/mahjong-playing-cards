@@ -22,6 +22,7 @@ export default function PlayingCard({
         <span
           className={`playing-card card-back image-card ${compact ? "compact" : ""}`}
           aria-label="裏向きのカード"
+          data-testid={testId}
         >
           <img
             className="playing-card-image"
@@ -35,7 +36,11 @@ export default function PlayingCard({
     }
 
     return (
-      <span className={`playing-card card-back ${compact ? "compact" : ""}`} aria-label="裏向きのカード">
+      <span
+        className={`playing-card card-back ${compact ? "compact" : ""}`}
+        aria-label="裏向きのカード"
+        data-testid={testId}
+      >
         <span className="card-back-pattern" />
       </span>
     );
