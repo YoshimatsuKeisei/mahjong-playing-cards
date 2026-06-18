@@ -1683,7 +1683,11 @@ export default function PlayScreen({
               <span className="card-animation-label">
                 {getAnimationLabel(animationPhase)}
               </span>
-              <PlayingCard card={animationCard} testId="drawn-card" />
+              <PlayingCard
+                card={animationCard}
+                isBack={animationPhase === "drawingFromDeck"}
+                testId="drawn-card"
+              />
             </div>
           )}
 
@@ -3224,6 +3228,7 @@ function DaifugoAnimationStage({ step }: { step: DaifugoAnimationStep }) {
       : step.phase === "insert"
         ? "movingDrawnCardToHand"
         : "revealingDrawnCard";
+  const showCardBack = false;
 
   return (
     <div className={`card-animation daifugo-animation-stage ${stageClass}`}>
@@ -3234,11 +3239,11 @@ function DaifugoAnimationStage({ step }: { step: DaifugoAnimationStep }) {
         </span>
       )}
       {step.cards.length === 1 ? (
-        <PlayingCard card={step.cards[0]} />
+        <PlayingCard card={step.cards[0]} isBack={showCardBack} />
       ) : step.cards.length > 0 ? (
         <div className="daifugo-animation-cards">
           {step.cards.map((card) => (
-            <PlayingCard card={card} key={card.id} />
+            <PlayingCard card={card} isBack={showCardBack} key={card.id} />
           ))}
         </div>
       ) : null}

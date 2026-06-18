@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import HomeMenu, { type HomeMenuTarget } from "./HomeMenu";
+import HomeStageDecor from "./HomeStageDecor";
 
 interface HomeScreenProps {
   entryMode: "initial" | "return";
@@ -7,7 +8,11 @@ interface HomeScreenProps {
   debugResultActions?: Array<{ label: string; onClick: () => void }>;
 }
 
-export default function HomeScreen({ entryMode, onNavigate, debugResultActions = [] }: HomeScreenProps) {
+export default function HomeScreen({
+  entryMode,
+  onNavigate,
+  debugResultActions = [],
+}: HomeScreenProps) {
   const [exiting, setExiting] = useState(false);
   const timeoutRef = useRef<number | null>(null);
 
@@ -29,16 +34,21 @@ export default function HomeScreen({ entryMode, onNavigate, debugResultActions =
 
   return (
     <main className="screen home-screen">
-      <section className="home-title">
-        <p className="eyebrow">Mahjong Poker Card Game</p>
-        <h1>麻雀ポーカー</h1>
-      </section>
-      <section className={`home-menu-shell ${entryMode === "return" ? "entering" : ""} ${exiting ? "exiting" : ""}`}>
+      <HomeStageDecor returning={entryMode === "return"} />
+      <section
+        className={`home-menu-shell ${entryMode === "return" ? "entering" : ""} ${exiting ? "exiting" : ""}`}
+      >
         <HomeMenu disabled={exiting} onSelect={handleSelect} />
         {import.meta.env.DEV && debugResultActions.length > 0 && (
           <div className="debug-result-panel" aria-label="DEV確認メニュー">
             {debugResultActions.map((action) => (
-              <button type="button" className="debug-result-button" disabled={exiting} onClick={action.onClick} key={action.label}>
+              <button
+                type="button"
+                className="debug-result-button"
+                disabled={exiting}
+                onClick={action.onClick}
+                key={action.label}
+              >
                 {action.label}
               </button>
             ))}

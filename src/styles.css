@@ -7884,6 +7884,240 @@ body {
   }
 }
 
+.home-screen {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  background:
+    linear-gradient(90deg, rgba(2, 6, 5, 0.16), rgba(2, 6, 5, 0.02) 58%),
+    url("../ホーム画面-modified.png?v=home-ui-modified-1") center / cover
+      no-repeat,
+    #15110d;
+}
+
+.start-screen,
+.room-choice-screen {
+  position: relative;
+  background:
+    linear-gradient(135deg, rgba(3, 8, 6, 0.68), rgba(8, 20, 15, 0.66)),
+    url("../ホーム画面-modified.png?v=home-ui-modified-1") center / cover
+      no-repeat,
+    #15110d;
+}
+
+.home-stage-decor {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.home-stage-decor.is-dimmed {
+  opacity: 0.72;
+}
+
+.start-panel,
+.room-choice-panel {
+  z-index: 5;
+}
+
+.home-screen::before {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.24), transparent 54%);
+  content: "";
+  pointer-events: none;
+}
+
+.home-title {
+  position: absolute;
+  left: 50%;
+  top: clamp(0.55rem, 2.2vh, 1.5rem);
+  z-index: 4;
+  width: min(54vw, 690px);
+  min-width: 360px;
+  padding: 0;
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+
+.home-title img {
+  display: block;
+  width: 100%;
+  height: auto;
+  user-select: none;
+}
+
+.home-character {
+  position: absolute;
+  right: clamp(2.1rem, 6.5vw, 8rem);
+  top: 55%;
+  z-index: 3;
+  width: min(38vw, 650px);
+  max-height: 96vh;
+  object-fit: contain;
+  object-position: right center;
+  filter: drop-shadow(0 24px 34px rgba(0, 0, 0, 0.48));
+  pointer-events: none;
+  user-select: none;
+  transform: translateY(-50%);
+}
+
+.home-menu-shell {
+  position: absolute;
+  left: clamp(1.4rem, 4vw, 4.5rem);
+  top: clamp(8.8rem, 22vh, 14rem);
+  z-index: 4;
+  --home-menu-scale: 0.34;
+  width: max-content;
+  min-width: 0;
+  margin-right: 0;
+}
+
+.home-menu {
+  display: grid;
+  gap: clamp(0.42rem, 1.1vh, 0.8rem);
+}
+
+.home-menu-button {
+  display: block;
+  width: max-content;
+  min-height: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  padding: 0;
+  box-shadow: none;
+  line-height: 0;
+  overflow: visible;
+  text-align: center;
+  cursor: pointer;
+  transition:
+    filter 0.18s ease,
+    opacity 0.18s ease,
+    transform 0.18s ease;
+}
+
+.home-menu-button img {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: none;
+  margin-left: calc(
+    var(--home-button-offset-x, 0) * var(--home-menu-scale) * 1px
+  );
+  zoom: var(--home-menu-scale);
+  user-select: none;
+  pointer-events: none;
+}
+
+.home-menu-button[data-testid="home-menu-newGame"] {
+  --home-button-offset-x: -36;
+}
+
+.home-menu-button[data-testid="home-menu-moreGame"] {
+  --home-button-offset-x: -280;
+}
+
+.home-menu-button[data-testid="home-menu-settings"] {
+  --home-button-offset-x: -48;
+}
+
+.home-menu-button[data-testid="home-menu-manual"] {
+  --home-button-offset-x: 60;
+}
+
+.home-menu-button[data-testid="home-menu-profile"] {
+  --home-button-offset-x: -200;
+}
+
+.home-menu-button:hover:not(:disabled) {
+  background: transparent;
+  box-shadow: none;
+  filter: brightness(1.08) drop-shadow(0 0 12px rgba(241, 210, 127, 0.24));
+  transform: translateX(7px) translateY(-1px);
+}
+
+.home-menu-button:disabled {
+  background: transparent;
+  color: inherit;
+  cursor: default;
+  opacity: 0.68;
+}
+
+.home-stage-decor.is-returning .home-character {
+  animation: home-character-return 3s cubic-bezier(0.16, 0.84, 0.22, 1) both;
+}
+
+@keyframes home-character-return {
+  from {
+    opacity: 0;
+    transform: translateY(-50%);
+    filter: drop-shadow(0 24px 34px rgba(0, 0, 0, 0.48)) blur(1.5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(-50%);
+    filter: drop-shadow(0 24px 34px rgba(0, 0, 0, 0.48));
+  }
+}
+
+.table-scene {
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.02), rgba(0, 0, 0, 0.08)),
+    url("../トランププレイ背景-3人用-modified.png") center / cover no-repeat,
+    #1c211b;
+}
+
+.table-scene.table-4 {
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.02), rgba(0, 0, 0, 0.08)),
+    url("../トランププレイ背景-4人用-modified.png") center / cover no-repeat,
+    #1c211b;
+}
+
+.table-scene.table-5 {
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.02), rgba(0, 0, 0, 0.08)),
+    url("../トランププレイ背景-5人用-modified.png") center / cover no-repeat,
+    #1c211b;
+}
+
+@media (max-width: 640px) {
+  .home-screen {
+    background-position: center;
+  }
+
+  .home-title {
+    left: 50%;
+    top: max(0.7rem, env(safe-area-inset-top, 0px));
+    width: min(84vw, 390px);
+    min-width: 0;
+    transform: translateX(-50%);
+  }
+
+  .home-character {
+    right: -5vw;
+    top: 54%;
+    width: min(62vw, 380px);
+    opacity: 0.94;
+  }
+
+  .home-menu-shell {
+    left: clamp(0.9rem, 5vw, 1.5rem);
+    top: clamp(6.8rem, 21vh, 9.4rem);
+    --home-menu-scale: 0.18;
+    width: max-content;
+    min-width: 0;
+  }
+
+  .home-menu {
+    gap: 0.4rem;
+  }
+}
+
 @media (orientation: landscape) and (max-height: 700px) {
   .history-hover-anchor .player-history-popover,
   .table-history-anchor .player-history-popover {

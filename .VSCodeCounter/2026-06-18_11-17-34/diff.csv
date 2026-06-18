@@ -1,0 +1,15 @@
+"filename", "language", "TypeScript", "PostCSS", "TypeScript JSX", "comment", "blank", "total"
+"c:\Users\jingc\Documents\8番出口\src\App.tsx", "TypeScript JSX", 0, 0, 46, 0, 4, 50
+"c:\Users\jingc\Documents\8番出口\src\cardImages.ts", "TypeScript", 62, 0, 0, 0, 13, 75
+"c:\Users\jingc\Documents\8番出口\src\components\HomeMenu.tsx", "TypeScript JSX", 0, 0, 30, 0, 0, 30
+"c:\Users\jingc\Documents\8番出口\src\components\HomeScreen.tsx", "TypeScript JSX", 0, 0, 20, 0, 1, 21
+"c:\Users\jingc\Documents\8番出口\src\components\ManualScreen.tsx", "TypeScript JSX", 0, 0, 149, 0, 7, 156
+"c:\Users\jingc\Documents\8番出口\src\components\PlayScreen.test.tsx", "TypeScript JSX", 0, 0, 125, 0, 23, 148
+"c:\Users\jingc\Documents\8番出口\src\components\PlayScreen.tsx", "TypeScript JSX", 0, 0, 69, 0, 2, 71
+"c:\Users\jingc\Documents\8番出口\src\components\PlayingCard.tsx", "TypeScript JSX", 0, 0, 51, 0, 2, 53
+"c:\Users\jingc\Documents\8番出口\src\components\manual\ManualIllustrations.tsx", "TypeScript JSX", 0, 0, 372, 0, 20, 392
+"c:\Users\jingc\Documents\8番出口\src\game\gameState.test.ts", "TypeScript", 79, 0, 0, 0, 7, 86
+"c:\Users\jingc\Documents\8番出口\src\game\gameState.ts", "TypeScript", -1, 0, 0, 0, 0, -1
+"c:\Users\jingc\Documents\8番出口\src\styles.css", "PostCSS", 0, 273, 0, 0, 31, 304
+"c:\Users\jingc\Documents\8番出口\vite.config.ts", "TypeScript", 1, 0, 0, 0, 0, 1
+"Total", "-", 141, 273, 862, 0, 110, 1386
