@@ -25,19 +25,19 @@ const manualPage1ImageSrc = new URL("../../冒頭-page1.png", import.meta.url)
 const manualPage2ImageSrc = new URL("../../手番順-page2.png", import.meta.url)
   .href;
 const manualPage3ImageSrc = new URL(
-  "../../役の作り方-page3.png",
+  "../../役の作り方-page3-modified.png",
   import.meta.url,
 ).href;
-const manualPage4ImageSrc = new URL("../../鳴き解説-page4.png", import.meta.url)
+const manualPage4ImageSrc = new URL("../../鳴き解説-page4-modified-hatena.png", import.meta.url)
   .href;
-const manualPage5ImageSrc = new URL("../../得点計算-page5.png", import.meta.url)
+const manualPage5ImageSrc = new URL("../../得点計算-page5-modified-true-transparent.png?v=magenta-brown-v1", import.meta.url)
   .href;
 const manualPage6ImageSrc = new URL(
-  "../../大富豪効果-page6.png",
+  "../../大富豪効果-page6-modified-true-transparent.png?v=magenta-brown-v1",
   import.meta.url,
 ).href;
 const manualPage7ImageSrc = new URL(
-  "../../Jシールド効果-page7.png",
+  "../../Jシールド効果-page7-modified-hatena.png?v=hatena-20260619-121540",
   import.meta.url,
 ).href;
 
