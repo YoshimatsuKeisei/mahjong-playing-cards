@@ -1,4 +1,12 @@
-import { useState, type ComponentType } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type AnimationEvent,
+  type ComponentType,
+  type RefObject,
+} from "react";
 
 interface ManualScreenProps {
   onBackHome: () => void;
@@ -8,12 +16,27 @@ type ManualBlock =
   | { kind: "paragraph"; text: string }
   | { kind: "heading"; text: string }
   | { kind: "list"; items: string[] }
-  | { kind: "example"; lines: string[] };
+  | { kind: "example"; lines: string[] }
+  | { kind: "section"; text: string }
+  | { kind: "illustration"; illustration: ManualIllustration };
 
 interface ManualPage {
   title: string;
   illustration?: ManualIllustration;
   body: ManualBlock[];
+}
+
+interface ManualLeaf {
+  sourcePageIndex: number;
+  body: ManualBlock[];
+}
+
+type ManualSpread = [ManualLeaf, ManualLeaf | null];
+type ManualTurnDirection = "next" | "prev";
+
+interface ManualFlowItem {
+  sourcePageIndex: number;
+  block: ManualBlock;
 }
 
 type ManualIllustration =
@@ -28,10 +51,14 @@ const manualPage3ImageSrc = new URL(
   "../../役の作り方-page3-modified.png",
   import.meta.url,
 ).href;
-const manualPage4ImageSrc = new URL("../../鳴き解説-page4-modified-hatena.png", import.meta.url)
-  .href;
-const manualPage5ImageSrc = new URL("../../得点計算-page5-modified-true-transparent.png?v=magenta-brown-v1", import.meta.url)
-  .href;
+const manualPage4ImageSrc = new URL(
+  "../../鳴き解説-page4-modified-hatena.png",
+  import.meta.url,
+).href;
+const manualPage5ImageSrc = new URL(
+  "../../得点計算-page5-modified-true-transparent.png?v=magenta-brown-v1",
+  import.meta.url,
+).href;
 const manualPage6ImageSrc = new URL(
   "../../大富豪効果-page6-modified-true-transparent.png?v=magenta-brown-v1",
   import.meta.url,
@@ -45,6 +72,11 @@ const p = (text: string): ManualBlock => ({ kind: "paragraph", text });
 const h = (text: string): ManualBlock => ({ kind: "heading", text });
 const list = (items: string[]): ManualBlock => ({ kind: "list", items });
 const example = (lines: string[]): ManualBlock => ({ kind: "example", lines });
+const section = (text: string): ManualBlock => ({ kind: "section", text });
+const illustration = (value: ManualIllustration): ManualBlock => ({
+  kind: "illustration",
+  illustration: value,
+});
 
 const manualPages: ManualPage[] = [
   {
@@ -278,25 +310,178 @@ const manualPages: ManualPage[] = [
   },
 ];
 
+const manualFlow = buildManualFlow(manualPages);
+const initialManualLeaves = buildManualLeavesByWeight(manualFlow);
+
 export default function ManualScreen({ onBackHome }: ManualScreenProps) {
-  const [pageIndex, setPageIndex] = useState(0);
-  const page = manualPages[pageIndex];
-  const isLastPage = pageIndex === manualPages.length - 1;
+  const measurerRef = useRef<HTMLDivElement | null>(null);
+  const [manualLeaves, setManualLeaves] = useState(initialManualLeaves);
+  const [spreadIndex, setSpreadIndex] = useState(0);
+  const [pendingSpreadIndex, setPendingSpreadIndex] = useState<number | null>(
+    null,
+  );
+  const [turnDirection, setTurnDirection] =
+    useState<ManualTurnDirection | null>(null);
+  const turnSwapTimerRef = useRef<number | null>(null);
+  const turnEndTimerRef = useRef<number | null>(null);
+  const MANUAL_TURN_SWAP_MS = 290;
+  const MANUAL_TURN_END_MS = 360;
+  const manualSpreads = useMemo(
+    () => buildManualSpreads(manualLeaves),
+    [manualLeaves],
+  );
+  const spread = manualSpreads[spreadIndex];
+  const pendingSpread =
+    pendingSpreadIndex === null
+      ? null
+      : (manualSpreads[pendingSpreadIndex] ?? null);
+  const isTurning = pendingSpreadIndex !== null && turnDirection !== null;
+  const isLastPage = spreadIndex === manualSpreads.length - 1;
+
+  useEffect(() => {
+    if (spreadIndex > manualSpreads.length - 1) {
+      setSpreadIndex(Math.max(0, manualSpreads.length - 1));
+    }
+  }, [manualSpreads.length, spreadIndex]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function paginateFromMeasurements() {
+      const root = measurerRef.current;
+      if (!root) return;
+      const images = Array.from(root.querySelectorAll("img"));
+      await Promise.all(
+        images.map(
+          (image) =>
+            image.complete ||
+            new Promise<void>((resolve) => {
+              image.addEventListener("load", () => resolve(), { once: true });
+              image.addEventListener("error", () => resolve(), { once: true });
+            }),
+        ),
+      );
+      if (cancelled) return;
+
+      const leaf = root.querySelector<HTMLElement>(".manual-leaf");
+      const blocks = Array.from(
+        root.querySelectorAll<HTMLElement>("[data-manual-measure-index]"),
+      );
+      const leafHeight = leaf?.clientHeight ?? 0;
+      if (leafHeight <= 0 || blocks.length === 0) return;
+
+      const measuredHeights = blocks.map(
+        (block) => block.getBoundingClientRect().height,
+      );
+      const nextLeaves = buildManualLeavesByMeasurement(
+        manualFlow,
+        measuredHeights,
+        leafHeight,
+      );
+      setManualLeaves((current) =>
+        getManualLeavesSignature(current) ===
+        getManualLeavesSignature(nextLeaves)
+          ? current
+          : nextLeaves,
+      );
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      void paginateFromMeasurements();
+    });
+    window.addEventListener("resize", paginateFromMeasurements);
+    return () => {
+      cancelled = true;
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener("resize", paginateFromMeasurements);
+    };
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      clearManualTurnTimers();
+    };
+  }, []);
+
+  function clearManualTurnTimers() {
+    if (turnSwapTimerRef.current !== null) {
+      window.clearTimeout(turnSwapTimerRef.current);
+      turnSwapTimerRef.current = null;
+    }
+
+    if (turnEndTimerRef.current !== null) {
+      window.clearTimeout(turnEndTimerRef.current);
+      turnEndTimerRef.current = null;
+    }
+  }
+
+  function shouldReduceManualMotion() {
+    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  }
+
+  function startManualTurn(
+    nextSpreadIndex: number,
+    direction: ManualTurnDirection,
+  ) {
+    if (isTurning) return;
+
+    clearManualTurnTimers();
+
+    if (shouldReduceManualMotion()) {
+      setSpreadIndex(nextSpreadIndex);
+      setPendingSpreadIndex(null);
+      setTurnDirection(null);
+      return;
+    }
+
+    setPendingSpreadIndex(nextSpreadIndex);
+    setTurnDirection(direction);
+
+    // animationend が取りこぼされた場合の保険。
+    // ここで初めて spreadIndex を確定する。
+    turnEndTimerRef.current = window.setTimeout(() => {
+      setSpreadIndex(nextSpreadIndex);
+      setPendingSpreadIndex(null);
+      setTurnDirection(null);
+      turnEndTimerRef.current = null;
+    }, MANUAL_TURN_END_MS);
+  }
+
+  function finishManualTurn(event: AnimationEvent<HTMLDivElement>) {
+    if (
+      event.animationName !== "manual-page-turn-next" &&
+      event.animationName !== "manual-page-turn-prev" &&
+      event.animationName !== "manual-page-slide-next" &&
+      event.animationName !== "manual-page-slide-prev"
+    ) {
+      return;
+    }
+
+    if (pendingSpreadIndex !== null) {
+      setSpreadIndex(pendingSpreadIndex);
+    }
+
+    clearManualTurnTimers();
+    setPendingSpreadIndex(null);
+    setTurnDirection(null);
+  }
 
   function goBack() {
-    if (pageIndex === 0) {
+    if (isTurning) return;
+    if (spreadIndex === 0) {
       onBackHome();
       return;
     }
-    setPageIndex((current) => Math.max(0, current - 1));
+    startManualTurn(spreadIndex - 1, "prev");
   }
 
   function goNext() {
+    if (isTurning) return;
     if (isLastPage) {
       onBackHome();
       return;
     }
-    setPageIndex((current) => Math.min(manualPages.length - 1, current + 1));
+    startManualTurn(spreadIndex + 1, "next");
   }
 
   return (
@@ -304,40 +489,201 @@ export default function ManualScreen({ onBackHome }: ManualScreenProps) {
       <section className="scroll-panel" aria-label="ルール説明">
         <button
           type="button"
-          className="close-button"
+          className={`close-button ${isTurning ? "is-disabled" : ""}`}
           aria-label="ホームへ戻る"
-          onClick={onBackHome}
+          aria-disabled={isTurning}
+          onClick={() => {
+            if (isTurning) return;
+            onBackHome();
+          }}
         >
           ×
         </button>
         <div className="scroll-rod top-rod" />
-        <article className={`scroll-paper manual-page-${pageIndex + 1}`}>
-          <h1>{page.title}</h1>
-          {page.illustration && (
-            <div className="manual-illustration-frame">
-              <ManualIllustrationView illustration={page.illustration} />
-            </div>
+        <article
+          className={[
+            "scroll-paper",
+            `manual-spread-${spreadIndex + 1}`,
+            isTurning ? "is-turning" : "",
+            turnDirection === "next" ? "turn-next" : "",
+            turnDirection === "prev" ? "turn-prev" : "",
+          ]
+            .filter(Boolean)
+            .join(" ")}
+        >
+          {pendingSpread && (
+            <ManualSpreadLayer
+              className={[
+                "manual-spread-layer-under",
+                turnDirection === "next"
+                  ? "manual-spread-layer-under-next"
+                  : "",
+                turnDirection === "prev"
+                  ? "manual-spread-layer-under-prev"
+                  : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+              spread={pendingSpread}
+            />
           )}
-          <div className="manual-page-body">
-            {page.body.map((block, index) => (
-              <ManualBlockView block={block} key={`${block.kind}-${index}`} />
-            ))}
-          </div>
+
+          <ManualSpreadLayer
+            className={[
+              "manual-spread-layer-current",
+              isTurning && turnDirection === "next"
+                ? "manual-spread-layer-mask-right"
+                : "",
+              isTurning && turnDirection === "prev"
+                ? "manual-spread-layer-mask-left"
+                : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
+            spread={spread}
+          />
+
+          {isTurning && (
+            <ManualTurnLayer
+              direction={turnDirection}
+              onAnimationEnd={finishManualTurn}
+              spread={spread}
+            />
+          )}
         </article>
         <div className="scroll-rod bottom-rod" />
         <footer className="manual-footer">
-          <button type="button" onClick={goBack}>
+          <button type="button" disabled={isTurning} onClick={goBack}>
             戻る
           </button>
           <span>
-            {pageIndex + 1} / {manualPages.length}
+            {spreadIndex + 1} / {manualSpreads.length}
           </span>
-          <button type="button" className="primary-button" onClick={goNext}>
+          <button
+            type="button"
+            className="primary-button"
+            disabled={isTurning}
+            onClick={goNext}
+          >
             {isLastPage ? "ホームへ" : "次へ"}
           </button>
         </footer>
+        <ManualPaginationMeasurer flow={manualFlow} refObject={measurerRef} />
       </section>
     </main>
+  );
+}
+
+function ManualSpreadLayer({
+  className,
+  spread,
+}: {
+  className: string;
+  spread: ManualSpread;
+}) {
+  return (
+    <div className={`manual-spread-layer ${className}`}>
+      <ManualLeafView leaf={spread[0]} side="left" />
+      <ManualLeafView leaf={spread[1]} side="right" />
+    </div>
+  );
+}
+
+function ManualTurnLayer({
+  direction,
+  onAnimationEnd,
+  spread,
+}: {
+  direction: ManualTurnDirection;
+  onAnimationEnd: (event: AnimationEvent<HTMLDivElement>) => void;
+  spread: ManualSpread;
+}) {
+  const turningLeaf = direction === "next" ? spread[1] : spread[0];
+  const turningSide = direction === "next" ? "right" : "left";
+  return (
+    <div
+      className={`manual-turn-layer manual-turn-layer-${direction}`}
+      onAnimationEnd={onAnimationEnd}
+    >
+      <div className="manual-turn-page-front" />
+      <div className="manual-turn-page-back" />
+    </div>
+  );
+}
+
+function ManualLeafView({
+  leaf,
+  side,
+}: {
+  leaf: ManualLeaf | null;
+  side: "left" | "right";
+}) {
+  if (!leaf) {
+    return (
+      <section
+        className={`manual-leaf manual-leaf-${side}`}
+        aria-hidden="true"
+      />
+    );
+  }
+  return (
+    <section
+      className={`manual-leaf manual-leaf-${side} manual-page-${leaf.sourcePageIndex + 1}`}
+    >
+      <div className="manual-page-body">
+        {leaf.body.map((block, index) => (
+          <ManualFlowBlock block={block} key={`${block.kind}-${index}`} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function ManualPaginationMeasurer({
+  flow,
+  refObject,
+}: {
+  flow: ManualFlowItem[];
+  refObject: RefObject<HTMLDivElement | null>;
+}) {
+  return (
+    <div
+      className="manual-pagination-measurer"
+      ref={refObject}
+      aria-hidden="true"
+    >
+      <article className="scroll-paper">
+        <section className="manual-leaf manual-leaf-left">
+          <div className="manual-page-body">
+            {flow.map((item, index) => (
+              <ManualFlowBlock
+                block={item.block}
+                key={`${item.block.kind}-${index}`}
+                measureIndex={index}
+              />
+            ))}
+          </div>
+        </section>
+        <section className="manual-leaf manual-leaf-right" />
+      </article>
+    </div>
+  );
+}
+
+function ManualFlowBlock({
+  block,
+  measureIndex,
+}: {
+  block: ManualBlock;
+  measureIndex?: number;
+}) {
+  return (
+    <div
+      className={`manual-flow-block manual-flow-block-${block.kind}`}
+      data-manual-measure-index={measureIndex}
+    >
+      <ManualBlockView block={block} />
+    </div>
   );
 }
 
@@ -352,7 +698,7 @@ function ManualIllustrationView({
         className="manual-illustration-image"
         src={illustration.src}
         alt={illustration.alt}
-        loading="lazy"
+        loading="eager"
       />
     );
   }
@@ -361,6 +707,16 @@ function ManualIllustrationView({
 }
 
 function ManualBlockView({ block }: { block: ManualBlock }) {
+  if (block.kind === "section") {
+    return <h1 className="manual-section-title">{block.text}</h1>;
+  }
+  if (block.kind === "illustration") {
+    return (
+      <div className="manual-illustration-frame">
+        <ManualIllustrationView illustration={block.illustration} />
+      </div>
+    );
+  }
   if (block.kind === "heading") {
     return <h2 className="manual-subheading">{block.text}</h2>;
   }
@@ -383,4 +739,180 @@ function ManualBlockView({ block }: { block: ManualBlock }) {
     );
   }
   return <p>{block.text}</p>;
+}
+
+function buildManualSpreads(leaves: ManualLeaf[]): ManualSpread[] {
+  const spreads: ManualSpread[] = [];
+  for (let index = 0; index < leaves.length; index += 2) {
+    spreads.push([leaves[index], leaves[index + 1] ?? null]);
+  }
+  return spreads;
+}
+
+function buildManualFlow(pages: ManualPage[]): ManualFlowItem[] {
+  return pages.flatMap((page, sourcePageIndex) => {
+    const blocks: ManualFlowItem[] = [
+      { block: section(page.title), sourcePageIndex },
+    ];
+    blocks.push(
+      ...page.body
+        .flatMap(splitManualBlock)
+        .map((block) => ({ block, sourcePageIndex })),
+    );
+    if (page.illustration) {
+      blocks.push({ block: illustration(page.illustration), sourcePageIndex });
+    }
+    return blocks;
+  });
+}
+
+function buildManualLeavesByWeight(flow: ManualFlowItem[]): ManualLeaf[] {
+  const leaves: ManualLeaf[] = [];
+  let currentBody: ManualBlock[] = [];
+  let currentWeight = 0;
+  let currentSourcePageIndex = 0;
+
+  const pushLeaf = () => {
+    if (currentBody.length === 0) return;
+    leaves.push({
+      sourcePageIndex: currentSourcePageIndex,
+      body: currentBody,
+    });
+    currentBody = [];
+    currentWeight = 0;
+  };
+
+  for (const item of flow) {
+    const blockWeight = getManualBlockWeight(item.block);
+    const maxWeight = getManualLeafMaxWeight([...currentBody, item.block]);
+    if (currentBody.length > 0 && currentWeight + blockWeight > maxWeight) {
+      pushLeaf();
+    }
+    if (currentBody.length === 0) {
+      currentSourcePageIndex = item.sourcePageIndex;
+    }
+    currentBody.push(item.block);
+    currentWeight += blockWeight;
+  }
+
+  pushLeaf();
+  return leaves;
+}
+
+function buildManualLeavesByMeasurement(
+  flow: ManualFlowItem[],
+  measuredHeights: number[],
+  leafHeight: number,
+): ManualLeaf[] {
+  const leaves: ManualLeaf[] = [];
+  let cursor = 0;
+
+  while (cursor < flow.length) {
+    const body: ManualBlock[] = [];
+    let sourcePageIndex = flow[cursor].sourcePageIndex;
+    let usedHeight = 0;
+
+    while (cursor < flow.length) {
+      const item = flow[cursor];
+      const itemHeight = measuredHeights[cursor] ?? 0;
+      const fits = body.length === 0 || usedHeight + itemHeight <= leafHeight;
+
+      if (!fits) {
+        break;
+      }
+
+      if (body.length === 0) {
+        sourcePageIndex = item.sourcePageIndex;
+      }
+      body.push(item.block);
+      usedHeight += itemHeight;
+      cursor += 1;
+    }
+
+    leaves.push({ sourcePageIndex, body });
+  }
+
+  return leaves;
+}
+
+function getManualLeavesSignature(leaves: ManualLeaf[]): string {
+  return leaves
+    .map(
+      (leaf) =>
+        `${leaf.sourcePageIndex}:${leaf.body.map(getManualBlockKey).join(",")}`,
+    )
+    .join("|");
+}
+
+function getManualBlockKey(block: ManualBlock): string {
+  if (
+    block.kind === "paragraph" ||
+    block.kind === "heading" ||
+    block.kind === "section"
+  ) {
+    return `${block.kind}:${block.text}`;
+  }
+  if (block.kind === "list") {
+    return `${block.kind}:${block.items.join("/")}`;
+  }
+  if (block.kind === "example") {
+    return `${block.kind}:${block.lines.join("/")}`;
+  }
+  return `${block.kind}:${block.illustration.kind}`;
+}
+
+function getManualBlockWeight(block: ManualBlock): number {
+  if (block.kind === "section") {
+    return 1.35;
+  }
+  if (block.kind === "illustration") {
+    return 5.4;
+  }
+  if (block.kind === "heading") {
+    return 0.8;
+  }
+  if (block.kind === "list") {
+    return 0.95 + block.items.reduce((sum, item) => sum + item.length / 96, 0);
+  }
+  if (block.kind === "example") {
+    return 0.95 + block.lines.reduce((sum, line) => sum + line.length / 92, 0);
+  }
+  return 0.64 + block.text.length / 142;
+}
+
+function getManualLeafMaxWeight(blocks: ManualBlock[]): number {
+  return blocks.some((block) => block.kind === "illustration") ? 8.2 : 9.2;
+}
+
+function splitManualBlock(block: ManualBlock): ManualBlock[] {
+  if (block.kind !== "paragraph" || block.text.length <= 300) {
+    return [block];
+  }
+
+  const chunks: ManualBlock[] = [];
+  let remaining = block.text;
+  while (remaining.length > 300) {
+    let splitAt = findManualParagraphSplit(remaining, 240, 300);
+    if (splitAt <= 0) splitAt = 270;
+    chunks.push(p(remaining.slice(0, splitAt).trim()));
+    remaining = remaining.slice(splitAt).trim();
+  }
+  if (remaining.length > 0) {
+    chunks.push(p(remaining));
+  }
+  return chunks;
+}
+
+function findManualParagraphSplit(
+  text: string,
+  min: number,
+  max: number,
+): number {
+  const punctuation = ["。", "、", "・", "・", " "];
+  for (let index = max; index >= min; index -= 1) {
+    if (punctuation.some((mark) => text.startsWith(mark, index))) {
+      return index + 1;
+    }
+  }
+  return -1;
 }
