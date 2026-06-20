@@ -616,6 +616,202 @@ button:disabled {
   font-weight: 800;
 }
 
+.room-select-panel {
+  aspect-ratio: 1000 / 1081;
+  width: min(94vw, calc(94dvh * 1000 / 1081), 760px);
+  min-height: 0;
+  gap: 0;
+  align-content: start;
+  justify-items: center;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: url("../ルーム選択モーダル.png") center / contain no-repeat;
+  padding: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.room-select-panel::before,
+.room-select-panel::after {
+  content: none;
+}
+
+.room-select-panel > .eyebrow,
+.room-select-panel > h1 {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.room-select-panel .room-choice-options {
+  position: absolute;
+  left: 50%;
+  top: 37%;
+  transform: translateX(-50%);
+  align-self: start;
+  align-content: start;
+  align-items: start;
+  display: grid;
+  gap: clamp(0.72rem, 2.2dvh, 1.45rem);
+  width: 68%;
+  max-width: 520px;
+  padding: 0;
+  justify-items: center;
+}
+
+.room-select-panel .room-choice-card {
+  appearance: none;
+  -webkit-tap-highlight-color: transparent;
+  width: 100%;
+  min-height: 0;
+  border: 0;
+  border-radius: 0;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+  color: transparent;
+  outline: none;
+  padding: 0;
+  box-shadow: none;
+  text-shadow: none;
+  transition:
+    filter 0.18s ease,
+    transform 0.18s ease;
+}
+
+.room-select-create-button {
+  aspect-ratio: 1000 / 355;
+}
+
+.room-select-join-button {
+  aspect-ratio: 1000 / 362;
+}
+
+.room-select-panel .room-choice-card:hover,
+.room-select-panel .room-choice-card:active,
+.room-select-panel .room-choice-card:focus,
+.room-select-panel .room-choice-card:focus-visible {
+  background-color: transparent;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+  outline: none;
+  box-shadow: none;
+  filter: brightness(1.1) drop-shadow(0 0 12px rgba(91, 220, 151, 0.2));
+  transform: translateY(-2px);
+}
+
+.room-select-panel .room-choice-card strong,
+.room-select-panel .room-choice-card span,
+.room-select-panel .room-select-back-button {
+  color: transparent;
+  text-shadow: none;
+}
+
+.room-select-panel .room-choice-card strong,
+.room-select-panel .room-choice-card span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.room-select-create-button {
+  background-image: url("../ルームを立ち上げるボタン.png");
+}
+
+.room-select-join-button {
+  background-image: url("../ルームに入るボタン.png");
+}
+
+.room-select-panel .room-select-create-button:hover,
+.room-select-panel .room-select-create-button:active,
+.room-select-panel .room-select-create-button:focus,
+.room-select-panel .room-select-create-button:focus-visible {
+  background-image: url("../ルームを立ち上げるボタン.png");
+}
+
+.room-select-panel .room-select-join-button:hover,
+.room-select-panel .room-select-join-button:active,
+.room-select-panel .room-select-join-button:focus,
+.room-select-panel .room-select-join-button:focus-visible {
+  background-image: url("../ルームに入るボタン.png");
+}
+
+.room-select-panel .room-choice-actions {
+  position: absolute;
+  left: 50%;
+  top: 86%;
+  transform: translateX(-50%);
+  align-self: start;
+  width: 100%;
+  margin-top: 0;
+  padding: 0;
+  justify-content: center;
+}
+
+.room-select-panel .room-select-back-button {
+  appearance: none;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+  width: min(34%, 230px);
+  height: auto;
+  min-height: 0;
+  aspect-ratio: 1000 / 279;
+  border: 0;
+  border-radius: 0;
+  background: url("../ホーム画面に戻るボタン.png") center / contain no-repeat;
+  padding: 0;
+  box-shadow: none;
+  overflow: hidden;
+  font-size: 0;
+  line-height: 0;
+  transition:
+    filter 0.18s ease,
+    transform 0.18s ease;
+}
+
+.room-select-panel .room-select-back-button:hover,
+.room-select-panel .room-select-back-button:active,
+.room-select-panel .room-select-back-button:focus,
+.room-select-panel .room-select-back-button:focus-visible {
+  outline: none;
+  box-shadow: none;
+  filter: brightness(1.08) drop-shadow(0 0 10px rgba(241, 210, 127, 0.24));
+  transform: translateY(-1px);
+}
+
+@media (max-width: 480px) {
+  .room-select-panel {
+    width: min(calc(100vw - 2rem), calc(94dvh * 1000 / 1081));
+  }
+
+  .room-select-panel .room-choice-options {
+    width: 70%;
+    max-width: none;
+    top: 37.5%;
+  }
+
+  .room-select-panel .room-choice-card {
+    width: 100%;
+  }
+
+  .room-select-panel .room-choice-actions {
+    top: 89%;
+  }
+
+  .room-select-panel .room-select-back-button {
+    width: 36%;
+    height: auto;
+  }
+}
+
 .room-choice-actions {
   position: relative;
   z-index: 1;
@@ -1831,6 +2027,7 @@ h2 {
   width: min(98vw, 1240px);
   max-height: calc(100dvh - 2rem);
   animation: scroll-pop 0.36s ease-out both;
+  overflow: visible;
 }
 
 .scroll-paper {
@@ -1908,14 +2105,14 @@ h2 {
   right: 0;
   background-position: right center;
   transform-origin: left center;
-  animation: manual-page-turn-next 420ms cubic-bezier(0.2, 0.66, 0.26, 1) both;
+  animation: manual-page-turn-next 300ms cubic-bezier(0.2, 0.66, 0.26, 1) both;
 }
 
 .manual-turn-layer-prev {
   left: 0;
   background-position: left center;
   transform-origin: right center;
-  animation: manual-page-turn-prev 420ms cubic-bezier(0.2, 0.66, 0.26, 1) both;
+  animation: manual-page-turn-prev 300ms cubic-bezier(0.2, 0.66, 0.26, 1) both;
 }
 
 .manual-turn-layer::before,
@@ -2223,15 +2420,17 @@ h2 {
 
 .close-button {
   position: absolute;
-  right: clamp(0.55rem, 1.5vw, 1.1rem);
-  top: clamp(1.05rem, 3vw, 1.85rem);
-  z-index: 3;
+  top: -36px;
+  right: -32px;
+  z-index: 50;
+
   display: grid;
   width: clamp(46px, 5vw, 62px);
   height: clamp(46px, 5vw, 62px);
   min-width: 0;
   min-height: 0;
   place-items: center;
+
   border: 0;
   border-radius: 0;
   background: url("../manual-バツボタン.png") center / contain no-repeat;
@@ -2239,6 +2438,7 @@ h2 {
   padding: 0;
   text-shadow: none;
   cursor: pointer;
+
   transition:
     filter 0.18s ease,
     transform 0.18s ease;
@@ -2247,6 +2447,11 @@ h2 {
 .close-button:hover:not(:disabled) {
   filter: brightness(1.08) drop-shadow(0 0 10px rgba(241, 210, 127, 0.28));
   transform: translateY(-1px);
+}
+
+.close-button.is-disabled {
+  pointer-events: none;
+  opacity: 0.92;
 }
 
 .manual-footer {
@@ -10046,4 +10251,367 @@ body {
   .player-history-popover .history-column {
     font-size: var(--debug-history-window-font-size, 18px) !important;
   }
+}
+
+.scroll-paper {
+  position: relative;
+  overflow: hidden;
+  perspective: 1600px;
+  transform-style: preserve-3d;
+}
+
+.manual-spread-layer {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.manual-spread-layer-under {
+  z-index: 1;
+}
+
+.manual-spread-layer-current {
+  z-index: 2;
+}
+
+.manual-spread-layer-mask-right .manual-leaf-right,
+.manual-spread-layer-mask-left .manual-leaf-left {
+  opacity: 0;
+}
+
+.manual-turn-layer {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 50%;
+  z-index: 5;
+  pointer-events: none;
+  transform-style: preserve-3d;
+}
+
+.manual-turn-layer-next {
+  left: 50%;
+  transform-origin: left center;
+  animation: manual-page-turn-next 520ms ease-in-out both;
+}
+
+.manual-turn-layer-prev {
+  right: 50%;
+  transform-origin: right center;
+  animation: manual-page-turn-prev 520ms ease-in-out both;
+}
+
+.manual-turn-page-front,
+.manual-turn-page-back {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  background-image: url("../全体ボード-modified.png");
+  background-size: 300% 150%;
+  background-repeat: no-repeat;
+  box-shadow:
+    0 18px 34px rgba(0, 0, 0, 0.18),
+    inset 18px 0 24px rgba(255, 245, 210, 0.2),
+    inset -18px 0 28px rgba(60, 35, 18, 0.16);
+}
+
+.manual-turn-page-back {
+  transform: rotateY(180deg);
+  filter: brightness(0.88) saturate(0.92);
+}
+
+.manual-turn-layer-next .manual-turn-page-front {
+  background-position: 96% 50%;
+}
+
+.manual-turn-layer-next .manual-turn-page-back {
+  background-position: 4% 50%;
+}
+
+.manual-turn-layer-prev .manual-turn-page-front {
+  background-position: 4% 50%;
+}
+
+.manual-turn-layer-prev .manual-turn-page-back {
+  background-position: 96% 50%;
+}
+
+@keyframes manual-page-turn-next {
+  0% {
+    opacity: 1;
+    transform: rotateY(0deg);
+  }
+
+  45% {
+    opacity: 1;
+    transform: rotateY(-82deg);
+  }
+
+  78% {
+    opacity: 0.98;
+    transform: rotateY(-132deg);
+  }
+
+  100% {
+    opacity: 0;
+    transform: rotateY(-158deg);
+  }
+}
+
+@keyframes manual-page-turn-prev {
+  0% {
+    opacity: 1;
+    transform: rotateY(0deg);
+  }
+
+  45% {
+    opacity: 1;
+    transform: rotateY(82deg);
+  }
+
+  78% {
+    opacity: 0.98;
+    transform: rotateY(132deg);
+  }
+
+  100% {
+    opacity: 0;
+    transform: rotateY(158deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .manual-turn-layer {
+    animation: none !important;
+  }
+}
+
+/* 次へ中：次ページの右側だけ先に見せる。左側はまだ見せない */
+.manual-spread-layer-under-next .manual-leaf-left {
+  visibility: hidden;
+}
+
+/* 戻る中：前ページの左側だけ先に見せる。右側はまだ見せない */
+.manual-spread-layer-under-prev .manual-leaf-right {
+  visibility: hidden;
+}
+
+.manual-turn-layer {
+  position: absolute;
+  top: 6%;
+  bottom: 6%;
+  z-index: 5;
+  pointer-events: none;
+  transform-style: preserve-3d;
+}
+
+/* 次へ：右ページの外側黒枠を少し避ける */
+.manual-turn-layer-next {
+  left: 50%;
+  right: 5.2%;
+  width: auto;
+  transform-origin: left center;
+  animation: manual-page-turn-next 520ms ease-in-out both;
+}
+
+/* 戻る：左ページの外側黒枠を少し避ける */
+.manual-turn-layer-prev {
+  left: 5.2%;
+  right: 50%;
+  width: auto;
+  transform-origin: right center;
+  animation: manual-page-turn-prev 520ms ease-in-out both;
+}
+
+.manual-turn-page-front,
+.manual-turn-page-back {
+  box-shadow:
+    0 10px 20px rgba(0, 0, 0, 0.22),
+    inset 10px 0 14px rgba(255, 245, 210, 0.16),
+    inset -10px 0 16px rgba(60, 35, 18, 0.22);
+}
+
+/* ===== Manual page turn: 黒縁対策 最終上書き ===== */
+
+/* 親レイヤー側に残っている本体背景・黒影を完全に消す */
+.manual-turn-layer {
+  background: transparent !important;
+  box-shadow: none !important;
+  overflow: hidden !important;
+}
+
+/* 前に作った疑似影・疑似ハイライトが黒縁化しているので一旦無効化 */
+.manual-turn-layer::before,
+.manual-turn-layer::after {
+  display: none !important;
+  content: none !important;
+}
+
+/* めくれる紙の実体は front/back だけに限定する */
+.manual-turn-page-front,
+.manual-turn-page-back {
+  background-image: url("../全体ボード-modified.png") !important;
+  background-repeat: no-repeat !important;
+  background-size: 360% 170% !important;
+
+  box-shadow:
+    0 6px 12px rgba(0, 0, 0, 0.14),
+    inset 6px 0 10px rgba(255, 245, 210, 0.12),
+    inset -6px 0 10px rgba(60, 35, 18, 0.12) !important;
+}
+
+/* 重要：4% / 96% は外側の黒革フレームを拾いやすいので使わない */
+.manual-turn-layer-next .manual-turn-page-front {
+  background-position: 76% 50% !important;
+}
+
+.manual-turn-layer-next .manual-turn-page-back {
+  background-position: 24% 50% !important;
+}
+
+.manual-turn-layer-prev .manual-turn-page-front {
+  background-position: 24% 50% !important;
+}
+
+.manual-turn-layer-prev .manual-turn-page-back {
+  background-position: 76% 50% !important;
+}
+
+/* ===== Manual page turn: cropped page image version ===== */
+
+.manual-turn-layer {
+  background: transparent !important;
+  box-shadow: none !important;
+  overflow: hidden !important;
+}
+
+.manual-turn-layer::before,
+.manual-turn-layer::after {
+  display: none !important;
+  content: none !important;
+}
+
+.manual-turn-page-front,
+.manual-turn-page-back {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  background-repeat: no-repeat !important;
+  background-position: center !important;
+  background-size: 100% 100% !important;
+  box-shadow:
+    0 8px 16px rgba(0, 0, 0, 0.18),
+    inset 8px 0 12px rgba(255, 245, 210, 0.12),
+    inset -8px 0 12px rgba(60, 35, 18, 0.12) !important;
+}
+
+.manual-turn-page-back {
+  transform: rotateY(180deg);
+  filter: brightness(0.9) saturate(0.94);
+}
+
+/* 次へ：右ページがめくれる */
+.manual-turn-layer-next .manual-turn-page-front {
+  background-image: url("../manual-turn-right-page.png") !important;
+}
+
+.manual-turn-layer-next .manual-turn-page-back {
+  background-image: url("../manual-turn-left-page.png") !important;
+}
+
+/* 戻る：左ページがめくれる */
+.manual-turn-layer-prev .manual-turn-page-front {
+  background-image: url("../manual-turn-left-page.png") !important;
+}
+
+.manual-turn-layer-prev .manual-turn-page-back {
+  background-image: url("../manual-turn-right-page.png") !important;
+}
+
+/* ===== Manual page turn cropped-image final override ===== */
+
+.manual-turn-layer {
+  background: transparent !important;
+  box-shadow: none !important;
+  overflow: hidden !important;
+}
+
+.manual-turn-layer::before,
+.manual-turn-layer::after {
+  display: none !important;
+  content: none !important;
+}
+
+.manual-turn-page-front,
+.manual-turn-page-back {
+  position: absolute !important;
+  inset: 0 !important;
+  display: block !important;
+  overflow: hidden !important;
+  backface-visibility: hidden !important;
+
+  background-repeat: no-repeat !important;
+  background-position: center center !important;
+  background-size: 100% 100% !important;
+
+  border: 0 !important;
+  box-shadow:
+    0 8px 16px rgba(0, 0, 0, 0.16),
+    inset 6px 0 10px rgba(255, 245, 210, 0.1),
+    inset -6px 0 10px rgba(60, 35, 18, 0.1) !important;
+}
+
+.manual-turn-layer-next .manual-turn-page-front {
+  background-image: url("../manual-turn-right-page.png") !important;
+}
+
+.manual-turn-layer-next .manual-turn-page-back {
+  background-image: url("../manual-turn-left-page.png") !important;
+}
+
+.manual-turn-layer-prev .manual-turn-page-front {
+  background-image: url("../manual-turn-left-page.png") !important;
+}
+
+.manual-turn-layer-prev .manual-turn-page-back {
+  background-image: url("../manual-turn-right-page.png") !important;
+}
+
+/* .manual-turn-page-back {
+  transform: rotateY(180deg) !important;
+  filter: brightness(0.9) saturate(0.95);
+}
+
+.manual-turn-page-front,
+.manual-turn-page-back {
+  background-color: red !important;
+} */
+
+/* ===== Manual turn layer size correction ===== */
+
+.manual-turn-layer {
+  top: 0 !important;
+  bottom: 0 !important;
+  height: auto !important;
+  width: 50% !important;
+}
+
+.manual-turn-layer-next {
+  left: 50% !important;
+  right: auto !important;
+}
+
+.manual-turn-layer-prev {
+  left: auto !important;
+  right: 50% !important;
+}
+
+.manual-turn-page-front,
+.manual-turn-page-back {
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  background-size: 100% 100% !important;
+  background-position: center center !important;
 }
