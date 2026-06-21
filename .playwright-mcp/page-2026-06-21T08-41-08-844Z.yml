@@ -1,0 +1,12 @@
+- main [ref=e54]:
+  - generic [ref=e55]:
+    - paragraph [ref=e56]: New Game
+    - heading "ルーム選択" [level=1] [ref=e57]
+    - generic [ref=e58]:
+      - button "ルームを立ち上げる 自分で新しいルームを作成します" [ref=e59]:
+        - strong [ref=e60]: ルームを立ち上げる
+        - generic [ref=e61]: 自分で新しいルームを作成します
+      - button "ルームに入る 現在募集中のルームに参加します" [ref=e62]:
+        - strong [ref=e63]: ルームに入る
+        - generic [ref=e64]: 現在募集中のルームに参加します
+    - button "ホーム画面に戻る" [ref=e66]

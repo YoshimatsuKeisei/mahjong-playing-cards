@@ -252,6 +252,7 @@ export default function StartScreen({
       <section className="start-panel">
         <h1>ルーム作成</h1>
 
+        <div className="room-create-scroll-body">
         <div className="room-top-row">
           <div className="field room-name-field">
             <label>
@@ -512,20 +513,30 @@ export default function StartScreen({
           )}
         </div>
 
+        </div>
+
         <div className="room-actions">
           <button
             type="button"
-            className="primary-button"
+            className="primary-button room-create-submit-button"
             data-testid="offline-start-button"
             disabled={Boolean(settingsError)}
             onClick={handleCreateRoom}
           >
             作成
           </button>
-          <button type="button" className="secondary-button" onClick={onCancel}>
+          <button
+            type="button"
+            className="secondary-button room-create-cancel-button"
+            onClick={onCancel}
+          >
             キャンセル
           </button>
-          <button type="button" onClick={onBackHome}>
+          <button
+            type="button"
+            className="room-create-home-button"
+            onClick={onBackHome}
+          >
             ホーム画面に戻る
           </button>
         </div>
