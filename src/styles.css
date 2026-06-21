@@ -12051,6 +12051,14 @@ body {
   --room-create-header-bottom: clamp(120px, 15vw, 160px);
   --room-create-footer-top: clamp(118px, 14vw, 148px);
   --room-create-side-gutter: clamp(3rem, 8vw, 6.5rem);
+  --room-create-scrollbar-offset-x: clamp(32px, 4.1vw, 48px);
+  --room-create-scrollbar-width: clamp(22px, 2.4vw, 30px);
+  --room-action-button-width: clamp(112px, 13.5vw, 154px);
+  --room-action-button-height: clamp(52px, 6.45vw, 73px);
+  --room-action-home-width: clamp(142px, 16.5vw, 194px);
+  --room-action-gap: clamp(14px, 1.9vw, 24px);
+  --room-action-bottom: clamp(46px, 5.5vw, 58px);
+  --room-field-heading-size: clamp(1.05rem, 1.55vw, 1.28rem);
 
   position: relative;
   display: block;
@@ -12078,13 +12086,18 @@ body {
   position: absolute;
   z-index: 2;
   top: var(--room-create-header-bottom);
-  right: var(--room-create-side-gutter);
+  right: calc(
+    var(--room-create-side-gutter) - var(--room-create-scrollbar-offset-x)
+  );
   bottom: var(--room-create-footer-top);
   left: var(--room-create-side-gutter);
   overflow-x: hidden;
   overflow-y: auto;
   padding: clamp(0.45rem, 1.1vw, 0.8rem) clamp(0.15rem, 0.7vw, 0.45rem)
     clamp(0.65rem, 1.4vw, 1rem);
+  padding-right: calc(
+    clamp(0.15rem, 0.7vw, 0.45rem) + var(--room-create-scrollbar-offset-x)
+  );
   scrollbar-width: thin;
   scrollbar-color: rgba(183, 146, 65, 0.82) rgba(13, 28, 34, 0.28);
 }
@@ -12115,11 +12128,12 @@ body {
   position: absolute;
   z-index: 5;
   right: var(--room-create-side-gutter);
-  bottom: clamp(25px, 4vw, 45px);
+  bottom: var(--room-action-bottom);
   left: var(--room-create-side-gutter);
   display: flex;
   justify-content: center;
   align-items: center;
+  gap: var(--room-action-gap);
   margin: 0;
   padding: 0;
   pointer-events: auto;
@@ -12127,8 +12141,8 @@ body {
 
 .room-actions .room-create-submit-button,
 .room-actions .room-create-cancel-button {
-  width: clamp(150px, 18vw, 205px);
-  height: clamp(78px, 9.6vw, 108px);
+  width: var(--room-action-button-width);
+  height: var(--room-action-button-height);
 }
 
 .room-actions .room-create-cancel-button {
@@ -12137,8 +12151,8 @@ body {
 
 .room-actions .room-create-home-button {
   order: 2;
-  width: clamp(190px, 22vw, 258px);
-  height: clamp(90px, 10.6vw, 120px);
+  width: var(--room-action-home-width);
+  height: var(--room-action-button-height);
 }
 
 .room-actions .room-create-submit-button {
@@ -12184,5 +12198,542 @@ body {
   .room-actions .room-create-home-button {
     width: clamp(148px, 54vw, 220px);
     height: clamp(62px, 19vw, 86px);
+  }
+}
+
+/* ===== Room create screen: bottom image buttons and scrollbar fixes ===== */
+
+.room-actions .room-create-submit-button,
+.room-actions .room-create-cancel-button,
+.room-actions .room-create-home-button,
+.room-actions .room-create-submit-button:hover:not(:disabled),
+.room-actions .room-create-cancel-button:hover:not(:disabled),
+.room-actions .room-create-home-button:hover:not(:disabled),
+.room-actions .room-create-submit-button:focus-visible:not(:disabled),
+.room-actions .room-create-cancel-button:focus-visible:not(:disabled),
+.room-actions .room-create-home-button:focus-visible:not(:disabled),
+.room-actions .room-create-submit-button:disabled {
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
+.room-actions .room-create-submit-button:hover:not(:disabled),
+.room-actions .room-create-submit-button:focus-visible:not(:disabled) {
+  transform: translateY(-1.5px);
+}
+
+.start-screen .room-actions {
+  bottom: var(--room-action-bottom);
+  gap: var(--room-action-gap);
+  justify-content: center;
+}
+
+.room-actions .room-create-submit-button,
+.room-actions .room-create-cancel-button {
+  width: var(--room-action-button-width);
+  height: var(--room-action-button-height);
+}
+
+.room-actions .room-create-home-button {
+  width: var(--room-action-home-width);
+  height: var(--room-action-button-height);
+}
+
+.room-create-scroll-body {
+  scrollbar-gutter: stable;
+  scrollbar-width: auto;
+  scrollbar-color: auto;
+}
+
+.room-create-scroll-body::-webkit-scrollbar {
+  width: var(--room-create-scrollbar-width);
+}
+
+.room-create-scroll-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.room-create-scroll-body::-webkit-scrollbar-thumb {
+  min-height: 138px;
+  border: 0;
+  border-radius: 0;
+  background: transparent url("../スクロールバー2.png") center / 100% 100%
+    no-repeat;
+}
+
+/* ===== Room create screen: contract check options ===== */
+
+.start-screen .segmented button,
+.start-screen .composition-grid button,
+.start-screen .match-type-grid button,
+.start-screen .room-presets button,
+.start-screen .cpu-model-options button,
+.start-screen .visibility-switch,
+.start-screen .daifugo-effect-toggle {
+  --contract-check-gap: 0.55rem;
+  --contract-check-size: 22px;
+
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--contract-check-gap);
+  min-height: 36px;
+  border: 0 !important;
+  border-radius: 6px;
+  background: transparent !important;
+  color: #20272b;
+  padding: 0.35rem 0.6rem;
+  box-shadow: none;
+  text-align: left;
+  text-shadow: none;
+  filter: none;
+  transform: none;
+  transition:
+    border-color 140ms ease,
+    background 140ms ease,
+    transform 140ms ease;
+}
+
+.start-screen .segmented,
+.start-screen .composition-grid,
+.start-screen .match-type-grid,
+.start-screen .room-presets,
+.start-screen .cpu-model-options {
+  --contract-option-column-gap: 0.2rem;
+  --contract-option-row-gap: 0.32rem;
+
+  display: grid;
+  gap: var(--contract-option-row-gap) var(--contract-option-column-gap);
+  justify-content: center;
+  align-items: center;
+}
+
+.start-screen .segmented {
+  grid-template-columns: repeat(3, max-content);
+}
+
+.start-screen .composition-grid {
+  grid-template-columns: repeat(3, max-content);
+  justify-content: start;
+}
+
+.start-screen .match-type-grid,
+.start-screen .cpu-model-options {
+  grid-template-columns: repeat(5, max-content);
+}
+
+.start-screen .room-presets {
+  grid-template-columns: repeat(4, max-content);
+}
+
+.start-screen .segmented button,
+.start-screen .composition-grid button,
+.start-screen .match-type-grid button,
+.start-screen .room-presets button,
+.start-screen .cpu-model-options button {
+  min-width: 0;
+  justify-self: start;
+  width: max-content;
+  max-width: 100%;
+  white-space: nowrap;
+}
+
+.start-screen .segmented button:hover:not(:disabled),
+.start-screen .composition-grid button:hover:not(:disabled),
+.start-screen .match-type-grid button:hover:not(:disabled),
+.start-screen .room-presets button:hover:not(:disabled),
+.start-screen .cpu-model-options button:hover:not(:disabled),
+.start-screen .visibility-switch:hover:not(:disabled),
+.start-screen .daifugo-effect-toggle:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.14) !important;
+  box-shadow: none !important;
+  filter: none !important;
+  transform: translateY(-0.5px);
+}
+
+.start-screen .segmented button.selected,
+.start-screen .composition-grid button.selected,
+.start-screen .match-type-grid button.selected,
+.start-screen .room-presets button.selected,
+.start-screen .cpu-model-options button.selected,
+.start-screen .visibility-switch.is-public,
+.start-screen .visibility-switch[aria-pressed="true"],
+.start-screen .daifugo-effect-toggle.selected,
+.start-screen .daifugo-effect-toggle[aria-pressed="true"] {
+  border-color: transparent !important;
+  background: transparent !important;
+  color: #20272b;
+  box-shadow: none;
+  filter: none;
+  transform: none;
+}
+
+.start-screen .segmented button.selected:hover:not(:disabled),
+.start-screen .composition-grid button.selected:hover:not(:disabled),
+.start-screen .match-type-grid button.selected:hover:not(:disabled),
+.start-screen .room-presets button.selected:hover:not(:disabled),
+.start-screen .cpu-model-options button.selected:hover:not(:disabled),
+.start-screen .visibility-switch.is-public:hover:not(:disabled),
+.start-screen .visibility-switch[aria-pressed="true"]:hover:not(:disabled),
+.start-screen .daifugo-effect-toggle.selected:hover:not(:disabled),
+.start-screen .daifugo-effect-toggle[aria-pressed="true"]:hover:not(:disabled) {
+  background: rgba(255, 244, 205, 0.14) !important;
+  box-shadow: none !important;
+  filter: none !important;
+  transform: translateY(-0.5px);
+}
+
+.start-screen .contract-check-box {
+  position: relative;
+  flex: 0 0 auto;
+  width: var(--contract-check-size);
+  height: var(--contract-check-size);
+  border: 0;
+  border-radius: 0;
+  background: transparent url("../チェックボックス.png") center / contain
+    no-repeat;
+  box-shadow: none;
+  overflow: visible;
+}
+
+.start-screen .segmented button::after,
+.start-screen .composition-grid button::after,
+.start-screen .match-type-grid button::after,
+.start-screen .room-presets button::after,
+.start-screen .cpu-model-options button::after,
+.start-screen .visibility-switch::after,
+.start-screen .daifugo-effect-toggle::after {
+  content: none;
+}
+
+.start-screen .contract-check-svg {
+  position: absolute;
+  left: -5px;
+  top: -7px;
+  width: calc(var(--contract-check-size) + 17px);
+  height: calc(var(--contract-check-size) + 12px);
+  overflow: visible;
+  opacity: 0;
+  transform-origin: 13px 24px;
+}
+
+.start-screen .contract-check-stroke {
+  fill: none;
+  stroke: #2f2117;
+  stroke-width: 4.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.22));
+}
+
+.start-screen .segmented button.selected .contract-check-svg,
+.start-screen .segmented button[aria-pressed="true"] .contract-check-svg,
+.start-screen .composition-grid button.selected .contract-check-svg,
+.start-screen .composition-grid button[aria-pressed="true"] .contract-check-svg,
+.start-screen .match-type-grid button.selected .contract-check-svg,
+.start-screen .match-type-grid button[aria-pressed="true"] .contract-check-svg,
+.start-screen .room-presets button.selected .contract-check-svg,
+.start-screen .room-presets button[aria-pressed="true"] .contract-check-svg,
+.start-screen .cpu-model-options button.selected .contract-check-svg,
+.start-screen
+  .cpu-model-options
+  button[aria-pressed="true"]
+  .contract-check-svg,
+.start-screen .visibility-switch.is-public .contract-check-svg,
+.start-screen .visibility-switch[aria-pressed="true"] .contract-check-svg,
+.start-screen .daifugo-effect-toggle.selected .contract-check-svg,
+.start-screen .daifugo-effect-toggle[aria-pressed="true"] .contract-check-svg {
+  opacity: 1;
+}
+
+.start-screen .segmented button.selected .contract-check-stroke-short,
+.start-screen
+  .segmented
+  button[aria-pressed="true"]
+  .contract-check-stroke-short,
+.start-screen .composition-grid button.selected .contract-check-stroke-short,
+.start-screen
+  .composition-grid
+  button[aria-pressed="true"]
+  .contract-check-stroke-short,
+.start-screen .match-type-grid button.selected .contract-check-stroke-short,
+.start-screen
+  .match-type-grid
+  button[aria-pressed="true"]
+  .contract-check-stroke-short,
+.start-screen .room-presets button.selected .contract-check-stroke-short,
+.start-screen
+  .room-presets
+  button[aria-pressed="true"]
+  .contract-check-stroke-short,
+.start-screen .cpu-model-options button.selected .contract-check-stroke-short,
+.start-screen
+  .cpu-model-options
+  button[aria-pressed="true"]
+  .contract-check-stroke-short,
+.start-screen .visibility-switch.is-public .contract-check-stroke-short,
+.start-screen
+  .visibility-switch[aria-pressed="true"]
+  .contract-check-stroke-short,
+.start-screen .daifugo-effect-toggle.selected .contract-check-stroke-short,
+.start-screen
+  .daifugo-effect-toggle[aria-pressed="true"]
+  .contract-check-stroke-short {
+  stroke-dashoffset: 0;
+}
+
+.start-screen .segmented button.selected .contract-check-stroke-long,
+.start-screen
+  .segmented
+  button[aria-pressed="true"]
+  .contract-check-stroke-long,
+.start-screen .composition-grid button.selected .contract-check-stroke-long,
+.start-screen
+  .composition-grid
+  button[aria-pressed="true"]
+  .contract-check-stroke-long,
+.start-screen .match-type-grid button.selected .contract-check-stroke-long,
+.start-screen
+  .match-type-grid
+  button[aria-pressed="true"]
+  .contract-check-stroke-long,
+.start-screen .room-presets button.selected .contract-check-stroke-long,
+.start-screen
+  .room-presets
+  button[aria-pressed="true"]
+  .contract-check-stroke-long,
+.start-screen .cpu-model-options button.selected .contract-check-stroke-long,
+.start-screen
+  .cpu-model-options
+  button[aria-pressed="true"]
+  .contract-check-stroke-long,
+.start-screen .visibility-switch.is-public .contract-check-stroke-long,
+.start-screen
+  .visibility-switch[aria-pressed="true"]
+  .contract-check-stroke-long,
+.start-screen .daifugo-effect-toggle.selected .contract-check-stroke-long,
+.start-screen
+  .daifugo-effect-toggle[aria-pressed="true"]
+  .contract-check-stroke-long {
+  stroke-dashoffset: 0;
+}
+
+.start-screen
+  :is(
+    .segmented,
+    .composition-grid,
+    .match-type-grid,
+    .room-presets,
+    .cpu-model-options
+  )
+  button.is-check-animated.selected
+  .contract-check-svg,
+.start-screen
+  .visibility-switch.is-check-animated:is(.is-public, [aria-pressed="true"])
+  .contract-check-svg,
+.start-screen
+  .daifugo-effect-toggle.is-check-animated:is(.selected, [aria-pressed="true"])
+  .contract-check-svg {
+  transform: none;
+}
+
+.start-screen
+  :is(
+    .segmented,
+    .composition-grid,
+    .match-type-grid,
+    .room-presets,
+    .cpu-model-options
+  )
+  button.is-check-animated.selected
+  .contract-check-stroke-short,
+.start-screen
+  .visibility-switch.is-check-animated:is(.is-public, [aria-pressed="true"])
+  .contract-check-stroke-short,
+.start-screen
+  .daifugo-effect-toggle.is-check-animated:is(.selected, [aria-pressed="true"])
+  .contract-check-stroke-short {
+  animation: contract-check-draw 100ms ease-out 40ms both;
+}
+
+.start-screen
+  :is(
+    .segmented,
+    .composition-grid,
+    .match-type-grid,
+    .room-presets,
+    .cpu-model-options
+  )
+  button.is-check-animated.selected
+  .contract-check-stroke-long,
+.start-screen
+  .visibility-switch.is-check-animated:is(.is-public, [aria-pressed="true"])
+  .contract-check-stroke-long,
+.start-screen
+  .daifugo-effect-toggle.is-check-animated:is(.selected, [aria-pressed="true"])
+  .contract-check-stroke-long {
+  animation: contract-check-draw 340ms cubic-bezier(0.16, 0.78, 0.28, 1) 190ms
+    both;
+}
+
+.start-screen .match-type-grid button {
+  align-items: flex-start;
+  min-height: 62px;
+}
+
+.start-screen .match-type-grid button:hover:not(:disabled),
+.start-screen .match-type-grid button.selected:hover:not(:disabled),
+.start-screen
+  .match-type-grid
+  button[aria-pressed="true"]:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.14) !important;
+  box-shadow: none !important;
+  filter: none !important;
+  transform: translateY(-0.5px);
+}
+
+.start-screen .room-presets button {
+  min-width: 72px;
+}
+
+.start-screen .segmented button > *,
+.start-screen .composition-grid button > *,
+.start-screen .match-type-grid button > *,
+.start-screen .room-presets button > *,
+.start-screen .cpu-model-options button > *,
+.start-screen .daifugo-effect-toggle > * {
+  position: relative;
+  z-index: 1;
+}
+
+.start-screen .match-type-grid button strong,
+.start-screen .match-type-grid button small,
+.start-screen .daifugo-effect-toggle strong,
+.start-screen .daifugo-effect-toggle small,
+.start-screen .cpu-model-row strong,
+.start-screen .visibility-switch-label {
+  color: #20272b;
+  text-shadow: none;
+}
+
+.start-screen .match-type-grid button strong,
+.start-screen .daifugo-effect-toggle strong {
+  font-weight: 900;
+}
+
+.start-screen .match-type-grid button small,
+.start-screen .daifugo-effect-toggle small {
+  color: rgba(32, 39, 43, 0.74) !important;
+}
+
+.start-screen .match-type-grid button:hover small,
+.start-screen .match-type-grid button.selected small,
+.start-screen .match-type-grid button[aria-pressed="true"] small {
+  color: rgba(32, 39, 43, 0.74) !important;
+}
+
+.start-screen .visibility-switch {
+  width: auto;
+  min-width: 126px;
+}
+
+.start-screen .room-create-scroll-body .field > span,
+.start-screen .room-create-scroll-body label > span,
+.start-screen .room-preset-group > span,
+.start-screen .daifugo-options-head > span,
+.start-screen .room-create-scroll-body button,
+.start-screen .room-create-scroll-body strong,
+.start-screen .room-create-scroll-body small,
+.start-screen .visibility-switch-label,
+.start-screen .cpu-model-row strong,
+.start-screen .cpu-model-row span {
+  font-family: "Fude Goshirae", "Shippori Mincho", "Yu Mincho", serif;
+  font-weight: 900;
+}
+
+.start-screen .room-create-scroll-body .field > span,
+.start-screen .room-create-scroll-body label > span,
+.start-screen .room-preset-group > span,
+.start-screen .daifugo-options-head > span {
+  display: inline-block;
+  margin-bottom: 0.42rem;
+  color: #17130f;
+  font-size: var(--room-field-heading-size);
+  line-height: 1.15;
+  text-decoration-line: underline;
+  text-decoration-thickness: 1.4px;
+  text-underline-offset: 0.22em;
+  text-decoration-color: rgba(47, 33, 23, 0.55);
+}
+
+.start-screen .room-top-row {
+  grid-template-columns: minmax(0, min(100%, 300px)) minmax(280px, auto);
+  align-items: start;
+}
+
+.start-screen .room-top-toggles {
+  display: flex;
+  align-items: start;
+  justify-content: start;
+  gap: clamp(0.65rem, 1.5vw, 1rem);
+  min-width: 0;
+}
+
+.start-screen .room-top-toggles .field {
+  margin-bottom: 0;
+}
+
+@media (max-width: 560px) {
+  .start-screen .segmented,
+  .start-screen .composition-grid,
+  .start-screen .match-type-grid,
+  .start-screen .cpu-model-options {
+    grid-template-columns: 1fr;
+  }
+
+  .start-screen .room-presets {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .start-screen .segmented button,
+  .start-screen .composition-grid button,
+  .start-screen .match-type-grid button,
+  .start-screen .room-presets button,
+  .start-screen .cpu-model-options button {
+    width: 100%;
+    white-space: normal;
+  }
+}
+
+.start-screen .visibility-switch-track,
+.start-screen .mini-switch {
+  display: none;
+}
+
+.start-screen .room-settings,
+.start-screen .daifugo-options {
+  border-color: rgba(82, 99, 106, 0.24);
+  background:
+    linear-gradient(
+      180deg,
+      rgba(235, 245, 247, 0.34),
+      rgba(198, 217, 219, 0.18)
+    ),
+    rgba(255, 255, 255, 0.16);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.34),
+    0 4px 10px rgba(0, 0, 0, 0.08);
+}
+
+@keyframes contract-check-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+
+  to {
+    stroke-dashoffset: 0;
   }
 }

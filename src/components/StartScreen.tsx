@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import type {
   CpuModelId,
   DaifugoOptions,
@@ -126,6 +126,25 @@ const DAIFUGO_EFFECT_LABELS: Array<{
   { key: "queenNumberVanish", shortLabel: "Q", label: "数字全消去" },
 ];
 
+function ContractCheckBox() {
+  return (
+    <span className="contract-check-box" aria-hidden="true">
+      <svg className="contract-check-svg" viewBox="0 0 36 30">
+        <path
+          className="contract-check-stroke contract-check-stroke-short"
+          d="M4 16 L13 24"
+          pathLength="1"
+        />
+        <path
+          className="contract-check-stroke contract-check-stroke-long"
+          d="M13 24 L33 5"
+          pathLength="1"
+        />
+      </svg>
+    </span>
+  );
+}
+
 export default function StartScreen({
   onStart,
   onBackHome,
@@ -152,6 +171,7 @@ export default function StartScreen({
     targetScore: String(MATCH_RULE_SETTINGS.targetScore.defaultValue),
     startingPoints: String(MATCH_RULE_SETTINGS.startingPoints.defaultValue),
   });
+  const [animatedCheckId, setAnimatedCheckId] = useState<string | null>(null);
   const activeRule = MATCH_RULE_SETTINGS[matchType];
   const activeValue = ruleValues[matchType];
   const settingsError = getSettingsError(matchType, activeValue);
@@ -173,6 +193,19 @@ export default function StartScreen({
 
   function updateRuleValue(value: string) {
     setRuleValues((current) => ({ ...current, [matchType]: value }));
+  }
+
+  function getCheckClass(isSelected: boolean, id: string) {
+    return [
+      isSelected ? "selected" : "",
+      animatedCheckId === id ? "is-check-animated" : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
+  }
+
+  function animateCheck(id: string) {
+    setAnimatedCheckId(id);
   }
 
   function updatePlayerCount(count: RoomTotalPlayers) {
@@ -266,31 +299,74 @@ export default function StartScreen({
             </label>
           </div>
 
-          <div
-            className={`field visibility-field ${canSelectPublic ? "" : "is-locked"}`}
-          >
-            <span>公開設定</span>
-            <button
-              type="button"
-              className={`visibility-switch ${visibility === "public" ? "is-public" : "is-private"}`}
-              role="switch"
-              aria-checked={visibility === "public"}
-              disabled={!canSelectPublic}
-              onClick={toggleVisibility}
-              title={
-                !canSelectPublic
-                  ? "参加枠がないため、Publicは選択できません"
-                  : undefined
-              }
+          <div className="room-top-toggles">
+            <div
+              className={`field visibility-field ${canSelectPublic ? "" : "is-locked"}`}
             >
-              <span className="visibility-switch-track" aria-hidden="true">
-                <span className="visibility-switch-knob" />
-              </span>
-              <span className="visibility-switch-label">
-                {visibility === "public" ? "Public" : "Private"}
-              </span>
-            </button>
-            {!canSelectPublic && <small>参加枠がないためPrivate固定です</small>}
+              <span>公開設定</span>
+              <button
+                type="button"
+                className={`visibility-switch ${visibility === "public" ? "is-public" : "is-private"} ${
+                  animatedCheckId === "visibility" ? "is-check-animated" : ""
+                }`}
+                role="switch"
+                aria-checked={visibility === "public"}
+                disabled={!canSelectPublic}
+                onClick={() => {
+                  animateCheck("visibility");
+                  toggleVisibility();
+                }}
+                title={
+                  !canSelectPublic
+                    ? "参加枠がないため、Publicは選択できません"
+                    : undefined
+                }
+              >
+                <ContractCheckBox />
+                <span className="visibility-switch-track" aria-hidden="true">
+                  <span className="visibility-switch-knob" />
+                </span>
+                <span className="visibility-switch-label">
+                  {visibility === "public" ? "Public" : "Private"}
+                </span>
+              </button>
+              {!canSelectPublic && <small>参加枠がないためPrivate固定です</small>}
+            </div>
+
+            <div
+              className={`field mid-game-join-field ${canAllowMidGameJoin ? "" : "is-locked"}`}
+            >
+              <span>途中参加を許可</span>
+              <button
+                type="button"
+                className={`visibility-switch ${allowMidGameJoin ? "is-public" : "is-private"} ${
+                  animatedCheckId === "mid-game-join" ? "is-check-animated" : ""
+                }`}
+                role="switch"
+                aria-checked={allowMidGameJoin}
+                disabled={!canAllowMidGameJoin}
+                onClick={() => {
+                  animateCheck("mid-game-join");
+                  toggleMidGameJoin();
+                }}
+                title={
+                  !canAllowMidGameJoin
+                    ? "Player1人 + CPUのみの構成では途中参加を許可できません"
+                    : undefined
+                }
+              >
+                <ContractCheckBox />
+                <span className="visibility-switch-track" aria-hidden="true">
+                  <span className="visibility-switch-knob" />
+                </span>
+                <span className="visibility-switch-label">
+                  {allowMidGameJoin ? "ON" : "OFF"}
+                </span>
+              </button>
+              {!canAllowMidGameJoin && (
+                <small>Player1人 + CPUのみの構成では設定できません</small>
+              )}
+            </div>
           </div>
         </div>
 
@@ -301,9 +377,17 @@ export default function StartScreen({
               <button
                 key={count}
                 type="button"
-                className={playerCount === count ? "selected" : ""}
-                onClick={() => updatePlayerCount(count as RoomTotalPlayers)}
+                className={getCheckClass(
+                  playerCount === count,
+                  `player-count-${count}`,
+                )}
+                aria-pressed={playerCount === count}
+                onClick={() => {
+                  animateCheck(`player-count-${count}`);
+                  updatePlayerCount(count as RoomTotalPlayers);
+                }}
               >
+                <ContractCheckBox />
                 {count}人
               </button>
             ))}
@@ -318,46 +402,25 @@ export default function StartScreen({
               return (
                 <button
                   type="button"
-                  className={humanPlayerCount === humanCount ? "selected" : ""}
+                  className={getCheckClass(
+                    humanPlayerCount === humanCount,
+                    `human-count-${humanCount}`,
+                  )}
+                  aria-pressed={humanPlayerCount === humanCount}
                   disabled={false}
-                  onClick={() => setHumanPlayerCount(humanCount)}
+                  onClick={() => {
+                    animateCheck(`human-count-${humanCount}`);
+                    setHumanPlayerCount(humanCount);
+                  }}
                   key={humanCount}
                 >
+                  <ContractCheckBox />
                   Player {humanCount}人
                   {cpuCount > 0 ? ` + CPU ${cpuCount}体` : ""}
                 </button>
               );
             })}
           </div>
-        </div>
-
-        <div
-          className={`field mid-game-join-field ${canAllowMidGameJoin ? "" : "is-locked"}`}
-        >
-          <span>途中参加を許可</span>
-          <button
-            type="button"
-            className={`visibility-switch ${allowMidGameJoin ? "is-public" : "is-private"}`}
-            role="switch"
-            aria-checked={allowMidGameJoin}
-            disabled={!canAllowMidGameJoin}
-            onClick={toggleMidGameJoin}
-            title={
-              !canAllowMidGameJoin
-                ? "Player1人 + CPUのみの構成では途中参加を許可できません"
-                : undefined
-            }
-          >
-            <span className="visibility-switch-track" aria-hidden="true">
-              <span className="visibility-switch-knob" />
-            </span>
-            <span className="visibility-switch-label">
-              {allowMidGameJoin ? "ON" : "OFF"}
-            </span>
-          </button>
-          {!canAllowMidGameJoin && (
-            <small>Player1人 + CPUのみの構成では設定できません</small>
-          )}
         </div>
 
         {cpuPlayerCount > 0 && (
@@ -372,12 +435,18 @@ export default function StartScreen({
                       (modelId) => (
                         <button
                           type="button"
-                          className={
-                            cpuModelIds[cpuIndex] === modelId ? "selected" : ""
-                          }
-                          onClick={() => updateCpuModel(cpuIndex, modelId)}
+                          className={getCheckClass(
+                            cpuModelIds[cpuIndex] === modelId,
+                            `cpu-${cpuIndex}-${modelId}`,
+                          )}
+                          aria-pressed={cpuModelIds[cpuIndex] === modelId}
+                          onClick={() => {
+                            animateCheck(`cpu-${cpuIndex}-${modelId}`);
+                            updateCpuModel(cpuIndex, modelId);
+                          }}
                           key={modelId}
                         >
+                          <ContractCheckBox />
                           {cpuModelDisplayNames[modelId]}
                         </button>
                       ),
@@ -396,10 +465,18 @@ export default function StartScreen({
               {(Object.keys(cpuModels) as CpuModelId[]).map((modelId) => (
                 <button
                   type="button"
-                  className={cpuModelId === modelId ? "selected" : ""}
-                  onClick={() => setCpuModelId(modelId)}
+                  className={getCheckClass(
+                    cpuModelId === modelId,
+                    `cpu-dev-${modelId}`,
+                  )}
+                  aria-pressed={cpuModelId === modelId}
+                  onClick={() => {
+                    animateCheck(`cpu-dev-${modelId}`);
+                    setCpuModelId(modelId);
+                  }}
                   key={modelId}
                 >
+                  <ContractCheckBox />
                   {cpuModels[modelId].name.replace(" CPU", "")}
                 </button>
               ))}
@@ -416,10 +493,18 @@ export default function StartScreen({
                 return (
                   <button
                     type="button"
-                    className={matchType === ruleType ? "selected" : ""}
-                    onClick={() => setMatchType(ruleType)}
+                    className={getCheckClass(
+                      matchType === ruleType,
+                      `match-type-${ruleType}`,
+                    )}
+                    aria-pressed={matchType === ruleType}
+                    onClick={() => {
+                      animateCheck(`match-type-${ruleType}`);
+                      setMatchType(ruleType);
+                    }}
                     key={ruleType}
                   >
+                    <ContractCheckBox />
                     <strong>{rule.label}</strong>
                     <small>{rule.description}</small>
                   </button>
@@ -450,9 +535,18 @@ export default function StartScreen({
               {activeRule.presets.map((preset) => (
                 <button
                   type="button"
+                  className={getCheckClass(
+                    String(preset) === activeValue,
+                    `preset-${matchType}-${preset}`,
+                  )}
+                  aria-pressed={String(preset) === activeValue}
                   key={preset}
-                  onClick={() => updateRuleValue(String(preset))}
+                  onClick={() => {
+                    animateCheck(`preset-${matchType}-${preset}`);
+                    updateRuleValue(String(preset));
+                  }}
                 >
+                  <ContractCheckBox />
                   {matchType === "fixedRounds" ? `${preset}回` : preset}
                 </button>
               ))}
@@ -473,10 +567,16 @@ export default function StartScreen({
             <span>大富豪ルール</span>
             <button
               type="button"
-              className={`visibility-switch ${daifugoOptions.enabled ? "is-public" : "is-private"}`}
+              className={`visibility-switch ${daifugoOptions.enabled ? "is-public" : "is-private"} ${
+                animatedCheckId === "daifugo-enabled" ? "is-check-animated" : ""
+              }`}
               aria-pressed={daifugoOptions.enabled}
-              onClick={toggleDaifugoEnabled}
+              onClick={() => {
+                animateCheck("daifugo-enabled");
+                toggleDaifugoEnabled();
+              }}
             >
+              <ContractCheckBox />
               <span className="visibility-switch-track" aria-hidden="true">
                 <span className="visibility-switch-knob" />
               </span>
@@ -491,12 +591,19 @@ export default function StartScreen({
               {DAIFUGO_EFFECT_LABELS.map((effect) => (
                 <button
                   type="button"
-                  className={`daifugo-effect-toggle ${daifugoOptions.effects[effect.key] ? "selected" : ""}`}
+                  className={`daifugo-effect-toggle ${getCheckClass(
+                    daifugoOptions.effects[effect.key],
+                    `daifugo-effect-${effect.key}`,
+                  )}`}
                   aria-pressed={daifugoOptions.effects[effect.key]}
                   disabled={effect.disabled}
-                  onClick={() => toggleDaifugoEffect(effect.key)}
+                  onClick={() => {
+                    animateCheck(`daifugo-effect-${effect.key}`);
+                    toggleDaifugoEffect(effect.key);
+                  }}
                   key={effect.key}
                 >
+                  <ContractCheckBox />
                   <span className="daifugo-effect-copy">
                     <strong>
                       <b>{effect.shortLabel}</b>
