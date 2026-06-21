@@ -20,8 +20,11 @@ export default function MoreGameScreen({
   return (
     <main className="screen room-choice-screen">
       <section className="room-choice-panel room-list-panel">
-        <p className="eyebrow">More Game</p>
+        <p className="room-list-eyebrow">More Game</p>
         <h1>復帰できる試合</h1>
+        <p className="room-list-title" aria-hidden="true">
+          復帰用ルーム一覧
+        </p>
 
         {visibleGames.length === 0 ? (
           <div className="empty-room-list">

@@ -32,8 +32,8 @@ export default function RoomListScreen({ rooms = [], error, onJoinRoom, onRefres
   return (
     <main className="screen room-choice-screen">
       <section className="room-choice-panel room-list-panel">
-        <p className="eyebrow">Join Room</p>
-        <h1>募集中ルーム一覧</h1>
+        <p className="room-list-eyebrow">Join Room</p>
+        <h1 className="room-list-title">募集中ルーム一覧</h1>
 
         {rooms.length === 0 ? (
           <div className="empty-room-list">
