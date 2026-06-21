@@ -1,0 +1,6 @@
+[  416559ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://127.0.0.1:5173/node_modules/.vite/deps/react-dom_client.js?v=f29c1637:14337
+[  418677ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:3001/socket.io/?EIO=4&transport=polling&t=17bkvs63:0
+[  421876ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:3001/socket.io/?EIO=4&transport=polling&t=17e1sj5v:0
+[  425888ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:3001/socket.io/?EIO=4&transport=polling&t=17h5g1im:0
+[  429142ms] [LOG] [vite] server connection lost. Polling for restart... @ http://127.0.0.1:5173/@vite/client:968
+[  431021ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:3001/socket.io/?EIO=4&transport=polling&t=17l3gjka:0

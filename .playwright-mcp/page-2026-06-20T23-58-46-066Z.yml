@@ -1,0 +1,58 @@
+- main [ref=e3]:
+  - generic:
+    - region
+  - generic [ref=e4]:
+    - navigation "ホームメニュー" [ref=e5]:
+      - button "New Game" [ref=e6] [cursor=pointer]:
+        - img
+      - button "More Game" [ref=e7] [cursor=pointer]:
+        - img
+      - button "Setting" [ref=e8] [cursor=pointer]:
+        - img
+      - button "Manual" [ref=e9] [cursor=pointer]:
+        - img
+      - button "Profile" [ref=e10] [cursor=pointer]:
+        - img
+    - generic "DEV確認メニュー" [ref=e11]:
+      - button "Debug Rounds Ron" [ref=e12]
+      - button "Debug Rounds Tsumo" [ref=e13]
+      - button "Debug Rounds W Ron" [ref=e14]
+      - button "Debug Target Ron" [ref=e15]
+      - button "Debug Target Tsumo" [ref=e16]
+      - button "Debug Target W Ron" [ref=e17]
+      - button "Debug Points Ron" [ref=e18]
+      - button "Debug Points Tsumo" [ref=e19]
+      - button "Debug Points W Ron" [ref=e20]
+      - 'button "DEV: 成績UI / 局数制 / 順位変動なし" [ref=e21]'
+      - 'button "DEV: 成績UI / 局数制 / 順位変動あり" [ref=e22]'
+      - 'button "DEV: 成績UI / 目標点制 / 順位変動なし" [ref=e23]'
+      - 'button "DEV: 成績UI / 持ち点制 / 減少あり" [ref=e24]'
+      - 'button "DEV: 8効果ツモ確認" [ref=e25]'
+      - 'button "DEV: 8効果リーチ確認" [ref=e26]'
+      - 'button "DEV: 10効果ツモ確認" [ref=e27]'
+      - 'button "DEV: 10効果リーチ確認" [ref=e28]'
+      - 'button "DEV: リーチ中10禁止確認" [ref=e29]'
+      - 'button "DEV: リーチ中8確認" [ref=e30]'
+      - 'button "DEV: Q後リーチ解除" [ref=e31]'
+      - 'button "DEV: Q後リーチ継続確認" [ref=e32]'
+      - 'button "DEV: 7交換後リーチ再判定" [ref=e33]'
+      - 'button "DEV: Q候補中央寄せ" [ref=e34]'
+      - 'button "DEV: Q補充不能ランク" [ref=e35]'
+      - 'button "DEV: Q候補0件不発" [ref=e36]'
+      - 'button "DEV: 山札0枚流局" [ref=e37]'
+      - 'button "DEV: Q後山札0枚境界" [ref=e38]'
+      - 'button "DEV: Q後即上がり" [ref=e39]'
+      - 'button "DEV: J特殊効果選択" [ref=e40]'
+      - 'button "DEV: J強化権取得" [ref=e41]'
+      - 'button "DEV: J強化権重複防止" [ref=e42]'
+      - 'button "DEV: J強化権保持中5/7" [ref=e43]'
+      - 'button "DEV: 強化7確認 / 5人戦" [ref=e44]'
+      - 'button "DEV: 強化7確認 / 4人戦" [ref=e45]'
+      - 'button "DEV: 強化7確認 / 3人戦" [ref=e46]'
+      - 'button "DEV: 強化5確認 / 5人戦" [ref=e47]'
+      - 'button "DEV: 強化5確認 / 4人戦" [ref=e48]'
+      - 'button "DEV: 強化5確認 / 3人戦" [ref=e49]'
+      - 'button "DEV: 強化5逆回り確認" [ref=e50]'
+      - 'button "DEV: J情報閲覧3人戦" [ref=e51]'
+      - 'button "DEV: J情報閲覧5人戦" [ref=e52]'
+      - 'button "DEV: CPU J暫定処理" [ref=e53]'

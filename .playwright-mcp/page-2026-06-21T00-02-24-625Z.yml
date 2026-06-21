@@ -1,0 +1,11 @@
+- main [ref=e67]:
+  - generic [ref=e68]:
+    - paragraph [ref=e69]: Join Room
+    - heading "募集中ルーム一覧" [level=1] [ref=e70]
+    - generic [ref=e71]:
+      - strong [ref=e72]: 現在募集中のルームはありません
+      - generic [ref=e73]: 公開中で参加枠のあるルームが作成されると、ここに表示されます。
+    - generic [ref=e74]:
+      - button "ルーム選択に戻る" [ref=e75] [cursor=pointer]
+      - button "更新" [ref=e76] [cursor=pointer]
+      - button "ホーム画面に戻る" [ref=e77] [cursor=pointer]
