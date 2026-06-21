@@ -12128,7 +12128,7 @@ body {
 .room-actions .room-create-submit-button,
 .room-actions .room-create-cancel-button {
   width: clamp(150px, 18vw, 205px);
-  height: clamp(78px, 9.6vw, 108px);
+  height: clamp(70px, 8.6vw, 97px);
 }
 
 .room-actions .room-create-cancel-button {
@@ -12138,7 +12138,7 @@ body {
 .room-actions .room-create-home-button {
   order: 2;
   width: clamp(190px, 22vw, 258px);
-  height: clamp(90px, 10.6vw, 120px);
+  height: clamp(70px, 8.6vw, 97px);
 }
 
 .room-actions .room-create-submit-button {
@@ -12185,4 +12185,47 @@ body {
     width: clamp(148px, 54vw, 220px);
     height: clamp(62px, 19vw, 86px);
   }
+}
+
+/* ===== Room create screen: bottom image buttons and scrollbar fixes ===== */
+
+.room-actions .room-create-submit-button,
+.room-actions .room-create-cancel-button,
+.room-actions .room-create-home-button,
+.room-actions .room-create-submit-button:hover:not(:disabled),
+.room-actions .room-create-cancel-button:hover:not(:disabled),
+.room-actions .room-create-home-button:hover:not(:disabled),
+.room-actions .room-create-submit-button:focus-visible:not(:disabled),
+.room-actions .room-create-cancel-button:focus-visible:not(:disabled),
+.room-actions .room-create-home-button:focus-visible:not(:disabled),
+.room-actions .room-create-submit-button:disabled {
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
+.room-actions .room-create-submit-button:hover:not(:disabled),
+.room-actions .room-create-submit-button:focus-visible:not(:disabled) {
+  transform: translateY(-1.5px);
+}
+
+.room-create-scroll-body {
+  scrollbar-gutter: stable;
+  scrollbar-width: auto;
+  scrollbar-color: auto;
+}
+
+.room-create-scroll-body::-webkit-scrollbar {
+  width: clamp(22px, 2.4vw, 30px);
+}
+
+.room-create-scroll-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.room-create-scroll-body::-webkit-scrollbar-thumb {
+  min-height: 138px;
+  border: 0;
+  border-radius: 0;
+  background: transparent url("../スクロールバー2.png") center / 100% 100%
+    no-repeat;
 }
