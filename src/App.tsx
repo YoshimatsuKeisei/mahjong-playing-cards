@@ -7,6 +7,7 @@ import PlaceholderScreen from "./components/PlaceholderScreen";
 import ProfileScreen from "./components/ProfileScreen";
 import RoomListScreen from "./components/RoomListScreen";
 import RoomSelectScreen from "./components/RoomSelectScreen";
+import SettingsScreen from "./components/SettingsScreen";
 import StartScreen, { type RoomCreateSettings } from "./components/StartScreen";
 import PlayScreen from "./components/PlayScreen";
 import ResultScreen from "./components/ResultScreen";
@@ -1054,6 +1055,10 @@ export default function App() {
   }
 
   if (screen === "settings") {
+    return <SettingsScreen onBackHome={returnToHome} />;
+  }
+
+  if (false) {
     return (
       <PlaceholderScreen
         title="Setting"
