@@ -1,10 +1,10 @@
 # Details
 
-Date : 2026-06-18 11:17:34
+Date : 2026-06-22 09:46:42
 
 Directory c:\\Users\\jingc\\Documents\\8番出口
 
-Total : 126 files,  53058 codes, 570 comments, 4391 blanks, all 58019 lines
+Total : 153 files,  58035 codes, 653 comments, 4939 blanks, all 63627 lines
 
 [Summary](results.md) / Details / [Diff Summary](diff.md) / [Diff Details](diff-details.md)
 
@@ -12,6 +12,28 @@ Total : 126 files,  53058 codes, 570 comments, 4391 blanks, all 58019 lines
 | filename | language | code | comment | blank | total |
 | :--- | :--- | ---: | ---: | ---: | ---: |
 | [.github/workflows/ci.yml](/.github/workflows/ci.yml) | YAML | 28 | 0 | 7 | 35 |
+| [.playwright-mcp/console-2026-06-20T23-57-32-837Z.log](/.playwright-mcp/console-2026-06-20T23-57-32-837Z.log) | Log | 63 | 0 | 1 | 64 |
+| [.playwright-mcp/console-2026-06-21T00-04-37-474Z.log](/.playwright-mcp/console-2026-06-21T00-04-37-474Z.log) | Log | 6 | 0 | 1 | 7 |
+| [.playwright-mcp/console-2026-06-21T08-34-24-532Z.log](/.playwright-mcp/console-2026-06-21T08-34-24-532Z.log) | Log | 5 | 0 | 1 | 6 |
+| [.playwright-mcp/console-2026-06-21T08-36-47-960Z.log](/.playwright-mcp/console-2026-06-21T08-36-47-960Z.log) | Log | 30 | 0 | 1 | 31 |
+| [.playwright-mcp/console-2026-06-21T08-39-55-774Z.log](/.playwright-mcp/console-2026-06-21T08-39-55-774Z.log) | Log | 52 | 0 | 1 | 53 |
+| [.playwright-mcp/console-2026-06-21T08-45-43-380Z.log](/.playwright-mcp/console-2026-06-21T08-45-43-380Z.log) | Log | 630 | 0 | 1 | 631 |
+| [.playwright-mcp/page-2026-06-20T23-58-46-066Z.yml](/.playwright-mcp/page-2026-06-20T23-58-46-066Z.yml) | YAML | 58 | 0 | 0 | 58 |
+| [.playwright-mcp/page-2026-06-20T23-59-50-145Z.yml](/.playwright-mcp/page-2026-06-20T23-59-50-145Z.yml) | YAML | 12 | 0 | 0 | 12 |
+| [.playwright-mcp/page-2026-06-21T00-00-16-639Z.yml](/.playwright-mcp/page-2026-06-21T00-00-16-639Z.yml) | YAML | 11 | 0 | 0 | 11 |
+| [.playwright-mcp/page-2026-06-21T00-02-24-625Z.yml](/.playwright-mcp/page-2026-06-21T00-02-24-625Z.yml) | YAML | 11 | 0 | 0 | 11 |
+| [.playwright-mcp/page-2026-06-21T00-03-14-143Z.yml](/.playwright-mcp/page-2026-06-21T00-03-14-143Z.yml) | YAML | 11 | 0 | 0 | 11 |
+| [.playwright-mcp/page-2026-06-21T00-05-09-854Z.yml](/.playwright-mcp/page-2026-06-21T00-05-09-854Z.yml) | YAML | 17 | 0 | 0 | 17 |
+| [.playwright-mcp/page-2026-06-21T00-06-40-032Z.yml](/.playwright-mcp/page-2026-06-21T00-06-40-032Z.yml) | YAML | 17 | 0 | 0 | 17 |
+| [.playwright-mcp/page-2026-06-21T08-36-48-651Z.yml](/.playwright-mcp/page-2026-06-21T08-36-48-651Z.yml) | YAML | 58 | 0 | 0 | 58 |
+| [.playwright-mcp/page-2026-06-21T08-37-41-486Z.yml](/.playwright-mcp/page-2026-06-21T08-37-41-486Z.yml) | YAML | 12 | 0 | 0 | 12 |
+| [.playwright-mcp/page-2026-06-21T08-38-27-725Z.yml](/.playwright-mcp/page-2026-06-21T08-38-27-725Z.yml) | YAML | 61 | 0 | 0 | 61 |
+| [.playwright-mcp/page-2026-06-21T08-39-56-240Z.yml](/.playwright-mcp/page-2026-06-21T08-39-56-240Z.yml) | YAML | 57 | 0 | 0 | 57 |
+| [.playwright-mcp/page-2026-06-21T08-41-08-844Z.yml](/.playwright-mcp/page-2026-06-21T08-41-08-844Z.yml) | YAML | 12 | 0 | 0 | 12 |
+| [.playwright-mcp/page-2026-06-21T08-41-34-622Z.yml](/.playwright-mcp/page-2026-06-21T08-41-34-622Z.yml) | YAML | 61 | 0 | 0 | 61 |
+| [.playwright-mcp/page-2026-06-21T08-45-44-001Z.yml](/.playwright-mcp/page-2026-06-21T08-45-44-001Z.yml) | YAML | 58 | 0 | 0 | 58 |
+| [.playwright-mcp/page-2026-06-21T08-46-58-275Z.yml](/.playwright-mcp/page-2026-06-21T08-46-58-275Z.yml) | YAML | 12 | 0 | 0 | 12 |
+| [.playwright-mcp/page-2026-06-21T08-47-45-264Z.yml](/.playwright-mcp/page-2026-06-21T08-47-45-264Z.yml) | YAML | 61 | 0 | 0 | 61 |
 | [PlayScreen\_after\_save\_conflict.diff](/PlayScreen_after_save_conflict.diff) | Diff | 811 | 0 | 0 | 811 |
 | [docs/online-compatibility.md](/docs/online-compatibility.md) | Markdown | 124 | 0 | 27 | 151 |
 | [index.html](/index.html) | HTML | 24 | 0 | 3 | 27 |
@@ -24,7 +46,7 @@ Total : 126 files,  53058 codes, 570 comments, 4391 blanks, all 58019 lines
 | [server/onlineCpuRunner.test.ts](/server/onlineCpuRunner.test.ts) | TypeScript | 273 | 0 | 45 | 318 |
 | [server/onlineCpuRunner.ts](/server/onlineCpuRunner.ts) | TypeScript | 561 | 0 | 119 | 680 |
 | [server/onlineScenarios.ts](/server/onlineScenarios.ts) | TypeScript | 397 | 0 | 27 | 424 |
-| [src/App.tsx](/src/App.tsx) | TypeScript JSX | 1,937 | 0 | 90 | 2,027 |
+| [src/App.tsx](/src/App.tsx) | TypeScript JSX | 1,941 | 0 | 91 | 2,032 |
 | [src/cardImages.ts](/src/cardImages.ts) | TypeScript | 62 | 0 | 13 | 75 |
 | [src/components/AvatarGallery.tsx](/src/components/AvatarGallery.tsx) | TypeScript JSX | 34 | 0 | 4 | 38 |
 | [src/components/AvatarPreview.tsx](/src/components/AvatarPreview.tsx) | TypeScript JSX | 44 | 0 | 8 | 52 |
@@ -34,15 +56,16 @@ Total : 126 files,  53058 codes, 570 comments, 4391 blanks, all 58019 lines
 | [src/components/HandView.tsx](/src/components/HandView.tsx) | TypeScript JSX | 87 | 0 | 9 | 96 |
 | [src/components/HomeMenu.tsx](/src/components/HomeMenu.tsx) | TypeScript JSX | 60 | 0 | 4 | 64 |
 | [src/components/HomeScreen.test.tsx](/src/components/HomeScreen.test.tsx) | TypeScript JSX | 25 | 0 | 5 | 30 |
-| [src/components/HomeScreen.tsx](/src/components/HomeScreen.tsx) | TypeScript JSX | 65 | 0 | 7 | 72 |
-| [src/components/ManualScreen.tsx](/src/components/ManualScreen.tsx) | TypeScript JSX | 272 | 0 | 14 | 286 |
+| [src/components/HomeScreen.tsx](/src/components/HomeScreen.tsx) | TypeScript JSX | 55 | 0 | 6 | 61 |
+| [src/components/HomeStageDecor.tsx](/src/components/HomeStageDecor.tsx) | TypeScript JSX | 27 | 0 | 3 | 30 |
+| [src/components/ManualScreen.tsx](/src/components/ManualScreen.tsx) | TypeScript JSX | 854 | 2 | 63 | 919 |
 | [src/components/MeldArea.tsx](/src/components/MeldArea.tsx) | TypeScript JSX | 62 | 0 | 10 | 72 |
 | [src/components/MoreGameScreen.test.tsx](/src/components/MoreGameScreen.test.tsx) | TypeScript JSX | 70 | 0 | 8 | 78 |
-| [src/components/MoreGameScreen.tsx](/src/components/MoreGameScreen.tsx) | TypeScript JSX | 101 | 0 | 9 | 110 |
+| [src/components/MoreGameScreen.tsx](/src/components/MoreGameScreen.tsx) | TypeScript JSX | 104 | 0 | 9 | 113 |
 | [src/components/OnlineLobbyScreen.tsx](/src/components/OnlineLobbyScreen.tsx) | TypeScript JSX | 113 | 0 | 8 | 121 |
 | [src/components/PlaceholderScreen.tsx](/src/components/PlaceholderScreen.tsx) | TypeScript JSX | 19 | 0 | 2 | 21 |
 | [src/components/PlayScreen.after-save-conflict.tsx](/src/components/PlayScreen.after-save-conflict.tsx) | TypeScript JSX | 4,164 | 165 | 200 | 4,529 |
-| [src/components/PlayScreen.test.tsx](/src/components/PlayScreen.test.tsx) | TypeScript JSX | 2,290 | 0 | 233 | 2,523 |
+| [src/components/PlayScreen.test.tsx](/src/components/PlayScreen.test.tsx) | TypeScript JSX | 2,295 | 0 | 232 | 2,527 |
 | [src/components/PlayScreen.tsx](/src/components/PlayScreen.tsx) | TypeScript JSX | 5,318 | 165 | 276 | 5,759 |
 | [src/components/PlayScreenQueen.test.tsx](/src/components/PlayScreenQueen.test.tsx) | TypeScript JSX | 54 | 0 | 5 | 59 |
 | [src/components/PlayerArea.tsx](/src/components/PlayerArea.tsx) | TypeScript JSX | 60 | 0 | 4 | 64 |
@@ -54,9 +77,10 @@ Total : 126 files,  53058 codes, 570 comments, 4391 blanks, all 58019 lines
 | [src/components/ResultStandingsPanel.tsx](/src/components/ResultStandingsPanel.tsx) | TypeScript JSX | 195 | 0 | 17 | 212 |
 | [src/components/RoomListScreen.tsx](/src/components/RoomListScreen.tsx) | TypeScript JSX | 148 | 0 | 12 | 160 |
 | [src/components/RoomSelectScreen.test.tsx](/src/components/RoomSelectScreen.test.tsx) | TypeScript JSX | 131 | 0 | 17 | 148 |
-| [src/components/RoomSelectScreen.tsx](/src/components/RoomSelectScreen.tsx) | TypeScript JSX | 30 | 0 | 4 | 34 |
+| [src/components/RoomSelectScreen.tsx](/src/components/RoomSelectScreen.tsx) | TypeScript JSX | 44 | 0 | 4 | 48 |
+| [src/components/SettingsScreen.tsx](/src/components/SettingsScreen.tsx) | TypeScript JSX | 144 | 0 | 15 | 159 |
 | [src/components/StartScreen.test.tsx](/src/components/StartScreen.test.tsx) | TypeScript JSX | 389 | 0 | 58 | 447 |
-| [src/components/StartScreen.tsx](/src/components/StartScreen.tsx) | TypeScript JSX | 526 | 0 | 36 | 562 |
+| [src/components/StartScreen.tsx](/src/components/StartScreen.tsx) | TypeScript JSX | 640 | 0 | 40 | 680 |
 | [src/components/manual/ManualIllustrations.tsx](/src/components/manual/ManualIllustrations.tsx) | TypeScript JSX | 372 | 0 | 20 | 392 |
 | [src/data/avatars.ts](/src/data/avatars.ts) | TypeScript | 26 | 0 | 4 | 30 |
 | [src/game/cpu.ts](/src/game/cpu.ts) | TypeScript | 19 | 0 | 2 | 21 |
@@ -93,7 +117,7 @@ Total : 126 files,  53058 codes, 570 comments, 4391 blanks, all 58019 lines
 | [src/sim/simulator.test.ts](/src/sim/simulator.test.ts) | TypeScript | 635 | 0 | 72 | 707 |
 | [src/sim/simulator.ts](/src/sim/simulator.ts) | TypeScript | 1,774 | 0 | 67 | 1,841 |
 | [src/sim/types.ts](/src/sim/types.ts) | TypeScript | 214 | 0 | 13 | 227 |
-| [src/styles.css](/src/styles.css) | PostCSS | 8,148 | 229 | 1,179 | 9,556 |
+| [src/styles.css](/src/styles.css) | PostCSS | 10,925 | 310 | 1,646 | 12,881 |
 | [src/test/setup.ts](/src/test/setup.ts) | TypeScript | 6 | 0 | 2 | 8 |
 | [src/types.ts](/src/types.ts) | TypeScript | 347 | 0 | 24 | 371 |
 | [src/vite-env.d.ts](/src/vite-env.d.ts) | TypeScript | 0 | 2 | 1 | 3 |
@@ -135,7 +159,10 @@ Total : 126 files,  53058 codes, 570 comments, 4391 blanks, all 58019 lines
 | [tsconfig.json](/tsconfig.json) | JSON with Comments | 22 | 0 | 1 | 23 |
 | [tsconfig.node.json](/tsconfig.node.json) | JSON | 9 | 0 | 1 | 10 |
 | [vite-5173.log](/vite-5173.log) | Log | 6 | 0 | 5 | 11 |
-| [vite-dev.out.log](/vite-dev.out.log) | Log | 0 | 0 | 1 | 1 |
+| [vite-room-create-check.err.log](/vite-room-create-check.err.log) | Log | 0 | 0 | 1 | 1 |
+| [vite-room-create-check.out.log](/vite-room-create-check.out.log) | Log | 2 | 0 | 3 | 5 |
+| [vite-room-list.err.log](/vite-room-list.err.log) | Log | 0 | 0 | 1 | 1 |
+| [vite-room-list.out.log](/vite-room-list.out.log) | Log | 0 | 0 | 1 | 1 |
 | [vite.config.ts](/vite.config.ts) | TypeScript | 50 | 0 | 2 | 52 |
 
 [Summary](results.md) / Details / [Diff Summary](diff.md) / [Diff Details](diff-details.md)

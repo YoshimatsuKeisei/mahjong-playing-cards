@@ -1,0 +1,35 @@
+"filename", "language", "Log", "PostCSS", "TypeScript JSX", "YAML", "comment", "blank", "total"
+"c:\Users\jingc\Documents\8番出口\.playwright-mcp\console-2026-06-20T23-57-32-837Z.log", "Log", 63, 0, 0, 0, 0, 1, 64
+"c:\Users\jingc\Documents\8番出口\.playwright-mcp\console-2026-06-21T00-04-37-474Z.log", "Log", 6, 0, 0, 0, 0, 1, 7
+"c:\Users\jingc\Documents\8番出口\.playwright-mcp\console-2026-06-21T08-34-24-532Z.log", "Log", 5, 0, 0, 0, 0, 1, 6
+"c:\Users\jingc\Documents\8番出口\.playwright-mcp\console-2026-06-21T08-36-47-960Z.log", "Log", 30, 0, 0, 0, 0, 1, 31
+"c:\Users\jingc\Documents\8番出口\.playwright-mcp\console-2026-06-21T08-39-55-774Z.log", "Log", 52, 0, 0, 0, 0, 1, 53
+"c:\Users\jingc\Documents\8番出口\.playwright-mcp\console-2026-06-21T08-45-43-380Z.log", "Log", 630, 0, 0, 0, 0, 1, 631
+"c:\Users\jingc\Documents\8番出口\.playwright-mcp\page-2026-06-20T23-58-46-066Z.yml", "YAML", 0, 0, 0, 58, 0, 0, 58
+"c:\Users\jingc\Documents\8番出口\.playwright-mcp\page-2026-06-20T23-59-50-145Z.yml", "YAML", 0, 0, 0, 12, 0, 0, 12
+"c:\Users\jingc\Documents\8番出口\.playwright-mcp\page-2026-06-21T00-00-16-639Z.yml", "YAML", 0, 0, 0, 11, 0, 0, 11
+"c:\Users\jingc\Documents\8番出口\.playwright-mcp\page-2026-06-21T00-02-24-625Z.yml", "YAML", 0, 0, 0, 11, 0, 0, 11
+"c:\Users\jingc\Documents\8番出口\.playwright-mcp\page-2026-06-21T00-03-14-143Z.yml", "YAML", 0, 0, 0, 11, 0, 0, 11
+"c:\Users\jingc\Documents\8番出口\.playwright-mcp\page-2026-06-21T00-05-09-854Z.yml", "YAML", 0, 0, 0, 17, 0, 0, 17
+"c:\Users\jingc\Documents\8番出口\.playwright-mcp\page-2026-06-21T00-06-40-032Z.yml", "YAML", 0, 0, 0, 17, 0, 0, 17
+"c:\Users\jingc\Documents\8番出口\.playwright-mcp\page-2026-06-21T08-36-48-651Z.yml", "YAML", 0, 0, 0, 58, 0, 0, 58
+"c:\Users\jingc\Documents\8番出口\.playwright-mcp\page-2026-06-21T08-37-41-486Z.yml", "YAML", 0, 0, 0, 12, 0, 0, 12
+"c:\Users\jingc\Documents\8番出口\.playwright-mcp\page-2026-06-21T08-38-27-725Z.yml", "YAML", 0, 0, 0, 61, 0, 0, 61
+"c:\Users\jingc\Documents\8番出口\.playwright-mcp\page-2026-06-21T08-39-56-240Z.yml", "YAML", 0, 0, 0, 57, 0, 0, 57
+"c:\Users\jingc\Documents\8番出口\.playwright-mcp\page-2026-06-21T08-41-08-844Z.yml", "YAML", 0, 0, 0, 12, 0, 0, 12
+"c:\Users\jingc\Documents\8番出口\.playwright-mcp\page-2026-06-21T08-41-34-622Z.yml", "YAML", 0, 0, 0, 61, 0, 0, 61
+"c:\Users\jingc\Documents\8番出口\.playwright-mcp\page-2026-06-21T08-45-44-001Z.yml", "YAML", 0, 0, 0, 58, 0, 0, 58
+"c:\Users\jingc\Documents\8番出口\.playwright-mcp\page-2026-06-21T08-46-58-275Z.yml", "YAML", 0, 0, 0, 12, 0, 0, 12
+"c:\Users\jingc\Documents\8番出口\.playwright-mcp\page-2026-06-21T08-47-45-264Z.yml", "YAML", 0, 0, 0, 61, 0, 0, 61
+"c:\Users\jingc\Documents\8番出口\src\App.tsx", "TypeScript JSX", 0, 0, 4, 0, 0, 1, 5
+"c:\Users\jingc\Documents\8番出口\src\components\ManualScreen.tsx", "TypeScript JSX", 0, 0, 101, 0, 2, 11, 114
+"c:\Users\jingc\Documents\8番出口\src\components\MoreGameScreen.tsx", "TypeScript JSX", 0, 0, 3, 0, 0, 0, 3
+"c:\Users\jingc\Documents\8番出口\src\components\RoomSelectScreen.tsx", "TypeScript JSX", 0, 0, 14, 0, 0, 0, 14
+"c:\Users\jingc\Documents\8番出口\src\components\SettingsScreen.tsx", "TypeScript JSX", 0, 0, 144, 0, 0, 15, 159
+"c:\Users\jingc\Documents\8番出口\src\components\StartScreen.tsx", "TypeScript JSX", 0, 0, 114, 0, 0, 4, 118
+"c:\Users\jingc\Documents\8番出口\src\styles.css", "PostCSS", 0, 2356, 0, 0, 81, 397, 2834
+"c:\Users\jingc\Documents\8番出口\vite-room-create-check.err.log", "Log", 0, 0, 0, 0, 0, 1, 1
+"c:\Users\jingc\Documents\8番出口\vite-room-create-check.out.log", "Log", 2, 0, 0, 0, 0, 3, 5
+"c:\Users\jingc\Documents\8番出口\vite-room-list.err.log", "Log", 0, 0, 0, 0, 0, 1, 1
+"c:\Users\jingc\Documents\8番出口\vite-room-list.out.log", "Log", 0, 0, 0, 0, 0, 1, 1
+"Total", "-", 788, 2356, 380, 529, 83, 440, 4576

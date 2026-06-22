@@ -12678,12 +12678,153 @@ body {
   display: flex;
   align-items: start;
   justify-content: start;
-  gap: clamp(0.65rem, 1.5vw, 1rem);
+  gap: clamp(0.25rem, 0.75vw, 0.5rem);
   min-width: 0;
 }
 
 .start-screen .room-top-toggles .field {
   margin-bottom: 0;
+}
+
+.start-screen .mid-game-join-field {
+  margin-left: clamp(-0.35rem, -0.7vw, -0.15rem);
+}
+
+.start-screen .mid-game-join-field > span {
+  white-space: nowrap;
+}
+
+.start-screen .room-name-field label > span,
+.start-screen .visibility-field > span,
+.start-screen .mid-game-join-field > span {
+  text-decoration-line: none;
+}
+
+.start-screen .room-settings label > span,
+.start-screen .room-preset-group > span {
+  margin-bottom: 0.28rem;
+  font-size: 1rem;
+  text-decoration-line: none;
+}
+
+.settings-screen .settings-panel {
+  --room-create-header-bottom: clamp(118px, 14vw, 152px);
+  --room-create-footer-top: clamp(96px, 11vw, 124px);
+}
+
+.settings-screen .settings-scroll-body {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.75rem, 1.6vw, 1rem);
+}
+
+.settings-screen .settings-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(0.75rem, 1.6vw, 1.1rem);
+}
+
+.settings-screen .field {
+  margin-bottom: 0;
+}
+
+.settings-screen .settings-number-field label,
+.settings-screen .settings-language-field label,
+.settings-screen .settings-contact-field label {
+  display: grid;
+  gap: 0.32rem;
+}
+
+.settings-screen input,
+.settings-screen select {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid rgba(203, 169, 87, 0.58);
+  border-radius: 8px;
+  background: rgba(255, 248, 218, 0.94);
+  color: #241a10;
+  font-family: "Fude Goshirae", "Shippori Mincho", "Yu Mincho", serif;
+  font-size: 1rem;
+  font-weight: 900;
+  padding: 0.45rem 0.7rem;
+  box-shadow:
+    inset 0 2px 6px rgba(58, 33, 12, 0.18),
+    0 0 0 1px rgba(255, 238, 170, 0.12);
+}
+
+.settings-screen select {
+  appearance: auto;
+}
+
+.settings-screen .settings-cpu-options {
+  grid-template-columns: repeat(5, max-content);
+  justify-content: start;
+}
+
+.settings-screen .settings-notification-grid {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.settings-screen .settings-notification-row {
+  display: grid;
+  grid-template-columns: minmax(210px, 1fr) max-content max-content;
+  align-items: center;
+  gap: clamp(0.45rem, 1vw, 0.75rem);
+  padding: 0.2rem 0.1rem;
+}
+
+.settings-screen .settings-notification-row strong {
+  color: #20272b;
+  font-family: "Fude Goshirae", "Shippori Mincho", "Yu Mincho", serif;
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.settings-screen .settings-toggle {
+  position: relative;
+  min-width: 112px;
+  min-height: 34px;
+  border: 1px solid rgba(38, 50, 45, 0.24);
+  border-radius: 999px;
+  background: rgba(52, 84, 71, 0.88);
+  color: #f7f1d8;
+  font-family: "Fude Goshirae", "Shippori Mincho", "Yu Mincho", serif;
+  font-weight: 900;
+  text-align: right;
+  padding: 0.28rem 0.72rem 0.28rem 2.35rem;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    0 2px 5px rgba(0, 0, 0, 0.12);
+}
+
+.settings-screen .settings-toggle::before {
+  position: absolute;
+  top: 50%;
+  left: 7px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 35% 30%, #fff8d8 0, #d9c277 36%, #716334 100%);
+  transform: translateY(-50%);
+  content: "";
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.34);
+}
+
+.settings-screen .settings-actions {
+  justify-content: center;
+}
+
+@media (max-width: 720px) {
+  .settings-screen .settings-grid,
+  .settings-screen .settings-notification-row {
+    grid-template-columns: 1fr;
+  }
+
+  .settings-screen .settings-cpu-options {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 560px) {
