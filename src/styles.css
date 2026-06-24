@@ -12805,8 +12805,12 @@ body {
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  background:
-    radial-gradient(circle at 35% 30%, #fff8d8 0, #d9c277 36%, #716334 100%);
+  background: radial-gradient(
+    circle at 35% 30%,
+    #fff8d8 0,
+    #d9c277 36%,
+    #716334 100%
+  );
   transform: translateY(-50%);
   content: "";
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.34);
