@@ -3289,6 +3289,8 @@ function RoomManagementDialog({
   >(null);
   const [settingValue, setSettingValue] = useState("");
   const [settingError, setSettingError] = useState<string | null>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [hasContentScroll, setHasContentScroll] = useState(false);
   const tabs: Array<{
     id: RoomManagementTab;
     label: string;
@@ -3321,6 +3323,55 @@ function RoomManagementDialog({
   const substituteCpuModelId =
     room?.substituteCpuModels?.find((item) => item.playerId === onlinePlayerId)
       ?.cpuModelId ?? "standard";
+
+  function updateContentScrollState() {
+    const content = contentRef.current;
+    if (!content) return;
+    setHasContentScroll(content.scrollHeight > content.clientHeight + 1);
+  }
+
+  useLayoutEffect(() => {
+    updateContentScrollState();
+    const content = contentRef.current;
+    if (!content) return;
+
+    const resizeObserver =
+      typeof ResizeObserver === "undefined"
+        ? null
+        : new ResizeObserver(updateContentScrollState);
+    resizeObserver?.observe(content);
+
+    window.addEventListener("resize", updateContentScrollState);
+    return () => {
+      resizeObserver?.disconnect();
+      window.removeEventListener("resize", updateContentScrollState);
+    };
+  }, [
+    selectedTab,
+    editingSetting,
+    settingError,
+    settingValue,
+    matchGameState.players.length,
+    substituteCpuModelId,
+  ]);
+
+  function scrollContentBy(delta: number) {
+    contentRef.current?.scrollBy({ top: delta, behavior: "smooth" });
+  }
+
+  function scrollContentToPointer(event: React.PointerEvent<HTMLButtonElement>) {
+    const content = contentRef.current;
+    if (!content) return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    const progress = Math.min(
+      Math.max((event.clientY - rect.top) / rect.height, 0),
+      1,
+    );
+    content.scrollTo({
+      top: (content.scrollHeight - content.clientHeight) * progress,
+      behavior: "smooth",
+    });
+  }
 
   function startEditingSetting(kind: "rounds" | "targetScore") {
     setEditingSetting(kind);
@@ -3397,104 +3448,109 @@ function RoomManagementDialog({
             ))}
           </div>
 
-          <div className="room-management-content">
-            {selectedTab === "exit" && (
-              <>
-                <p>現在の試合から退出しますか？</p>
-                <div className="exit-confirm-actions">
-                  <button
-                    type="button"
-                    className="primary-button"
-                    onClick={onExit}
-                  >
-                    退出
-                  </button>
-                  <button type="button" onClick={onClose}>
-                    キャンセル
-                  </button>
-                </div>
-              </>
-            )}
-
-            {selectedTab === "temporaryLeave" && (
-              <>
-                <p>一時離脱しますか？</p>
-                <div className="temporary-leave-options">
-                  <button
-                    type="button"
-                    className="primary-button"
-                    onClick={() => onStartTemporaryLeave("pause")}
-                  >
-                    中断する
-                  </button>
-                  <p>
-                    あなたの手番で試合を停止します。15分以内に戻らない場合、CPUに置き換わります。
-                  </p>
-                  <button
-                    type="button"
-                    className="primary-button"
-                    onClick={() => onStartTemporaryLeave("cpuSubstitute")}
-                  >
-                    CPUに代行させる
-                  </button>
-                  <p>
-                    離脱中はCPUがあなたの代わりに手番を進めます。15分以内に戻らない場合、正式にCPUへ置き換わります。
-                  </p>
-                </div>
-                <div className="exit-confirm-actions">
-                  <button type="button" onClick={onClose}>
-                    閉じる
-                  </button>
-                </div>
-              </>
-            )}
-
-            {selectedTab === "transferHost" && (
-              <>
-                <p>ホストを変更するプレイヤーを選択してください。</p>
-                {transferTargets.length > 0 ? (
-                  <div className="host-transfer-list">
-                    {transferTargets.map((player) => (
-                      <button
-                        type="button"
-                        onClick={() => onTransferHost(player.playerId)}
-                        key={player.playerId}
-                      >
-                        {player.name}
-                      </button>
-                    ))}
+          <div className="room-management-content-wrap">
+            <div
+              className="room-management-content"
+              ref={contentRef}
+              onScroll={updateContentScrollState}
+            >
+              {selectedTab === "exit" && (
+                <>
+                  <p>現在の試合から退出しますか？</p>
+                  <div className="exit-confirm-actions">
+                    <button
+                      type="button"
+                      className="primary-button"
+                      onClick={onExit}
+                    >
+                      退出
+                    </button>
+                    <button type="button" onClick={onClose}>
+                      キャンセル
+                    </button>
                   </div>
-                ) : (
-                  <p>ホストを変更できるプレイヤーがいません。</p>
-                )}
-                <div className="exit-confirm-actions">
-                  <button type="button" onClick={onClose}>
-                    閉じる
-                  </button>
-                </div>
-              </>
-            )}
+                </>
+              )}
 
-            {selectedTab === "manual" && (
-              <>
-                <p>マニュアルを読みますか？</p>
-                <div className="exit-confirm-actions">
-                  <button
-                    type="button"
-                    className="primary-button"
-                    onClick={onOpenManual}
-                  >
-                    はい
-                  </button>
-                  <button type="button" onClick={onClose}>
-                    いいえ
-                  </button>
-                </div>
-              </>
-            )}
+              {selectedTab === "temporaryLeave" && (
+                <>
+                  <p>一時離脱しますか？</p>
+                  <div className="temporary-leave-options">
+                    <button
+                      type="button"
+                      className="primary-button"
+                      onClick={() => onStartTemporaryLeave("pause")}
+                    >
+                      中断する
+                    </button>
+                    <p>
+                      あなたの手番で試合を停止します。15分以内に戻らない場合、CPUに置き換わります。
+                    </p>
+                    <button
+                      type="button"
+                      className="primary-button"
+                      onClick={() => onStartTemporaryLeave("cpuSubstitute")}
+                    >
+                      CPUに代行させる
+                    </button>
+                    <p>
+                      離脱中はCPUがあなたの代わりに手番を進めます。15分以内に戻らない場合、正式にCPUへ置き換わります。
+                    </p>
+                  </div>
+                  <div className="exit-confirm-actions">
+                    <button type="button" onClick={onClose}>
+                      閉じる
+                    </button>
+                  </div>
+                </>
+              )}
 
-            {selectedTab === "matchInfo" && (
-              <>
+              {selectedTab === "transferHost" && (
+                <>
+                  <p>ホストを変更するプレイヤーを選択してください。</p>
+                  {transferTargets.length > 0 ? (
+                    <div className="host-transfer-list">
+                      {transferTargets.map((player) => (
+                        <button
+                          type="button"
+                          onClick={() => onTransferHost(player.playerId)}
+                          key={player.playerId}
+                        >
+                          {player.name}
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <p>ホストを変更できるプレイヤーがいません。</p>
+                  )}
+                  <div className="exit-confirm-actions">
+                    <button type="button" onClick={onClose}>
+                      閉じる
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {selectedTab === "manual" && (
+                <>
+                  <p>マニュアルを読みますか？</p>
+                  <div className="exit-confirm-actions">
+                    <button
+                      type="button"
+                      className="primary-button"
+                      onClick={onOpenManual}
+                    >
+                      はい
+                    </button>
+                    <button type="button" onClick={onClose}>
+                      いいえ
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {selectedTab === "matchInfo" && (
+                <>
                 <div className="match-info-list">
                   <div className="match-info-row">
                     <span>ルーム名</span>
@@ -3502,7 +3558,15 @@ function RoomManagementDialog({
                       {matchState?.roomName ?? room?.roomId ?? "ルーム"}
                     </strong>
                   </div>
-                  <div className="match-info-row match-info-row--players">
+                  <div
+                    className="match-info-row match-info-row--players"
+                    style={
+                      {
+                        "--match-info-player-count":
+                          matchGameState.players.length,
+                      } as CSSProperties
+                    }
+                  >
                     <span>プレイヤー</span>
                     <div className="match-info-players">
                       {matchGameState.players.map((player, index) => (
@@ -3626,7 +3690,20 @@ function RoomManagementDialog({
                     閉じる
                   </button>
                 </div>
-              </>
+                </>
+              )}
+            </div>
+            {hasContentScroll && (
+              <button
+                type="button"
+                className="room-management-scrollbar"
+                aria-label="設定内容をスクロール"
+                onPointerDown={scrollContentToPointer}
+                onWheel={(event) => {
+                  event.preventDefault();
+                  scrollContentBy(event.deltaY);
+                }}
+              />
             )}
           </div>
         </div>
