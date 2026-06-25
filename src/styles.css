@@ -6018,80 +6018,257 @@ h2 {
 }
 
 .room-management-dialog {
+  position: relative;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
-  width: min(94vw, 680px);
-  height: min(88vh, 580px);
+  grid-template-rows: minmax(0, 1fr);
+  width: min(94vw, calc(90vh * 1300 / 975), 1040px);
+  height: auto;
+  aspect-ratio: 1300 / 975;
+  border: 0;
+  border-radius: 0;
+  background: url("../プレイ画面内設定モーダル.png") center / 100% 100%
+    no-repeat;
+  padding: 0;
   text-align: left;
+  box-shadow: none;
 }
 
 .room-management-dialog h2 {
+  position: absolute;
+  left: 50%;
+  top: 9.6%;
+  width: 42%;
+  margin: 0;
+  transform: translateX(-50%);
+  color: #fffdf7;
+  font-family: "Fude Goshirae", "Shippori Mincho", "Yu Mincho", serif;
+  font-size: clamp(1.2rem, 2.6vw, 2rem);
+  font-weight: 900;
+  line-height: 1;
   text-align: center;
+  text-shadow:
+    0 2px 0 rgba(31, 18, 8, 0.88),
+    0 0 8px rgba(240, 208, 134, 0.24);
 }
 
 .room-management-tabs {
   display: grid;
   align-content: start;
-  gap: 0.45rem;
-  min-width: 9rem;
+  gap: clamp(0.26rem, 0.9vw, 0.54rem);
+  min-width: 0;
 }
 
 .room-management-tabs button,
 .host-transfer-list button {
-  border: 1px solid rgba(214, 165, 64, 0.42);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.08);
+  border: 0;
+  border-radius: 0;
+  background-color: transparent;
+  background-position: center;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
   color: #fffdf7;
-  padding: 0.55rem 0.75rem;
-  font-weight: 800;
+  font-family: "Fude Goshirae", "Shippori Mincho", "Yu Mincho", serif;
+  font-size: clamp(0.88rem, 1.55vw, 1.2rem);
+  font-weight: 900;
   text-align: left;
+  text-shadow:
+    0 2px 0 rgba(31, 18, 8, 0.78),
+    0 0 7px rgba(255, 240, 180, 0.18);
+  box-shadow: none;
+}
+
+.room-management-tabs button {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 0;
+  aspect-ratio: 519 / 143;
+  padding: 0 16% 0 20%;
+}
+
+.room-management-tabs button:nth-child(1) {
+  background-image: url("../プレイ設定1.png");
+}
+
+.room-management-tabs button:nth-child(2) {
+  background-image: url("../プレイ設定2.png");
+}
+
+.room-management-tabs button:nth-child(3) {
+  background-image: url("../プレイ設定3.png");
+}
+
+.room-management-tabs button:nth-child(4) {
+  background-image: url("../プレイ設定4.png");
+}
+
+.room-management-tabs button:nth-child(5) {
+  background-image: url("../プレイ設定5.png");
+}
+
+.room-management-tabs button:nth-child(6) {
+  background-image: url("../プレイ設定6.png");
 }
 
 .room-management-tabs button.selected,
+.room-management-tabs button:hover,
 .host-transfer-list button:hover {
-  background: rgba(214, 165, 64, 0.2);
+  filter: brightness(1.12) drop-shadow(0 0 10px rgba(64, 224, 172, 0.2));
+  transform: translateY(-1px);
 }
 
 .room-management-panel {
+  position: absolute;
+  left: 6.2%;
+  top: 18.5%;
   display: grid;
-  grid-template-columns: 9rem minmax(0, 1fr);
-  gap: 1rem;
+  grid-template-columns: 25% minmax(0, 1fr);
+  gap: 4.2%;
+  width: 87.5%;
+  height: 70.5%;
   min-height: 0;
-  margin-top: 1rem;
+  margin: 0;
+  overflow: hidden;
+}
+
+.room-management-content-wrap {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(20px, 2.8vw, 34px);
+  gap: clamp(0.35rem, 0.9vw, 0.7rem);
+  min-height: 0;
   overflow: hidden;
 }
 
 .room-management-content {
   min-height: 0;
   overflow: auto;
-  padding-right: 0.2rem;
+  padding: clamp(0.6rem, 1.6vw, 1.15rem) clamp(0.7rem, 1.8vw, 1.25rem);
+  scrollbar-width: none;
   text-align: center;
+}
+
+.room-management-content::-webkit-scrollbar {
+  display: none;
+}
+
+.room-management-scrollbar {
+  align-self: stretch;
+  justify-self: center;
+  width: clamp(20px, 2.8vw, 34px);
+  min-width: 0;
+  min-height: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent url("../スクロールバー4.png") center / 100% 100%
+    no-repeat;
+  padding: 0;
+  box-shadow: none;
+  cursor: pointer;
+}
+
+.room-management-scrollbar:hover {
+  filter: brightness(1.08) drop-shadow(0 0 8px rgba(240, 208, 134, 0.22));
+}
+
+.room-management-content > p {
+  color: #fffdf7;
+  font-family: "Fude Goshirae", "Shippori Mincho", "Yu Mincho", serif;
+  font-size: clamp(1rem, 1.8vw, 1.35rem);
+  font-weight: 900;
+  text-shadow: 0 2px 0 rgba(31, 18, 8, 0.72);
+}
+
+.room-management-dialog .exit-confirm-actions {
+  gap: clamp(0.65rem, 1.4vw, 1rem);
+  margin-top: clamp(0.8rem, 2vw, 1.35rem);
+}
+
+.room-management-dialog .exit-confirm-actions button,
+.room-management-dialog .temporary-leave-options .primary-button,
+.room-management-dialog .host-transfer-list button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  width: clamp(128px, 17vw, 186px);
+  min-height: 0;
+  aspect-ratio: 519 / 143;
+  border: 0;
+  border-radius: 0;
+  background-color: transparent;
+  background-position: center;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  padding: 0 1rem;
+  color: #fffdf7;
+  font-family: "Fude Goshirae", "Shippori Mincho", "Yu Mincho", serif;
+  font-size: clamp(0.88rem, 1.5vw, 1.15rem);
+  font-weight: 900;
+  text-align: center;
+  text-shadow: 0 2px 0 rgba(31, 18, 8, 0.72);
+  box-shadow: none;
+}
+
+.room-management-dialog .temporary-leave-options .primary-button {
+  width: clamp(158px, 20vw, 228px);
+  padding: 0 1.4rem;
+  white-space: nowrap;
+}
+
+.room-management-dialog .exit-confirm-actions .primary-button,
+.room-management-dialog .temporary-leave-options .primary-button,
+.room-management-dialog .host-transfer-list button,
+.room-management-dialog .match-info-change-button {
+  background-image: url("../決定ボタン1.png");
+}
+
+.room-management-dialog .exit-confirm-actions button:not(.primary-button) {
+  background-image: url("../キャンセルボタン2.png");
+  color: #241a10;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.58);
+}
+
+.room-management-dialog .exit-confirm-actions button:hover,
+.room-management-dialog .temporary-leave-options .primary-button:hover,
+.room-management-dialog .host-transfer-list button:hover,
+.room-management-dialog .match-info-change-button:hover {
+  filter: brightness(1.08) drop-shadow(0 0 9px rgba(240, 208, 134, 0.2));
+  transform: translateY(-1px);
 }
 
 .host-transfer-list {
   display: grid;
-  gap: 0.5rem;
+  grid-template-columns: repeat(2, max-content);
+  justify-content: center;
+  gap: clamp(0.5rem, 1vw, 0.8rem);
   margin-top: 0.9rem;
 }
 
 .temporary-leave-options {
   display: grid;
-  gap: 0.5rem;
+  gap: clamp(0.42rem, 0.9vw, 0.62rem);
   margin-top: 0.8rem;
   text-align: left;
 }
 
+.temporary-leave-options .primary-button {
+  justify-self: center;
+}
+
 .temporary-leave-options p {
   margin: 0;
-  color: rgba(255, 253, 247, 0.76);
-  font-size: 0.82rem;
+  color: rgba(255, 253, 247, 0.82);
+  font-family: "Fude Goshirae", "Shippori Mincho", "Yu Mincho", serif;
+  font-size: clamp(0.84rem, 1.25vw, 1.02rem);
+  font-weight: 900;
   line-height: 1.5;
+  text-shadow: 0 2px 0 rgba(31, 18, 8, 0.58);
 }
 
 .match-info-list {
   display: grid;
-  gap: 0.55rem;
-  margin-top: 0.25rem;
+  gap: clamp(0.22rem, 0.55vw, 0.36rem);
+  margin-top: 0.12rem;
 }
 
 .match-info-row {
@@ -6099,51 +6276,80 @@ h2 {
   grid-template-columns: minmax(7rem, 0.9fr) minmax(0, 1.4fr) auto;
   align-items: center;
   gap: 0.55rem;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.05);
-  padding: 0.55rem 0.7rem;
+  min-height: clamp(46px, 5.4vw, 60px);
+  border: 0;
+  border-radius: 0;
+  background: transparent url("../試合情報タブ.png") center / 100% 132%
+    no-repeat;
+  padding: clamp(0.45rem, 0.95vw, 0.65rem) clamp(1.1rem, 2.5vw, 1.8rem);
+}
+
+.match-info-row + .match-info-row {
+  margin-top: 0;
 }
 
 .match-info-row--players {
-  align-items: start;
+  align-items: center;
+  min-height: clamp(
+    136px,
+    calc((var(--match-info-player-count, 3) * 2.28rem) + 2.35rem),
+    218px
+  );
+  padding-top: clamp(0.82rem, 1.35vw, 1.1rem);
+  padding-bottom: clamp(0.82rem, 1.35vw, 1.1rem);
 }
 
 .match-info-row > span {
   color: rgba(255, 253, 247, 0.68);
-  font-size: 0.78rem;
+  font-family: "Fude Goshirae", "Shippori Mincho", "Yu Mincho", serif;
+  font-size: clamp(0.72rem, 1.05vw, 0.86rem);
   font-weight: 900;
+  text-align: center;
+  text-shadow: 0 2px 0 rgba(31, 18, 8, 0.58);
 }
 
 .match-info-row > strong {
   min-width: 0;
   overflow-wrap: anywhere;
   color: #fffdf7;
+  font-family: "Fude Goshirae", "Shippori Mincho", "Yu Mincho", serif;
+  font-weight: 900;
+  font-size: clamp(0.86rem, 1.45vw, 1.08rem);
+  text-align: center;
+  text-shadow: 0 2px 0 rgba(31, 18, 8, 0.62);
 }
 
 .match-info-players {
   display: grid;
-  gap: 0.32rem;
+  gap: clamp(0.1rem, 0.32vw, 0.22rem);
+  align-self: center;
+  min-width: 0;
 }
 
 .match-info-player {
   display: grid;
-  grid-template-columns: 2.6rem minmax(0, 1fr);
+  grid-template-columns: 3rem minmax(0, 1fr);
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.3rem;
+  min-width: 0;
 }
 
 .match-info-player strong {
   min-width: 0;
-  overflow-wrap: anywhere;
+  overflow: hidden;
+  font-size: clamp(0.78rem, 1.32vw, 0.98rem);
+  line-height: 1.22;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
 }
 
 .match-info-player em {
   border: 1px solid rgba(214, 165, 64, 0.55);
   border-radius: 999px;
   color: #ffe4a0;
-  padding: 0.08rem 0.38rem;
-  font-size: 0.68rem;
+  padding: 0.06rem 0.32rem;
+  font-size: clamp(0.52rem, 0.8vw, 0.62rem);
   font-style: normal;
   font-weight: 900;
   text-align: center;
@@ -6154,12 +6360,21 @@ h2 {
 }
 
 .match-info-change-button {
-  border: 1px solid rgba(214, 165, 64, 0.52);
-  border-radius: 999px;
-  background: rgba(214, 165, 64, 0.16);
+  width: clamp(74px, 9vw, 112px);
+  min-height: 0;
+  aspect-ratio: 519 / 143;
+  border: 0;
+  border-radius: 0;
+  background-color: transparent;
+  background-position: center;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
   color: #fff8dc;
-  padding: 0.32rem 0.65rem;
+  padding: 0 0.5rem;
+  font-family: "Fude Goshirae", "Shippori Mincho", "Yu Mincho", serif;
+  font-size: clamp(0.75rem, 1.1vw, 0.95rem);
   font-weight: 900;
+  text-shadow: 0 2px 0 rgba(31, 18, 8, 0.7);
 }
 
 .match-setting-editor {
@@ -6230,15 +6445,17 @@ h2 {
 
 @media (max-width: 520px) {
   .room-management-dialog {
-    height: min(90vh, 580px);
+    width: min(98vw, calc(90vh * 1300 / 975));
+    height: auto;
   }
 
   .room-management-panel {
-    grid-template-columns: 1fr;
+    grid-template-columns: 25% minmax(0, 1fr);
+    gap: 4.2%;
   }
 
   .room-management-tabs {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr;
   }
 
   .match-info-row {
@@ -12774,6 +12991,10 @@ body {
   padding: 0.2rem 0.1rem;
 }
 
+.settings-screen .settings-notification-header {
+  padding-bottom: 0;
+}
+
 .settings-screen .settings-notification-row strong {
   color: #20272b;
   font-family: "Fude Goshirae", "Shippori Mincho", "Yu Mincho", serif;
@@ -12781,8 +13002,25 @@ body {
   font-weight: 900;
 }
 
+.settings-screen
+  .settings-notification-row.settings-notification-header
+  strong {
+  justify-self: center;
+  color: #5f4720;
+  font-size: 0.92rem;
+}
+
+.settings-screen .settings-notification-game-heading {
+  transform: translateX(-65px);
+}
+
+.settings-screen .settings-notification-mobile-heading {
+  transform: translateX(-20px);
+}
+
 .settings-screen .settings-toggle {
   position: relative;
+  width: 112px;
   min-width: 112px;
   min-height: 34px;
   border: 1px solid rgba(38, 50, 45, 0.24);
@@ -12791,11 +13029,27 @@ body {
   color: #f7f1d8;
   font-family: "Fude Goshirae", "Shippori Mincho", "Yu Mincho", serif;
   font-weight: 900;
-  text-align: right;
-  padding: 0.28rem 0.72rem 0.28rem 2.35rem;
+  text-align: left;
+  padding: 0.28rem 2.35rem 0.28rem 0.9rem;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.14),
     0 2px 5px rgba(0, 0, 0, 0.12);
+  transition:
+    background 160ms ease,
+    color 160ms ease;
+}
+
+.settings-screen .settings-toggle.is-off {
+  background: rgba(122, 117, 99, 0.68);
+  color: rgba(255, 253, 247, 0.76);
+  text-align: right;
+  padding: 0.28rem 0.9rem 0.28rem 2.35rem;
+}
+
+.settings-screen .settings-toggle span {
+  position: relative;
+  z-index: 1;
+  display: block;
 }
 
 .settings-screen .settings-toggle::before {
@@ -12811,9 +13065,14 @@ body {
     #d9c277 36%,
     #716334 100%
   );
-  transform: translateY(-50%);
+  transform: translate(76px, -50%);
   content: "";
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.34);
+  transition: transform 180ms cubic-bezier(0.16, 0.78, 0.28, 1);
+}
+
+.settings-screen .settings-toggle.is-off::before {
+  transform: translate(0, -50%);
 }
 
 .settings-screen .settings-actions {
@@ -12821,9 +13080,20 @@ body {
 }
 
 @media (max-width: 720px) {
-  .settings-screen .settings-grid,
-  .settings-screen .settings-notification-row {
+  .settings-screen .settings-grid {
     grid-template-columns: 1fr;
+  }
+
+  .settings-screen .settings-notification-row {
+    grid-template-columns: minmax(0, 1fr) max-content max-content;
+  }
+
+  .settings-screen .settings-notification-header span {
+    display: none;
+  }
+
+  .settings-screen .settings-notification-header {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   }
 
   .settings-screen .settings-cpu-options {

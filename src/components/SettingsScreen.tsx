@@ -172,6 +172,15 @@ export default function SettingsScreen({ onBackHome }: SettingsScreenProps) {
           <div className="field settings-notification-field">
             <span>通知設定</span>
             <div className="settings-notification-grid">
+              <div className="settings-notification-row settings-notification-header">
+                <span aria-hidden="true" />
+                <strong className="settings-notification-game-heading">
+                  ゲーム内
+                </strong>
+                <strong className="settings-notification-mobile-heading">
+                  スマホ画面
+                </strong>
+              </div>
               {notificationItems.map((item) => (
                 <div className="settings-notification-row" key={item}>
                   <strong>{item}</strong>
@@ -184,7 +193,7 @@ export default function SettingsScreen({ onBackHome }: SettingsScreenProps) {
                     aria-checked={notifications[item].game}
                     onClick={() => toggleNotification(item, "game")}
                   >
-                    <span>ゲーム内</span>
+                    <span>{notifications[item].game ? "ON" : "OFF"}</span>
                   </button>
                   <button
                     type="button"
@@ -195,7 +204,7 @@ export default function SettingsScreen({ onBackHome }: SettingsScreenProps) {
                     aria-checked={notifications[item].mobile}
                     onClick={() => toggleNotification(item, "mobile")}
                   >
-                    <span>スマホ画面</span>
+                    <span>{notifications[item].mobile ? "ON" : "OFF"}</span>
                   </button>
                 </div>
               ))}
