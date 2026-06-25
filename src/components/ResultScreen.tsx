@@ -83,122 +83,138 @@ export default function ResultScreen({
   return (
     <main className="screen result-screen" data-testid="result-screen">
       <section className="result-panel result-board">
-        <div className="result-round-title">{currentRound}回戦</div>
-        <h1 className="result-board-title result-pop-item" style={{ animationDelay: "0s" }}>
-          各プレイヤーの失点
-        </h1>
+        <div className="result-board-scroll">
+          <div className="result-round-title">{currentRound}回戦</div>
+          <h1 className="result-board-title result-pop-item" style={{ animationDelay: "0s" }}>
+            各プレイヤーの失点
+          </h1>
 
-        <div className="player-result-list" data-testid="result-player-list">
-          {state.players.map((player, index) => {
-            const breakdown = buildPlayerBreakdown(state, result, player, index);
-            const label = getResultLabel(result, index);
-            const rowTone = getResultRowTone(result, index);
+          <div className="player-result-list" data-testid="result-player-list">
+            {state.players.map((player, index) => {
+              const breakdown = buildPlayerBreakdown(state, result, player, index);
+              const label = getResultLabel(result, index);
+              const rowTone = getResultRowTone(result, index);
 
-            return (
-              <section
-                className={`player-result-row result-pop-item ${rowTone}`}
-                data-testid="result-player-row"
-                style={{ animationDelay: `${0.4 + index * 0.4}s` }}
-                key={player.id}
-              >
-                <div className="player-result-profile">
-                  <div className="player-result-head">
-                    <strong>{player.name}</strong>
-                    {label && <em>{label}</em>}
-                  </div>
-                  <div className="result-avatar">
-                    <AvatarPreview avatar={resultAvatar} size="small" />
-                  </div>
-                </div>
-
-                <div className="player-result-cards">
-                  <div className="result-hand-breakdown" aria-label={`${player.name}の手札内訳`}>
-                    <div className="result-meld-column">
-                      <span>できた役</span>
-                      <div className="result-meld-groups">
-                        {breakdown.melds.length === 0 ? (
-                          <em>なし</em>
-                        ) : (
-                          breakdown.melds.map((meld, meldIndex) => (
-                            <div className="result-card-group" key={`${player.id}-meld-${meldIndex}-${meld.map((card) => card.id).join("-")}`}>
-                              {sortCardsForDisplay(meld).map((card) => (
-                                <PlayingCard card={card} compact key={card.id} />
-                              ))}
-                            </div>
-                          ))
-                        )}
-                      </div>
+              return (
+                <section
+                  className={`player-result-row result-pop-item ${rowTone}`}
+                  data-testid="result-player-row"
+                  style={{ animationDelay: `${0.4 + index * 0.4}s` }}
+                  key={player.id}
+                >
+                  <div className="player-result-profile">
+                    <div className="player-result-head">
+                      <strong>{player.name}</strong>
+                      {label && <em>{label}</em>}
                     </div>
-
-                    <div className="result-rest-column">
-                      <span>余り札</span>
-                      <div className="result-card-group">
-                        {breakdown.remainder.length === 0 ? (
-                          <em>なし</em>
-                        ) : (
-                          sortCardsForDisplay(breakdown.remainder).map((card) => <PlayingCard card={card} compact key={card.id} />)
-                        )}
-                      </div>
+                    <div className="result-avatar">
+                      <AvatarPreview avatar={resultAvatar} size="small" />
                     </div>
                   </div>
-                </div>
 
-                <div className="player-result-score">
-                  <span>失点</span>
-                  <strong>{getDisplayPlayerLoss(result, index)}</strong>
-                </div>
-              </section>
-            );
-          })}
-        </div>
+                  <div className="player-result-cards">
+                    <div className="result-hand-breakdown" aria-label={`${player.name}の手札内訳`}>
+                      <div className="result-meld-column">
+                        <span>できた役</span>
+                        <div className="result-meld-groups">
+                          {breakdown.melds.length === 0 ? (
+                            <em>なし</em>
+                          ) : (
+                            breakdown.melds.map((meld, meldIndex) => (
+                              <div className="result-card-group" key={`${player.id}-meld-${meldIndex}-${meld.map((card) => card.id).join("-")}`}>
+                                {sortCardsForDisplay(meld).map((card) => (
+                                  <PlayingCard card={card} compact key={card.id} />
+                                ))}
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </div>
 
-        <section className="score-result-panel result-pop-item" style={{ animationDelay: `${0.4 + state.players.length * 0.4}s` }}>
-          <div className="score-result-main">
-            <div className="score-method">{winTypeLabel}</div>
-            {displayMode !== "startingPoints" && <FormulaExpression parts={buildScoreFormulaPartsForMode(state, result, displayMode)} />}
+                      <div className="result-rest-column">
+                        <span>余り札</span>
+                        <div className="result-card-group">
+                          {breakdown.remainder.length === 0 ? (
+                            <em>なし</em>
+                          ) : (
+                            sortCardsForDisplay(breakdown.remainder).map((card) => <PlayingCard card={card} compact key={card.id} />)
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="player-result-score">
+                    <span>失点</span>
+                    <strong>{getDisplayPlayerLoss(result, index)}</strong>
+                  </div>
+                </section>
+              );
+            })}
           </div>
-          <div className="score-final">
-            <span>{displayMode === "startingPoints" ? "持ち点" : "得点"}</span>
-            <strong>{getDisplayFinalScore(result, state.players.length, displayMode)}点</strong>
-          </div>
-          {ronResults.length > 1 && displayMode !== "startingPoints" && (
-            <div className="formula-breakdown">
-              {ronResults.map((item) => (
-                <div className="formula-row" key={item.winnerIndex}>
-                  <span>{state.players[item.winnerIndex].name}</span>
-                  <FormulaExpression parts={buildScoreFormulaPartsForMode(state, { ...result, winnerIndex: item.winnerIndex, score: item.score }, displayMode)} />
-                </div>
-              ))}
-            </div>
-          )}
-          {displayMode === "startingPoints" && (
-            <div className="formula-breakdown">
-              {buildStartingPointDeductionRows(state, result).map((row) => (
-                <div className="formula-row" key={`${row.playerName}-${row.parts.map((part) => part.value).join("-")}`}>
-                  <span>{row.playerName}</span>
-                  <FormulaExpression parts={row.parts} />
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
 
-        <section className="result-winner-call result-pop-item" style={{ animationDelay: `${0.8 + state.players.length * 0.4}s` }}>
-          <p className="eyebrow">結果</p>
-          <div className="result-winner-line">
-            <h1>
-              <span className="result-trophy" aria-hidden="true">
-                🏆
-              </span>
-              {winnerTitle}
-            </h1>
-            {canShowStandings && (
-              <button type="button" className="standings-toggle-button" onClick={() => setIsStandingsOpen(true)}>
-                現時点の成績
+          <section className="score-result-panel result-pop-item" style={{ animationDelay: `${0.4 + state.players.length * 0.4}s` }}>
+            <div className="score-result-main">
+              <div className="score-method">{winTypeLabel}</div>
+              {displayMode !== "startingPoints" && <FormulaExpression parts={buildScoreFormulaPartsForMode(state, result, displayMode)} />}
+            </div>
+            <div className="score-final">
+              <span>{displayMode === "startingPoints" ? "持ち点" : "得点"}</span>
+              <strong>{getDisplayFinalScore(result, state.players.length, displayMode)}点</strong>
+            </div>
+            {ronResults.length > 1 && displayMode !== "startingPoints" && (
+              <div className="formula-breakdown">
+                {ronResults.map((item) => (
+                  <div className="formula-row" key={item.winnerIndex}>
+                    <span>{state.players[item.winnerIndex].name}</span>
+                    <FormulaExpression parts={buildScoreFormulaPartsForMode(state, { ...result, winnerIndex: item.winnerIndex, score: item.score }, displayMode)} />
+                  </div>
+                ))}
+              </div>
+            )}
+            {displayMode === "startingPoints" && (
+              <div className="formula-breakdown">
+                {buildStartingPointDeductionRows(state, result).map((row) => (
+                  <div className="formula-row" key={`${row.playerName}-${row.parts.map((part) => part.value).join("-")}`}>
+                    <span>{row.playerName}</span>
+                    <FormulaExpression parts={row.parts} />
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+
+          <section className="result-winner-call result-pop-item" style={{ animationDelay: `${0.8 + state.players.length * 0.4}s` }}>
+            <p className="eyebrow">結果</p>
+            <div className="result-winner-line">
+              <h1>
+                <span className="result-trophy" aria-hidden="true">
+                  🏆
+                </span>
+                {winnerTitle}
+              </h1>
+              {canShowStandings && (
+                <button type="button" className="standings-toggle-button" onClick={() => setIsStandingsOpen(true)}>
+                  現時点の成績
+                </button>
+              )}
+            </div>
+          </section>
+
+          <div className="result-actions result-pop-item" style={{ animationDelay: `${1.8 + state.players.length * 0.4}s` }}>
+            {canShowNextRound && (
+              <button type="button" className="primary-button next-round-button" onClick={onNextRound}>
+                {nextRound}回戦に進む
               </button>
             )}
+            <button type="button" className="primary-button" onClick={onRestart}>
+              やめる
+            </button>
+            <button type="button" onClick={onBackHome}>
+              ホーム画面に戻る
+            </button>
           </div>
-        </section>
+        </div>
 
         {currentStandings && (
           <ResultStandingsPanel
@@ -209,20 +225,6 @@ export default function ResultScreen({
             standings={currentStandings}
           />
         )}
-
-        <div className="result-actions result-pop-item" style={{ animationDelay: `${1.8 + state.players.length * 0.4}s` }}>
-          {canShowNextRound && (
-            <button type="button" className="primary-button next-round-button" onClick={onNextRound}>
-              {nextRound}回戦に進む
-            </button>
-          )}
-          <button type="button" className="primary-button" onClick={onRestart}>
-            やめる
-          </button>
-          <button type="button" onClick={onBackHome}>
-            ホーム画面に戻る
-          </button>
-        </div>
       </section>
     </main>
   );

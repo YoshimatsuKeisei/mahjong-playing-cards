@@ -102,7 +102,7 @@ button:disabled {
 
 .result-screen {
   overflow: hidden;
-  padding: 0.6rem;
+  padding: 0.55rem;
   background:
     radial-gradient(
       circle at 50% 35%,
@@ -7678,6 +7678,376 @@ h2 {
   font-size: clamp(2rem, 3.5vw, 2.65rem);
   line-height: 1;
   text-shadow: 0 0 12px rgba(212, 155, 31, 0.22);
+}
+
+/* ===== Round result screen: image modal UI ===== */
+
+.result-panel.result-board {
+  width: min(96vw, calc(96dvh * 1392 / 933), 1180px);
+  max-height: 96dvh;
+  aspect-ratio: 1392 / 933;
+  overflow: hidden;
+  border: 0;
+  border-radius: 0;
+  background: transparent url("../結果画面モーダル.png") center / 100% 100%
+    no-repeat;
+  padding: clamp(4.8rem, 9.4vw, 7.1rem) clamp(2rem, 5.1vw, 4rem)
+    clamp(1.15rem, 2.5vw, 1.9rem);
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.result-panel.result-board .result-round-title {
+  display: grid;
+  place-items: center;
+  justify-self: center;
+  width: clamp(190px, 24vw, 298px);
+  min-height: 0;
+  aspect-ratio: 470 / 176;
+  border: 0;
+  border-radius: 0;
+  background: transparent url("../〇回戦看板.png") center / 100% 100%
+    no-repeat;
+  color: #fff8dc;
+  padding: 0 2.5rem;
+  font-family: "Fude Goshirae", "Shippori Mincho", "Yu Mincho", serif;
+  font-size: clamp(1.2rem, 2vw, 1.8rem);
+  font-weight: 900;
+  letter-spacing: 0;
+  box-shadow: none;
+  text-shadow:
+    0 2px 0 rgba(31, 18, 8, 0.78),
+    0 0 8px rgba(240, 208, 134, 0.18);
+}
+
+.result-panel.result-board .result-board-title {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.result-panel.result-board .player-result-list {
+  min-height: 0;
+  overflow: auto;
+  gap: clamp(0.32rem, 0.72vw, 0.55rem);
+  margin-bottom: 0;
+  padding-right: 0.15rem;
+  scrollbar-width: none;
+}
+
+.result-panel.result-board .player-result-list::-webkit-scrollbar {
+  display: none;
+}
+
+.result-panel.result-board .player-result-row {
+  grid-template-columns: minmax(120px, 0.8fr) minmax(0, 3fr) minmax(
+      76px,
+      0.45fr
+    );
+  align-items: center;
+  gap: clamp(0.45rem, 1vw, 0.75rem);
+  min-height: clamp(82px, 8.4vw, 112px);
+  border: 0;
+  border-radius: 0;
+  background: transparent url("../敗者結果行.png") center / 100% 100%
+    no-repeat;
+  padding: clamp(0.7rem, 1.35vw, 0.95rem) clamp(1.1rem, 2.5vw, 1.85rem);
+  box-shadow: none;
+}
+
+.result-panel.result-board .player-result-row.winner {
+  background-image: url("../勝者結果行.png");
+}
+
+.result-panel.result-board .player-result-row.loser,
+.result-panel.result-board .player-result-row.normal {
+  background-image: url("../敗者結果行.png");
+}
+
+.result-panel.result-board .player-result-head > strong,
+.result-panel.result-board .player-result-head em,
+.result-panel.result-board .player-result-score span,
+.result-panel.result-board .result-meld-column > span,
+.result-panel.result-board .result-rest-column > span,
+.result-panel.result-board .score-method,
+.result-panel.result-board .score-final span {
+  font-family: "Fude Goshirae", "Shippori Mincho", "Yu Mincho", serif;
+}
+
+.result-panel.result-board .player-result-head em {
+  border-radius: 0;
+  background: transparent;
+  color: #fff8dc;
+  padding: 0;
+  text-shadow: 0 2px 0 rgba(31, 18, 8, 0.72);
+}
+
+.result-panel.result-board .player-result-row.winner .player-result-head em,
+.result-panel.result-board .player-result-row.loser .player-result-head em {
+  background: transparent;
+}
+
+.result-panel.result-board .result-avatar {
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  box-shadow: none;
+}
+
+.result-panel.result-board .score-result-panel {
+  min-height: clamp(58px, 6.4vw, 82px);
+  border: 0;
+  border-radius: 0;
+  background: transparent url("../得点計算欄.png") center / 100% 100%
+    no-repeat;
+  padding: clamp(0.55rem, 1.2vw, 0.85rem) clamp(1.1rem, 2.8vw, 2rem);
+  box-shadow: none;
+}
+
+.result-panel.result-board .formula-row {
+  border: 0;
+  border-radius: 0;
+  background: transparent url("../得点計算欄.png") center / 100% 100%
+    no-repeat;
+  box-shadow: none;
+}
+
+.result-panel.result-board .standings-toggle-button {
+  min-width: 0;
+  width: clamp(150px, 18vw, 230px);
+  min-height: 0;
+  aspect-ratio: 536 / 187;
+  border: 0;
+  border-radius: 0;
+  background: transparent url("../現時点の成績ボタン.png") center / 100% 100%
+    no-repeat;
+  color: #241a10;
+  padding: 0 1.4rem;
+  font-family: "Fude Goshirae", "Shippori Mincho", "Yu Mincho", serif;
+  font-weight: 900;
+  box-shadow: none;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.62);
+}
+
+.result-panel.result-board .result-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: clamp(142px, 16vw, 190px);
+  min-height: 0;
+  aspect-ratio: 519 / 143;
+  border: 0;
+  border-radius: 0;
+  background: transparent url("../決定ボタン1.png") center / 100% 100%
+    no-repeat;
+  color: #fffdf7;
+  padding: 0 1.25rem;
+  font-family: "Fude Goshirae", "Shippori Mincho", "Yu Mincho", serif;
+  font-size: clamp(0.86rem, 1.3vw, 1.08rem);
+  font-weight: 900;
+  box-shadow: none;
+  text-align: center;
+  text-shadow: 0 2px 0 rgba(31, 18, 8, 0.72);
+}
+
+.result-panel.result-board .result-actions button:last-child {
+  min-width: clamp(170px, 20vw, 245px);
+  background-image: url("../キャンセルボタン2.png");
+  color: #241a10;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.62);
+}
+
+/* Result screen layout pass: scrolls the entire content, not just the rows. */
+
+.result-panel.result-board {
+  display: block;
+  padding: clamp(4.25rem, 7.2vw, 6.2rem) clamp(2.8rem, 5.6vw, 4.7rem)
+    clamp(1.7rem, 3.4vw, 2.7rem);
+}
+
+.result-panel.result-board .result-board-scroll {
+  display: grid;
+  align-content: start;
+  gap: clamp(0.56rem, 1.08vw, 0.88rem);
+  width: min(100%, 980px);
+  height: 100%;
+  margin: 0 auto;
+  padding: 0 clamp(1.55rem, 2.3vw, 2.2rem) 0.35rem 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-color: rgba(161, 121, 45, 0.95) rgba(7, 32, 28, 0.72);
+  scrollbar-width: thin;
+}
+
+.result-panel.result-board .result-board-scroll::-webkit-scrollbar {
+  width: clamp(22px, 2.3vw, 34px);
+}
+
+.result-panel.result-board .result-board-scroll::-webkit-scrollbar-track {
+  background: transparent url("../スクロールレール1.png") center / 100% 100%
+    no-repeat;
+}
+
+.result-panel.result-board .result-board-scroll::-webkit-scrollbar-thumb {
+  min-height: 92px;
+  border: 0;
+  background: transparent url("../スクロールバー5.png") center / 100% 100%
+    no-repeat;
+}
+
+.result-panel.result-board .result-board-scroll::-webkit-scrollbar-button {
+  display: none;
+}
+
+.result-panel.result-board .result-round-title {
+  margin-bottom: clamp(0.2rem, 0.7vw, 0.58rem);
+}
+
+.result-panel.result-board .result-board-title {
+  position: static;
+  width: auto;
+  height: auto;
+  clip: auto;
+  overflow: visible;
+  margin: 0 0 clamp(0.15rem, 0.34vw, 0.32rem);
+  color: #fff8dc;
+  font-family: "Fude Goshirae", "Shippori Mincho", "Yu Mincho", serif;
+  font-size: clamp(1.35rem, 2.25vw, 2.05rem);
+  font-weight: 900;
+  text-shadow:
+    0 2px 0 rgba(31, 18, 8, 0.76),
+    0 0 10px rgba(240, 208, 134, 0.18);
+}
+
+.result-panel.result-board .player-result-list {
+  overflow: visible;
+  gap: clamp(0.54rem, 1.1vw, 0.82rem);
+  padding-right: 0;
+}
+
+.result-panel.result-board .player-result-row {
+  grid-template-columns: minmax(118px, 0.72fr) minmax(0, 3.6fr) minmax(
+      82px,
+      0.48fr
+    );
+  gap: clamp(0.65rem, 1.4vw, 1.15rem);
+  min-height: clamp(94px, 8.9vw, 126px);
+  padding: clamp(0.76rem, 1.34vw, 1.04rem) clamp(1.1rem, 2.25vw, 1.82rem);
+}
+
+.result-panel.result-board .result-hand-breakdown {
+  grid-template-columns: minmax(86px, auto) minmax(0, 1fr);
+  column-gap: clamp(0.82rem, 1.65vw, 1.5rem);
+}
+
+.result-panel.result-board .result-card-group {
+  flex-wrap: wrap;
+}
+
+.result-panel.result-board .result-meld-groups {
+  align-items: flex-start;
+}
+
+.result-panel.result-board .score-result-panel {
+  grid-template-columns: minmax(0, 1fr) minmax(128px, auto);
+  min-height: clamp(76px, 7vw, 100px);
+  gap: clamp(0.8rem, 2vw, 1.5rem);
+  margin-top: clamp(0.1rem, 0.3vw, 0.28rem);
+}
+
+.result-panel.result-board .formula-expression {
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+}
+
+.result-panel.result-board .result-winner-call {
+  margin-top: clamp(0.04rem, 0.5vw, 0.45rem);
+}
+
+.result-panel.result-board .result-winner-call .eyebrow {
+  margin-bottom: 0.18rem;
+}
+
+.result-panel.result-board .result-winner-line {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(0.68rem, 1.6vw, 1.18rem);
+}
+
+.result-panel.result-board .result-winner-line h1 {
+  grid-column: 2;
+}
+
+.result-panel.result-board .standings-toggle-button {
+  grid-column: 3;
+  justify-self: start;
+}
+
+.result-panel.result-board .result-actions {
+  gap: clamp(0.72rem, 1.5vw, 1.05rem);
+  padding-bottom: 0.08rem;
+}
+
+.result-panel.result-board .result-winner-call .eyebrow,
+.result-panel.result-board .result-winner-call h1,
+.result-panel.result-board .player-result-head > strong,
+.result-panel.result-board .player-result-head em,
+.result-panel.result-board .player-result-score span,
+.result-panel.result-board .player-result-score strong,
+.result-panel.result-board .result-meld-column > span,
+.result-panel.result-board .result-rest-column > span,
+.result-panel.result-board .result-card-group em,
+.result-panel.result-board .result-meld-groups em,
+.result-panel.result-board .score-method,
+.result-panel.result-board .score-final span,
+.result-panel.result-board .score-final strong,
+.result-panel.result-board .formula-expression,
+.result-panel.result-board .formula-symbol,
+.result-panel.result-board .formula-number strong,
+.result-panel.result-board .formula-number em,
+.result-panel.result-board .formula-row span {
+  font-family: "Fude Goshirae", "Shippori Mincho", "Yu Mincho", serif;
+}
+
+.result-panel.result-board .result-card-group em,
+.result-panel.result-board .result-meld-groups em {
+  color: #fff8dc;
+  font-weight: 900;
+  text-shadow: 0 2px 0 rgba(31, 18, 8, 0.68);
+}
+
+@media (max-width: 820px) {
+  .result-panel.result-board {
+    padding: 4.6rem 1.55rem 1.45rem;
+  }
+
+  .result-panel.result-board .result-board-scroll {
+    width: 100%;
+    padding-right: 1.25rem;
+  }
+
+  .result-panel.result-board .player-result-row {
+    grid-template-columns: minmax(96px, 0.85fr) minmax(0, 2.3fr) minmax(
+        68px,
+        0.42fr
+      );
+  }
+
+  .result-panel.result-board .result-winner-line {
+    grid-template-columns: 1fr;
+  }
+
+  .result-panel.result-board .result-winner-line h1,
+  .result-panel.result-board .standings-toggle-button {
+    grid-column: auto;
+    justify-self: center;
+  }
 }
 
 .loss-list {
