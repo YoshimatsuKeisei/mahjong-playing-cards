@@ -7684,8 +7684,10 @@ h2 {
 
 .result-panel.result-board {
   width: min(96vw, calc(96dvh * 1392 / 933), 1180px);
+  height: min(96dvh, calc(96vw * 933 / 1392), 790px);
   max-height: 96dvh;
   aspect-ratio: 1392 / 933;
+  box-sizing: border-box;
   overflow: hidden;
   border: 0;
   border-radius: 0;
@@ -7706,8 +7708,7 @@ h2 {
   aspect-ratio: 470 / 176;
   border: 0;
   border-radius: 0;
-  background: transparent url("../〇回戦看板.png") center / 100% 100%
-    no-repeat;
+  background: transparent url("../〇回戦看板.png") center / 100% 100% no-repeat;
   color: #fff8dc;
   padding: 0 2.5rem;
   font-family: "Fude Goshirae", "Shippori Mincho", "Yu Mincho", serif;
@@ -7737,6 +7738,7 @@ h2 {
   margin-bottom: 0;
   padding-right: 0.15rem;
   scrollbar-width: none;
+  margin-top: 2rem;
 }
 
 .result-panel.result-board .player-result-list::-webkit-scrollbar {
@@ -7753,19 +7755,24 @@ h2 {
   min-height: clamp(82px, 8.4vw, 112px);
   border: 0;
   border-radius: 0;
-  background: transparent url("../敗者結果行.png") center / 100% 100%
-    no-repeat;
+  background: transparent url("../敗者結果行.png") center / 100% 100% no-repeat;
+  background-size: 100% 172%;
+  background-position: center 50%;
   padding: clamp(0.7rem, 1.35vw, 0.95rem) clamp(1.1rem, 2.5vw, 1.85rem);
   box-shadow: none;
 }
 
 .result-panel.result-board .player-result-row.winner {
   background-image: url("../勝者結果行.png");
+  background-size: 100% 158%;
+  background-position: center 50%;
 }
 
 .result-panel.result-board .player-result-row.loser,
 .result-panel.result-board .player-result-row.normal {
   background-image: url("../敗者結果行.png");
+  background-size: 100% 172%;
+  background-position: center 50%;
 }
 
 .result-panel.result-board .player-result-head > strong,
@@ -7791,6 +7798,15 @@ h2 {
   background: transparent;
 }
 
+.result-panel.result-board .result-face-frame {
+  position: absolute;
+  left: clamp(0rem, 0vw, 0rem);
+  top: clamp(3.9rem, 4.5vw, 5rem);
+  width: clamp(76px, 7.2vw, 92px);
+  margin: 0;
+  z-index: 1;
+}
+
 .result-panel.result-board .result-avatar {
   border: 0;
   border-radius: 50%;
@@ -7802,8 +7818,9 @@ h2 {
   min-height: clamp(58px, 6.4vw, 82px);
   border: 0;
   border-radius: 0;
-  background: transparent url("../得点計算欄.png") center / 100% 100%
-    no-repeat;
+  background: transparent url("../得点計算欄.png") center / 100% 100% no-repeat;
+  background-size: 100% 158%;
+  background-position: center 50%;
   padding: clamp(0.55rem, 1.2vw, 0.85rem) clamp(1.1rem, 2.8vw, 2rem);
   box-shadow: none;
 }
@@ -7811,8 +7828,9 @@ h2 {
 .result-panel.result-board .formula-row {
   border: 0;
   border-radius: 0;
-  background: transparent url("../得点計算欄.png") center / 100% 100%
-    no-repeat;
+  background: transparent url("../得点計算欄.png") center / 100% 100% no-repeat;
+  background-size: 100% 158%;
+  background-position: center 50%;
   box-shadow: none;
 }
 
@@ -7842,8 +7860,7 @@ h2 {
   aspect-ratio: 519 / 143;
   border: 0;
   border-radius: 0;
-  background: transparent url("../決定ボタン1.png") center / 100% 100%
-    no-repeat;
+  background: transparent url("../決定ボタン1.png") center / 100% 100% no-repeat;
   color: #fffdf7;
   padding: 0 1.25rem;
   font-family: "Fude Goshirae", "Shippori Mincho", "Yu Mincho", serif;
@@ -7870,50 +7887,89 @@ h2 {
 }
 
 .result-panel.result-board .result-board-scroll {
-  display: grid;
-  align-content: start;
+  display: flex;
+  flex-direction: column;
   gap: clamp(0.56rem, 1.08vw, 0.88rem);
-  width: min(100%, 980px);
+  width: min(100%, 1050px);
   height: 100%;
+  min-height: 0;
+  max-height: 100%;
+  box-sizing: border-box;
   margin: 0 auto;
-  padding: 0 clamp(1.55rem, 2.3vw, 2.2rem) 0.35rem 0;
+  padding: 0 clamp(0.4rem, 1vw, 0.8rem) 0.45rem 0;
   overflow-x: hidden;
   overflow-y: auto;
-  scrollbar-color: rgba(161, 121, 45, 0.95) rgba(7, 32, 28, 0.72);
-  scrollbar-width: thin;
+  scrollbar-width: none;
+}
+
+.result-panel.result-board .result-board-scroll > * {
+  flex: 0 0 auto;
 }
 
 .result-panel.result-board .result-board-scroll::-webkit-scrollbar {
-  width: clamp(22px, 2.3vw, 34px);
+  display: none;
+  width: 0;
+  height: 0;
 }
 
-.result-panel.result-board .result-board-scroll::-webkit-scrollbar-track {
+.result-panel.result-board .result-custom-scrollbar {
+  position: absolute;
+  top: clamp(6.5rem, 10vw, 8.2rem);
+  right: clamp(-1rem, -0.1vw, -1.2rem);
+  bottom: clamp(2rem, 4.1vw, 3.15rem);
+  z-index: 4;
+  display: flex;
+  justify-content: center;
+  width: clamp(40px, 4.05vw, 52px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 160ms ease-out;
+}
+
+.result-panel.result-board .result-custom-scrollbar.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.result-panel.result-board .result-custom-scrollbar-track {
+  position: relative;
+  width: 100%;
+  height: 100%;
   background: transparent url("../スクロールレール1.png") center / 100% 100%
     no-repeat;
+  cursor: pointer;
+  touch-action: none;
 }
 
-.result-panel.result-board .result-board-scroll::-webkit-scrollbar-thumb {
-  min-height: 92px;
-  border: 0;
+.result-panel.result-board .result-custom-scrollbar-thumb {
+  position: absolute;
+  left: 50%;
+  width: 108%;
+  min-height: 110px;
   background: transparent url("../スクロールバー5.png") center / 100% 100%
     no-repeat;
+  cursor: grab;
+  touch-action: none;
+  transform: translateX(-50%);
 }
 
-.result-panel.result-board .result-board-scroll::-webkit-scrollbar-button {
-  display: none;
+.result-panel.result-board .result-custom-scrollbar-thumb:active {
+  cursor: grabbing;
 }
 
 .result-panel.result-board .result-round-title {
+  align-self: center;
   margin-bottom: clamp(0.2rem, 0.7vw, 0.58rem);
 }
 
 .result-panel.result-board .result-board-title {
-  position: static;
+  position: relative;
+  z-index: 2;
   width: auto;
   height: auto;
   clip: auto;
   overflow: visible;
-  margin: 0 0 clamp(0.15rem, 0.34vw, 0.32rem);
+  margin: 0 0 2.2rem;
   color: #fff8dc;
   font-family: "Fude Goshirae", "Shippori Mincho", "Yu Mincho", serif;
   font-size: clamp(1.35rem, 2.25vw, 2.05rem);
@@ -7924,28 +7980,190 @@ h2 {
 }
 
 .result-panel.result-board .player-result-list {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 auto;
   overflow: visible;
-  gap: clamp(0.54rem, 1.1vw, 0.82rem);
+  gap: clamp(0rem, 0vw, 0rem);
   padding-right: 0;
+  width: 100%;
+}
+
+.result-panel.result-board .player-result-row.result-pop-item,
+.result-panel.result-board .score-result-panel.result-pop-item {
+  opacity: 1;
+  transform: none;
+  animation: none;
 }
 
 .result-panel.result-board .player-result-row {
-  grid-template-columns: minmax(118px, 0.72fr) minmax(0, 3.6fr) minmax(
-      82px,
-      0.48fr
+  position: relative;
+  flex: 0 0 auto;
+  box-sizing: border-box;
+  width: 100%;
+  grid-template-columns: clamp(150px, 15vw, 190px) minmax(0, 1fr) clamp(
+      95px,
+      9vw,
+      120px
     );
-  gap: clamp(0.65rem, 1.4vw, 1.15rem);
-  min-height: clamp(94px, 8.9vw, 126px);
-  padding: clamp(0.76rem, 1.34vw, 1.04rem) clamp(1.1rem, 2.25vw, 1.82rem);
+  align-items: center;
+  gap: clamp(0.68rem, 1.35vw, 1.05rem);
+  height: clamp(230px, 18vw, 270px);
+  min-height: 0;
+  background-image: url("../敗北者結果行.png");
+  background-size: 100% 100%;
+  background-position: center;
+  padding: clamp(0.72rem, 1.12vw, 0.9rem) clamp(1rem, 1.65vw, 1.32rem);
+  margin-top: -120px;
+}
+
+.result-panel.result-board .player-result-row.winner {
+  width: 100%;
+  height: clamp(230px, 18vw, 270px);
+  min-height: 0;
+  background-image: url("../勝者結果行.png");
+  background-size: 100% 100%;
+  background-position: center;
+  padding-block: clamp(0.72rem, 1.12vw, 0.9rem);
+  margin-top: -120px;
+}
+
+.result-panel.result-board .player-result-row.loser,
+.result-panel.result-board .player-result-row.normal {
+  width: 100%;
+  background-image: url("../敗北者結果行.png");
+  background-size: 100% 100%;
+  background-position: center;
+}
+
+.result-panel.result-board .player-result-profile {
+  display: grid;
+  position: relative;
+  align-content: stretch;
+  justify-items: stretch;
+  gap: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.result-panel.result-board .player-result-head {
+  display: grid;
+  grid-template-columns: auto auto;
+  align-items: center;
+  justify-items: start;
+  position: absolute;
+  top: clamp(2.2rem, 3vw, 2.8rem);
+  left: clamp(-1rem, -0.8vw, -0.6rem);
+  max-width: 100%;
+  column-gap: clamp(0rem, 0vw, 0rem);
+  row-gap: 0;
+  z-index: 2;
+}
+
+.result-panel.result-board .player-result-head > strong {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: clamp(120px, 12.5vw, 160px);
+  height: clamp(45px, 3.9vw, 53px);
+  max-width: none;
+  background: transparent url("../プレイヤーバッジ.png") center / 100% 100%
+    no-repeat;
+  color: #fff8dc;
+  font-size: clamp(0.84rem, 1.04vw, 1rem);
+  line-height: 1;
+  padding: 0 clamp(0.5rem, 0.85vw, 0.72rem);
+  text-shadow: 0 2px 0 rgba(31, 18, 8, 0.78);
+  white-space: nowrap;
+}
+
+.result-panel.result-board .player-result-head em {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: clamp(52px, 5vw, 64px);
+  height: clamp(60px, 5.1vw, 65px);
+  background: transparent url("../敗者バッジ.png") center / 100% 100% no-repeat !important;
+  color: #fff8dc;
+  font-size: clamp(0.78rem, 0.98vw, 0.94rem);
+  line-height: 1;
+  padding: 0;
+  margin-left: clamp(-1.8rem, -2.1vw, -1.2em);
+}
+
+.result-panel.result-board .player-result-row.winner .player-result-head em {
+  background-image: url("../勝者バッジ.png") !important;
+}
+
+.result-panel.result-board .player-result-row.loser .player-result-head em {
+  background-image: url("../敗者バッジ.png") !important;
+}
+
+.result-panel.result-board .player-result-head em.is-empty {
+  visibility: hidden;
+}
+
+.result-panel.result-board .result-face-frame {
+  display: grid;
+  place-items: center;
+  width: clamp(63px, 6.3vw, 75px);
+  aspect-ratio: 567 / 756;
+  margin-left: clamp(1.5rem, 2vw, 1.8rem);
+  margin-top: clamp(0rem, 0vw, 0rem);
+  background: transparent url("../顔フレーム.png") center / 100% 100% no-repeat;
+}
+
+.result-panel.result-board .result-avatar {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  margin: 0;
+  transform: translateY(-1%);
+}
+
+.result-panel.result-board .result-avatar .avatar-preview {
+  width: 100%;
+  height: 100%;
+}
+
+.result-panel.result-board .player-result-cards {
+  align-self: center;
+  padding-top: 0;
+}
+
+.result-panel.result-board .player-result-score {
+  align-self: center;
+  justify-self: end;
+  padding-right: 1.2rem;
 }
 
 .result-panel.result-board .result-hand-breakdown {
-  grid-template-columns: minmax(86px, auto) minmax(0, 1fr);
-  column-gap: clamp(0.82rem, 1.65vw, 1.5rem);
+  grid-template-columns: clamp(82px, 8.1vw, 104px) minmax(0, 1fr);
+  align-items: start;
+  column-gap: clamp(0.45rem, 0.85vw, 0.72rem);
+}
+
+.result-panel.result-board .result-meld-column,
+.result-panel.result-board .result-rest-column {
+  gap: clamp(0.28rem, 0.52vw, 0.42rem);
+}
+
+.result-panel.result-board .result-meld-column > span,
+.result-panel.result-board .result-rest-column > span {
+  line-height: 1;
 }
 
 .result-panel.result-board .result-card-group {
   flex-wrap: wrap;
+  row-gap: 0.2rem;
+}
+
+.result-panel.result-board .playing-card.compact {
+  width: clamp(55px, 4.8vw, 63px);
+  height: auto;
+  aspect-ratio: 5 / 7;
+  border-radius: 7px;
 }
 
 .result-panel.result-board .result-meld-groups {
@@ -7953,10 +8171,39 @@ h2 {
 }
 
 .result-panel.result-board .score-result-panel {
+  position: relative;
   grid-template-columns: minmax(0, 1fr) minmax(128px, auto);
-  min-height: clamp(76px, 7vw, 100px);
+  min-height: clamp(140px, 12vw, 160px);
   gap: clamp(0.8rem, 2vw, 1.5rem);
   margin-top: clamp(0.1rem, 0.3vw, 0.28rem);
+  background-image: url("../得点計算欄外枠.png");
+  background-size: 100% 100%;
+  background-position: center;
+  padding: clamp(0.82rem, 1.4vw, 1.05rem) clamp(1rem, 1.8vw, 1.42rem);
+}
+
+.result-panel.result-board .score-result-boundary {
+  position: absolute;
+  top: 12%;
+  bottom: 12%;
+  right: clamp(142px, 16vw, 188px);
+  width: clamp(14px, 1.35vw, 18px);
+  background: transparent url("../得点計算欄境界棒.png") center / 100% 100%
+    no-repeat;
+  pointer-events: none;
+}
+
+.result-panel.result-board .score-method {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: clamp(52px, 6vw, 70px);
+  height: clamp(24px, 2.55vw, 32px);
+  background: transparent url("../得点計算欄バッジ.png") center / 100% 100%
+    no-repeat;
+  color: #fff8dc;
+  line-height: 1;
+  padding: 0;
 }
 
 .result-panel.result-board .formula-expression {
@@ -7971,6 +8218,8 @@ h2 {
 
 .result-panel.result-board .result-winner-call .eyebrow {
   margin-bottom: 0.18rem;
+  font-size: clamp(1rem, 1.4vw, 1.28rem);
+  font-weight: 900;
 }
 
 .result-panel.result-board .result-winner-line {

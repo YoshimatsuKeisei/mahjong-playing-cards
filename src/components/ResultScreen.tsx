@@ -37,6 +37,7 @@ interface DeductionRow {
 }
 
 const resultAvatar = getAvatarById("fantasy-mage");
+const MIN_RESULT_SCROLL_THUMB_PERCENT = 18;
 
 export default function ResultScreen({
   state,
@@ -51,6 +52,12 @@ export default function ResultScreen({
 }: ResultScreenProps) {
   const [isStandingsOpen, setIsStandingsOpen] = useState(false);
   const [animateStandingsToCurrent, setAnimateStandingsToCurrent] = useState(false);
+  const [resultScroller, setResultScroller] = useState<HTMLDivElement | null>(null);
+  const [resultScrollBar, setResultScrollBar] = useState({
+    enabled: false,
+    thumbHeight: 100,
+    thumbTop: 0,
+  });
   const result = state.result!;
   const displayMode: ScoreDisplayMode = scoreDisplayMode ?? (useRawScore ? "targetScore" : "score");
   const isDeckout = result.winType === "deckout";
@@ -65,9 +72,77 @@ export default function ResultScreen({
       ? `${ronResults.map((item) => state.players[item.winnerIndex].name).join("・")}の勝利`
       : `${state.players[result.winnerIndex].name}の勝利`;
 
+  const updateResultScrollBar = () => {
+    if (!resultScroller) return;
+
+    const maxScrollTop = resultScroller.scrollHeight - resultScroller.clientHeight;
+    if (maxScrollTop <= 1) {
+      setResultScrollBar({ enabled: false, thumbHeight: 100, thumbTop: 0 });
+      return;
+    }
+
+    const thumbHeight = Math.max(
+      MIN_RESULT_SCROLL_THUMB_PERCENT,
+      (resultScroller.clientHeight / resultScroller.scrollHeight) * 100,
+    );
+    const thumbTop = (resultScroller.scrollTop / maxScrollTop) * (100 - thumbHeight);
+    setResultScrollBar({ enabled: true, thumbHeight, thumbTop });
+  };
+
+  const scrollResultByTrackPosition = (clientY: number) => {
+    if (!resultScroller) return;
+    const track = document.querySelector<HTMLElement>(".result-custom-scrollbar-track");
+    if (!track) return;
+    const trackRect = track.getBoundingClientRect();
+    const maxScrollTop = resultScroller.scrollHeight - resultScroller.clientHeight;
+    const thumbHeightPx = (resultScrollBar.thumbHeight / 100) * trackRect.height;
+    const movableTrack = Math.max(1, trackRect.height - thumbHeightPx);
+    const targetTop = Math.min(
+      movableTrack,
+      Math.max(0, clientY - trackRect.top - thumbHeightPx / 2),
+    );
+    resultScroller.scrollTop = (targetTop / movableTrack) * maxScrollTop;
+    updateResultScrollBar();
+  };
+
+  const handleResultScrollTrackPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!resultScroller) return;
+    event.preventDefault();
+    scrollResultByTrackPosition(event.clientY);
+
+    const handlePointerMove = (moveEvent: PointerEvent) => {
+      scrollResultByTrackPosition(moveEvent.clientY);
+    };
+    const handlePointerUp = () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+    };
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp);
+  };
+
+  const handleResultBoardWheel = (event: React.WheelEvent<HTMLElement>) => {
+    if (!resultScroller) return;
+    if ((event.target as Element).closest(".result-board-scroll")) return;
+    resultScroller.scrollTop += event.deltaY;
+    updateResultScrollBar();
+  };
+
   useEffect(() => {
     setIsStandingsOpen(false);
   }, [currentRound, result]);
+
+  useEffect(() => {
+    updateResultScrollBar();
+    const animationFrameId = window.requestAnimationFrame(updateResultScrollBar);
+    const timeoutId = window.setTimeout(updateResultScrollBar, 250);
+    window.addEventListener("resize", updateResultScrollBar);
+    return () => {
+      window.cancelAnimationFrame(animationFrameId);
+      window.clearTimeout(timeoutId);
+      window.removeEventListener("resize", updateResultScrollBar);
+    };
+  }, [currentRound, displayMode, result, resultScroller, state.players.length]);
 
   useEffect(() => {
     if (!isStandingsOpen) {
@@ -82,8 +157,8 @@ export default function ResultScreen({
 
   return (
     <main className="screen result-screen" data-testid="result-screen">
-      <section className="result-panel result-board">
-        <div className="result-board-scroll">
+      <section className="result-panel result-board" onWheel={handleResultBoardWheel}>
+        <div className="result-board-scroll" onScroll={updateResultScrollBar} ref={setResultScroller}>
           <div className="result-round-title">{currentRound}回戦</div>
           <h1 className="result-board-title result-pop-item" style={{ animationDelay: "0s" }}>
             各プレイヤーの失点
@@ -104,11 +179,13 @@ export default function ResultScreen({
                 >
                   <div className="player-result-profile">
                     <div className="player-result-head">
-                      <strong>{player.name}</strong>
-                      {label && <em>{label}</em>}
+                      <strong className="result-player-name-badge">{player.name}</strong>
+                      {label ? <em className="result-status-badge">{label}</em> : <em className="result-status-badge is-empty" aria-hidden="true" />}
                     </div>
-                    <div className="result-avatar">
-                      <AvatarPreview avatar={resultAvatar} size="small" />
+                    <div className="result-face-frame">
+                      <div className="result-avatar">
+                        <AvatarPreview avatar={resultAvatar} size="small" />
+                      </div>
                     </div>
                   </div>
 
@@ -154,8 +231,9 @@ export default function ResultScreen({
           </div>
 
           <section className="score-result-panel result-pop-item" style={{ animationDelay: `${0.4 + state.players.length * 0.4}s` }}>
+            <div className="score-result-boundary" aria-hidden="true" />
             <div className="score-result-main">
-              <div className="score-method">{winTypeLabel}</div>
+              <div className="score-method"><span>{winTypeLabel}</span></div>
               {displayMode !== "startingPoints" && <FormulaExpression parts={buildScoreFormulaPartsForMode(state, result, displayMode)} />}
             </div>
             <div className="score-final">
@@ -213,6 +291,18 @@ export default function ResultScreen({
             <button type="button" onClick={onBackHome}>
               ホーム画面に戻る
             </button>
+          </div>
+        </div>
+
+        <div className={`result-custom-scrollbar ${resultScrollBar.enabled ? "visible" : ""}`} aria-hidden="true">
+          <div className="result-custom-scrollbar-track" onPointerDown={handleResultScrollTrackPointerDown}>
+            <div
+              className="result-custom-scrollbar-thumb"
+              style={{
+                height: `${resultScrollBar.thumbHeight}%`,
+                top: `${resultScrollBar.thumbTop}%`,
+              }}
+            />
           </div>
         </div>
 
