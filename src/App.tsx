@@ -207,7 +207,7 @@ export default function App() {
   const [profile, setProfile] = useState<ProfileData>({
     userName: "Guest Player",
     comment: "今日も一局、よろしくお願いします。",
-    avatarId: "fantasy-mage",
+    avatarId: "home-character-1",
   });
   const [completedResultIntroKey, setCompletedResultIntroKey] = useState<
     string | null
@@ -792,6 +792,7 @@ export default function App() {
     return (
       <>
         <HomeScreen
+          avatarId={profile.avatarId}
           entryMode={homeEntryMode}
           onNavigate={handleHomeNavigate}
           debugResultActions={
@@ -1130,6 +1131,7 @@ export default function App() {
       <>
         <ResultScreen
           state={state}
+          playerAvatarId={profile.avatarId}
           currentRound={
             matchState?.matchMode === "rounds" ||
             matchState?.matchMode === "targetScore" ||
@@ -1195,6 +1197,7 @@ export default function App() {
       <PlayScreen
         state={state}
         dispatch={dispatch}
+        playerAvatarId={profile.avatarId}
         currentRound={
           matchState?.matchMode === "rounds" ||
           matchState?.matchMode === "targetScore" ||

@@ -350,7 +350,7 @@ export interface MatchState {
   gameState: GameState;
 }
 
-export type AvatarCategory = "bishoujo" | "animal" | "ikemen" | "busho" | "fantasy" | "casual";
+export type AvatarCategory = "homeCharacter";
 
 export interface AvatarOption {
   id: string;
@@ -360,6 +360,8 @@ export interface AvatarOption {
   hair: string;
   outfit: string;
   accent: string;
+  imageSrc?: string;
+  homeCharacterSrc?: string;
   variant: "longHair" | "shortHair" | "ears" | "cool" | "helmet" | "mage" | "archer" | "hoodie" | "cap";
 }
 

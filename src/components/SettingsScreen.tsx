@@ -51,7 +51,11 @@ function ContractCheckBox() {
 export default function SettingsScreen({ onBackHome }: SettingsScreenProps) {
   const [cpuModelId, setCpuModelId] = useState<CpuModelId>(DEFAULT_CPU_MODEL_ID);
   const [bgmVolume, setBgmVolume] = useState(70);
-  const [seVolume, setSeVolume] = useState(70);
+  const [seVolume, setSeVolume] = useState(() => {
+    const stored = localStorage.getItem("mahjong-settings-se-volume");
+    const parsed = stored === null ? NaN : Number(stored);
+    return Number.isFinite(parsed) ? parsed : 70;
+  });
   const [animatedCheckId, setAnimatedCheckId] = useState<string | null>(null);
   const [notifications, setNotifications] = useState<NotificationSettings>(() =>
     Object.fromEntries(
@@ -121,7 +125,11 @@ export default function SettingsScreen({ onBackHome }: SettingsScreenProps) {
                     min={0}
                     max={100}
                     value={seVolume}
-                    onChange={(event) => setSeVolume(Number(event.target.value))}
+                    onChange={(event) => {
+                      const nextVolume = Number(event.target.value);
+                      setSeVolume(nextVolume);
+                      localStorage.setItem("mahjong-settings-se-volume", String(nextVolume));
+                    }}
                     aria-label="SE音量"
                   />
                   <output>{seVolume}</output>

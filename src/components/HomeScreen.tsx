@@ -3,12 +3,14 @@ import HomeMenu, { type HomeMenuTarget } from "./HomeMenu";
 import HomeStageDecor from "./HomeStageDecor";
 
 interface HomeScreenProps {
+  avatarId?: string;
   entryMode: "initial" | "return";
   onNavigate: (target: HomeMenuTarget) => void;
   debugResultActions?: Array<{ label: string; onClick: () => void }>;
 }
 
 export default function HomeScreen({
+  avatarId = "home-character-1",
   entryMode,
   onNavigate,
   debugResultActions = [],
@@ -34,7 +36,7 @@ export default function HomeScreen({
 
   return (
     <main className="screen home-screen">
-      <HomeStageDecor returning={entryMode === "return"} />
+      <HomeStageDecor avatarId={avatarId} returning={entryMode === "return"} />
       <section
         className={`home-menu-shell ${entryMode === "return" ? "entering" : ""} ${exiting ? "exiting" : ""}`}
       >
