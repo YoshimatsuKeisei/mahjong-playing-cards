@@ -7683,7 +7683,7 @@ h2 {
 /* ===== Round result screen: image modal UI ===== */
 
 .result-panel.result-board {
-  width: min(96vw, calc(96dvh * 1392 / 933), 1180px);
+  width: min(96vw, calc(96dvh * 1392 / 933), 1400px);
   height: min(96dvh, calc(96vw * 933 / 1392), 790px);
   max-height: 96dvh;
   aspect-ratio: 1392 / 933;
@@ -7890,7 +7890,7 @@ h2 {
   display: flex;
   flex-direction: column;
   gap: clamp(0.56rem, 1.08vw, 0.88rem);
-  width: min(100%, 1050px);
+  width: min(100%, 1200px);
   height: 100%;
   min-height: 0;
   max-height: 100%;
@@ -8001,11 +8001,7 @@ h2 {
   flex: 0 0 auto;
   box-sizing: border-box;
   width: 100%;
-  grid-template-columns: clamp(150px, 15vw, 190px) minmax(0, 1fr) clamp(
-      95px,
-      9vw,
-      120px
-    );
+  grid-template-columns: clamp(150px, 15vw, 190px) minmax(520px, 1fr) clamp(118px, 10vw, 146px);
   align-items: center;
   gap: clamp(0.68rem, 1.35vw, 1.05rem);
   height: clamp(230px, 18vw, 270px);
@@ -8129,23 +8125,33 @@ h2 {
 
 .result-panel.result-board .player-result-cards {
   align-self: center;
+  justify-self: stretch;
+  min-width: 0;
   padding-top: 0;
 }
 
 .result-panel.result-board .player-result-score {
   align-self: center;
   justify-self: end;
-  padding-right: 1.2rem;
+  display: grid;
+  justify-items: center;
+  min-width: clamp(96px, 8.5vw, 124px);
+  padding-right: clamp(0.25rem, 0.8vw, 0.8rem);
+  position: relative;
+  z-index: 3;
 }
 
 .result-panel.result-board .result-hand-breakdown {
-  grid-template-columns: clamp(82px, 8.1vw, 104px) minmax(0, 1fr);
+  width: 100%;
+  grid-template-columns: minmax(220px, max-content) minmax(0, 1fr);
   align-items: start;
-  column-gap: clamp(0.45rem, 0.85vw, 0.72rem);
+  justify-content: start;
+  column-gap: clamp(1.05rem, 1.8vw, 1.6rem);
 }
 
 .result-panel.result-board .result-meld-column,
 .result-panel.result-board .result-rest-column {
+  min-width: 0;
   gap: clamp(0.28rem, 0.52vw, 0.42rem);
 }
 
@@ -8155,7 +8161,7 @@ h2 {
 }
 
 .result-panel.result-board .result-card-group {
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   row-gap: 0.2rem;
 }
 
@@ -8167,7 +8173,10 @@ h2 {
 }
 
 .result-panel.result-board .result-meld-groups {
+  display: flex;
+  flex-wrap: nowrap;
   align-items: flex-start;
+  min-width: 0;
 }
 
 .result-panel.result-board .score-result-panel {

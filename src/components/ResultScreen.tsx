@@ -69,8 +69,8 @@ export default function ResultScreen({
   const winnerTitle = isDeckout
     ? "流局"
     : ronResults.length > 1
-      ? `${ronResults.map((item) => state.players[item.winnerIndex].name).join("・")}の勝利`
-      : `${state.players[result.winnerIndex].name}の勝利`;
+      ? `${ronResults.map((item) => getResultDisplayPlayerName(state.players[item.winnerIndex].name)).join("・")}の勝利`
+      : `${getResultDisplayPlayerName(state.players[result.winnerIndex].name)}の勝利`;
 
   const updateResultScrollBar = () => {
     if (!resultScroller) return;
@@ -179,7 +179,7 @@ export default function ResultScreen({
                 >
                   <div className="player-result-profile">
                     <div className="player-result-head">
-                      <strong className="result-player-name-badge">{player.name}</strong>
+                      <strong className="result-player-name-badge">{getResultDisplayPlayerName(player.name)}</strong>
                       {label ? <em className="result-status-badge">{label}</em> : <em className="result-status-badge is-empty" aria-hidden="true" />}
                     </div>
                     <div className="result-face-frame">
@@ -190,7 +190,7 @@ export default function ResultScreen({
                   </div>
 
                   <div className="player-result-cards">
-                    <div className="result-hand-breakdown" aria-label={`${player.name}の手札内訳`}>
+                    <div className="result-hand-breakdown" aria-label={`${getResultDisplayPlayerName(player.name)}の手札内訳`}>
                       <div className="result-meld-column">
                         <span>できた役</span>
                         <div className="result-meld-groups">
@@ -244,7 +244,7 @@ export default function ResultScreen({
               <div className="formula-breakdown">
                 {ronResults.map((item) => (
                   <div className="formula-row" key={item.winnerIndex}>
-                    <span>{state.players[item.winnerIndex].name}</span>
+                    <span>{getResultDisplayPlayerName(state.players[item.winnerIndex].name)}</span>
                     <FormulaExpression parts={buildScoreFormulaPartsForMode(state, { ...result, winnerIndex: item.winnerIndex, score: item.score }, displayMode)} />
                   </div>
                 ))}
@@ -345,6 +345,10 @@ function singleRonResult(result: NonNullable<GameState["result"]>): RonResult {
     winningResult: result.winningResult,
     score: result.score,
   };
+}
+
+function getResultDisplayPlayerName(name: string) {
+  return name.replace(/^(?:Player|プレイヤー)\d+\s*[:：]\s*/, "");
 }
 
 function getResultLabel(result: GameResult, playerIndex: number) {
@@ -478,9 +482,9 @@ function buildScoreFormulaPartsForMode(state: GameState, result: GameResult, mod
     const discarderLoss = result.score.playerLosses[result.discarderIndex] ?? 0;
     return [
       { value: "(" },
-      { value: String(discarderLoss), label: `${state.players[result.discarderIndex].name}の失点` },
+      { value: String(discarderLoss), label: `${getResultDisplayPlayerName(state.players[result.discarderIndex].name)}の失点` },
       { value: "-" },
-      { value: String(winnerLoss), label: `${state.players[result.winnerIndex].name}の失点` },
+      { value: String(winnerLoss), label: `${getResultDisplayPlayerName(state.players[result.winnerIndex].name)}の失点` },
       { value: ")=" },
       { value: String(calculateRawScoreFromLosses(discarderLoss, winnerLoss)) },
     ];
@@ -496,7 +500,7 @@ function buildScoreFormulaPartsForMode(state: GameState, result: GameResult, mod
     { value: "÷" },
     { value: String(divisor), label: "敗者数" },
     { value: "-" },
-    { value: String(winnerLoss), label: `${state.players[result.winnerIndex].name}の失点` },
+    { value: String(winnerLoss), label: `${getResultDisplayPlayerName(state.players[result.winnerIndex].name)}の失点` },
     { value: ")=" },
     { value: String(score) },
   ];
@@ -506,7 +510,7 @@ function buildStartingPointDeductionRows(state: GameState, result: GameResult): 
   if (result.winType === "deckout") return [];
   if (result.winType === "ron" && result.discarderIndex !== null) {
     const discarderIndex = result.discarderIndex;
-    const discarderName = state.players[discarderIndex].name;
+    const discarderName = getResultDisplayPlayerName(state.players[discarderIndex].name);
     const discarderLoss = result.score.playerLosses[discarderIndex] ?? 0;
     const ronResults = result.ronResults ?? [singleRonResult(result)];
 
@@ -540,7 +544,7 @@ function buildStartingPointDeductionRows(state: GameState, result: GameResult): 
         playerName: discarderName,
         parts: [
           { value: "(" },
-          { value: String(winnerLoss), label: `${state.players[winnerIndex].name}の失点` },
+          { value: String(winnerLoss), label: `${getResultDisplayPlayerName(state.players[winnerIndex].name)}の失点` },
           { value: "-" },
           { value: String(discarderLoss), label: `${discarderName}の失点` },
           { value: ")=" },
@@ -553,7 +557,7 @@ function buildStartingPointDeductionRows(state: GameState, result: GameResult): 
   const loserLosses = result.score.playerLosses.filter((_, playerIndex) => playerIndex !== result.winnerIndex);
   const loserAverageLoss = loserLosses.length > 0 ? Math.round(loserLosses.reduce((sum, loss) => sum + loss, 0) / loserLosses.length) : 0;
   const winnerLoss = result.score.playerLosses[result.winnerIndex] ?? 0;
-  const winnerName = state.players[result.winnerIndex].name;
+  const winnerName = getResultDisplayPlayerName(state.players[result.winnerIndex].name);
   const deduction = calculateRawScoreFromLosses(loserAverageLoss, winnerLoss);
   return [
     {
@@ -604,9 +608,9 @@ function buildScoreFormulaParts(state: GameState, result: GameResult): FormulaPa
     const discarderLoss = result.score.playerLosses[result.discarderIndex] ?? 0;
     return [
       { value: "(" },
-      { value: String(discarderLoss), label: `${state.players[result.discarderIndex].name}の失点` },
+      { value: String(discarderLoss), label: `${getResultDisplayPlayerName(state.players[result.discarderIndex].name)}の失点` },
       { value: "-" },
-      { value: String(winnerLoss), label: `${state.players[result.winnerIndex].name}の失点` },
+      { value: String(winnerLoss), label: `${getResultDisplayPlayerName(state.players[result.winnerIndex].name)}の失点` },
       { value: ")×100=" },
       { value: String(result.score.winnerScore) },
     ];
@@ -621,7 +625,7 @@ function buildScoreFormulaParts(state: GameState, result: GameResult): FormulaPa
     { value: "÷" },
     { value: String(divisor), label: "人数-1" },
     { value: "-" },
-    { value: String(winnerLoss), label: `${state.players[result.winnerIndex].name}の失点` },
+    { value: String(winnerLoss), label: `${getResultDisplayPlayerName(state.players[result.winnerIndex].name)}の失点` },
     { value: ")×100=" },
     { value: String(result.score.winnerScore) },
   ];
