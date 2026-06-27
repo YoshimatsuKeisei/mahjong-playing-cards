@@ -6,6 +6,10 @@ interface AvatarPreviewProps {
 }
 
 export default function AvatarPreview({ avatar, size = "large" }: AvatarPreviewProps) {
+  if (avatar.imageSrc) {
+    return <img className={`avatar-preview ${size}`} src={avatar.imageSrc} alt={avatar.name} draggable={false} />;
+  }
+
   return (
     <svg className={`avatar-preview ${size}`} viewBox="0 0 140 140" role="img" aria-label={avatar.name}>
       <circle cx="70" cy="70" r="62" fill={avatar.accent} opacity="0.24" />

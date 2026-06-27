@@ -7,7 +7,7 @@ interface AvatarGalleryProps {
   onSelect: (avatarId: string) => void;
 }
 
-const categories: AvatarCategory[] = ["bishoujo", "animal", "ikemen", "busho", "fantasy", "casual"];
+const categories: AvatarCategory[] = ["homeCharacter"];
 
 export default function AvatarGallery({ selectedAvatarId, onSelect }: AvatarGalleryProps) {
   return (

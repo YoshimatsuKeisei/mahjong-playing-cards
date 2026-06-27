@@ -16,6 +16,11 @@ import {
   CPU_THINK_DELAY_MS,
   getCpuModel,
 } from "../game/cpu";
+import {
+  getSeatFallbackAvatarId,
+  playCharacterVoice,
+  type CharacterVoiceEvent,
+} from "../audio/characterVoices";
 import { getCpuDiscardCandidates } from "../game/standardCpu";
 import { getCpuModelDisplayName } from "../game/cpuModelRegistry";
 import {
@@ -47,6 +52,7 @@ import PlayingCard, { formatCard } from "./PlayingCard";
 interface PlayScreenProps {
   state: GameState;
   dispatch: Dispatch<GameAction>;
+  playerAvatarId?: string;
   currentRound?: number;
   onExitToHome?: () => void;
   onlineRoom?: OnlineRoomSnapshot;
@@ -315,6 +321,7 @@ const measuredAnchorLayouts: Record<
 export default function PlayScreen({
   state,
   dispatch,
+  playerAvatarId = "home-character-1",
   currentRound,
   onExitToHome,
   onlineRoom,
@@ -411,6 +418,7 @@ export default function PlayScreen({
   const reachSplashTimeoutRef = useRef<number | null>(null);
   const lastEnhancementSplashKeyRef = useRef<string | null>(null);
   const lastDaifugoSplashKeyRef = useRef<string | null>(null);
+  const lastVoiceKeyRef = useRef<string | null>(null);
   const previousReachFlagsRef = useRef<boolean[] | null>(null);
   const jackInspectOrderRef = useRef(new Map<string, string[]>());
   const isAnimating = animationPhase !== "idle";
@@ -820,6 +828,11 @@ export default function PlayScreen({
       (isReach, index) => isReach && !previousReachFlags[index],
     );
     if (reachedPlayerIndex < 0) return;
+    playVoiceOnce(
+      `reach:${reachedPlayerIndex}:${state.players[reachedPlayerIndex]?.discardPile.length ?? 0}`,
+      reachedPlayerIndex,
+      "reach",
+    );
     showReachSplash(state.players[reachedPlayerIndex]?.name ?? "プレイヤー");
   }, [state.players]);
 
@@ -835,6 +848,21 @@ export default function PlayScreen({
             .filter(Boolean)
             .join("・")
         : state.players[result.winnerIndex]?.name;
+    const winnerIndexes =
+      result.winType === "ron"
+        ? (result.ronResults ?? [{ winnerIndex: result.winnerIndex }]).map(
+            (item) => item.winnerIndex,
+          )
+        : [result.winnerIndex];
+    const voiceEvent: CharacterVoiceEvent =
+      result.winType === "ron" ? "ron" : "tsumo";
+    winnerIndexes.forEach((winnerIndex) => {
+      playVoiceOnce(
+        `result-call:${result.winType}:${winnerIndex}:${state.players[winnerIndex]?.discardPile.length ?? 0}`,
+        winnerIndex,
+        voiceEvent,
+      );
+    });
     showTimedReachSplash(
       winnerNames || "プレイヤー",
       result.winType === "ron" ? "ロン!" : "ツモ!",
@@ -860,6 +888,7 @@ export default function PlayScreen({
     const key = `${pending.kind}:${pending.playerIndex}:${targetKey}:${state.currentPlayerIndex}:${discardCountsKey}`;
     if (lastDaifugoSplashKeyRef.current === key) return;
     lastDaifugoSplashKeyRef.current = key;
+    playVoiceOnce(`daifugo:${key}`, splash.playerIndex, "sevenQueen");
     showReachSplash(
       state.players[splash.playerIndex]?.name ?? "プレイヤー",
       splash.call,
@@ -1528,14 +1557,29 @@ export default function PlayScreen({
     dispatch({ type: "answerDaifugoEffect", activate });
   }
 
+  function playVoiceOnce(key: string, playerIndex: number, event: CharacterVoiceEvent) {
+    if (lastVoiceKeyRef.current === key) return;
+    lastVoiceKeyRef.current = key;
+    playCharacterVoice(getVoiceAvatarIdForPlayer(playerIndex), event);
+  }
+
   function showTimedReachSplash(
     playerName: string,
     call: string,
     duration: number,
+    voice?: {
+      playerIndex: number;
+      event: CharacterVoiceEvent;
+      key: string;
+    },
   ) {
     setReachSplashPlayerName(playerName);
     setReachSplashCall(call);
     setReachSplashDurationMs(duration);
+    if (voice && lastVoiceKeyRef.current !== voice.key) {
+      lastVoiceKeyRef.current = voice.key;
+      playCharacterVoice(getVoiceAvatarIdForPlayer(voice.playerIndex), voice.event);
+    }
     if (reachSplashTimeoutRef.current !== null) {
       window.clearTimeout(reachSplashTimeoutRef.current);
     }
@@ -1547,6 +1591,35 @@ export default function PlayScreen({
 
   function showReachSplash(playerName: string, call = "リーチ!!") {
     showTimedReachSplash(playerName, call, 2600);
+  }
+
+  function showReachSplashWithVoice(
+    playerName: string,
+    call: string,
+    voice: {
+      playerIndex: number;
+      event: CharacterVoiceEvent;
+      key: string;
+    },
+  ) {
+    showTimedReachSplash(playerName, call, 2600, voice);
+  }
+
+  function getVoiceAvatarIdForPlayer(playerIndex: number) {
+    const player = state.players[playerIndex];
+    const localHumanPlayerIndex = getLocalHumanPlayerIndex();
+    const isViewer =
+      player &&
+      (state.viewerPlayerId
+        ? player.id === state.viewerPlayerId
+        : playerIndex === viewerPlayerIndex ||
+          (!state.viewerPlayerId && playerIndex === localHumanPlayerIndex));
+    return isViewer ? playerAvatarId : getSeatFallbackAvatarId(playerIndex);
+  }
+
+  function getLocalHumanPlayerIndex() {
+    const humanIndex = state.players.findIndex((player) => !player.isCpu);
+    return humanIndex >= 0 ? humanIndex : 0;
   }
 
   function handleDeclareReach() {

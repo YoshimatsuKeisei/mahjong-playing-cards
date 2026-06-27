@@ -2588,14 +2588,17 @@ h2 {
 
 .avatar-preview {
   display: block;
+  object-fit: contain;
 }
 
 .avatar-preview.large {
   width: 150px;
+  height: 150px;
 }
 
 .avatar-preview.small {
   width: 68px;
+  height: 68px;
 }
 
 .profile-display h2 {

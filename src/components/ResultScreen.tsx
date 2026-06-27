@@ -3,6 +3,7 @@ import type { Card, GameResult, GameState, Player, RonResult, WinningResult } fr
 import { findPossibleMelds, getCardPenalty } from "../game/rules";
 import { calculatePointDeductions, calculateRawScoreFromLosses, calculateRawTsumoScoreFromLosses, calculateRawWinnerScore } from "../game/scoring";
 import { getAvatarById } from "../data/avatars";
+import { playCharacterVoice } from "../audio/characterVoices";
 import AvatarPreview from "./AvatarPreview";
 import PlayingCard from "./PlayingCard";
 import ResultStandingsPanel, { type CurrentStandings } from "./ResultStandingsPanel";
@@ -11,6 +12,7 @@ type ScoreDisplayMode = "score" | "targetScore" | "startingPoints";
 
 interface ResultScreenProps {
   state: GameState;
+  playerAvatarId?: string;
   currentRound?: number;
   totalRounds?: number;
   useRawScore?: boolean;
@@ -36,11 +38,12 @@ interface DeductionRow {
   parts: FormulaPart[];
 }
 
-const resultAvatar = getAvatarById("fantasy-mage");
+const resultAvatar = getAvatarById("home-character-1");
 const MIN_RESULT_SCROLL_THUMB_PERCENT = 18;
 
 export default function ResultScreen({
   state,
+  playerAvatarId = "home-character-1",
   currentRound = 1,
   totalRounds,
   useRawScore = false,
@@ -58,6 +61,7 @@ export default function ResultScreen({
     thumbHeight: 100,
     thumbTop: 0,
   });
+  const outcomeVoiceKeyRef = useRef<string | null>(null);
   const result = state.result!;
   const displayMode: ScoreDisplayMode = scoreDisplayMode ?? (useRawScore ? "targetScore" : "score");
   const isDeckout = result.winType === "deckout";
@@ -71,6 +75,20 @@ export default function ResultScreen({
     : ronResults.length > 1
       ? `${ronResults.map((item) => getResultDisplayPlayerName(state.players[item.winnerIndex].name)).join("・")}の勝利`
       : `${getResultDisplayPlayerName(state.players[result.winnerIndex].name)}の勝利`;
+
+  useEffect(() => {
+    if (!result || result.winType === "deckout") return;
+    const selfIndex = getResultViewerPlayerIndex(state);
+    if (selfIndex < 0) return;
+    const winnerIndexes =
+      result.winType === "ron"
+        ? (result.ronResults ?? [{ winnerIndex: result.winnerIndex }]).map((item) => item.winnerIndex)
+        : [result.winnerIndex];
+    const key = `${result.winType}:${winnerIndexes.join("-")}:${result.discarderIndex ?? "none"}:${selfIndex}`;
+    if (outcomeVoiceKeyRef.current === key) return;
+    outcomeVoiceKeyRef.current = key;
+    playCharacterVoice(playerAvatarId, winnerIndexes.includes(selfIndex) ? "victory" : "defeat");
+  }, [playerAvatarId, result, state]);
 
   const updateResultScrollBar = () => {
     if (!resultScroller) return;
@@ -349,6 +367,14 @@ function singleRonResult(result: NonNullable<GameState["result"]>): RonResult {
 
 function getResultDisplayPlayerName(name: string) {
   return name.replace(/^(?:Player|プレイヤー)\d+\s*[:：]\s*/, "");
+}
+
+function getResultViewerPlayerIndex(state: GameState) {
+  if (state.viewerPlayerId) {
+    return state.players.findIndex((player) => player.id === state.viewerPlayerId);
+  }
+  const humanIndex = state.players.findIndex((player) => !player.isCpu);
+  return humanIndex >= 0 ? humanIndex : 0;
 }
 
 function getResultLabel(result: GameResult, playerIndex: number) {
@@ -631,3 +657,4 @@ function buildScoreFormulaParts(state: GameState, result: GameResult): FormulaPa
   ];
 }
 
+import { useRef } from "react";
