@@ -37,6 +37,7 @@ interface DeductionRow {
 }
 
 const resultAvatar = getAvatarById("fantasy-mage");
+const MIN_RESULT_SCROLL_THUMB_PERCENT = 18;
 
 export default function ResultScreen({
   state,
@@ -51,6 +52,12 @@ export default function ResultScreen({
 }: ResultScreenProps) {
   const [isStandingsOpen, setIsStandingsOpen] = useState(false);
   const [animateStandingsToCurrent, setAnimateStandingsToCurrent] = useState(false);
+  const [resultScroller, setResultScroller] = useState<HTMLDivElement | null>(null);
+  const [resultScrollBar, setResultScrollBar] = useState({
+    enabled: false,
+    thumbHeight: 100,
+    thumbTop: 0,
+  });
   const result = state.result!;
   const displayMode: ScoreDisplayMode = scoreDisplayMode ?? (useRawScore ? "targetScore" : "score");
   const isDeckout = result.winType === "deckout";
@@ -62,12 +69,80 @@ export default function ResultScreen({
   const winnerTitle = isDeckout
     ? "流局"
     : ronResults.length > 1
-      ? `${ronResults.map((item) => state.players[item.winnerIndex].name).join("・")}の勝利`
-      : `${state.players[result.winnerIndex].name}の勝利`;
+      ? `${ronResults.map((item) => getResultDisplayPlayerName(state.players[item.winnerIndex].name)).join("・")}の勝利`
+      : `${getResultDisplayPlayerName(state.players[result.winnerIndex].name)}の勝利`;
+
+  const updateResultScrollBar = () => {
+    if (!resultScroller) return;
+
+    const maxScrollTop = resultScroller.scrollHeight - resultScroller.clientHeight;
+    if (maxScrollTop <= 1) {
+      setResultScrollBar({ enabled: false, thumbHeight: 100, thumbTop: 0 });
+      return;
+    }
+
+    const thumbHeight = Math.max(
+      MIN_RESULT_SCROLL_THUMB_PERCENT,
+      (resultScroller.clientHeight / resultScroller.scrollHeight) * 100,
+    );
+    const thumbTop = (resultScroller.scrollTop / maxScrollTop) * (100 - thumbHeight);
+    setResultScrollBar({ enabled: true, thumbHeight, thumbTop });
+  };
+
+  const scrollResultByTrackPosition = (clientY: number) => {
+    if (!resultScroller) return;
+    const track = document.querySelector<HTMLElement>(".result-custom-scrollbar-track");
+    if (!track) return;
+    const trackRect = track.getBoundingClientRect();
+    const maxScrollTop = resultScroller.scrollHeight - resultScroller.clientHeight;
+    const thumbHeightPx = (resultScrollBar.thumbHeight / 100) * trackRect.height;
+    const movableTrack = Math.max(1, trackRect.height - thumbHeightPx);
+    const targetTop = Math.min(
+      movableTrack,
+      Math.max(0, clientY - trackRect.top - thumbHeightPx / 2),
+    );
+    resultScroller.scrollTop = (targetTop / movableTrack) * maxScrollTop;
+    updateResultScrollBar();
+  };
+
+  const handleResultScrollTrackPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!resultScroller) return;
+    event.preventDefault();
+    scrollResultByTrackPosition(event.clientY);
+
+    const handlePointerMove = (moveEvent: PointerEvent) => {
+      scrollResultByTrackPosition(moveEvent.clientY);
+    };
+    const handlePointerUp = () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+    };
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp);
+  };
+
+  const handleResultBoardWheel = (event: React.WheelEvent<HTMLElement>) => {
+    if (!resultScroller) return;
+    if ((event.target as Element).closest(".result-board-scroll")) return;
+    resultScroller.scrollTop += event.deltaY;
+    updateResultScrollBar();
+  };
 
   useEffect(() => {
     setIsStandingsOpen(false);
   }, [currentRound, result]);
+
+  useEffect(() => {
+    updateResultScrollBar();
+    const animationFrameId = window.requestAnimationFrame(updateResultScrollBar);
+    const timeoutId = window.setTimeout(updateResultScrollBar, 250);
+    window.addEventListener("resize", updateResultScrollBar);
+    return () => {
+      window.cancelAnimationFrame(animationFrameId);
+      window.clearTimeout(timeoutId);
+      window.removeEventListener("resize", updateResultScrollBar);
+    };
+  }, [currentRound, displayMode, result, resultScroller, state.players.length]);
 
   useEffect(() => {
     if (!isStandingsOpen) {
@@ -82,123 +157,154 @@ export default function ResultScreen({
 
   return (
     <main className="screen result-screen" data-testid="result-screen">
-      <section className="result-panel result-board">
-        <div className="result-round-title">{currentRound}回戦</div>
-        <h1 className="result-board-title result-pop-item" style={{ animationDelay: "0s" }}>
-          各プレイヤーの失点
-        </h1>
+      <section className="result-panel result-board" onWheel={handleResultBoardWheel}>
+        <div className="result-board-scroll" onScroll={updateResultScrollBar} ref={setResultScroller}>
+          <div className="result-round-title">{currentRound}回戦</div>
+          <h1 className="result-board-title result-pop-item" style={{ animationDelay: "0s" }}>
+            各プレイヤーの失点
+          </h1>
 
-        <div className="player-result-list" data-testid="result-player-list">
-          {state.players.map((player, index) => {
-            const breakdown = buildPlayerBreakdown(state, result, player, index);
-            const label = getResultLabel(result, index);
-            const rowTone = getResultRowTone(result, index);
+          <div className="player-result-list" data-testid="result-player-list">
+            {state.players.map((player, index) => {
+              const breakdown = buildPlayerBreakdown(state, result, player, index);
+              const label = getResultLabel(result, index);
+              const rowTone = getResultRowTone(result, index);
 
-            return (
-              <section
-                className={`player-result-row result-pop-item ${rowTone}`}
-                data-testid="result-player-row"
-                style={{ animationDelay: `${0.4 + index * 0.4}s` }}
-                key={player.id}
-              >
-                <div className="player-result-profile">
-                  <div className="player-result-head">
-                    <strong>{player.name}</strong>
-                    {label && <em>{label}</em>}
-                  </div>
-                  <div className="result-avatar">
-                    <AvatarPreview avatar={resultAvatar} size="small" />
-                  </div>
-                </div>
-
-                <div className="player-result-cards">
-                  <div className="result-hand-breakdown" aria-label={`${player.name}の手札内訳`}>
-                    <div className="result-meld-column">
-                      <span>できた役</span>
-                      <div className="result-meld-groups">
-                        {breakdown.melds.length === 0 ? (
-                          <em>なし</em>
-                        ) : (
-                          breakdown.melds.map((meld, meldIndex) => (
-                            <div className="result-card-group" key={`${player.id}-meld-${meldIndex}-${meld.map((card) => card.id).join("-")}`}>
-                              {sortCardsForDisplay(meld).map((card) => (
-                                <PlayingCard card={card} compact key={card.id} />
-                              ))}
-                            </div>
-                          ))
-                        )}
-                      </div>
+              return (
+                <section
+                  className={`player-result-row result-pop-item ${rowTone}`}
+                  data-testid="result-player-row"
+                  style={{ animationDelay: `${0.4 + index * 0.4}s` }}
+                  key={player.id}
+                >
+                  <div className="player-result-profile">
+                    <div className="player-result-head">
+                      <strong className="result-player-name-badge">{getResultDisplayPlayerName(player.name)}</strong>
+                      {label ? <em className="result-status-badge">{label}</em> : <em className="result-status-badge is-empty" aria-hidden="true" />}
                     </div>
-
-                    <div className="result-rest-column">
-                      <span>余り札</span>
-                      <div className="result-card-group">
-                        {breakdown.remainder.length === 0 ? (
-                          <em>なし</em>
-                        ) : (
-                          sortCardsForDisplay(breakdown.remainder).map((card) => <PlayingCard card={card} compact key={card.id} />)
-                        )}
+                    <div className="result-face-frame">
+                      <div className="result-avatar">
+                        <AvatarPreview avatar={resultAvatar} size="small" />
                       </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="player-result-score">
-                  <span>失点</span>
-                  <strong>{getDisplayPlayerLoss(result, index)}</strong>
-                </div>
-              </section>
-            );
-          })}
-        </div>
+                  <div className="player-result-cards">
+                    <div className="result-hand-breakdown" aria-label={`${getResultDisplayPlayerName(player.name)}の手札内訳`}>
+                      <div className="result-meld-column">
+                        <span>できた役</span>
+                        <div className="result-meld-groups">
+                          {breakdown.melds.length === 0 ? (
+                            <em>なし</em>
+                          ) : (
+                            breakdown.melds.map((meld, meldIndex) => (
+                              <div className="result-card-group" key={`${player.id}-meld-${meldIndex}-${meld.map((card) => card.id).join("-")}`}>
+                                {sortCardsForDisplay(meld).map((card) => (
+                                  <PlayingCard card={card} compact key={card.id} />
+                                ))}
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </div>
 
-        <section className="score-result-panel result-pop-item" style={{ animationDelay: `${0.4 + state.players.length * 0.4}s` }}>
-          <div className="score-result-main">
-            <div className="score-method">{winTypeLabel}</div>
-            {displayMode !== "startingPoints" && <FormulaExpression parts={buildScoreFormulaPartsForMode(state, result, displayMode)} />}
+                      <div className="result-rest-column">
+                        <span>余り札</span>
+                        <div className="result-card-group">
+                          {breakdown.remainder.length === 0 ? (
+                            <em>なし</em>
+                          ) : (
+                            sortCardsForDisplay(breakdown.remainder).map((card) => <PlayingCard card={card} compact key={card.id} />)
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="player-result-score">
+                    <span>失点</span>
+                    <strong>{getDisplayPlayerLoss(result, index)}</strong>
+                  </div>
+                </section>
+              );
+            })}
           </div>
-          <div className="score-final">
-            <span>{displayMode === "startingPoints" ? "持ち点" : "得点"}</span>
-            <strong>{getDisplayFinalScore(result, state.players.length, displayMode)}点</strong>
-          </div>
-          {ronResults.length > 1 && displayMode !== "startingPoints" && (
-            <div className="formula-breakdown">
-              {ronResults.map((item) => (
-                <div className="formula-row" key={item.winnerIndex}>
-                  <span>{state.players[item.winnerIndex].name}</span>
-                  <FormulaExpression parts={buildScoreFormulaPartsForMode(state, { ...result, winnerIndex: item.winnerIndex, score: item.score }, displayMode)} />
-                </div>
-              ))}
-            </div>
-          )}
-          {displayMode === "startingPoints" && (
-            <div className="formula-breakdown">
-              {buildStartingPointDeductionRows(state, result).map((row) => (
-                <div className="formula-row" key={`${row.playerName}-${row.parts.map((part) => part.value).join("-")}`}>
-                  <span>{row.playerName}</span>
-                  <FormulaExpression parts={row.parts} />
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
 
-        <section className="result-winner-call result-pop-item" style={{ animationDelay: `${0.8 + state.players.length * 0.4}s` }}>
-          <p className="eyebrow">結果</p>
-          <div className="result-winner-line">
-            <h1>
-              <span className="result-trophy" aria-hidden="true">
-                🏆
-              </span>
-              {winnerTitle}
-            </h1>
-            {canShowStandings && (
-              <button type="button" className="standings-toggle-button" onClick={() => setIsStandingsOpen(true)}>
-                現時点の成績
+          <section className="score-result-panel result-pop-item" style={{ animationDelay: `${0.4 + state.players.length * 0.4}s` }}>
+            <div className="score-result-boundary" aria-hidden="true" />
+            <div className="score-result-main">
+              <div className="score-method"><span>{winTypeLabel}</span></div>
+              {displayMode !== "startingPoints" && <FormulaExpression parts={buildScoreFormulaPartsForMode(state, result, displayMode)} />}
+            </div>
+            <div className="score-final">
+              <span>{displayMode === "startingPoints" ? "持ち点" : "得点"}</span>
+              <strong>{getDisplayFinalScore(result, state.players.length, displayMode)}点</strong>
+            </div>
+            {ronResults.length > 1 && displayMode !== "startingPoints" && (
+              <div className="formula-breakdown">
+                {ronResults.map((item) => (
+                  <div className="formula-row" key={item.winnerIndex}>
+                    <span>{getResultDisplayPlayerName(state.players[item.winnerIndex].name)}</span>
+                    <FormulaExpression parts={buildScoreFormulaPartsForMode(state, { ...result, winnerIndex: item.winnerIndex, score: item.score }, displayMode)} />
+                  </div>
+                ))}
+              </div>
+            )}
+            {displayMode === "startingPoints" && (
+              <div className="formula-breakdown">
+                {buildStartingPointDeductionRows(state, result).map((row) => (
+                  <div className="formula-row" key={`${row.playerName}-${row.parts.map((part) => part.value).join("-")}`}>
+                    <span>{row.playerName}</span>
+                    <FormulaExpression parts={row.parts} />
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+
+          <section className="result-winner-call result-pop-item" style={{ animationDelay: `${0.8 + state.players.length * 0.4}s` }}>
+            <p className="eyebrow">結果</p>
+            <div className="result-winner-line">
+              <h1>
+                <span className="result-trophy" aria-hidden="true">
+                  🏆
+                </span>
+                {winnerTitle}
+              </h1>
+              {canShowStandings && (
+                <button type="button" className="standings-toggle-button" onClick={() => setIsStandingsOpen(true)}>
+                  現時点の成績
+                </button>
+              )}
+            </div>
+          </section>
+
+          <div className="result-actions result-pop-item" style={{ animationDelay: `${1.8 + state.players.length * 0.4}s` }}>
+            {canShowNextRound && (
+              <button type="button" className="primary-button next-round-button" onClick={onNextRound}>
+                {nextRound}回戦に進む
               </button>
             )}
+            <button type="button" className="primary-button" onClick={onRestart}>
+              やめる
+            </button>
+            <button type="button" onClick={onBackHome}>
+              ホーム画面に戻る
+            </button>
           </div>
-        </section>
+        </div>
+
+        <div className={`result-custom-scrollbar ${resultScrollBar.enabled ? "visible" : ""}`} aria-hidden="true">
+          <div className="result-custom-scrollbar-track" onPointerDown={handleResultScrollTrackPointerDown}>
+            <div
+              className="result-custom-scrollbar-thumb"
+              style={{
+                height: `${resultScrollBar.thumbHeight}%`,
+                top: `${resultScrollBar.thumbTop}%`,
+              }}
+            />
+          </div>
+        </div>
 
         {currentStandings && (
           <ResultStandingsPanel
@@ -209,20 +315,6 @@ export default function ResultScreen({
             standings={currentStandings}
           />
         )}
-
-        <div className="result-actions result-pop-item" style={{ animationDelay: `${1.8 + state.players.length * 0.4}s` }}>
-          {canShowNextRound && (
-            <button type="button" className="primary-button next-round-button" onClick={onNextRound}>
-              {nextRound}回戦に進む
-            </button>
-          )}
-          <button type="button" className="primary-button" onClick={onRestart}>
-            やめる
-          </button>
-          <button type="button" onClick={onBackHome}>
-            ホーム画面に戻る
-          </button>
-        </div>
       </section>
     </main>
   );
@@ -253,6 +345,10 @@ function singleRonResult(result: NonNullable<GameState["result"]>): RonResult {
     winningResult: result.winningResult,
     score: result.score,
   };
+}
+
+function getResultDisplayPlayerName(name: string) {
+  return name.replace(/^(?:Player|プレイヤー)\d+\s*[:：]\s*/, "");
 }
 
 function getResultLabel(result: GameResult, playerIndex: number) {
@@ -386,9 +482,9 @@ function buildScoreFormulaPartsForMode(state: GameState, result: GameResult, mod
     const discarderLoss = result.score.playerLosses[result.discarderIndex] ?? 0;
     return [
       { value: "(" },
-      { value: String(discarderLoss), label: `${state.players[result.discarderIndex].name}の失点` },
+      { value: String(discarderLoss), label: `${getResultDisplayPlayerName(state.players[result.discarderIndex].name)}の失点` },
       { value: "-" },
-      { value: String(winnerLoss), label: `${state.players[result.winnerIndex].name}の失点` },
+      { value: String(winnerLoss), label: `${getResultDisplayPlayerName(state.players[result.winnerIndex].name)}の失点` },
       { value: ")=" },
       { value: String(calculateRawScoreFromLosses(discarderLoss, winnerLoss)) },
     ];
@@ -404,7 +500,7 @@ function buildScoreFormulaPartsForMode(state: GameState, result: GameResult, mod
     { value: "÷" },
     { value: String(divisor), label: "敗者数" },
     { value: "-" },
-    { value: String(winnerLoss), label: `${state.players[result.winnerIndex].name}の失点` },
+    { value: String(winnerLoss), label: `${getResultDisplayPlayerName(state.players[result.winnerIndex].name)}の失点` },
     { value: ")=" },
     { value: String(score) },
   ];
@@ -414,7 +510,7 @@ function buildStartingPointDeductionRows(state: GameState, result: GameResult): 
   if (result.winType === "deckout") return [];
   if (result.winType === "ron" && result.discarderIndex !== null) {
     const discarderIndex = result.discarderIndex;
-    const discarderName = state.players[discarderIndex].name;
+    const discarderName = getResultDisplayPlayerName(state.players[discarderIndex].name);
     const discarderLoss = result.score.playerLosses[discarderIndex] ?? 0;
     const ronResults = result.ronResults ?? [singleRonResult(result)];
 
@@ -448,7 +544,7 @@ function buildStartingPointDeductionRows(state: GameState, result: GameResult): 
         playerName: discarderName,
         parts: [
           { value: "(" },
-          { value: String(winnerLoss), label: `${state.players[winnerIndex].name}の失点` },
+          { value: String(winnerLoss), label: `${getResultDisplayPlayerName(state.players[winnerIndex].name)}の失点` },
           { value: "-" },
           { value: String(discarderLoss), label: `${discarderName}の失点` },
           { value: ")=" },
@@ -461,7 +557,7 @@ function buildStartingPointDeductionRows(state: GameState, result: GameResult): 
   const loserLosses = result.score.playerLosses.filter((_, playerIndex) => playerIndex !== result.winnerIndex);
   const loserAverageLoss = loserLosses.length > 0 ? Math.round(loserLosses.reduce((sum, loss) => sum + loss, 0) / loserLosses.length) : 0;
   const winnerLoss = result.score.playerLosses[result.winnerIndex] ?? 0;
-  const winnerName = state.players[result.winnerIndex].name;
+  const winnerName = getResultDisplayPlayerName(state.players[result.winnerIndex].name);
   const deduction = calculateRawScoreFromLosses(loserAverageLoss, winnerLoss);
   return [
     {
@@ -512,9 +608,9 @@ function buildScoreFormulaParts(state: GameState, result: GameResult): FormulaPa
     const discarderLoss = result.score.playerLosses[result.discarderIndex] ?? 0;
     return [
       { value: "(" },
-      { value: String(discarderLoss), label: `${state.players[result.discarderIndex].name}の失点` },
+      { value: String(discarderLoss), label: `${getResultDisplayPlayerName(state.players[result.discarderIndex].name)}の失点` },
       { value: "-" },
-      { value: String(winnerLoss), label: `${state.players[result.winnerIndex].name}の失点` },
+      { value: String(winnerLoss), label: `${getResultDisplayPlayerName(state.players[result.winnerIndex].name)}の失点` },
       { value: ")×100=" },
       { value: String(result.score.winnerScore) },
     ];
@@ -529,7 +625,7 @@ function buildScoreFormulaParts(state: GameState, result: GameResult): FormulaPa
     { value: "÷" },
     { value: String(divisor), label: "人数-1" },
     { value: "-" },
-    { value: String(winnerLoss), label: `${state.players[result.winnerIndex].name}の失点` },
+    { value: String(winnerLoss), label: `${getResultDisplayPlayerName(state.players[result.winnerIndex].name)}の失点` },
     { value: ")×100=" },
     { value: String(result.score.winnerScore) },
   ];
