@@ -1,10 +1,10 @@
 ﻿import { useEffect, useState } from "react";
 import type { Card, GameResult, GameState, Player, RonResult, WinningResult } from "../types";
+import { useRef } from "react";
 import { findPossibleMelds, getCardPenalty } from "../game/rules";
 import { calculatePointDeductions, calculateRawScoreFromLosses, calculateRawTsumoScoreFromLosses, calculateRawWinnerScore } from "../game/scoring";
 import { getAvatarById } from "../data/avatars";
 import { playCharacterVoice } from "../audio/characterVoices";
-import AvatarPreview from "./AvatarPreview";
 import PlayingCard from "./PlayingCard";
 import ResultStandingsPanel, { type CurrentStandings } from "./ResultStandingsPanel";
 
@@ -38,7 +38,6 @@ interface DeductionRow {
   parts: FormulaPart[];
 }
 
-const resultAvatar = getAvatarById("home-character-1");
 const MIN_RESULT_SCROLL_THUMB_PERCENT = 18;
 
 export default function ResultScreen({
@@ -200,11 +199,12 @@ export default function ResultScreen({
                       <strong className="result-player-name-badge">{getResultDisplayPlayerName(player.name)}</strong>
                       {label ? <em className="result-status-badge">{label}</em> : <em className="result-status-badge is-empty" aria-hidden="true" />}
                     </div>
-                    <div className="result-face-frame">
-                      <div className="result-avatar">
-                        <AvatarPreview avatar={resultAvatar} size="small" />
-                      </div>
-                    </div>
+                    <img
+                      className="result-character-portrait"
+                      src={getResultCharacterSrcForPlayer(state, index, playerAvatarId)}
+                      alt=""
+                      draggable={false}
+                    />
                   </div>
 
                   <div className="player-result-cards">
@@ -375,6 +375,10 @@ function getResultViewerPlayerIndex(state: GameState) {
   }
   const humanIndex = state.players.findIndex((player) => !player.isCpu);
   return humanIndex >= 0 ? humanIndex : 0;
+}
+
+function getResultCharacterSrcForPlayer(state: GameState, playerIndex: number, playerAvatarId: string) {
+  return getAvatarById(playerIndex === getResultViewerPlayerIndex(state) ? playerAvatarId : "home-character-1").imageSrc;
 }
 
 function getResultLabel(result: GameResult, playerIndex: number) {
@@ -656,5 +660,3 @@ function buildScoreFormulaParts(state: GameState, result: GameResult): FormulaPa
     { value: String(result.score.winnerScore) },
   ];
 }
-
-import { useRef } from "react";

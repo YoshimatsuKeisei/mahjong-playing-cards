@@ -5721,7 +5721,8 @@ h2 {
   grid-template-columns: minmax(170px, 28vw) minmax(0, 1fr);
   align-items: center;
   width: min(96vw, 1120px);
-  min-height: clamp(180px, 38vh, 390px);
+  height: clamp(180px, 38vh, 390px);
+  overflow: hidden;
   border-block: 2px solid rgba(223, 181, 77, 0.82);
   background:
     linear-gradient(
@@ -5744,13 +5745,17 @@ h2 {
 }
 
 .reach-splash-visual {
-  align-self: end;
+  align-self: start;
   justify-self: center;
-  width: min(30vw, 300px);
-  max-height: min(48vh, 430px);
+  position: relative;
+  z-index: 1;
+  width: min(100vw, 1030px);
+  max-width: none;
+  max-height: none;
   object-fit: contain;
+  object-position: center top;
   filter: drop-shadow(18px 18px 22px rgba(0, 0, 0, 0.66));
-  transform: translateY(4%);
+  transform: translate(-4%, -10%);
   animation: reach-visual-in var(--reach-splash-duration, 2.6s) ease both;
 }
 
@@ -5758,6 +5763,7 @@ h2 {
   position: relative;
   z-index: 2;
   display: grid;
+  align-self: center;
   gap: 0.5rem;
   padding: clamp(1rem, 4vw, 3rem);
   text-align: left;
@@ -5774,8 +5780,10 @@ h2 {
 }
 
 .reach-splash-copy strong {
-  display: grid;
-  gap: 0.24em;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.08em;
   width: min(68vw, 860px);
   max-width: 100%;
   color: #fff8dc;
@@ -5796,6 +5804,7 @@ h2 {
 
 .reach-splash-copy .reach-splash-player,
 .reach-splash-copy .reach-splash-call {
+  display: block;
   width: auto;
   max-width: 100%;
   border: 0;
@@ -5807,6 +5816,11 @@ h2 {
   text-overflow: ellipsis;
   line-height: inherit;
   white-space: nowrap;
+}
+
+.reach-splash-copy .reach-splash-call {
+  overflow: visible;
+  text-overflow: clip;
 }
 
 .ron-check-overlay {
@@ -6510,16 +6524,16 @@ h2 {
 @keyframes reach-visual-in {
   0% {
     opacity: 0;
-    transform: translateX(-80px) translateY(4%) scale(0.94);
+    transform: translate(calc(-4% - 80px), -10%) scale(0.94);
   }
   20%,
   78% {
     opacity: 1;
-    transform: translateX(0) translateY(4%) scale(1);
+    transform: translate(-4%, -10%) scale(1);
   }
   100% {
     opacity: 0;
-    transform: translateX(60px) translateY(4%) scale(1);
+    transform: translate(calc(-4% + 60px), -10%) scale(1);
   }
 }
 
@@ -8004,7 +8018,11 @@ h2 {
   flex: 0 0 auto;
   box-sizing: border-box;
   width: 100%;
-  grid-template-columns: clamp(150px, 15vw, 190px) minmax(520px, 1fr) clamp(118px, 10vw, 146px);
+  grid-template-columns: clamp(150px, 15vw, 190px) minmax(520px, 1fr) clamp(
+      118px,
+      10vw,
+      146px
+    );
   align-items: center;
   gap: clamp(0.68rem, 1.35vw, 1.05rem);
   height: clamp(230px, 18vw, 270px);
@@ -8106,24 +8124,40 @@ h2 {
 .result-panel.result-board .result-face-frame {
   display: grid;
   place-items: center;
-  width: clamp(63px, 6.3vw, 75px);
-  aspect-ratio: 567 / 756;
+  width: clamp(64px, 6.5vw, 82px);
+  aspect-ratio: 1;
   margin-left: clamp(1.5rem, 2vw, 1.8rem);
   margin-top: clamp(0rem, 0vw, 0rem);
-  background: transparent url("../顔フレーム.png") center / 100% 100% no-repeat;
+  overflow: hidden;
+  background: transparent;
 }
 
 .result-panel.result-board .result-avatar {
   width: 100%;
-  height: auto;
-  aspect-ratio: 1;
+  height: 100%;
   margin: 0;
-  transform: translateY(-1%);
+  overflow: hidden;
+  transform: none;
 }
 
 .result-panel.result-board .result-avatar .avatar-preview {
   width: 100%;
   height: 100%;
+}
+
+.result-panel.result-board .result-character-portrait {
+  display: block;
+  position: absolute;
+  left: clamp(1.3rem, 1.7vw, 2rem);
+  top: clamp(4.3rem, 4.8vw, 5.3rem);
+  z-index: 1;
+  width: clamp(65px, 6.4vw, 80px);
+  height: auto;
+  object-fit: contain;
+  object-position: center top;
+  transform: none;
+  pointer-events: none;
+  user-select: none;
 }
 
 .result-panel.result-board .player-result-cards {
@@ -8612,8 +8646,11 @@ h2 {
   }
 
   .reach-splash-visual {
-    width: min(62vw, 250px);
-    max-height: 34vh;
+    align-self: start;
+    width: min(210vw, 875px);
+    max-width: none;
+    max-height: none;
+    transform: translate(-18%, 0);
   }
 
   .reach-splash-copy {

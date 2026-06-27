@@ -17,10 +17,10 @@ import {
   getCpuModel,
 } from "../game/cpu";
 import {
-  getSeatFallbackAvatarId,
   playCharacterVoice,
   type CharacterVoiceEvent,
 } from "../audio/characterVoices";
+import { getHomeCharacterSrcByAvatarId } from "../data/avatars";
 import { getCpuDiscardCandidates } from "../game/standardCpu";
 import { getCpuModelDisplayName } from "../game/cpuModelRegistry";
 import {
@@ -89,7 +89,6 @@ type DaifugoAnimationStep = {
   phase?: "reveal" | "insert";
 };
 
-const reachVisualSrc = new URL("../../黒ローブ男.png", import.meta.url).href;
 const enhancedRoundTableSrc = new URL("../assets/テーブル.png", import.meta.url)
   .href;
 const enhancedPlayerSilhouetteSrc = new URL(
@@ -397,6 +396,9 @@ export default function PlayScreen({
   >(null);
   const [reachSplashCall, setReachSplashCall] = useState("リーチ!!");
   const [reachSplashDurationMs, setReachSplashDurationMs] = useState(2600);
+  const [reachSplashVisualSrc, setReachSplashVisualSrc] = useState(
+    getHomeCharacterSrcByAvatarId("home-character-1"),
+  );
   const [visibleDaifugoEventId, setVisibleDaifugoEventId] = useState<
     string | null
   >(null);
@@ -754,7 +756,10 @@ export default function PlayScreen({
     const splashKey = `j-enhancement:${kind}:${pending.playerIndex}:${discardCountsKey}`;
     if (lastEnhancementSplashKeyRef.current !== splashKey) {
       lastEnhancementSplashKeyRef.current = splashKey;
-      showTimedReachSplash("J強化発動！", call, J_ENHANCEMENT_SPLASH_MS);
+      if (kind === "seven") {
+        playVoiceOnce(`j-enhancement-seven:${splashKey}`, pending.playerIndex, "sevenQueen");
+      }
+      showTimedReachSplash("J強化発動！", call, J_ENHANCEMENT_SPLASH_MS, undefined, pending.playerIndex);
     }
     const viewerIsActor = !isOnlineView || state.viewerPlayerId === player?.id;
     if (!viewerIsActor) return;
@@ -810,7 +815,10 @@ export default function PlayScreen({
     if (lastEnhancementSplashKeyRef.current === splashKey) return;
 
     lastEnhancementSplashKeyRef.current = splashKey;
-    showTimedReachSplash("J強化発動！", call, J_ENHANCEMENT_SPLASH_MS);
+    if (kind === "seven") {
+      playVoiceOnce(`j-enhancement-seven:${splashKey}`, actorIndex, "sevenQueen");
+    }
+    showTimedReachSplash("J強化発動！", call, J_ENHANCEMENT_SPLASH_MS, undefined, actorIndex);
   }, [
     pendingDaifugoEffect?.kind,
     state.currentPlayerIndex,
@@ -833,7 +841,13 @@ export default function PlayScreen({
       reachedPlayerIndex,
       "reach",
     );
-    showReachSplash(state.players[reachedPlayerIndex]?.name ?? "プレイヤー");
+    showTimedReachSplash(
+      state.players[reachedPlayerIndex]?.name ?? "プレイヤー",
+      "リーチ!!",
+      2600,
+      undefined,
+      reachedPlayerIndex,
+    );
   }, [state.players]);
 
   useEffect(() => {
@@ -867,6 +881,8 @@ export default function PlayScreen({
       winnerNames || "プレイヤー",
       result.winType === "ron" ? "ロン!" : "ツモ!",
       1600,
+      undefined,
+      winnerIndexes[0] ?? -1,
     );
   }, [state.phase, state.result, state.players]);
 
@@ -889,9 +905,12 @@ export default function PlayScreen({
     if (lastDaifugoSplashKeyRef.current === key) return;
     lastDaifugoSplashKeyRef.current = key;
     playVoiceOnce(`daifugo:${key}`, splash.playerIndex, "sevenQueen");
-    showReachSplash(
+    showTimedReachSplash(
       state.players[splash.playerIndex]?.name ?? "プレイヤー",
       splash.call,
+      2600,
+      undefined,
+      splash.playerIndex,
     );
   }, [state.currentPlayerIndex, state.pendingDaifugoEffect, state.players]);
 
@@ -1572,10 +1591,12 @@ export default function PlayScreen({
       event: CharacterVoiceEvent;
       key: string;
     },
+    visualPlayerIndex = voice?.playerIndex ?? -1,
   ) {
     setReachSplashPlayerName(playerName);
     setReachSplashCall(call);
     setReachSplashDurationMs(duration);
+    setReachSplashVisualSrc(getHomeCharacterSrcByAvatarId(getVoiceAvatarIdForPlayer(visualPlayerIndex)));
     if (voice && lastVoiceKeyRef.current !== voice.key) {
       lastVoiceKeyRef.current = voice.key;
       playCharacterVoice(getVoiceAvatarIdForPlayer(voice.playerIndex), voice.event);
@@ -1590,7 +1611,7 @@ export default function PlayScreen({
   }
 
   function showReachSplash(playerName: string, call = "リーチ!!") {
-    showTimedReachSplash(playerName, call, 2600);
+    showTimedReachSplash(playerName, call, 2600, undefined, state.currentPlayerIndex);
   }
 
   function showReachSplashWithVoice(
@@ -1602,7 +1623,7 @@ export default function PlayScreen({
       key: string;
     },
   ) {
-    showTimedReachSplash(playerName, call, 2600, voice);
+    showTimedReachSplash(playerName, call, 2600, voice, voice.playerIndex);
   }
 
   function getVoiceAvatarIdForPlayer(playerIndex: number) {
@@ -1614,7 +1635,7 @@ export default function PlayScreen({
         ? player.id === state.viewerPlayerId
         : playerIndex === viewerPlayerIndex ||
           (!state.viewerPlayerId && playerIndex === localHumanPlayerIndex));
-    return isViewer ? playerAvatarId : getSeatFallbackAvatarId(playerIndex);
+    return isViewer ? playerAvatarId : "home-character-1";
   }
 
   function getLocalHumanPlayerIndex() {
@@ -1777,7 +1798,7 @@ export default function PlayScreen({
           >
             <div className="reach-splash-band">
               <img
-                src={reachVisualSrc}
+                src={reachSplashVisualSrc}
                 alt=""
                 className="reach-splash-visual"
               />
