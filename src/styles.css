@@ -9209,11 +9209,11 @@ h2 {
     transform-origin: top right !important;
   }
 
-  /*
+  /* 
     スマホでは履歴ウィンドウをアンカー追従にするとズレやすいので、
     画面中央の小型ポップアップとして表示する。
   */
-  .history-hover-anchor .player-history-popover,
+  /* .history-hover-anchor .player-history-popover,
   .table-history-anchor .player-history-popover {
     position: fixed !important;
     left: 50dvw !important;
@@ -9228,7 +9228,7 @@ h2 {
     transform: translate(-50%, -50%) scale(0.82) !important;
     transform-origin: center center !important;
     z-index: 9999 !important;
-  }
+  }  */
 
   .history-hover-anchor:focus-within .player-history-popover,
   .history-hover-anchor:hover .player-history-popover,
@@ -9280,20 +9280,20 @@ h2 {
   }
 } */
 
-@media (orientation: landscape) and (max-height: 700px) {
+/* @media (orientation: landscape) and (max-height: 700px) {
   .history-hover-anchor .player-history-popover,
   .table-history-anchor .player-history-popover {
     --history-window-width: min(52dvw, 340px);
     --history-window-height: 34dvh;
 
-    position: fixed !important;
+    position: fixed !important; */
 
-    /*
+/*
       基準位置:
       50dvw, 46dvh が中央付近。
       そこから右へ横幅の約0.75個分、下へ縦幅の約0.55個分ずらす。
     */
-    left: calc(50dvw + (var(--history-window-width) * 0.75)) !important;
+/* left: calc(50dvw + (var(--history-window-width) * 0.75)) !important;
     top: calc(46dvh + (var(--history-window-height) * 0.55)) !important;
     right: auto !important;
     bottom: auto !important;
@@ -9314,7 +9314,7 @@ h2 {
   .table-history-anchor:hover .player-history-popover {
     transform: translate(-50%, -50%) scale(0.82) !important;
   }
-}
+} */
 
 @media (orientation: landscape) and (max-height: 700px) {
   .seat-label {
@@ -9627,6 +9627,145 @@ body {
   .home-menu {
     gap: 0.4rem;
   }
+}
+
+/* Home is a fixed 16:9 stage that scales down as one piece. */
+.home-screen {
+  position: relative;
+  display: block;
+  width: 100vw;
+  height: 100dvh;
+  min-height: 100dvh;
+  overflow: hidden;
+  padding: 0;
+  background:
+    linear-gradient(90deg, rgba(2, 6, 5, 0.16), rgba(2, 6, 5, 0.02) 58%),
+    url("../ホーム画面-modified.png?v=home-viewport-bg-1") center center / cover
+      no-repeat,
+    #15110d;
+}
+
+.home-screen::before {
+  content: none;
+}
+
+.home-stage {
+  --home-stage-width: 1920px;
+  --home-stage-height: 1080px;
+  --home-scale: 0.8;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--home-stage-width);
+  height: var(--home-stage-height);
+  overflow: hidden;
+  background: transparent;
+  transform: translate(-50%, -50%) scale(var(--home-scale));
+  transform-origin: center center;
+}
+
+.home-stage::before {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.24), transparent 54%);
+  content: "";
+  pointer-events: none;
+}
+
+.home-stage-decor {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.home-title {
+  position: absolute;
+  left: 50%;
+  top: 24px;
+  z-index: 4;
+  width: 690px;
+  min-width: 0;
+  padding: 0;
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+
+.home-character {
+  position: absolute;
+  right: 120px;
+  top: 540px;
+  z-index: 3;
+  width: 650px;
+  max-height: 1030px;
+  object-fit: contain;
+  object-position: right center;
+  filter: drop-shadow(0 24px 34px rgba(0, 0, 0, 0.48));
+  pointer-events: none;
+  user-select: none;
+  transform: translateY(-50%);
+}
+
+.home-menu-shell {
+  position: absolute;
+  left: 72px;
+  top: 252px;
+  bottom: 34px;
+  z-index: 4;
+  width: 610px;
+  min-width: 0;
+  margin: 0;
+}
+
+.home-menu {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+  gap: 0;
+}
+
+.home-menu-button img {
+  zoom: var(--home-menu-scale);
+}
+
+.home-stage .home-menu-button {
+  display: grid;
+  place-items: center;
+  width: 610px;
+  height: 132px;
+  min-height: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent url("../ホームボタン.png") center / contain no-repeat;
+  color: #f4f0e8;
+  padding: 0 48px;
+  box-shadow: none;
+  line-height: 1;
+  text-align: center;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.home-stage .home-menu-button span {
+  display: block;
+  transform: translateY(-2px);
+  color: #f4f0e8;
+  font-family:
+    "Fude Goshirae", "Cinzel", "Cormorant Garamond", "Times New Roman", serif;
+  font-size: 44px;
+  font-weight: 800;
+  letter-spacing: 0;
+  line-height: 1;
+  text-shadow:
+    0 2px 0 rgba(20, 20, 20, 0.82),
+    0 0 8px rgba(255, 255, 255, 0.16);
+  white-space: nowrap;
+}
+
+.home-stage .home-menu-button img {
+  display: none;
 }
 
 @media (orientation: landscape) and (max-height: 700px) {
@@ -13835,5 +13974,1627 @@ body {
 
   to {
     stroke-dashoffset: 0;
+  }
+}
+
+/* =========================================================
+   Play mobile landscape baseline
+   PC版は触らず、スマホ横向きだけPC90%相当の仮想盤面をfit表示する
+========================================================= */
+@media (orientation: landscape) and (max-width: 950px) and (max-height: 700px) {
+  .play-screen {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100dvw !important;
+    height: 100dvh !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    background: #111812 !important;
+  }
+
+  .play-screen > .table-scene {
+    position: absolute !important;
+    left: 50% !important;
+    top: 50% !important;
+
+    width: var(--play-mobile-base-width, 1728px) !important;
+    height: var(--play-mobile-base-height, 864px) !important;
+    min-height: 0 !important;
+
+    margin: 0 !important;
+    overflow: hidden !important;
+
+    transform: translate(-50%, -50%) scale(var(--play-mobile-fit, 0.75)) !important;
+    transform-origin: center center !important;
+  }
+
+  /* PC基準に戻す：上部の固定UI */
+  .play-screen .round-scroll-banner {
+    top: 26px !important;
+    left: 50% !important;
+    min-width: 280px !important;
+    width: auto !important;
+    padding: 0.22rem 1.5rem !important;
+    font-size: 1.18rem !important;
+    line-height: 1.1 !important;
+    transform: translateX(-50%) !important;
+    translate: none !important;
+  }
+
+  .play-screen .top-toolbar {
+    top: 74px !important;
+    left: 52.5% !important;
+    width: 860px !important;
+    min-width: 0 !important;
+    min-height: 58px !important;
+    height: auto !important;
+    padding: 0.36rem 0.62rem !important;
+    transform: translateX(-50%) !important;
+    translate: none !important;
+  }
+
+  .play-screen .toolbar-player span,
+  .play-screen .toolbar-deck span {
+    font-size: 0.6rem !important;
+  }
+
+  .play-screen .toolbar-player strong,
+  .play-screen .toolbar-deck strong {
+    font-size: 1.02rem !important;
+  }
+
+  .play-screen .toolbar-player em {
+    font-size: 0.64rem !important;
+  }
+
+  .play-screen .toolbar-action {
+    font-size: 0.9rem !important;
+    line-height: 1.18 !important;
+  }
+
+  .play-screen .play-exit-button,
+  .play-screen .room-management-button {
+    top: 18px !important;
+    right: 28px !important;
+    width: 38px !important;
+    min-width: 38px !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    padding: 0 !important;
+    font-size: 1.05rem !important;
+    transform: none !important;
+    translate: none !important;
+  }
+
+  /* PC基準に戻す：中央山札 */
+  .play-screen .table-shape {
+    left: 50% !important;
+    top: 48% !important;
+    width: min(30%, 320px) !important;
+    height: 24% !important;
+    transform: translate(-50%, -50%) !important;
+  }
+
+  .play-screen .deck-stack {
+    width: 52px !important;
+    height: 74px !important;
+    transform: translateY(-4px) rotate(-4deg) !important;
+  }
+
+  /* PC基準に戻す：手札 */
+  .play-screen .hand-section {
+    left: 50% !important;
+    bottom: 20px !important;
+    width: 1020px !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    transform: translateX(-50%) !important;
+    translate: none !important;
+  }
+
+  .play-screen .hand-view {
+    width: 100% !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 0.15rem 0.15rem 0.25rem !important;
+    transform: none !important;
+  }
+
+  .play-screen .hand-card + .hand-card {
+    margin-left: -42px !important;
+  }
+
+  .play-screen .hand-section .hand-card-group {
+    transform: none !important;
+  }
+
+  .play-screen
+    .hand-section
+    .hand-view
+    .card-button
+    .playing-card:not(.compact),
+  .play-screen .hand-section .hand-view .playing-card:not(.compact) {
+    width: 82px !important;
+  }
+
+  /* PC基準に戻す：下部ナビ */
+  .play-screen .action-panel {
+    left: 50% !important;
+    right: auto !important;
+    bottom: 170px !important;
+
+    width: 860px !important;
+    min-width: 0 !important;
+    max-width: 860px !important;
+    min-height: 0 !important;
+    height: auto !important;
+
+    padding: 0.45rem 0.65rem !important;
+    overflow: visible !important;
+
+    transform: translateX(-50%) !important;
+    translate: none !important;
+  }
+
+  .play-screen .action-panel button,
+  .play-screen .action-panel .primary-button,
+  .play-screen .rank-choice-button,
+  .play-screen .daifugo-effect-actions button,
+  .play-screen .ron-check-actions button,
+  .play-screen .discard-source button {
+    width: auto !important;
+    min-width: 0 !important;
+    height: auto !important;
+    min-height: 42px !important;
+    max-width: none !important;
+    font-size: inherit !important;
+    white-space: nowrap !important;
+  }
+
+  /* PC基準に戻す：プレイヤーステータス */
+  .play-screen .player-area {
+    width: 168px !important;
+    transform: translate(-50%, -50%) !important;
+    translate: none !important;
+  }
+
+  .play-screen .player-area.seat-bottom {
+    transform: translate(155%, 18%) !important;
+  }
+
+  .play-screen .player-status-slot {
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    translate: none !important;
+  }
+
+  .play-screen .seat-label,
+  .play-screen .player-status-slot .seat-label {
+    width: auto !important;
+    min-width: 96px !important;
+    max-width: none !important;
+    height: auto !important;
+    min-height: 44px !important;
+    max-height: none !important;
+    padding: 8px 12px !important;
+    overflow: visible !important;
+    white-space: normal !important;
+  }
+
+  .play-screen .seat-label strong {
+    max-width: none !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    white-space: nowrap !important;
+    font-size: 14px !important;
+    line-height: 1.2 !important;
+  }
+
+  .play-screen .seat-label span,
+  .play-screen .temporary-leave-seat-status,
+  .play-screen .j-enhancement-badge,
+  .play-screen .j-shield-badge {
+    max-width: none !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    white-space: nowrap !important;
+    font-size: 12px !important;
+    line-height: 1.2 !important;
+  }
+
+  /* PC基準に戻す：CPU手札 */
+  .play-screen .seat-top .seat-cards {
+    transform: scale(0.82) !important;
+    transform-origin: top center !important;
+  }
+
+  .play-screen .seat-left .seat-cards {
+    transform: translate(18px, 8px) scale(0.84) !important;
+  }
+
+  .play-screen .seat-right .seat-cards {
+    transform: translate(-18px, 8px) scale(0.84) !important;
+  }
+
+  .play-screen .seat-bottom .seat-cards {
+    left: 50% !important;
+    top: -244px !important;
+    gap: clamp(9rem, 20vw, 17rem) !important;
+    transform: translateX(-50%) scale(0.96) !important;
+  }
+
+  /* PC基準に戻す：？アイコン */
+  .play-screen .history-hover-anchor .history-hover-marker {
+    position: relative !important;
+    left: auto !important;
+    top: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+
+    width: 36px !important;
+    min-width: 36px !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    font-size: 21px !important;
+
+    translate: none !important;
+  }
+
+  /* 手動調整由来のfixedカードウィンドウをやめ、アンカー基準に戻す */
+  .play-screen .history-hover-anchor .player-history-popover,
+  .play-screen .table-history-anchor .player-history-popover {
+    position: absolute !important;
+    left: 50% !important;
+    top: auto !important;
+    right: auto !important;
+    bottom: calc(100% + 0.5rem) !important;
+
+    width: max-content !important;
+    min-width: min(230px, 30vw) !important;
+    max-width: min(460px, 52vw) !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+
+    padding: 0.64rem !important;
+    display: grid !important;
+    gap: 0.58rem !important;
+    font-size: inherit !important;
+
+    transform: translate(-50%, 8px) scale(0.98) !important;
+    transform-origin: center bottom !important;
+    translate: none !important;
+  }
+
+  .play-screen .history-hover-anchor:focus-within .player-history-popover,
+  .play-screen .history-hover-anchor:hover .player-history-popover,
+  .play-screen .table-history-anchor:focus-within .player-history-popover,
+  .play-screen .table-history-anchor:hover .player-history-popover {
+    transform: translate(-50%, 0) scale(1) !important;
+  }
+}
+
+/* =========================================================
+   Play mobile fine tuning: history ? marker + hand cards
+   スマホ横向き専用の微調整。PC版には効かせない。
+========================================================= */
+@media (orientation: landscape) and (max-width: 950px) and (max-height: 700px) and (hover: none) and (pointer: coarse) {
+  .play-screen {
+    /* 手札の実機調整値 */
+    --mobile-hand-card-width: 102px;
+    --mobile-hand-card-overlap: -54px;
+
+    /* ? アイコンの実機調整値 */
+    --mobile-history-marker-size: 60px;
+    --mobile-history-marker-font-size: 40px;
+  }
+
+  /* 手札カードを大きくする */
+  .play-screen
+    .hand-section
+    .hand-view
+    .card-button
+    .playing-card:not(.compact),
+  .play-screen .hand-section .hand-view .playing-card:not(.compact) {
+    width: var(--mobile-hand-card-width) !important;
+  }
+
+  /* 手札を大きくした分、重なり幅も増やして横幅を抑える */
+  .play-screen .hand-card + .hand-card {
+    margin-left: var(--mobile-hand-card-overlap) !important;
+  }
+
+  /* ? アイコンを大きくする */
+  .play-screen .history-hover-anchor .history-hover-marker,
+  .play-screen .table-history-anchor .history-hover-marker {
+    width: var(--mobile-history-marker-size) !important;
+    min-width: var(--mobile-history-marker-size) !important;
+    height: var(--mobile-history-marker-size) !important;
+    min-height: var(--mobile-history-marker-size) !important;
+    font-size: var(--mobile-history-marker-font-size) !important;
+    line-height: 1 !important;
+  }
+}
+
+/* =========================================================
+   Play mobile fine tuning: top toolbar
+   スマホ横向き専用。PC版には効かせない。
+========================================================= */
+@media (orientation: landscape) and (max-width: 950px) and (max-height: 700px) and (hover: none) and (pointer: coarse) {
+  .play-screen {
+    /* 上部ナビ本体 */
+    --mobile-top-toolbar-top: 72px;
+    --mobile-top-toolbar-left: 52.5%;
+    --mobile-top-toolbar-width: 1050px;
+    --mobile-top-toolbar-min-height: 80px;
+    --mobile-top-toolbar-padding-y: 9px;
+    --mobile-top-toolbar-padding-x: 16px;
+    --mobile-top-toolbar-gap: 16px;
+
+    /* 上部ナビ内の列幅 */
+    --mobile-top-toolbar-player-width: 260px;
+    --mobile-top-toolbar-action-width: 1fr;
+    --mobile-top-toolbar-deck-width: 80px;
+    --mobile-top-toolbar-direction-width: 116px;
+
+    /* 通常順 / 逆回り の丸枠 */
+    --mobile-daifugo-status-min-width: 128px;
+    --mobile-daifugo-status-min-height: 46px;
+    --mobile-daifugo-status-padding-y: 8px;
+    --mobile-daifugo-status-padding-x: 18px;
+
+    /* 文字サイズ */
+    --mobile-top-toolbar-label-font-size: 20px; /* 現在のプレイヤー / 山札 */
+    --mobile-top-toolbar-name-font-size: 25px; /* Player〇:名前 */
+    --mobile-top-toolbar-status-font-size: 17px; /* 通常 / リーチ中 / 鳴き済み */
+    --mobile-top-toolbar-action-font-size: 20px; /* 指示ナビ */
+    --mobile-top-toolbar-deck-font-size: 22px; /* 山札枚数 */
+    --mobile-top-toolbar-direction-font-size: 20px; /* 通常順 / 逆回り */
+  }
+
+  .play-screen .top-toolbar {
+    top: var(--mobile-top-toolbar-top) !important;
+    left: var(--mobile-top-toolbar-left) !important;
+
+    width: var(--mobile-top-toolbar-width) !important;
+    min-width: 0 !important;
+    max-width: none !important;
+
+    height: auto !important;
+    min-height: var(--mobile-top-toolbar-min-height) !important;
+    max-height: none !important;
+
+    box-sizing: border-box !important;
+    padding: var(--mobile-top-toolbar-padding-y)
+      var(--mobile-top-toolbar-padding-x) !important;
+
+    display: grid !important;
+    grid-template-columns:
+      var(--mobile-top-toolbar-player-width)
+      minmax(0, var(--mobile-top-toolbar-action-width))
+      var(--mobile-top-toolbar-deck-width)
+      var(--mobile-top-toolbar-direction-width) !important;
+    align-items: center !important;
+    column-gap: var(--mobile-top-toolbar-gap) !important;
+
+    overflow: visible !important;
+    transform: translateX(-50%) !important;
+    translate: none !important;
+  }
+
+  /* 左：現在のプレイヤー欄 */
+  .play-screen .toolbar-player {
+    min-width: 0 !important;
+    display: grid !important;
+    gap: 1px !important;
+    line-height: 1.08 !important;
+  }
+
+  .play-screen .toolbar-player span {
+    font-size: var(--mobile-top-toolbar-label-font-size) !important;
+    line-height: 1.05 !important;
+    white-space: nowrap !important;
+  }
+
+  .play-screen .toolbar-player strong {
+    font-size: var(--mobile-top-toolbar-name-font-size) !important;
+    line-height: 1.05 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  .play-screen .toolbar-player em {
+    font-size: var(--mobile-top-toolbar-status-font-size) !important;
+    line-height: 1.05 !important;
+    white-space: nowrap !important;
+  }
+
+  /* 中央：指示ナビ */
+  .play-screen .toolbar-action {
+    min-width: 0 !important;
+    font-size: var(--mobile-top-toolbar-action-font-size) !important;
+    line-height: 1.18 !important;
+    text-align: center !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  /* 右：山札 */
+  .play-screen .toolbar-deck {
+    min-width: 0 !important;
+    display: grid !important;
+    justify-items: center !important;
+    gap: 1px !important;
+    line-height: 1.05 !important;
+  }
+
+  .play-screen .toolbar-deck span {
+    font-size: var(--mobile-top-toolbar-label-font-size) !important;
+    line-height: 1.05 !important;
+    white-space: nowrap !important;
+  }
+
+  .play-screen .toolbar-deck strong {
+    font-size: var(--mobile-top-toolbar-deck-font-size) !important;
+    line-height: 1.05 !important;
+    white-space: nowrap !important;
+  }
+
+  /* 右端：通常順 / 逆回り */
+  .play-screen .daifugo-status {
+    min-width: 0 !important;
+    display: grid !important;
+    place-items: center !important;
+  }
+
+  .play-screen .daifugo-status-direction {
+    font-size: var(--mobile-top-toolbar-direction-font-size) !important;
+    line-height: 1.05 !important;
+    white-space: nowrap !important;
+  }
+}
+
+/* =========================================================
+   Play mobile fine tuning: top toolbar direction badge
+   スマホ横向き専用。PC版には効かせない。
+========================================================= */
+@media (orientation: landscape) and (max-width: 950px) and (max-height: 700px) and (hover: none) and (pointer: coarse) {
+  .play-screen {
+    /* 上部ナビ本体 */
+    --mobile-top-toolbar-width: 1040px;
+    --mobile-top-toolbar-min-height: 82px;
+    --mobile-top-toolbar-padding-y: 10px;
+    --mobile-top-toolbar-padding-x: 18px;
+    --mobile-top-toolbar-gap: 18px;
+
+    /* 上部ナビ内の各カラム幅 */
+    --mobile-top-toolbar-player-width: 260px;
+    --mobile-top-toolbar-deck-width: 90px;
+
+    /* ここが「通常順 / 逆回り」の外側カラム幅 */
+    --mobile-top-toolbar-direction-width: 80px;
+
+    /* 通常順 / 逆回り の枠サイズ */
+    --mobile-daifugo-status-min-width: 100px;
+    --mobile-daifugo-status-min-height: 52px;
+    --mobile-daifugo-status-padding-y: 9px;
+    --mobile-daifugo-status-padding-x: 20px;
+
+    /* 文字サイズ */
+    --mobile-top-toolbar-label-font-size: 20px;
+    --mobile-top-toolbar-name-font-size: 25px;
+    --mobile-top-toolbar-status-font-size: 18px;
+    --mobile-top-toolbar-action-font-size: 20px;
+    --mobile-top-toolbar-deck-font-size: 24px;
+    --mobile-top-toolbar-direction-font-size: 100px;
+  }
+
+  .play-screen .top-toolbar {
+    width: var(--mobile-top-toolbar-width) !important;
+    min-width: 0 !important;
+    max-width: none !important;
+
+    height: auto !important;
+    min-height: var(--mobile-top-toolbar-min-height) !important;
+    max-height: none !important;
+
+    box-sizing: border-box !important;
+    padding: var(--mobile-top-toolbar-padding-y)
+      var(--mobile-top-toolbar-padding-x) !important;
+
+    display: grid !important;
+    grid-template-columns:
+      var(--mobile-top-toolbar-player-width)
+      minmax(0, 1fr)
+      var(--mobile-top-toolbar-deck-width)
+      var(--mobile-top-toolbar-direction-width) !important;
+    align-items: center !important;
+    column-gap: var(--mobile-top-toolbar-gap) !important;
+
+    overflow: visible !important;
+  }
+
+  .play-screen .toolbar-player {
+    min-width: 0 !important;
+    display: grid !important;
+    gap: 1px !important;
+    line-height: 1.08 !important;
+  }
+
+  .play-screen .toolbar-player span,
+  .play-screen .toolbar-deck span {
+    font-size: var(--mobile-top-toolbar-label-font-size) !important;
+    line-height: 1.05 !important;
+    white-space: nowrap !important;
+  }
+
+  .play-screen .toolbar-player strong {
+    font-size: var(--mobile-top-toolbar-name-font-size) !important;
+    line-height: 1.05 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  .play-screen .toolbar-player em {
+    font-size: var(--mobile-top-toolbar-status-font-size) !important;
+    line-height: 1.05 !important;
+    white-space: nowrap !important;
+  }
+
+  .play-screen .toolbar-action {
+    min-width: 0 !important;
+    font-size: var(--mobile-top-toolbar-action-font-size) !important;
+    line-height: 1.18 !important;
+    text-align: center !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  .play-screen .toolbar-deck {
+    min-width: 0 !important;
+    display: grid !important;
+    justify-items: center !important;
+    gap: 1px !important;
+    line-height: 1.05 !important;
+  }
+
+  .play-screen .toolbar-deck strong {
+    font-size: var(--mobile-top-toolbar-deck-font-size) !important;
+    line-height: 1.05 !important;
+    white-space: nowrap !important;
+  }
+
+  /* 通常順 / 逆回り の外枠 */
+  .play-screen .daifugo-status {
+    width: auto !important;
+    min-width: var(--mobile-daifugo-status-min-width) !important;
+    height: auto !important;
+    min-height: var(--mobile-daifugo-status-min-height) !important;
+
+    padding: var(--mobile-daifugo-status-padding-y)
+      var(--mobile-daifugo-status-padding-x) !important;
+
+    display: grid !important;
+    place-items: center !important;
+    box-sizing: border-box !important;
+    overflow: visible !important;
+    white-space: nowrap !important;
+  }
+
+  /* 通常順 / 逆回り の文字 */
+  .play-screen .daifugo-status-direction {
+    font-size: var(--mobile-top-toolbar-direction-font-size) !important;
+    line-height: 1.05 !important;
+    white-space: nowrap !important;
+  }
+}
+
+/* =========================================================
+   Play mobile fine tuning: force direction badge text size
+   通常順 / 逆回り の文字サイズが既存top-toolbar span指定に負けるため、より強い指定で上書き
+========================================================= */
+@media (orientation: landscape) and (max-width: 950px) and (max-height: 700px) and (hover: none) and (pointer: coarse) {
+  .play-screen .table-scene .top-toolbar .daifugo-status {
+    width: auto !important;
+    min-width: 100px !important;
+    height: auto !important;
+    min-height: 58px !important;
+    padding: 10px 22px !important;
+
+    display: grid !important;
+    place-items: center !important;
+    box-sizing: border-box !important;
+    overflow: visible !important;
+    white-space: nowrap !important;
+  }
+
+  .play-screen
+    .table-scene
+    .top-toolbar
+    .daifugo-status
+    .daifugo-status-direction {
+    font-size: 20px !important;
+    line-height: 1.05 !important;
+    font-weight: 900 !important;
+    white-space: nowrap !important;
+  }
+}
+
+/* =========================================================
+   Play mobile fine tuning: player status
+   スマホ横向き専用。PC版には効かせない。
+========================================================= */
+@media (orientation: landscape) and (max-width: 950px) and (max-height: 700px) and (hover: none) and (pointer: coarse) {
+  .play-screen {
+    /* プレイヤーステータス本体サイズ */
+    --mobile-player-status-width: 300px;
+    --mobile-player-status-min-height: 66px;
+    --mobile-player-status-padding-y: 9px;
+    --mobile-player-status-padding-x: 14px;
+    --mobile-player-status-gap: 3px;
+
+    /* プレイヤーステータス内文字サイズ */
+    --mobile-player-status-name-font-size: 25px;
+    --mobile-player-status-sub-font-size: 20px;
+    --mobile-player-status-badge-font-size: 20px;
+  }
+
+  /* PlayerArea本体 */
+  .play-screen .table-scene .player-area.player-status-slot,
+  .play-screen .table-scene .player-status-slot {
+    width: var(--mobile-player-status-width) !important;
+    min-width: var(--mobile-player-status-width) !important;
+    max-width: var(--mobile-player-status-width) !important;
+    overflow: visible !important;
+  }
+
+  /* ステータスの内側ラベル枠 */
+  .play-screen .table-scene .player-status-slot .seat-label {
+    width: var(--mobile-player-status-width) !important;
+    min-width: var(--mobile-player-status-width) !important;
+    max-width: var(--mobile-player-status-width) !important;
+
+    height: auto !important;
+    min-height: var(--mobile-player-status-min-height) !important;
+    max-height: none !important;
+
+    box-sizing: border-box !important;
+    padding: var(--mobile-player-status-padding-y)
+      var(--mobile-player-status-padding-x) !important;
+
+    display: grid !important;
+    align-content: center !important;
+    justify-items: center !important;
+    gap: var(--mobile-player-status-gap) !important;
+
+    overflow: visible !important;
+    white-space: normal !important;
+  }
+
+  /* プレイヤー名 */
+  .play-screen .table-scene .player-status-slot .seat-label strong {
+    max-width: 100% !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+
+    font-size: var(--mobile-player-status-name-font-size) !important;
+    line-height: 1.08 !important;
+    font-weight: 900 !important;
+  }
+
+  /* 通常 / リーチ中 / 鳴き済み などの状態行 */
+  .play-screen .table-scene .player-status-slot .seat-label span,
+  .play-screen .table-scene .player-status-slot .seat-label em {
+    max-width: 100% !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+
+    font-size: var(--mobile-player-status-sub-font-size) !important;
+    line-height: 1.08 !important;
+    font-weight: 800 !important;
+  }
+
+  /* J強化/Jシールド/一時離脱などの小バッジ */
+  .play-screen .table-scene .player-status-slot .temporary-leave-seat-status,
+  .play-screen .table-scene .player-status-slot .j-enhancement-badge,
+  .play-screen .table-scene .player-status-slot .j-shield-badge {
+    max-width: 100% !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    white-space: nowrap !important;
+
+    font-size: var(--mobile-player-status-badge-font-size) !important;
+    line-height: 1.08 !important;
+  }
+}
+
+/* =========================================================
+   Play mobile fine tuning: card history window
+   スマホ横向き専用。カードウィンドウを3枚×2列の固定幅にする。
+   PC版には効かせない。
+========================================================= */
+@media (orientation: landscape) and (max-width: 950px) and (max-height: 700px) and (hover: none) and (pointer: coarse) {
+  .play-screen {
+    /* ===== 調整値：ここだけ触ればOK ===== */
+
+    /* カードウィンドウ内のトランプサイズ */
+    --mobile-history-card-width: 80px;
+
+    /* トランプ同士の隙間 */
+    --mobile-history-card-gap: 6px;
+
+    /* 「過去の捨て札」列と「鳴いた役」列の間隔 */
+    --mobile-history-column-gap: 14px;
+
+    /* カードウィンドウ本体の内側余白 */
+    --mobile-history-padding-x: 12px;
+    --mobile-history-padding-y: 12px;
+
+    /* 見出し：「過去の捨て札」「鳴いた役」 */
+    --mobile-history-title-font-size: 25px;
+
+    /* 空表示：「まだ捨てていません」「まだ鳴いていません」 */
+    --mobile-history-empty-font-size: 20px;
+
+    /* 本体全体の基準文字サイズ */
+    --mobile-history-body-font-size: 20px;
+
+    /* ===== 幅計算：基本触らない ===== */
+
+    /* 1列3枚ぶんの幅 */
+    --mobile-history-section-width: calc(
+      var(--mobile-history-card-width) * 3 + var(--mobile-history-card-gap) * 2
+    );
+
+    /* 2列ぶんの固定横幅：
+       左右余白 + 捨て札3枚列 + 列間 + 鳴いた役3枚列 */
+    --mobile-history-window-width: calc(
+      var(--mobile-history-padding-x) * 2 +
+        var(--mobile-history-section-width) * 2 +
+        var(--mobile-history-column-gap)
+    );
+  }
+
+  /* カードウィンドウ本体。
+     既存の340px固定、max-height、overflow:auto、scale(0.82)を上書きする。 */
+  .play-screen .history-hover-anchor .player-history-popover,
+  .play-screen .table-history-anchor .player-history-popover {
+    width: var(--mobile-history-window-width) !important;
+    min-width: var(--mobile-history-window-width) !important;
+    max-width: var(--mobile-history-window-width) !important;
+
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+
+    box-sizing: border-box !important;
+    overflow: visible !important;
+
+    display: grid !important;
+    grid-template-columns:
+      var(--mobile-history-section-width)
+      var(--mobile-history-section-width) !important;
+    column-gap: var(--mobile-history-column-gap) !important;
+    row-gap: 8px !important;
+
+    padding: var(--mobile-history-padding-y) var(--mobile-history-padding-x) !important;
+
+    font-size: var(--mobile-history-body-font-size) !important;
+
+    /* 古いスマホCSSの scale(0.82) を止める */
+    transform: translate(-50%, -50%) scale(1) !important;
+    transform-origin: center center !important;
+  }
+
+  .play-screen .history-hover-anchor:focus-within .player-history-popover,
+  .play-screen .history-hover-anchor:hover .player-history-popover,
+  .play-screen .table-history-anchor:focus-within .player-history-popover,
+  .play-screen .table-history-anchor:hover .player-history-popover {
+    transform: translate(-50%, -50%) scale(1) !important;
+  }
+
+  /* 2列型を固定 */
+  .play-screen .player-history-popover.with-melds {
+    width: var(--mobile-history-window-width) !important;
+    min-width: var(--mobile-history-window-width) !important;
+    max-width: var(--mobile-history-window-width) !important;
+
+    display: grid !important;
+    grid-template-columns:
+      var(--mobile-history-section-width)
+      var(--mobile-history-section-width) !important;
+    column-gap: var(--mobile-history-column-gap) !important;
+  }
+
+  /* 列本体 */
+  .play-screen .player-history-popover .history-column {
+    width: var(--mobile-history-section-width) !important;
+    min-width: var(--mobile-history-section-width) !important;
+    max-width: var(--mobile-history-section-width) !important;
+
+    min-height: 0 !important;
+    box-sizing: border-box !important;
+    overflow: visible !important;
+  }
+
+  /* 鳴いた役列の旧 border / padding が幅計算を狂わせるのでスマホでは無効化 */
+  .play-screen .player-history-popover .history-meld-column {
+    border-left: none !important;
+    padding-left: 0 !important;
+  }
+
+  /* 見出し：「過去の捨て札」「鳴いた役」 */
+  .play-screen .player-history-popover .history-column h3 {
+    margin: 0 0 6px !important;
+    padding: 0 !important;
+
+    font-size: var(--mobile-history-title-font-size) !important;
+    line-height: 1.15 !important;
+    font-weight: 900 !important;
+    letter-spacing: 0.03em !important;
+
+    white-space: nowrap !important;
+  }
+
+  /* 空表示：「まだ捨てていません」「まだ鳴いていません」 */
+  .play-screen .player-history-popover .history-empty {
+    margin: 0 !important;
+
+    font-size: var(--mobile-history-empty-font-size) !important;
+    line-height: 1.2 !important;
+    font-weight: 800 !important;
+
+    white-space: nowrap !important;
+  }
+
+  /* 過去の捨て札：必ず3枚列 */
+  .play-screen .player-history-popover .history-card-grid {
+    display: grid !important;
+    grid-template-columns: repeat(
+      3,
+      var(--mobile-history-card-width)
+    ) !important;
+    gap: var(--mobile-history-card-gap) !important;
+
+    width: var(--mobile-history-section-width) !important;
+    min-width: var(--mobile-history-section-width) !important;
+    max-width: var(--mobile-history-section-width) !important;
+
+    overflow: visible !important;
+    padding: 0 !important;
+  }
+
+  /* 鳴いた役リスト全体 */
+  .play-screen .player-history-popover .history-meld-list {
+    display: grid !important;
+    gap: 8px !important;
+
+    width: var(--mobile-history-section-width) !important;
+    min-width: var(--mobile-history-section-width) !important;
+    max-width: var(--mobile-history-section-width) !important;
+
+    overflow: visible !important;
+    padding: 0 !important;
+  }
+
+  /* 鳴いた役の各行：必ず3枚列 */
+  .play-screen .player-history-popover .history-meld-row {
+    display: grid !important;
+    grid-template-columns: repeat(
+      3,
+      var(--mobile-history-card-width)
+    ) !important;
+    gap: var(--mobile-history-card-gap) !important;
+
+    width: var(--mobile-history-section-width) !important;
+    min-width: var(--mobile-history-section-width) !important;
+    max-width: var(--mobile-history-section-width) !important;
+
+    overflow: visible !important;
+  }
+
+  /* カードサイズ */
+  .play-screen .player-history-popover .playing-card.compact {
+    width: var(--mobile-history-card-width) !important;
+  }
+}
+
+/* =========================================================
+   Play mobile fine tuning: card history window wrapping fix
+   スマホ横向き専用。
+   1行3枚で折り返し、縦に増えても上端が動かないようにする。
+========================================================= */
+@media (orientation: landscape) and (max-width: 950px) and (max-height: 700px) and (hover: none) and (pointer: coarse) {
+  .play-screen {
+    /* ===== 調整値：基本ここだけ触ればOK ===== */
+
+    /* カードウィンドウ内のトランプサイズ */
+    --mobile-history-card-width: 100px;
+
+    /* トランプ同士の隙間 */
+    --mobile-history-card-gap: 6px;
+
+    /* 「過去の捨て札」列と「鳴いた役」列の間隔 */
+    --mobile-history-column-gap: 14px;
+
+    /* カードウィンドウ本体の内側余白 */
+    --mobile-history-padding-x: 12px;
+    --mobile-history-padding-y: 12px;
+
+    /* 見出し・空表示の文字サイズ */
+    --mobile-history-title-font-size: 25px;
+    --mobile-history-empty-font-size: 20px;
+    --mobile-history-body-font-size: 20px;
+
+    /*
+      top位置補正。
+      以前の translate(-50%, -50%) では中心固定だったため、
+      縦に伸びると上端が上へ逃げていた。
+      今回は上端固定にするため、初期位置だけこの値で上へ寄せる。
+    */
+    --mobile-history-window-top-offset: 90px;
+
+    /*
+      多すぎる場合だけウィンドウ全体をスクロール。
+      通常は自動で縦に伸びる。
+    */
+    --mobile-history-window-max-height: 64dvh;
+
+    /* ===== 幅計算：基本触らない ===== */
+
+    /* 1行3枚ぶんの幅 */
+    --mobile-history-section-width: calc(
+      var(--mobile-history-card-width) * 3 + var(--mobile-history-card-gap) * 2
+    );
+
+    /* 2列ぶんの固定横幅 */
+    --mobile-history-window-width: calc(
+      var(--mobile-history-padding-x) * 2 +
+        var(--mobile-history-section-width) * 2 +
+        var(--mobile-history-column-gap)
+    );
+
+    /* 捨て札だけ表示する単列版 */
+    --mobile-history-window-width-single: calc(
+      var(--mobile-history-padding-x) * 2 + var(--mobile-history-section-width)
+    );
+  }
+
+  /*
+    カードウィンドウ本体。
+    ここで古い 340px / scale(0.82) / 中心固定をまとめて上書きする。
+  */
+  .play-screen .history-hover-anchor .player-history-popover,
+  .play-screen .table-history-anchor .player-history-popover {
+    position: fixed !important;
+
+    /*
+      既存の --history-window-x/y はそのまま利用する。
+      ただし translateY(-50%) をやめるので、上端が縦幅で動かなくなる。
+    */
+    left: calc(50dvw + var(--history-window-x, 0px)) !important;
+    top: calc(
+      46dvh + var(--history-window-y, 0px) -
+        var(--mobile-history-window-top-offset)
+    ) !important;
+
+    right: auto !important;
+    bottom: auto !important;
+
+    width: var(--mobile-history-window-width) !important;
+    min-width: var(--mobile-history-window-width) !important;
+    max-width: var(--mobile-history-window-width) !important;
+
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: var(--mobile-history-window-max-height) !important;
+
+    box-sizing: border-box !important;
+
+    /*
+      横方向は絶対に切らない。
+      縦方向だけ、多すぎる時にウィンドウ全体でスクロール。
+    */
+    overflow-x: visible !important;
+    overflow-y: auto !important;
+
+    display: grid !important;
+    grid-template-columns:
+      var(--mobile-history-section-width)
+      var(--mobile-history-section-width) !important;
+    column-gap: var(--mobile-history-column-gap) !important;
+    row-gap: 8px !important;
+
+    padding: var(--mobile-history-padding-y) var(--mobile-history-padding-x) !important;
+
+    font-size: var(--mobile-history-body-font-size) !important;
+
+    /*
+      重要：
+      translateY(-50%) を消す。
+      これで列/段が増えても上端が固定される。
+    */
+    transform: translateX(-50%) scale(1) !important;
+    transform-origin: top center !important;
+
+    z-index: 9999 !important;
+  }
+
+  .play-screen .history-hover-anchor:focus-within .player-history-popover,
+  .play-screen .history-hover-anchor:hover .player-history-popover,
+  .play-screen .table-history-anchor:focus-within .player-history-popover,
+  .play-screen .table-history-anchor:hover .player-history-popover {
+    transform: translateX(-50%) scale(1) !important;
+  }
+
+  /* 2列型：過去の捨て札 + 鳴いた役 */
+  .play-screen .player-history-popover.with-melds {
+    width: var(--mobile-history-window-width) !important;
+    min-width: var(--mobile-history-window-width) !important;
+    max-width: var(--mobile-history-window-width) !important;
+
+    display: grid !important;
+    grid-template-columns:
+      var(--mobile-history-section-width)
+      var(--mobile-history-section-width) !important;
+    column-gap: var(--mobile-history-column-gap) !important;
+  }
+
+  /* 捨て札だけの単列型 */
+  .play-screen .player-history-popover.discard-only {
+    width: var(--mobile-history-window-width-single) !important;
+    min-width: var(--mobile-history-window-width-single) !important;
+    max-width: var(--mobile-history-window-width-single) !important;
+
+    display: grid !important;
+    grid-template-columns: var(--mobile-history-section-width) !important;
+  }
+
+  /* 列本体 */
+  .play-screen .player-history-popover .history-column {
+    width: var(--mobile-history-section-width) !important;
+    min-width: var(--mobile-history-section-width) !important;
+    max-width: var(--mobile-history-section-width) !important;
+
+    min-height: 0 !important;
+    box-sizing: border-box !important;
+    overflow: visible !important;
+  }
+
+  /* 鳴いた役列の旧 border / padding が幅計算を狂わせるのでスマホでは無効化 */
+  .play-screen .player-history-popover .history-meld-column {
+    border-left: none !important;
+    padding-left: 0 !important;
+  }
+
+  /* 見出し：「過去の捨て札」「鳴いた役」 */
+  .play-screen .player-history-popover .history-column h3 {
+    margin: 0 0 6px !important;
+    padding: 0 !important;
+
+    font-size: var(--mobile-history-title-font-size) !important;
+    line-height: 1.15 !important;
+    font-weight: 900 !important;
+    letter-spacing: 0.03em !important;
+
+    white-space: nowrap !important;
+  }
+
+  /* 空表示：「まだ捨てていません」「まだ鳴いていません」 */
+  .play-screen .player-history-popover .history-empty {
+    margin: 0 !important;
+
+    font-size: var(--mobile-history-empty-font-size) !important;
+    line-height: 1.2 !important;
+    font-weight: 800 !important;
+
+    white-space: nowrap !important;
+  }
+
+  /*
+    過去の捨て札。
+    1行3枚で、4枚目以降は次の行へ送る。
+    横には増やさない。
+  */
+  .play-screen .player-history-popover .history-card-grid {
+    display: grid !important;
+    grid-template-columns: repeat(
+      3,
+      var(--mobile-history-card-width)
+    ) !important;
+    grid-auto-flow: row !important;
+    grid-auto-columns: unset !important;
+    grid-auto-rows: auto !important;
+
+    gap: var(--mobile-history-card-gap) !important;
+
+    width: var(--mobile-history-section-width) !important;
+    min-width: var(--mobile-history-section-width) !important;
+    max-width: var(--mobile-history-section-width) !important;
+
+    max-height: none !important;
+    overflow: visible !important;
+    padding: 0 !important;
+
+    align-items: start !important;
+    justify-items: start !important;
+  }
+
+  .play-screen .player-history-popover .history-card-grid > span {
+    display: block !important;
+    width: var(--mobile-history-card-width) !important;
+    min-width: 0 !important;
+    max-width: var(--mobile-history-card-width) !important;
+  }
+
+  /*
+    鳴いた役一覧。
+    役ごとに1行、各行は3枚固定。
+    役が増えたら縦に増える。
+  */
+  .play-screen .player-history-popover .history-meld-list {
+    display: grid !important;
+    gap: 8px !important;
+
+    width: var(--mobile-history-section-width) !important;
+    min-width: var(--mobile-history-section-width) !important;
+    max-width: var(--mobile-history-section-width) !important;
+
+    max-height: none !important;
+    overflow: visible !important;
+    padding: 0 !important;
+  }
+
+  .play-screen .player-history-popover .history-meld-row {
+    display: grid !important;
+    grid-template-columns: repeat(
+      3,
+      var(--mobile-history-card-width)
+    ) !important;
+    grid-auto-flow: row !important;
+    grid-auto-columns: unset !important;
+
+    gap: var(--mobile-history-card-gap) !important;
+
+    width: var(--mobile-history-section-width) !important;
+    min-width: var(--mobile-history-section-width) !important;
+    max-width: var(--mobile-history-section-width) !important;
+
+    max-height: none !important;
+    overflow: visible !important;
+    padding: 0 !important;
+
+    align-items: start !important;
+    justify-items: start !important;
+  }
+
+  /* カードサイズ */
+  .play-screen .player-history-popover .playing-card.compact {
+    width: var(--mobile-history-card-width) !important;
+    min-width: var(--mobile-history-card-width) !important;
+    max-width: var(--mobile-history-card-width) !important;
+  }
+}
+
+/* =========================================================
+   Play mobile fine tuning: card window minimal fix
+   スマホ横向き専用。
+   位置調整は p1 / p4 だけ。
+   スクロール禁止・縦自動拡張は全プレイヤー。
+   p2 / p3 の位置は触らない。
+========================================================= */
+@media (orientation: landscape) and (max-width: 950px) and (max-height: 700px) and (hover: none) and (pointer: coarse) {
+  .play-screen {
+    /* =========================
+       p1 / p4 カードウィンドウ位置調整
+       ここだけ触る
+       ========================= */
+
+    /* p1 のカードウィンドウだけを動かす */
+    --mobile-history-p1-popover-x: 0px;
+    --mobile-history-p1-popover-y: 0px;
+
+    /* p4 のカードウィンドウだけを動かす */
+    --mobile-history-p4-popover-x: 0px;
+    --mobile-history-p4-popover-y: 0px;
+  }
+
+  /* p1 のカードウィンドウ位置だけ調整。
+     left/top/transform は触らない。p2/p3に影響させない。 */
+  .play-screen .table-4 .history-hover-anchor--p1 .player-history-popover {
+    margin-left: var(--mobile-history-p1-popover-x) !important;
+    margin-top: var(--mobile-history-p1-popover-y) !important;
+  }
+
+  /* p4 のカードウィンドウ位置だけ調整。
+     left/top/transform は触らない。p2/p3に影響させない。 */
+  .play-screen .table-4 .history-hover-anchor--p4 .player-history-popover {
+    margin-left: var(--mobile-history-p4-popover-x) !important;
+    margin-top: var(--mobile-history-p4-popover-y) !important;
+  }
+
+  /* =========================
+     全プレイヤー共通：
+     スクロール禁止、カードが増えたら縦に自動拡張
+     ただし位置指定 left/top/transform は一切触らない
+     ========================= */
+
+  .play-screen .history-hover-anchor .player-history-popover,
+  .play-screen .table-history-anchor .player-history-popover {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+
+    overflow: visible !important;
+    overflow-x: visible !important;
+    overflow-y: visible !important;
+  }
+
+  .play-screen .player-history-popover .history-column,
+  .play-screen .player-history-popover .history-card-grid,
+  .play-screen .player-history-popover .history-meld-list,
+  .play-screen .player-history-popover .history-meld-row {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+
+    overflow: visible !important;
+    overflow-x: visible !important;
+    overflow-y: visible !important;
+  }
+
+  /* 捨て札：
+     横に増やさず、既存のカード幅設定を使って3枚ごとに折り返す。
+     位置には影響させない。 */
+  .play-screen .player-history-popover .history-card-grid {
+    display: grid !important;
+    grid-template-columns: repeat(3, max-content) !important;
+    grid-auto-flow: row !important;
+    grid-auto-rows: auto !important;
+  }
+
+  /* 鳴いた役：
+     1役 = 3枚。
+     役が増えたら縦に伸びる。
+     位置には影響させない。 */
+  .play-screen .player-history-popover .history-meld-row {
+    display: grid !important;
+    grid-template-columns: repeat(3, max-content) !important;
+    grid-auto-flow: row !important;
+    grid-auto-rows: auto !important;
+  }
+}
+
+/* =========================================================
+   Play mobile fine tuning: card window position for actual Player1 / Player4
+   スマホ横向き専用。
+   位置調整は実際の Player1 / Player4 だけ。
+   実際の Player2 / Player3 の位置は触らない。
+========================================================= */
+@media (orientation: landscape) and (max-width: 950px) and (max-height: 700px) and (hover: none) and (pointer: coarse) {
+  .play-screen {
+    /*
+      4人用の対応関係：
+      .history-hover-anchor--p1 = 実Player3
+      .history-hover-anchor--p2 = 実Player4
+      .history-hover-anchor--p3 = 実Player1
+      .history-hover-anchor--p4 = 実Player2
+
+      なので、実Player1は p3、実Player4は p2 を動かす。
+    */
+
+    /* 実Player1 のカードウィンドウ位置 */
+    --mobile-history-player1-window-x: -370px;
+    --mobile-history-player1-window-y: -500px;
+
+    /* 実Player4 のカードウィンドウ位置 */
+    --mobile-history-player4-window-x: -600px;
+    --mobile-history-player4-window-y: -350px;
+  }
+
+  /* 実Player1だけ調整：CSS上は p3 */
+  .play-screen .table-4 .history-hover-anchor--p3 {
+    --history-window-x: var(--mobile-history-player1-window-x) !important;
+    --history-window-y: var(--mobile-history-player1-window-y) !important;
+  }
+
+  /* 実Player4だけ調整：CSS上は p2 */
+  .play-screen .table-4 .history-hover-anchor--p2 {
+    --history-window-x: var(--mobile-history-player4-window-x) !important;
+    --history-window-y: var(--mobile-history-player4-window-y) !important;
+  }
+
+  /*
+    全プレイヤー共通：
+    スクロール禁止。
+    カードが増えたらカードウィンドウ本体が縦に伸びる。
+    位置 left/top/transform は触らない。
+  */
+  .play-screen .history-hover-anchor .player-history-popover,
+  .play-screen .table-history-anchor .player-history-popover {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+
+    overflow: visible !important;
+    overflow-x: visible !important;
+    overflow-y: visible !important;
+  }
+
+  .play-screen .player-history-popover .history-card-grid,
+  .play-screen .player-history-popover .history-meld-list,
+  .play-screen .player-history-popover .history-meld-row {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+
+    overflow: visible !important;
+    overflow-x: visible !important;
+    overflow-y: visible !important;
+
+    padding-right: 0 !important;
+  }
+
+  /* 捨て札：1行3枚、4枚目以降は下へ */
+  .play-screen .player-history-popover .history-card-grid {
+    display: grid !important;
+    grid-template-columns: repeat(3, max-content) !important;
+    grid-auto-flow: row !important;
+    grid-auto-rows: auto !important;
+  }
+
+  /* 鳴いた役：1役3枚、役が増えたら下へ */
+  .play-screen .player-history-popover .history-meld-row {
+    display: grid !important;
+    grid-template-columns: repeat(3, max-content) !important;
+    grid-auto-flow: row !important;
+    grid-auto-rows: auto !important;
+  }
+}
+
+/* =========================================================
+   Play mobile fine tuning: discard history 4 columns only
+   スマホ横向き専用。
+   過去の捨て札エリアだけを1行4枚にする。
+   カードウィンドウの表示位置 left/top/transform/margin は一切触らない。
+========================================================= */
+@media (orientation: landscape) and (max-width: 950px) and (max-height: 700px) and (hover: none) and (pointer: coarse) {
+  .play-screen {
+    /*
+      過去の捨て札：1行4枚
+      鳴いた役：従来通り1行3枚
+    */
+
+    --mobile-history-discard-section-width: calc(
+      var(--mobile-history-card-width, 72px) * 4 +
+        var(--mobile-history-card-gap, 6px) * 3
+    );
+
+    --mobile-history-meld-section-width: calc(
+      var(--mobile-history-card-width, 72px) * 3 +
+        var(--mobile-history-card-gap, 6px) * 2
+    );
+
+    /*
+      2列ウィンドウ幅：
+      左右余白 + 捨て札4枚列 + 列間 + 鳴いた役3枚列
+    */
+    --mobile-history-window-width: calc(
+      var(--mobile-history-padding-x, 12px) * 2 +
+        var(--mobile-history-discard-section-width) +
+        var(--mobile-history-column-gap, 14px) +
+        var(--mobile-history-meld-section-width)
+    );
+
+    /*
+      捨て札だけの単列ウィンドウ幅：
+      左右余白 + 捨て札4枚列
+    */
+    --mobile-history-window-width-single: calc(
+      var(--mobile-history-padding-x, 12px) * 2 +
+        var(--mobile-history-discard-section-width)
+    );
+  }
+
+  /* 2列型：過去の捨て札4枚列 + 鳴いた役3枚列 */
+  .play-screen .history-hover-anchor .player-history-popover.with-melds,
+  .play-screen .table-history-anchor .player-history-popover.with-melds {
+    width: var(--mobile-history-window-width) !important;
+    min-width: var(--mobile-history-window-width) !important;
+    max-width: var(--mobile-history-window-width) !important;
+
+    grid-template-columns:
+      var(--mobile-history-discard-section-width)
+      var(--mobile-history-meld-section-width) !important;
+  }
+
+  /* 捨て札だけの単列型 */
+  .play-screen .history-hover-anchor .player-history-popover.discard-only,
+  .play-screen .table-history-anchor .player-history-popover.discard-only {
+    width: var(--mobile-history-window-width-single) !important;
+    min-width: var(--mobile-history-window-width-single) !important;
+    max-width: var(--mobile-history-window-width-single) !important;
+
+    grid-template-columns: var(
+      --mobile-history-discard-section-width
+    ) !important;
+  }
+
+  /* 過去の捨て札側の列幅 */
+  .play-screen
+    .player-history-popover
+    .history-column:not(.history-meld-column) {
+    width: var(--mobile-history-discard-section-width) !important;
+    min-width: var(--mobile-history-discard-section-width) !important;
+    max-width: var(--mobile-history-discard-section-width) !important;
+  }
+
+  /* 鳴いた役側の列幅は従来通り3枚ぶん */
+  .play-screen .player-history-popover .history-meld-column {
+    width: var(--mobile-history-meld-section-width) !important;
+    min-width: var(--mobile-history-meld-section-width) !important;
+    max-width: var(--mobile-history-meld-section-width) !important;
+  }
+
+  /* 過去の捨て札：1行4枚、5枚目以降は次の行へ */
+  .play-screen .player-history-popover .history-card-grid {
+    display: grid !important;
+    grid-template-columns: repeat(
+      4,
+      var(--mobile-history-card-width, 72px)
+    ) !important;
+    grid-auto-flow: row !important;
+    grid-auto-rows: auto !important;
+
+    gap: var(--mobile-history-card-gap, 6px) !important;
+
+    width: var(--mobile-history-discard-section-width) !important;
+    min-width: var(--mobile-history-discard-section-width) !important;
+    max-width: var(--mobile-history-discard-section-width) !important;
+
+    overflow: visible !important;
+    overflow-x: visible !important;
+    overflow-y: visible !important;
+  }
+
+  .play-screen .player-history-popover .history-card-grid > * {
+    width: var(--mobile-history-card-width, 72px) !important;
+    min-width: 0 !important;
+    max-width: var(--mobile-history-card-width, 72px) !important;
+  }
+
+  /* 鳴いた役：ここは従来通り1行3枚のまま固定 */
+  .play-screen .player-history-popover .history-meld-list {
+    width: var(--mobile-history-meld-section-width) !important;
+    min-width: var(--mobile-history-meld-section-width) !important;
+    max-width: var(--mobile-history-meld-section-width) !important;
+  }
+
+  .play-screen .player-history-popover .history-meld-row {
+    grid-template-columns: repeat(
+      3,
+      var(--mobile-history-card-width, 72px)
+    ) !important;
+
+    width: var(--mobile-history-meld-section-width) !important;
+    min-width: var(--mobile-history-meld-section-width) !important;
+    max-width: var(--mobile-history-meld-section-width) !important;
+  }
+}
+/* =========================================================
+   Play mobile fine tuning: ONLY Player2 card window position
+   スマホ横向き専用。
+   実Player2のカードウィンドウ位置だけを相対調整する。
+   他プレイヤー、幅、列数、スクロール設定には触らない。
+========================================================= */
+@media (orientation: landscape) and (max-width: 950px) and (max-height: 700px) and (hover: none) and (pointer: coarse) {
+  .play-screen {
+    /*
+      実Player2のカードウィンドウだけを現在位置からずらす。
+      4人用では 実Player2 = .history-hover-anchor--p4
+    */
+
+    /* 左右位置：マイナスで左、プラスで右 */
+    --mobile-history-player2-offset-x: 70px;
+
+    /* 上下位置：マイナスで上、プラスで下 */
+    --mobile-history-player2-offset-y: -100px;
+  }
+
+  .play-screen .table-4 .history-hover-anchor--p4 .player-history-popover {
+    margin-left: var(--mobile-history-player2-offset-x) !important;
+    margin-top: var(--mobile-history-player2-offset-y) !important;
+  }
+}
+
+/* =========================================================
+   Play mobile fine tuning: room management modal PC90 scaled
+   スマホ横向き専用。
+   プレイ画面内設定モーダルをPC版90%サイズの仮想レイアウトで作り、
+   画面内に収まるようにモーダル全体だけ縮小する。
+   position: fixed / left / top は使わない。
+========================================================= */
+@media (orientation: landscape) and (max-width: 950px) and (max-height: 700px) and (hover: none) and (pointer: coarse) {
+  .play-screen .room-management-dialog {
+    /*
+      PC版最大1040pxの90% = 936px。
+      高さは 1300:975 の比率から 702px。
+      ここを「仮想レイアウト基準」にする。
+    */
+    --mobile-room-modal-base-width: 936px;
+    --mobile-room-modal-base-height: 702px;
+
+    /*
+      スマホ横向き画面に収まる縮小率。
+      余白をかなり小さくして、できるだけ大きく表示する。
+    */
+    --mobile-room-modal-fit: min(
+      calc((100dvw - 8px) / 936),
+      calc((100dvh - 8px) / 702),
+      1
+    );
+
+    width: var(--mobile-room-modal-base-width) !important;
+    min-width: var(--mobile-room-modal-base-width) !important;
+    max-width: var(--mobile-room-modal-base-width) !important;
+
+    height: var(--mobile-room-modal-base-height) !important;
+    min-height: var(--mobile-room-modal-base-height) !important;
+    max-height: var(--mobile-room-modal-base-height) !important;
+
+    aspect-ratio: auto !important;
+
+    /*
+      重要：
+      fixed / left / top は使わない。
+      親overlayの中央配置をそのまま使う。
+      transformは「中央配置されたモーダルを縮小するだけ」。
+    */
+    position: relative !important;
+    left: auto !important;
+    top: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+
+    transform: scale(var(--mobile-room-modal-fit)) !important;
+    transform-origin: center center !important;
+
+    overflow: visible !important;
+  }
+
+  /*
+    overlay側は中央配置だけ維持。
+    余白を小さくして、モーダルを少しでも大きく表示する。
+  */
+  .play-screen .exit-confirm-overlay {
+    display: grid !important;
+    place-items: center !important;
+    padding: 4px !important;
+    overflow: hidden !important;
+  }
+
+  /*
+    モーダル内部はPC版比率を維持。
+    ここはサイズではなく、背景画像内の配置比率。
+  */
+  .play-screen .room-management-panel {
+    left: 6.2% !important;
+    top: 18.5% !important;
+    width: 87.5% !important;
+    height: 70.5% !important;
+
+    grid-template-columns: 25% minmax(0, 1fr) !important;
+    gap: 4.2% !important;
+  }
+
+  .play-screen .room-management-content-wrap {
+    grid-template-columns: minmax(0, 1fr) clamp(20px, 2.8vw, 34px) !important;
   }
 }

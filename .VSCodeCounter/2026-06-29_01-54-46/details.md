@@ -1,10 +1,10 @@
 # Details
 
-Date : 2026-06-18 12:41:12
+Date : 2026-06-29 01:54:46
 
 Directory c:\\Users\\jingc\\Documents\\8番出口
 
-Total : 126 files,  53151 codes, 570 comments, 4406 blanks, all 58127 lines
+Total : 134 files,  58271 codes, 656 comments, 5101 blanks, all 64028 lines
 
 [Summary](results.md) / Details / [Diff Summary](diff.md) / [Diff Details](diff-details.md)
 
@@ -24,42 +24,44 @@ Total : 126 files,  53151 codes, 570 comments, 4406 blanks, all 58127 lines
 | [server/onlineCpuRunner.test.ts](/server/onlineCpuRunner.test.ts) | TypeScript | 273 | 0 | 45 | 318 |
 | [server/onlineCpuRunner.ts](/server/onlineCpuRunner.ts) | TypeScript | 561 | 0 | 119 | 680 |
 | [server/onlineScenarios.ts](/server/onlineScenarios.ts) | TypeScript | 397 | 0 | 27 | 424 |
-| [src/App.tsx](/src/App.tsx) | TypeScript JSX | 1,937 | 0 | 90 | 2,027 |
+| [src/App.tsx](/src/App.tsx) | TypeScript JSX | 1,944 | 0 | 91 | 2,035 |
+| [src/audio/characterVoices.ts](/src/audio/characterVoices.ts) | TypeScript | 69 | 0 | 6 | 75 |
 | [src/cardImages.ts](/src/cardImages.ts) | TypeScript | 62 | 0 | 13 | 75 |
 | [src/components/AvatarGallery.tsx](/src/components/AvatarGallery.tsx) | TypeScript JSX | 34 | 0 | 4 | 38 |
-| [src/components/AvatarPreview.tsx](/src/components/AvatarPreview.tsx) | TypeScript JSX | 44 | 0 | 8 | 52 |
+| [src/components/AvatarPreview.tsx](/src/components/AvatarPreview.tsx) | TypeScript JSX | 47 | 0 | 9 | 56 |
 | [src/components/DiscardPile.tsx](/src/components/DiscardPile.tsx) | TypeScript JSX | 106 | 0 | 14 | 120 |
 | [src/components/FinalResultScreen.test.tsx](/src/components/FinalResultScreen.test.tsx) | TypeScript JSX | 108 | 0 | 22 | 130 |
 | [src/components/FinalResultScreen.tsx](/src/components/FinalResultScreen.tsx) | TypeScript JSX | 273 | 0 | 30 | 303 |
 | [src/components/HandView.tsx](/src/components/HandView.tsx) | TypeScript JSX | 87 | 0 | 9 | 96 |
-| [src/components/HomeMenu.tsx](/src/components/HomeMenu.tsx) | TypeScript JSX | 60 | 0 | 4 | 64 |
+| [src/components/HomeMenu.tsx](/src/components/HomeMenu.tsx) | TypeScript JSX | 57 | 0 | 4 | 61 |
 | [src/components/HomeScreen.test.tsx](/src/components/HomeScreen.test.tsx) | TypeScript JSX | 25 | 0 | 5 | 30 |
-| [src/components/HomeScreen.tsx](/src/components/HomeScreen.tsx) | TypeScript JSX | 55 | 0 | 6 | 61 |
-| [src/components/HomeStageDecor.tsx](/src/components/HomeStageDecor.tsx) | TypeScript JSX | 27 | 0 | 3 | 30 |
-| [src/components/ManualScreen.tsx](/src/components/ManualScreen.tsx) | TypeScript JSX | 272 | 0 | 14 | 286 |
+| [src/components/HomeScreen.tsx](/src/components/HomeScreen.tsx) | TypeScript JSX | 84 | 0 | 9 | 93 |
+| [src/components/HomeStageDecor.tsx](/src/components/HomeStageDecor.tsx) | TypeScript JSX | 30 | 0 | 5 | 35 |
+| [src/components/ManualScreen.tsx](/src/components/ManualScreen.tsx) | TypeScript JSX | 854 | 2 | 63 | 919 |
 | [src/components/MeldArea.tsx](/src/components/MeldArea.tsx) | TypeScript JSX | 62 | 0 | 10 | 72 |
 | [src/components/MoreGameScreen.test.tsx](/src/components/MoreGameScreen.test.tsx) | TypeScript JSX | 70 | 0 | 8 | 78 |
-| [src/components/MoreGameScreen.tsx](/src/components/MoreGameScreen.tsx) | TypeScript JSX | 101 | 0 | 9 | 110 |
+| [src/components/MoreGameScreen.tsx](/src/components/MoreGameScreen.tsx) | TypeScript JSX | 104 | 0 | 9 | 113 |
 | [src/components/OnlineLobbyScreen.tsx](/src/components/OnlineLobbyScreen.tsx) | TypeScript JSX | 113 | 0 | 8 | 121 |
 | [src/components/PlaceholderScreen.tsx](/src/components/PlaceholderScreen.tsx) | TypeScript JSX | 19 | 0 | 2 | 21 |
 | [src/components/PlayScreen.after-save-conflict.tsx](/src/components/PlayScreen.after-save-conflict.tsx) | TypeScript JSX | 4,164 | 165 | 200 | 4,529 |
-| [src/components/PlayScreen.test.tsx](/src/components/PlayScreen.test.tsx) | TypeScript JSX | 2,290 | 0 | 233 | 2,523 |
-| [src/components/PlayScreen.tsx](/src/components/PlayScreen.tsx) | TypeScript JSX | 5,318 | 165 | 276 | 5,759 |
+| [src/components/PlayScreen.test.tsx](/src/components/PlayScreen.test.tsx) | TypeScript JSX | 2,340 | 0 | 237 | 2,577 |
+| [src/components/PlayScreen.tsx](/src/components/PlayScreen.tsx) | TypeScript JSX | 5,480 | 165 | 286 | 5,931 |
 | [src/components/PlayScreenQueen.test.tsx](/src/components/PlayScreenQueen.test.tsx) | TypeScript JSX | 54 | 0 | 5 | 59 |
 | [src/components/PlayerArea.tsx](/src/components/PlayerArea.tsx) | TypeScript JSX | 60 | 0 | 4 | 64 |
 | [src/components/PlayingCard.tsx](/src/components/PlayingCard.tsx) | TypeScript JSX | 107 | 0 | 10 | 117 |
 | [src/components/ProfileScreen.tsx](/src/components/ProfileScreen.tsx) | TypeScript JSX | 93 | 0 | 10 | 103 |
 | [src/components/ResultScreen.test.tsx](/src/components/ResultScreen.test.tsx) | TypeScript JSX | 267 | 0 | 62 | 329 |
-| [src/components/ResultScreen.tsx](/src/components/ResultScreen.tsx) | TypeScript JSX | 484 | 0 | 54 | 538 |
+| [src/components/ResultScreen.tsx](/src/components/ResultScreen.tsx) | TypeScript JSX | 597 | 0 | 66 | 663 |
 | [src/components/ResultStandingsPanel.test.tsx](/src/components/ResultStandingsPanel.test.tsx) | TypeScript JSX | 83 | 0 | 13 | 96 |
 | [src/components/ResultStandingsPanel.tsx](/src/components/ResultStandingsPanel.tsx) | TypeScript JSX | 195 | 0 | 17 | 212 |
 | [src/components/RoomListScreen.tsx](/src/components/RoomListScreen.tsx) | TypeScript JSX | 148 | 0 | 12 | 160 |
 | [src/components/RoomSelectScreen.test.tsx](/src/components/RoomSelectScreen.test.tsx) | TypeScript JSX | 131 | 0 | 17 | 148 |
-| [src/components/RoomSelectScreen.tsx](/src/components/RoomSelectScreen.tsx) | TypeScript JSX | 30 | 0 | 4 | 34 |
+| [src/components/RoomSelectScreen.tsx](/src/components/RoomSelectScreen.tsx) | TypeScript JSX | 44 | 0 | 4 | 48 |
+| [src/components/SettingsScreen.tsx](/src/components/SettingsScreen.tsx) | TypeScript JSX | 232 | 0 | 20 | 252 |
 | [src/components/StartScreen.test.tsx](/src/components/StartScreen.test.tsx) | TypeScript JSX | 389 | 0 | 58 | 447 |
-| [src/components/StartScreen.tsx](/src/components/StartScreen.tsx) | TypeScript JSX | 526 | 0 | 36 | 562 |
+| [src/components/StartScreen.tsx](/src/components/StartScreen.tsx) | TypeScript JSX | 640 | 0 | 40 | 680 |
 | [src/components/manual/ManualIllustrations.tsx](/src/components/manual/ManualIllustrations.tsx) | TypeScript JSX | 372 | 0 | 20 | 392 |
-| [src/data/avatars.ts](/src/data/avatars.ts) | TypeScript | 26 | 0 | 4 | 30 |
+| [src/data/avatars.ts](/src/data/avatars.ts) | TypeScript | 82 | 0 | 7 | 89 |
 | [src/game/cpu.ts](/src/game/cpu.ts) | TypeScript | 19 | 0 | 2 | 21 |
 | [src/game/cpuModel.test.ts](/src/game/cpuModel.test.ts) | TypeScript | 493 | 0 | 92 | 585 |
 | [src/game/cpuModelRegistry.ts](/src/game/cpuModelRegistry.ts) | TypeScript | 25 | 0 | 6 | 31 |
@@ -94,9 +96,9 @@ Total : 126 files,  53151 codes, 570 comments, 4406 blanks, all 58127 lines
 | [src/sim/simulator.test.ts](/src/sim/simulator.test.ts) | TypeScript | 635 | 0 | 72 | 707 |
 | [src/sim/simulator.ts](/src/sim/simulator.ts) | TypeScript | 1,774 | 0 | 67 | 1,841 |
 | [src/sim/types.ts](/src/sim/types.ts) | TypeScript | 214 | 0 | 13 | 227 |
-| [src/styles.css](/src/styles.css) | PostCSS | 8,224 | 229 | 1,193 | 9,646 |
+| [src/styles.css](/src/styles.css) | PostCSS | 11,903 | 313 | 1,763 | 13,979 |
 | [src/test/setup.ts](/src/test/setup.ts) | TypeScript | 6 | 0 | 2 | 8 |
-| [src/types.ts](/src/types.ts) | TypeScript | 347 | 0 | 24 | 371 |
+| [src/types.ts](/src/types.ts) | TypeScript | 349 | 0 | 24 | 373 |
 | [src/vite-env.d.ts](/src/vite-env.d.ts) | TypeScript | 0 | 2 | 1 | 3 |
 | [tests/online-call-pass.spec.ts](/tests/online-call-pass.spec.ts) | TypeScript | 14 | 0 | 5 | 19 |
 | [tests/online-call.spec.ts](/tests/online-call.spec.ts) | TypeScript | 19 | 0 | 5 | 24 |
@@ -136,6 +138,12 @@ Total : 126 files,  53151 codes, 570 comments, 4406 blanks, all 58127 lines
 | [tsconfig.json](/tsconfig.json) | JSON with Comments | 22 | 0 | 1 | 23 |
 | [tsconfig.node.json](/tsconfig.node.json) | JSON | 9 | 0 | 1 | 10 |
 | [vite-5173.log](/vite-5173.log) | Log | 6 | 0 | 5 | 11 |
+| [vite-playwright.err.log](/vite-playwright.err.log) | Log | 0 | 0 | 1 | 1 |
+| [vite-playwright.out.log](/vite-playwright.out.log) | Log | 3 | 0 | 3 | 6 |
+| [vite-room-create-check.err.log](/vite-room-create-check.err.log) | Log | 0 | 0 | 1 | 1 |
+| [vite-room-create-check.out.log](/vite-room-create-check.out.log) | Log | 2 | 0 | 3 | 5 |
+| [vite-room-list.err.log](/vite-room-list.err.log) | Log | 0 | 0 | 1 | 1 |
+| [vite-room-list.out.log](/vite-room-list.out.log) | Log | 0 | 0 | 1 | 1 |
 | [vite.config.ts](/vite.config.ts) | TypeScript | 50 | 0 | 2 | 52 |
 
 [Summary](results.md) / Details / [Diff Summary](diff.md) / [Diff Details](diff-details.md)

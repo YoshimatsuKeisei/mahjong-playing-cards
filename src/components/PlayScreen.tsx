@@ -757,9 +757,19 @@ export default function PlayScreen({
     if (lastEnhancementSplashKeyRef.current !== splashKey) {
       lastEnhancementSplashKeyRef.current = splashKey;
       if (kind === "seven") {
-        playVoiceOnce(`j-enhancement-seven:${splashKey}`, pending.playerIndex, "sevenQueen");
+        playVoiceOnce(
+          `j-enhancement-seven:${splashKey}`,
+          pending.playerIndex,
+          "sevenQueen",
+        );
       }
-      showTimedReachSplash("J強化発動！", call, J_ENHANCEMENT_SPLASH_MS, undefined, pending.playerIndex);
+      showTimedReachSplash(
+        "J強化発動！",
+        call,
+        J_ENHANCEMENT_SPLASH_MS,
+        undefined,
+        pending.playerIndex,
+      );
     }
     const viewerIsActor = !isOnlineView || state.viewerPlayerId === player?.id;
     if (!viewerIsActor) return;
@@ -816,9 +826,19 @@ export default function PlayScreen({
 
     lastEnhancementSplashKeyRef.current = splashKey;
     if (kind === "seven") {
-      playVoiceOnce(`j-enhancement-seven:${splashKey}`, actorIndex, "sevenQueen");
+      playVoiceOnce(
+        `j-enhancement-seven:${splashKey}`,
+        actorIndex,
+        "sevenQueen",
+      );
     }
-    showTimedReachSplash("J強化発動！", call, J_ENHANCEMENT_SPLASH_MS, undefined, actorIndex);
+    showTimedReachSplash(
+      "J強化発動！",
+      call,
+      J_ENHANCEMENT_SPLASH_MS,
+      undefined,
+      actorIndex,
+    );
   }, [
     pendingDaifugoEffect?.kind,
     state.currentPlayerIndex,
@@ -1361,6 +1381,56 @@ export default function PlayScreen({
     }
   }, [state.phase, dispatch]);
 
+  useEffect(() => {
+    const updateMobilePlayFit = () => {
+      const scene = sceneRef.current;
+      if (!scene) return;
+
+      const isMobileLandscape = window.matchMedia(
+        "(orientation: landscape) and (max-width: 950px) and (max-height: 700px)",
+      ).matches;
+
+      if (!isMobileLandscape) {
+        scene.style.removeProperty("--play-mobile-base-width");
+        scene.style.removeProperty("--play-mobile-base-height");
+        scene.style.removeProperty("--play-mobile-fit");
+        return;
+      }
+
+      // PCブラウザ90%相当として扱う仮想盤面サイズ。
+      // まずはここだけを調整ポイントにする。
+      const BASE_WIDTH = 1728;
+      const BASE_HEIGHT = 864;
+
+      const fit = Math.min(
+        window.innerWidth / BASE_WIDTH,
+        window.innerHeight / BASE_HEIGHT,
+        1,
+      );
+
+      scene.style.setProperty("--play-mobile-base-width", `${BASE_WIDTH}px`);
+      scene.style.setProperty("--play-mobile-base-height", `${BASE_HEIGHT}px`);
+      scene.style.setProperty("--play-mobile-fit", String(fit));
+    };
+
+    updateMobilePlayFit();
+
+    window.addEventListener("resize", updateMobilePlayFit);
+    window.addEventListener("orientationchange", updateMobilePlayFit);
+
+    return () => {
+      window.removeEventListener("resize", updateMobilePlayFit);
+      window.removeEventListener("orientationchange", updateMobilePlayFit);
+
+      const scene = sceneRef.current;
+      if (scene) {
+        scene.style.removeProperty("--play-mobile-base-width");
+        scene.style.removeProperty("--play-mobile-base-height");
+        scene.style.removeProperty("--play-mobile-fit");
+      }
+    };
+  }, []);
+
   useLayoutEffect(() => {
     if (playerCount < 3) {
       setMeasuredHistoryPositions({});
@@ -1374,6 +1444,12 @@ export default function PlayScreen({
       if (!scene) return;
 
       const sceneRect = scene.getBoundingClientRect();
+      const sceneScaleX = scene.offsetWidth
+        ? sceneRect.width / scene.offsetWidth
+        : 1;
+      const sceneScaleY = scene.offsetHeight
+        ? sceneRect.height / scene.offsetHeight
+        : 1;
       const next: Record<number, { left: string; top: string }> = {};
       const debugRows: Array<Record<string, unknown>> = [];
 
@@ -1382,9 +1458,8 @@ export default function PlayScreen({
         if (!element) continue;
 
         const rect = element.getBoundingClientRect();
-        let left = rect.left + rect.width / 2 - sceneRect.left;
-        let top = rect.top + rect.height / 2 - sceneRect.top;
-
+        let left = (rect.left + rect.width / 2 - sceneRect.left) / sceneScaleX;
+        let top = (rect.top + rect.height / 2 - sceneRect.top) / sceneScaleY;
         if (playerCount === 5 && index === 4) {
           const player4 = next[3];
           if (player4) {
@@ -1397,8 +1472,8 @@ export default function PlayScreen({
           }
         }
 
-        left = Math.max(24, Math.min(sceneRect.width - 24, left));
-        top = Math.max(24, Math.min(sceneRect.height - 24, top));
+        left = Math.max(24, Math.min(scene.offsetWidth - 24, left));
+        top = Math.max(24, Math.min(scene.offsetHeight - 24, top));
         next[index] = {
           left: `${Math.round(left)}px`,
           top: `${Math.round(top)}px`,
@@ -1576,7 +1651,11 @@ export default function PlayScreen({
     dispatch({ type: "answerDaifugoEffect", activate });
   }
 
-  function playVoiceOnce(key: string, playerIndex: number, event: CharacterVoiceEvent) {
+  function playVoiceOnce(
+    key: string,
+    playerIndex: number,
+    event: CharacterVoiceEvent,
+  ) {
     if (lastVoiceKeyRef.current === key) return;
     lastVoiceKeyRef.current = key;
     playCharacterVoice(getVoiceAvatarIdForPlayer(playerIndex), event);
@@ -1596,10 +1675,17 @@ export default function PlayScreen({
     setReachSplashPlayerName(playerName);
     setReachSplashCall(call);
     setReachSplashDurationMs(duration);
-    setReachSplashVisualSrc(getHomeCharacterSrcByAvatarId(getVoiceAvatarIdForPlayer(visualPlayerIndex)));
+    setReachSplashVisualSrc(
+      getHomeCharacterSrcByAvatarId(
+        getVoiceAvatarIdForPlayer(visualPlayerIndex),
+      ),
+    );
     if (voice && lastVoiceKeyRef.current !== voice.key) {
       lastVoiceKeyRef.current = voice.key;
-      playCharacterVoice(getVoiceAvatarIdForPlayer(voice.playerIndex), voice.event);
+      playCharacterVoice(
+        getVoiceAvatarIdForPlayer(voice.playerIndex),
+        voice.event,
+      );
     }
     if (reachSplashTimeoutRef.current !== null) {
       window.clearTimeout(reachSplashTimeoutRef.current);
@@ -1611,7 +1697,13 @@ export default function PlayScreen({
   }
 
   function showReachSplash(playerName: string, call = "リーチ!!") {
-    showTimedReachSplash(playerName, call, 2600, undefined, state.currentPlayerIndex);
+    showTimedReachSplash(
+      playerName,
+      call,
+      2600,
+      undefined,
+      state.currentPlayerIndex,
+    );
   }
 
   function showReachSplashWithVoice(
@@ -3454,7 +3546,9 @@ function RoomManagementDialog({
     contentRef.current?.scrollBy({ top: delta, behavior: "smooth" });
   }
 
-  function scrollContentToPointer(event: React.PointerEvent<HTMLButtonElement>) {
+  function scrollContentToPointer(
+    event: React.PointerEvent<HTMLButtonElement>,
+  ) {
     const content = contentRef.current;
     if (!content) return;
     const rect = event.currentTarget.getBoundingClientRect();
@@ -3646,145 +3740,145 @@ function RoomManagementDialog({
 
               {selectedTab === "matchInfo" && (
                 <>
-                <div className="match-info-list">
-                  <div className="match-info-row">
-                    <span>ルーム名</span>
-                    <strong>
-                      {matchState?.roomName ?? room?.roomId ?? "ルーム"}
-                    </strong>
-                  </div>
-                  <div
-                    className="match-info-row match-info-row--players"
-                    style={
-                      {
-                        "--match-info-player-count":
-                          matchGameState.players.length,
-                      } as CSSProperties
-                    }
-                  >
-                    <span>プレイヤー</span>
-                    <div className="match-info-players">
-                      {matchGameState.players.map((player, index) => (
-                        <div className="match-info-player" key={player.id}>
-                          <em>
-                            {!player.isCpu && player.id === room?.hostPlayerId
-                              ? "HOST"
-                              : ""}
-                          </em>
-                          <strong>
-                            Player{index + 1}:{" "}
-                            {formatMatchInfoPlayerName(player)}
-                          </strong>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="match-info-row">
-                    <span>人数</span>
-                    <strong>{matchGameState.players.length}人</strong>
-                  </div>
-                  <div className="match-info-row">
-                    <span>試合形式</span>
-                    <strong>{matchTypeLabel}</strong>
-                  </div>
-                  <div className="match-info-row">
-                    <span>試合形式の詳細</span>
-                    <strong>{matchDetail}</strong>
-                    {canEditRounds && (
-                      <button
-                        type="button"
-                        className="match-info-change-button"
-                        onClick={() => startEditingSetting("rounds")}
-                      >
-                        変更
-                      </button>
-                    )}
-                    {canEditTargetScore && (
-                      <button
-                        type="button"
-                        className="match-info-change-button"
-                        onClick={() => startEditingSetting("targetScore")}
-                      >
-                        変更
-                      </button>
-                    )}
-                  </div>
-                  <div className="match-info-row">
-                    <span>現在の局</span>
-                    <strong>{currentRoundNumber}局目</strong>
-                  </div>
-                  {onlinePlayerId && onUpdateSubstituteCpuModel && (
+                  <div className="match-info-list">
                     <div className="match-info-row">
-                      <span>代行CPUモデル</span>
+                      <span>ルーム名</span>
                       <strong>
-                        {getCpuModelDisplayName(substituteCpuModelId)}
+                        {matchState?.roomName ?? room?.roomId ?? "ルーム"}
                       </strong>
-                      <select
-                        aria-label="代行CPUモデル"
-                        value={substituteCpuModelId}
-                        onChange={(event) =>
-                          onUpdateSubstituteCpuModel(
-                            event.target.value as CpuModelId,
-                          )
-                        }
-                      >
-                        <option value="easy">junior-CPU</option>
-                        <option value="standard">standard-CPU</option>
-                        <option value="tactical">pro-CPU</option>
-                        <option value="master">master-CPU</option>
-                      </select>
                     </div>
-                  )}
-                </div>
-                {editingSetting && (
-                  <div className="match-setting-editor">
-                    <label htmlFor="match-setting-value">
-                      {editingSetting === "rounds" ? "最大局数" : "目標点"}
-                    </label>
-                    <input
-                      id="match-setting-value"
-                      type="number"
-                      min="1"
-                      max={
-                        editingSetting === "rounds"
-                          ? MAX_ROUND_COUNT
-                          : MAX_TARGET_SCORE
+                    <div
+                      className="match-info-row match-info-row--players"
+                      style={
+                        {
+                          "--match-info-player-count":
+                            matchGameState.players.length,
+                        } as CSSProperties
                       }
-                      step="1"
-                      value={settingValue}
-                      onChange={(event) => {
-                        setSettingValue(event.target.value);
-                        setSettingError(null);
-                      }}
-                    />
-                    {settingError && (
-                      <p className="match-setting-error">{settingError}</p>
+                    >
+                      <span>プレイヤー</span>
+                      <div className="match-info-players">
+                        {matchGameState.players.map((player, index) => (
+                          <div className="match-info-player" key={player.id}>
+                            <em>
+                              {!player.isCpu && player.id === room?.hostPlayerId
+                                ? "HOST"
+                                : ""}
+                            </em>
+                            <strong>
+                              Player{index + 1}:{" "}
+                              {formatMatchInfoPlayerName(player)}
+                            </strong>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="match-info-row">
+                      <span>人数</span>
+                      <strong>{matchGameState.players.length}人</strong>
+                    </div>
+                    <div className="match-info-row">
+                      <span>試合形式</span>
+                      <strong>{matchTypeLabel}</strong>
+                    </div>
+                    <div className="match-info-row">
+                      <span>試合形式の詳細</span>
+                      <strong>{matchDetail}</strong>
+                      {canEditRounds && (
+                        <button
+                          type="button"
+                          className="match-info-change-button"
+                          onClick={() => startEditingSetting("rounds")}
+                        >
+                          変更
+                        </button>
+                      )}
+                      {canEditTargetScore && (
+                        <button
+                          type="button"
+                          className="match-info-change-button"
+                          onClick={() => startEditingSetting("targetScore")}
+                        >
+                          変更
+                        </button>
+                      )}
+                    </div>
+                    <div className="match-info-row">
+                      <span>現在の局</span>
+                      <strong>{currentRoundNumber}局目</strong>
+                    </div>
+                    {onlinePlayerId && onUpdateSubstituteCpuModel && (
+                      <div className="match-info-row">
+                        <span>代行CPUモデル</span>
+                        <strong>
+                          {getCpuModelDisplayName(substituteCpuModelId)}
+                        </strong>
+                        <select
+                          aria-label="代行CPUモデル"
+                          value={substituteCpuModelId}
+                          onChange={(event) =>
+                            onUpdateSubstituteCpuModel(
+                              event.target.value as CpuModelId,
+                            )
+                          }
+                        >
+                          <option value="easy">junior-CPU</option>
+                          <option value="standard">standard-CPU</option>
+                          <option value="tactical">pro-CPU</option>
+                          <option value="master">master-CPU</option>
+                        </select>
+                      </div>
                     )}
-                    <div className="exit-confirm-actions">
-                      <button
-                        type="button"
-                        className="primary-button"
-                        onClick={submitSettingChange}
-                      >
-                        確定
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setEditingSetting(null);
+                  </div>
+                  {editingSetting && (
+                    <div className="match-setting-editor">
+                      <label htmlFor="match-setting-value">
+                        {editingSetting === "rounds" ? "最大局数" : "目標点"}
+                      </label>
+                      <input
+                        id="match-setting-value"
+                        type="number"
+                        min="1"
+                        max={
+                          editingSetting === "rounds"
+                            ? MAX_ROUND_COUNT
+                            : MAX_TARGET_SCORE
+                        }
+                        step="1"
+                        value={settingValue}
+                        onChange={(event) => {
+                          setSettingValue(event.target.value);
                           setSettingError(null);
                         }}
-                      >
-                        キャンセル
-                      </button>
+                      />
+                      {settingError && (
+                        <p className="match-setting-error">{settingError}</p>
+                      )}
+                      <div className="exit-confirm-actions">
+                        <button
+                          type="button"
+                          className="primary-button"
+                          onClick={submitSettingChange}
+                        >
+                          確定
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingSetting(null);
+                            setSettingError(null);
+                          }}
+                        >
+                          キャンセル
+                        </button>
+                      </div>
                     </div>
+                  )}
+                  <div className="exit-confirm-actions">
+                    <button type="button" onClick={onClose}>
+                      閉じる
+                    </button>
                   </div>
-                )}
-                <div className="exit-confirm-actions">
-                  <button type="button" onClick={onClose}>
-                    閉じる
-                  </button>
-                </div>
                 </>
               )}
             </div>
