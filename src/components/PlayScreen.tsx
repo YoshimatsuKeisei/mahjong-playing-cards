@@ -1386,9 +1386,15 @@ export default function PlayScreen({
       const scene = sceneRef.current;
       if (!scene) return;
 
-      const isMobileLandscape = window.matchMedia(
-        "(orientation: landscape) and (max-width: 950px) and (max-height: 700px)",
-      ).matches;
+      const mobileLandscapeQuery =
+        "(orientation: landscape) and (max-width: 950px) and (max-height: 700px)";
+
+      const isMobileLandscape =
+        typeof window.matchMedia === "function"
+          ? window.matchMedia(mobileLandscapeQuery).matches
+          : window.innerWidth > window.innerHeight &&
+            window.innerWidth <= 950 &&
+            window.innerHeight <= 700;
 
       if (!isMobileLandscape) {
         scene.style.removeProperty("--play-mobile-base-width");
