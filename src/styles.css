@@ -5755,18 +5755,22 @@ h2 {
   object-fit: contain;
   object-position: center top;
   filter: drop-shadow(18px 18px 22px rgba(0, 0, 0, 0.66));
-  transform: translate(-4%, -10%);
+  transform: translate(-4%, 0%);
   animation: reach-visual-in var(--reach-splash-duration, 2.6s) ease both;
 }
 
 .reach-splash-copy {
-  position: relative;
+  position: absolute;
+  top: 50%;
+  right: clamp(2rem, 7vw, 5.5rem);
+  left: clamp(330px, 42vw, 520px);
   z-index: 2;
   display: grid;
-  align-self: center;
   gap: 0.5rem;
   padding: clamp(1rem, 4vw, 3rem);
   text-align: left;
+  transform: translateY(-50%);
+  pointer-events: none;
 }
 
 .reach-splash-copy span {
@@ -5779,15 +5783,16 @@ h2 {
   font-weight: 900;
 }
 
-.reach-splash-copy strong {
+.reach-splash-copy strong,
+.reach-splash-message {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.08em;
-  width: min(68vw, 860px);
+  flex-direction: row;
+  align-items: baseline;
+  gap: 0;
+  width: 100%;
   max-width: 100%;
   color: #fff8dc;
-  font-size: clamp(2rem, 4.6vw, 4.6rem);
+  font-size: clamp(1.6rem, 3.6vw, 3.8rem);
   line-height: 1.02;
   word-break: keep-all;
   overflow-wrap: normal;
@@ -5803,8 +5808,9 @@ h2 {
 }
 
 .reach-splash-copy .reach-splash-player,
+.reach-splash-copy .reach-splash-separator,
 .reach-splash-copy .reach-splash-call {
-  display: block;
+  display: inline;
   width: auto;
   max-width: 100%;
   border: 0;
@@ -5812,15 +5818,20 @@ h2 {
   color: inherit;
   padding: 0;
   font-size: inherit;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow: visible;
+  text-overflow: clip;
   line-height: inherit;
   white-space: nowrap;
 }
 
+.reach-splash-copy .reach-splash-player {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.reach-splash-copy .reach-splash-separator,
 .reach-splash-copy .reach-splash-call {
-  overflow: visible;
-  text-overflow: clip;
+  flex: 0 0 auto;
 }
 
 .ron-check-overlay {
@@ -6524,16 +6535,16 @@ h2 {
 @keyframes reach-visual-in {
   0% {
     opacity: 0;
-    transform: translate(calc(-4% - 80px), -10%) scale(0.94);
+    transform: translate(calc(-4% - 80px), 0%) scale(0.94);
   }
   20%,
   78% {
     opacity: 1;
-    transform: translate(-4%, -10%) scale(1);
+    transform: translate(-4%, 0%) scale(1);
   }
   100% {
     opacity: 0;
-    transform: translate(calc(-4% + 60px), -10%) scale(1);
+    transform: translate(calc(-4% + 60px), 0%) scale(1);
   }
 }
 
@@ -8642,7 +8653,7 @@ h2 {
   .reach-splash-band {
     grid-template-columns: 1fr;
     align-content: end;
-    min-height: 56vh;
+    height: 56vh;
   }
 
   .reach-splash-visual {
@@ -8654,8 +8665,13 @@ h2 {
   }
 
   .reach-splash-copy {
+    top: auto;
+    right: 1rem;
+    bottom: 1.4rem;
+    left: 1rem;
     padding: 0.85rem 1rem 1.4rem;
     text-align: center;
+    transform: none;
   }
 
   .reach-splash-copy span {
@@ -8664,7 +8680,8 @@ h2 {
 
   .reach-splash-copy strong {
     width: 100%;
-    font-size: clamp(1.85rem, 10vw, 3rem);
+    justify-content: center;
+    font-size: clamp(1.45rem, 7.2vw, 2.6rem);
   }
 
   .ron-check-panel {

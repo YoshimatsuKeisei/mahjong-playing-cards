@@ -1804,10 +1804,11 @@ export default function PlayScreen({
               />
               <div className="reach-splash-copy">
                 <span>宣言</span>
-                <strong>
+                <strong className="reach-splash-message">
                   <span className="reach-splash-player">
                     {reachSplashPlayerName}
                   </span>
+                  <span className="reach-splash-separator">:</span>
                   <span className="reach-splash-call">{reachSplashCall}</span>
                 </strong>
               </div>
