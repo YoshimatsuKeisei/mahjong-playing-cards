@@ -1,0 +1,39 @@
+"filename", "language", "Log", "PostCSS", "TypeScript", "TypeScript JSX", "YAML", "comment", "blank", "total"
+"c:\Users\jingc\Documents\8番出口\.playwright-mcp\console-2026-06-20T23-57-32-837Z.log", "Log", -63, 0, 0, 0, 0, 0, -1, -64
+"c:\Users\jingc\Documents\8番出口\.playwright-mcp\console-2026-06-21T00-04-37-474Z.log", "Log", -6, 0, 0, 0, 0, 0, -1, -7
+"c:\Users\jingc\Documents\8番出口\.playwright-mcp\console-2026-06-21T08-34-24-532Z.log", "Log", -5, 0, 0, 0, 0, 0, -1, -6
+"c:\Users\jingc\Documents\8番出口\.playwright-mcp\console-2026-06-21T08-36-47-960Z.log", "Log", -30, 0, 0, 0, 0, 0, -1, -31
+"c:\Users\jingc\Documents\8番出口\.playwright-mcp\console-2026-06-21T08-39-55-774Z.log", "Log", -52, 0, 0, 0, 0, 0, -1, -53
+"c:\Users\jingc\Documents\8番出口\.playwright-mcp\console-2026-06-21T08-45-43-380Z.log", "Log", -630, 0, 0, 0, 0, 0, -1, -631
+"c:\Users\jingc\Documents\8番出口\.playwright-mcp\page-2026-06-20T23-58-46-066Z.yml", "YAML", 0, 0, 0, 0, -58, 0, 0, -58
+"c:\Users\jingc\Documents\8番出口\.playwright-mcp\page-2026-06-20T23-59-50-145Z.yml", "YAML", 0, 0, 0, 0, -12, 0, 0, -12
+"c:\Users\jingc\Documents\8番出口\.playwright-mcp\page-2026-06-21T00-00-16-639Z.yml", "YAML", 0, 0, 0, 0, -11, 0, 0, -11
+"c:\Users\jingc\Documents\8番出口\.playwright-mcp\page-2026-06-21T00-02-24-625Z.yml", "YAML", 0, 0, 0, 0, -11, 0, 0, -11
+"c:\Users\jingc\Documents\8番出口\.playwright-mcp\page-2026-06-21T00-03-14-143Z.yml", "YAML", 0, 0, 0, 0, -11, 0, 0, -11
+"c:\Users\jingc\Documents\8番出口\.playwright-mcp\page-2026-06-21T00-05-09-854Z.yml", "YAML", 0, 0, 0, 0, -17, 0, 0, -17
+"c:\Users\jingc\Documents\8番出口\.playwright-mcp\page-2026-06-21T00-06-40-032Z.yml", "YAML", 0, 0, 0, 0, -17, 0, 0, -17
+"c:\Users\jingc\Documents\8番出口\.playwright-mcp\page-2026-06-21T08-36-48-651Z.yml", "YAML", 0, 0, 0, 0, -58, 0, 0, -58
+"c:\Users\jingc\Documents\8番出口\.playwright-mcp\page-2026-06-21T08-37-41-486Z.yml", "YAML", 0, 0, 0, 0, -12, 0, 0, -12
+"c:\Users\jingc\Documents\8番出口\.playwright-mcp\page-2026-06-21T08-38-27-725Z.yml", "YAML", 0, 0, 0, 0, -61, 0, 0, -61
+"c:\Users\jingc\Documents\8番出口\.playwright-mcp\page-2026-06-21T08-39-56-240Z.yml", "YAML", 0, 0, 0, 0, -57, 0, 0, -57
+"c:\Users\jingc\Documents\8番出口\.playwright-mcp\page-2026-06-21T08-41-08-844Z.yml", "YAML", 0, 0, 0, 0, -12, 0, 0, -12
+"c:\Users\jingc\Documents\8番出口\.playwright-mcp\page-2026-06-21T08-41-34-622Z.yml", "YAML", 0, 0, 0, 0, -61, 0, 0, -61
+"c:\Users\jingc\Documents\8番出口\.playwright-mcp\page-2026-06-21T08-45-44-001Z.yml", "YAML", 0, 0, 0, 0, -58, 0, 0, -58
+"c:\Users\jingc\Documents\8番出口\.playwright-mcp\page-2026-06-21T08-46-58-275Z.yml", "YAML", 0, 0, 0, 0, -12, 0, 0, -12
+"c:\Users\jingc\Documents\8番出口\.playwright-mcp\page-2026-06-21T08-47-45-264Z.yml", "YAML", 0, 0, 0, 0, -61, 0, 0, -61
+"c:\Users\jingc\Documents\8番出口\src\App.tsx", "TypeScript JSX", 0, 0, 0, 3, 0, 0, 0, 3
+"c:\Users\jingc\Documents\8番出口\src\audio\characterVoices.ts", "TypeScript", 0, 0, 69, 0, 0, 0, 6, 75
+"c:\Users\jingc\Documents\8番出口\src\components\AvatarPreview.tsx", "TypeScript JSX", 0, 0, 0, 3, 0, 0, 1, 4
+"c:\Users\jingc\Documents\8番出口\src\components\HomeMenu.tsx", "TypeScript JSX", 0, 0, 0, -3, 0, 0, 0, -3
+"c:\Users\jingc\Documents\8番出口\src\components\HomeScreen.tsx", "TypeScript JSX", 0, 0, 0, 29, 0, 0, 3, 32
+"c:\Users\jingc\Documents\8番出口\src\components\HomeStageDecor.tsx", "TypeScript JSX", 0, 0, 0, 3, 0, 0, 2, 5
+"c:\Users\jingc\Documents\8番出口\src\components\PlayScreen.test.tsx", "TypeScript JSX", 0, 0, 0, 45, 0, 0, 5, 50
+"c:\Users\jingc\Documents\8番出口\src\components\PlayScreen.tsx", "TypeScript JSX", 0, 0, 0, 162, 0, 0, 10, 172
+"c:\Users\jingc\Documents\8番出口\src\components\ResultScreen.tsx", "TypeScript JSX", 0, 0, 0, 113, 0, 0, 12, 125
+"c:\Users\jingc\Documents\8番出口\src\components\SettingsScreen.tsx", "TypeScript JSX", 0, 0, 0, 88, 0, 0, 5, 93
+"c:\Users\jingc\Documents\8番出口\src\data\avatars.ts", "TypeScript", 0, 0, 56, 0, 0, 0, 3, 59
+"c:\Users\jingc\Documents\8番出口\src\styles.css", "PostCSS", 0, 978, 0, 0, 0, 3, 117, 1098
+"c:\Users\jingc\Documents\8番出口\src\types.ts", "TypeScript", 0, 0, 2, 0, 0, 0, 0, 2
+"c:\Users\jingc\Documents\8番出口\vite-playwright.err.log", "Log", 0, 0, 0, 0, 0, 0, 1, 1
+"c:\Users\jingc\Documents\8番出口\vite-playwright.out.log", "Log", 3, 0, 0, 0, 0, 0, 3, 6
+"Total", "-", -783, 978, 127, 443, -529, 3, 162, 401

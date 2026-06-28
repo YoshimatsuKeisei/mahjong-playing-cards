@@ -76,6 +76,16 @@ function createOnlineMatchState(matchMode: MatchState["matchMode"] = "rounds") {
   );
 }
 
+function expectReachSplashMessage(container: HTMLElement, playerName: string) {
+  const message = container.querySelector(".reach-splash-message");
+  const call = container.querySelector(".reach-splash-call")?.textContent ?? "";
+  expect(message).toBeInTheDocument();
+  expect(container.querySelector(".reach-splash-player")).toHaveTextContent(playerName);
+  expect(container.querySelector(".reach-splash-separator")).toHaveTextContent(":");
+  expect(call).toBeTruthy();
+  expect(message?.textContent?.replace(/\s/g, "")).toBe(`${playerName}:${call}`.replace(/\s/g, ""));
+}
+
 describe("PlayScreen round display", () => {
   it("shows the current round on the play screen", () => {
     render(
@@ -1905,6 +1915,46 @@ describe("PlayScreen round display", () => {
     expect(container.querySelector(".reach-splash")).toHaveTextContent(
       "リーチ!!",
     );
+  });
+
+  it("renders the reach splash as a single player-name colon call message", () => {
+    const base = createInitialGame(4, "clockwise");
+    const players = base.players.map((player, index) => ({
+      ...player,
+      id: `p${index + 1}`,
+      name: `Player ${index + 1}`,
+      isReach: false,
+    }));
+    const state: GameState = {
+      ...base,
+      viewerPlayerId: "p2",
+      players,
+    };
+
+    const { container, rerender } = render(
+      <PlayScreen
+        state={state}
+        dispatch={vi.fn()}
+        currentRound={1}
+        disableLocalCpuAutomation
+      />,
+    );
+
+    rerender(
+      <PlayScreen
+        state={{
+          ...state,
+          players: players.map((player, index) =>
+            index === 0 ? { ...player, isReach: true } : player,
+          ),
+        }}
+        dispatch={vi.fn()}
+        currentRound={1}
+        disableLocalCpuAutomation
+      />,
+    );
+
+    expectReachSplashMessage(container, "Player 1");
   });
 
   it("shows table discard and meld placement only for three-player games", () => {
