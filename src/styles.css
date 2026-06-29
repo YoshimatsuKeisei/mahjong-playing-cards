@@ -15598,3 +15598,415 @@ body {
     grid-template-columns: minmax(0, 1fr) clamp(20px, 2.8vw, 34px) !important;
   }
 }
+
+/* =========================================================
+   Play screen settings gear image test
+   プレイ画面右上の設定ボタンだけ画像素材に差し替える
+========================================================= */
+.play-screen .play-exit-button.room-management-button[aria-label="設定"] {
+  width: 74px !important;
+  height: 74px !important;
+  min-width: 74px !important;
+  min-height: 74px !important;
+
+  padding: 0 !important;
+  border: none !important;
+  border-radius: 50% !important;
+
+  background-image: url("../設定歯車ボタン.png") !important;
+  background-repeat: no-repeat !important;
+  background-position: center !important;
+  background-size: contain !important;
+  background-color: transparent !important;
+
+  box-shadow: none !important;
+
+  font-size: 0 !important;
+  line-height: 0 !important;
+  color: transparent !important;
+  overflow: visible !important;
+}
+
+/* =========================================================
+   FINAL: round banner image size control
+   〇回戦看板を画像素材化し、PC版/スマホ版を別々に確実に調整する。
+   debug-round-banner-* は使わない。
+========================================================= */
+
+/* PC版・共通 */
+.play-screen .table-scene .round-scroll-banner {
+  --round-banner-pc-width: 190px;
+  --round-banner-pc-height: 58px;
+  --round-banner-pc-font-size: 21px;
+
+  --round-banner-pc-top: 10px;
+  --round-banner-pc-offset-x: 0px;
+  --round-banner-pc-offset-y: 0px;
+
+  width: var(--round-banner-pc-width) !important;
+  min-width: var(--round-banner-pc-width) !important;
+  max-width: var(--round-banner-pc-width) !important;
+
+  height: var(--round-banner-pc-height) !important;
+  min-height: var(--round-banner-pc-height) !important;
+  max-height: var(--round-banner-pc-height) !important;
+
+  padding: 0 !important;
+  box-sizing: border-box !important;
+
+  background-image: url("../プレイ画面-〇回戦.png") !important;
+  background-repeat: no-repeat !important;
+  background-position: center !important;
+  background-size: 100% 100% !important;
+  background-color: transparent !important;
+
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+
+  display: grid !important;
+  place-items: center !important;
+
+  color: #2c1b0c !important;
+  font-size: var(--round-banner-pc-font-size) !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+
+  text-shadow:
+    0 1px 0 rgba(255, 246, 208, 0.78),
+    0 2px 3px rgba(79, 43, 12, 0.28) !important;
+
+  overflow: visible !important;
+
+  position: absolute !important;
+  left: calc(50% + var(--round-banner-pc-offset-x)) !important;
+  top: calc(
+    var(--round-banner-pc-top) + var(--round-banner-pc-offset-y)
+  ) !important;
+  z-index: 30 !important;
+  transform: translateX(-50%) !important;
+}
+
+/* スマホ横向き版 */
+@media (orientation: landscape) and (max-height: 700px) {
+  .play-screen .table-scene .round-scroll-banner {
+    /*
+      重要：
+      スマホ版は .table-scene 全体が scale(0.82) されている。
+      だから、画面上でPC版と同じ太さに見せたいなら、
+      CSS上のheightはPCより大きくする必要がある。
+    */
+    --round-banner-mobile-width: 230px;
+    --round-banner-mobile-height: 68px;
+    --round-banner-mobile-font-size: 24px;
+
+    width: var(--round-banner-mobile-width) !important;
+    min-width: var(--round-banner-mobile-width) !important;
+    max-width: var(--round-banner-mobile-width) !important;
+
+    height: var(--round-banner-mobile-height) !important;
+    min-height: var(--round-banner-mobile-height) !important;
+    max-height: var(--round-banner-mobile-height) !important;
+
+    padding: 0 !important;
+    box-sizing: border-box !important;
+
+    background-image: url("../プレイ画面-〇回戦.png") !important;
+    background-repeat: no-repeat !important;
+    background-position: center !important;
+    background-size: 100% 100% !important;
+    background-color: transparent !important;
+
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+
+    display: grid !important;
+    place-items: center !important;
+
+    font-size: var(--round-banner-mobile-font-size) !important;
+    line-height: 1 !important;
+
+    /*
+      既存の中央配置は維持。
+      位置調整はここだけで行う。
+    */
+    transform: translateX(-50%) !important;
+    translate: 0px 0px !important;
+
+    overflow: visible !important;
+  }
+}
+
+/* =========================================================
+   Room management modal mobile text refinement
+   プレイ画面内設定モーダル：スマホ横向きの文字サイズ補正
+   構造は変えず、文字階層だけ大きくする
+========================================================= */
+
+@media (orientation: landscape) and (max-height: 700px) {
+  /*
+    overlayの余白を少し削る。
+    これでモーダル本体を少しだけ大きくできる。
+  */
+  .play-screen .exit-confirm-overlay {
+    padding: 0.35rem !important;
+  }
+
+  /*
+    モーダル本体。
+    PC90そのものにはできないが、スマホ内で収まる最大寄りにする。
+    transform scale は使わない。
+  */
+  .play-screen .room-management-dialog {
+    width: min(96dvw, calc(94dvh * 1300 / 975), 1040px) !important;
+    max-width: 96dvw !important;
+    max-height: 94dvh !important;
+
+    height: auto !important;
+    aspect-ratio: 1300 / 975 !important;
+
+    transform: none !important;
+  }
+
+  /*
+    タイトル「設定」
+  */
+  .play-screen .room-management-dialog h2 {
+    top: 9.2% !important;
+    font-size: clamp(2.5rem, 4.6dvw, 3.3rem) !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+  }
+
+  /*
+    左タブ。
+    ボタン画像の中に文字を収めるため、文字を大きくしつつ nowrap。
+  */
+  .play-screen .room-management-tabs {
+    gap: clamp(0.26rem, 0.75dvw, 0.5rem) !important;
+  }
+
+  .play-screen .room-management-tabs button {
+    font-size: clamp(1.05rem, 2.25dvw, 1.35rem) !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+
+    /*
+      文字を少し左寄せしすぎない。
+      ボタン画像内の収まりを維持。
+    */
+    padding: 0 12% 0 18% !important;
+  }
+
+  /*
+    右側本文エリア。
+    文字を大きくする代わりに、余白は少し削る。
+  */
+  .play-screen .room-management-content {
+    padding: 0.45rem 0.55rem !important;
+  }
+
+  /*
+    メイン文言：
+    「現在の試合から退出しますか？」など。
+  */
+  .play-screen .room-management-content > p {
+    margin: 0.1rem 0 0.55rem !important;
+    font-size: clamp(1.6rem, 3.3dvw, 2.3rem) !important;
+    line-height: 1.25 !important;
+    white-space: nowrap !important;
+  }
+
+  /*
+    退出 / キャンセルなどのボタン。
+    文字を大きくする代わりに、ボタン幅も少し広げる。
+  */
+  .play-screen .room-management-dialog .exit-confirm-actions {
+    gap: clamp(0.8rem, 1.8dvw, 1.15rem) !important;
+    margin-top: clamp(0.55rem, 1.2dvw, 0.9rem) !important;
+  }
+
+  .play-screen .room-management-dialog .exit-confirm-actions button,
+  .play-screen .room-management-dialog .temporary-leave-options .primary-button,
+  .play-screen .room-management-dialog .host-transfer-list button {
+    width: clamp(154px, 19dvw, 196px) !important;
+    font-size: clamp(1.05rem, 2.2dvw, 1.32rem) !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+    padding: 0 0.85rem !important;
+  }
+
+  /*
+    一時離脱タブの説明文。
+    ここは nowrap 禁止。長文なので改行させる。
+  */
+  .play-screen .temporary-leave-options {
+    gap: clamp(0.32rem, 0.75dvw, 0.52rem) !important;
+    margin-top: 0.55rem !important;
+  }
+
+  .play-screen .temporary-leave-options p {
+    font-size: clamp(0.95rem, 1.85dvw, 1.12rem) !important;
+    line-height: 1.35 !important;
+    white-space: normal !important;
+  }
+
+  /*
+    試合情報タブ。
+    大きくしすぎると一覧が詰まるので、ここは控えめ。
+  */
+  .play-screen .match-info-row {
+    min-height: clamp(38px, 6.8dvh, 52px) !important;
+    padding: 0.34rem 1.05rem !important;
+  }
+
+  .play-screen .match-info-row span {
+    font-size: clamp(0.82rem, 1.65dvw, 1rem) !important;
+    white-space: nowrap !important;
+  }
+
+  .play-screen .match-info-row strong,
+  .play-screen .match-info-player strong {
+    font-size: clamp(0.9rem, 1.8dvw, 1.08rem) !important;
+    line-height: 1.15 !important;
+  }
+}
+
+/* =========================================================
+   Room management modal: mobile readable text pass
+   ボタン系 → 文言系 → 試合情報の順で文字サイズを整理
+========================================================= */
+
+@media (orientation: landscape) and (max-height: 700px) {
+  /* -----------------------------
+     1. 左タブボタン
+  ----------------------------- */
+  .play-screen .room-management-tabs button {
+    font-size: clamp(2rem, 4.5dvw, 2.7rem) !important;
+    line-height: 1 !important;
+    font-weight: 900 !important;
+    white-space: nowrap !important;
+    letter-spacing: 0.03em !important;
+    padding: 0 11% 0 18% !important;
+  }
+
+  /* -----------------------------
+     2. 決定 / キャンセル / 閉じる系ボタン
+  ----------------------------- */
+  .play-screen .room-management-dialog .exit-confirm-actions button,
+  .play-screen .room-management-dialog .temporary-leave-options .primary-button,
+  .play-screen .room-management-dialog .host-transfer-list button,
+  .play-screen .room-management-dialog .match-info-change-button {
+    width: clamp(170px, 20.5dvw, 214px) !important;
+    font-size: clamp(2rem, 4dvw, 3rem) !important;
+    line-height: 1 !important;
+    font-weight: 900 !important;
+    white-space: nowrap !important;
+    padding: 0 1rem !important;
+  }
+
+  .play-screen .room-management-dialog .exit-confirm-actions {
+    gap: clamp(0.9rem, 2dvw, 1.3rem) !important;
+    margin-top: clamp(0.75rem, 1.6dvw, 1.05rem) !important;
+  }
+
+  /* -----------------------------
+     3. 設定タイトル
+  ----------------------------- */
+  .play-screen .room-management-dialog h2 {
+    font-size: clamp(2.05rem, 4.1dvw, 2.7rem) !important;
+    line-height: 1 !important;
+    font-weight: 900 !important;
+    white-space: nowrap !important;
+  }
+
+  /* -----------------------------
+     4. 主文
+     退出確認 / 一時離脱確認 / ホスト変更案内 / マニュアル確認
+  ----------------------------- */
+  .play-screen .room-management-content > p,
+  .play-screen .room-management-lead {
+    margin: 0.1rem 0 0.75rem !important;
+    color: #fffdf7 !important;
+    font-size: clamp(2rem, 3.6dvw, 2.6rem) !important;
+    line-height: 1.22 !important;
+    font-weight: 900 !important;
+    text-align: center !important;
+    text-shadow:
+      0 2px 0 rgba(31, 18, 8, 0.78),
+      0 0 8px rgba(255, 245, 200, 0.12) !important;
+  }
+
+  .play-screen .room-management-lead--host-transfer {
+    margin-top: 0.25rem !important;
+    margin-bottom: 0.85rem !important;
+    white-space: nowrap !important;
+  }
+
+  /* -----------------------------
+     5. ホスト変更できない時の小さい補足文
+     主文より明確に小さくする
+  ----------------------------- */
+  .play-screen .room-management-empty-message {
+    margin: 0.35rem 0 0.7rem !important;
+    color: rgba(255, 253, 247, 0.78) !important;
+    font-size: clamp(0.7rem, 1.3dvw, 8.2rem) !important;
+    line-height: 1.35 !important;
+    font-weight: 500 !important;
+    text-align: center !important;
+    white-space: nowrap !important;
+    text-shadow: 0 2px 0 rgba(31, 18, 8, 0.62) !important;
+  }
+
+  /* -----------------------------
+     6. 一時離脱タブの説明文
+     ここは長文なので控えめ。大きくしすぎない。
+  ----------------------------- */
+  .play-screen .temporary-leave-options p {
+    font-size: clamp(0.98rem, 1.85dvw, 1.15rem) !important;
+    line-height: 1.42 !important;
+    white-space: normal !important;
+  }
+
+  /* -----------------------------
+     7. 試合情報
+     行が多いので控えめに上げる
+  ----------------------------- */
+  .play-screen .match-info-row {
+    min-height: clamp(42px, 6.8dvh, 54px) !important;
+    padding: 0.32rem 1rem !important;
+  }
+
+  .play-screen .match-info-row span {
+    font-size: clamp(0.92rem, 1.7dvw, 1.08rem) !important;
+    line-height: 1.1 !important;
+    white-space: nowrap !important;
+  }
+
+  .play-screen .match-info-row:not(.match-info-row--players) strong {
+    font-size: clamp(1rem, 1.95dvw, 1.2rem) !important;
+    line-height: 1.12 !important;
+    white-space: nowrap !important;
+  }
+
+  /*
+    プレイヤー一覧だけは上げすぎると確実に溢れる。
+    ここは控えめ。
+  */
+  .play-screen .match-info-row--players .match-info-player strong {
+    font-size: clamp(1.5rem, 2.3dvw, 1.8rem) !important;
+    line-height: 1.08 !important;
+  }
+
+  .play-screen .match-info-row--players .match-info-player em {
+    font-size: clamp(0.56rem, 1.1dvw, 0.72rem) !important;
+  }
+
+  .play-screen .match-info-row select {
+    font-size: clamp(0.95rem, 1.75dvw, 1.08rem) !important;
+    font-weight: 900 !important;
+  }
+}
