@@ -197,5 +197,5 @@ AIは主に、実装方針の壁打ち、デバッグ時の原因候補の整理
 2. 効果音ラボ https://soundeffect-lab.info/sound/voice/game.html
 
 画像素材
-1.chatgptのimage2.0やGeminiのnano banana2により生成
-2.トランプ手札のみ  https://github.com/hayeah/playing-cards-assets/tree/master/png からダウンロード
+1. chatgptのimage2.0やGeminiのnano banana2により生成
+2. トランプ手札のみ  https://github.com/hayeah/playing-cards-assets/tree/master/png からダウンロード
