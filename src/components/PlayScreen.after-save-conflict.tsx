@@ -81,7 +81,7 @@ type DaifugoAnimationStep = {
   phase?: "reveal" | "insert";
 };
 
-const reachVisualSrc = new URL("../../黒ローブ男.png", import.meta.url).href;
+const reachVisualSrc = new URL("../../png-file/黒ローブ男.png", import.meta.url).href;
 const enhancedRoundTableSrc = new URL("../assets/テーブル.png", import.meta.url)
   .href;
 const enhancedPlayerSilhouetteSrc = new URL(

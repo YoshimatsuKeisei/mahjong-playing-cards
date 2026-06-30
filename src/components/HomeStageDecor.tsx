@@ -1,6 +1,6 @@
 import { getHomeCharacterSrcByAvatarId } from "../data/avatars";
 
-const homeTitleImageSrc = new URL("../../ゲームタイトルボタン.png?v=home-ui-transparent-3", import.meta.url).href;
+const homeTitleImageSrc = new URL("../../png-file/ゲームタイトルボタン.png?v=home-ui-transparent-3", import.meta.url).href;
 
 interface HomeStageDecorProps {
   avatarId: string;
