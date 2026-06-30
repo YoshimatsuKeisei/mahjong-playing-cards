@@ -103,7 +103,7 @@ const J_ENHANCEMENT_SPLASH_MS = 1350;
 const MAX_ROUND_COUNT = 100;
 const MIN_TARGET_SCORE = 50;
 const MAX_TARGET_SCORE = 10000;
-
+const SHOW_MOBILE_LAYOUT_DEBUG_PANEL = false;
 type EnhancedFiveTurnOption = ReturnType<
   typeof getEnhancedFiveTurnOptions
 >[number];
@@ -1757,7 +1757,9 @@ export default function PlayScreen({
       data-phase={state.phase}
       data-state-version={state.stateVersion ?? ""}
     >
-      <MobileLayoutDebugPanel playerCount={playerCount} />
+      {SHOW_MOBILE_LAYOUT_DEBUG_PANEL && (
+        <MobileLayoutDebugPanel playerCount={playerCount} />
+      )}
       <section
         className={`table-scene table-${playerCount}`}
         aria-label={`${playerCount}人用テーブル`}
@@ -3702,7 +3704,10 @@ function RoomManagementDialog({
 
               {selectedTab === "transferHost" && (
                 <>
-                  <p>ホストを変更するプレイヤーを選択してください。</p>
+                  <p className="room-management-lead room-management-lead--host-transfer">
+                    ホストを変更する人を選択してください
+                  </p>
+
                   {transferTargets.length > 0 ? (
                     <div className="host-transfer-list">
                       {transferTargets.map((player) => (
@@ -3716,8 +3721,11 @@ function RoomManagementDialog({
                       ))}
                     </div>
                   ) : (
-                    <p>ホストを変更できるプレイヤーがいません。</p>
+                    <p className="room-management-empty-message">
+                      ホストを変更できる人はいません
+                    </p>
                   )}
+
                   <div className="exit-confirm-actions">
                     <button type="button" onClick={onClose}>
                       閉じる

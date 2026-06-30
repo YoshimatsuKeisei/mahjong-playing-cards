@@ -3403,7 +3403,7 @@ function RoomManagementDialog({
 
             {selectedTab === "transferHost" && (
               <>
-                <p>ホストを変更するプレイヤーを選択してください。</p>
+                <p>ホストを変更する人を選択してください。</p>
                 {transferTargets.length > 0 ? (
                   <div className="host-transfer-list">
                     {transferTargets.map((player) => (

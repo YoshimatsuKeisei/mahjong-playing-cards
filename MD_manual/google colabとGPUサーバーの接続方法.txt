@@ -1,0 +1,368 @@
+<注>
+
+・コマンドプロンプトはcmdと略して説明する
+・google colabの使用前提なので、まだ入れていない方はgoogleアカウント→アプリで検索して追加
+・半角スペースなど一言一句間違えると正しく出力されないので、コピペ＆微調整(ファイルパス等)を推奨
+・もし、コマンドをミスったり元に戻りたい場合はctrl+Cでやり直し。
+・パスワード入力時など、文字が表示されないことがあるがセキュリティの関係上そうなっている
+・定型コマンドを使う前に自分のアカウント名@kura-ws01:＄となっていることを確認。
+・初回、2回目てのはセッションのことを意味しています。例えばリガンドAと受容体のMDを実行している時、日をまたいで続きをする場合は同じセッションですが、リガンドAと受容 
+  体のMD(2回目)やリガンドBと受容体のMDを実行する場合は別のセッションということになります。別のセッションをやる場合は一度前のセッション(ワークスペース)をクリアして  
+  からじゃないと情報が混交してしまいますので後述するpkillコマンドでresetする必要があるということです。pip installコマンドなどは一度実行されたらuninstallされない限り  
+  cmdを閉じても大丈夫です。
+
+<1つ目のcmd>
+①ssh -o ServerAliveInterval=60 gregorymaddux18(アカウント名)@kura-ws01.ai.tokushima-u.ac.jpと入力
+  ※AliveIntervalてのはサーバー側でタイムアウトを無効にするもので60秒ごとにログインすることを意味している。管理者権限があれば数字を変えて実行可能)
+②gregorymaddux18@kura-ws01.ai.tokushima-u.ac.jp's password:→パスワードを入力(コマンドは常時されないが)  Gm5egT3N
+③以下のメッセージが出てくる。「The authenticity of host 'kura-ws01.ai.tokushima-u.ac.jp (150.59.11.58)' can't be established.」て出てくる場合はまだ反映されていない。
+
+Welcome to Ubuntu 22.04.5 LTS (GNU/Linux 6.8.0-94-generic x86_64)
+
+ * Documentation:  https://help.ubuntu.com
+ * Management:     https://landscape.canonical.com
+ * Support:        https://ubuntu.com/pro
+
+Expanded Security Maintenance for Applicationsが無効化されています。
+
+17のアップデートはすぐに適用されます。
+これらの更新の5は、標準のセキュリティ更新です。
+これらの追加アップデートを確認するには次を実行してください: apt list --upgradable
+
+9個の追加のセキュリティアップデートが、ESM Appsによって適用できます。
+ESM Appsの有効化方法についてはこちらを参照してください： at https://ubuntu.com/esm
+
+New release '24.04.4 LTS' available.
+Run 'do-release-upgrade' to upgrade to it.
+
+*** System restart required ***
+==========================================================================
+徳島大学デザイン型AI教育研究センター蔵本分室ワークステーションへようこそ！
+ワークステーションのリソース利用状況は下記URLよりご確認ください。
+
+https://kura.ai.tokushima-u.ac.jp/
+
+ワークステーションのスペック情報
+CPU: Intel Xeon w5-3535X (52.5M, 2.90GHz, 20 P-cores, 40 Threads)
+GPU: NVIDIA RTX 6000 Ada (48GB GDDR6) × 2
+RAM: 256GB (DDR5, 4800 MT/s, 32GB × 8)
+
+注意事項
+・必要以上にリソースを使用しないでください。
+・管理者権限が必要なソフトウェアがある場合は下記連絡先までご連絡ください。
+
+連絡先：torii@tokushima-u.ac.jp
+==========================================================================
+Last login: Wed Apr 22 14:56:15 2026 from 150.59.11.10
+
+[初回のみ]
+④gregorymaddux18@kura-ws01:sudo apt update && sudo apt install -y tmuxと入力し、enter
+  ※tmuxによってSSHなどでリモートサーバーに接続している際、ネットが切断されたりターミナルを閉じたりしても、バックグラウンドで実行し続けられる
+⑤パスワードを入力
+⑥「gregorymaddux18 は sudoers ファイル内にありません。この事象は記録・報告されます。」というメッセージが出てくるが、正常動作なので問題なし。
+    gregorymaddux18@kura-ws01:tmux new -s md解析と入力し、enter(tmux部屋作成)
+⑦gregorymaddux18@kura-ws01:~$ pip install jupyter_http_over_wsを入力し、enter→色々情報が出てきて最終的には管理者にどうたらこうたら(jupitor 
+  と外部(colab等)をつなぐための専用の橋 
+⑧gregorymaddux18@kura-ws01:~$ export PATH=$PATH:$HOME/.local/binと入力し、enter(GPUサーバーにjupitorの位置を教えるコマンド)
+  そのままgregorymaddux18@kura-ws01:~$ ~/.local/bin/jupyter serverextension enable --py jupyter_http_over_ws(＄の後の~を忘れずに)と入力し、enter　
+⑨Requirement already satisfiedが冒頭の行がたくさん出力され、Installing collected packages: widgetsnbextension, jupyterlab_widgets, ipywidgets
+　Successfully installed ipywidgets-8.1.8 jupyterlab_widgets-3.0.16 widgetsnbextension-4.0.15と出てきたら、準備完了(さっき作った橋（jupyter_http_over_ws）を、Jupyterで　
+　実際に使えるようにスイッチをオンにした)
+⑩Ctrl+B → D  ← これでJupyter不死身化！
+[2回目以降]
+④' pkill -f jupyterを入力し、enter
+   「pkill: killing pid 1277783 failed: 許可されていない操作です」が出てくるが、気にしなくていい
+⑤' pkill -f notebookを入力し、enter
+
+⑪ gregorymaddux18@kura-ws01:~/.local/bin/jupyter notebook --port=8888 --NotebookApp.port_retries=0 --no-browser(冒頭の~を忘れずに、ポート番号は自分で指定可能)と入力  
+   し、enter
+  起動時に毎回番号が変わってしまうため、これで使用するポート番号を8888(自分の好きな番号)に固定する。
+<2つ目のcmd>
+⑫別のcmdを立ち上げ、ssh -o ServerAliveInterval=60 -N -L 8888:localhost:8888 gregorymaddux18@kura-ws01.ai.tokushima-u.ac.jpと入力し、enter
+⑬gregorymadd ux18@kura-ws01.ai.tokushima-u.ac.jp's password:→パスワードを入力し、enter  Gm5egT3N
+
+[初回のみ]
+⑭③と同じメッセージが出てくる→完了!接続が無事終わりました!
+[2回目以降]
+⑭'何も標示されず、カーソルが一番前に移動するだけだがこれで接続は完了
+
+<Google colab>
+⑮ファイル→ノートブックをアップロード→shareのやり取りフォルダから拡張子が.ipynbのファイルをimport→右上の接続のタブにてローカルランタイムに接続→localhost:(番号)を含んだコピー文をペーストし、接続→
+
+※1つ目のcmdにてタブを右クリック→テキストをエクスポート→そのテキストファイルを開き、ctrl+Fで検索タブを開く→localhostを入力してヒットした  
+  行をコピーしておく
+※client_loop: send disconnect: Connection resetみたいなコマンドが出る場合があるが、これは時間経過によりSSH接続が切れたことを意味している。
+　→jupitorも死んでいる可能性があるため以下の手順で実行(古いcmdタブは全部閉じて、新規cmdを開いて復旧作業をすることを推奨)
+　　①→②→
+     →netstat -tlnp | grep 8888を入力し、enter(jupitorの生存確認コマンド)
+     →<生存している場合>以下のように情報が公開される→tmux attach -t md解析を入力し、enter(即復活!)→⑫からいつも通り
+       tcp6       0      0 :::8888                 :::*                    LISTEN      
+       12345/python
+       <死んでいる場合>以下のメッセージが出てくる→tmuxを入れ忘れている可能性あり、pkill -f jupytorとpkill -f notebookコマンドを打った後、④→⑤→⑥→⑩(初回のみ)を
+                                                                                             実行した後⑪からやり直し
+	(一部のプロセスが識別されますが, 所有していないプロセスの情報は
+         表示されません。それら全てを見るにはルートになる必要があります.)
+       ※tmux lsコマンドを入力すればtmux部屋の情報が以下のような形式で見れます。
+ 　	 md解析: 1 windows (created Fri Apr 24...) [80x24]
+ 
+
+
+(base) gregorymaddux18@kura-ws01:~$ conda activate colab
+(colab) gregorymaddux18@kura-ws01:~$ conda install -c conda-forge ambertools -y -v
+→
+(colab) gregorymaddux18@kura-ws01:~$ conda create -n colab2 python=3.11 -y
+(colab) gregorymaddux18@kura-ws01:~$ conda activate colab2
+(colab2) gregorymaddux18@kura-ws01:~$ conda install -c conda-forge notebook jupyterlab ipykernel mamba -y
+
+(colab2) gregorymaddux18@kura-ws01:~$ python -m ipykernerl install --user --name colab2 --display-name "Python (colab)" --replaceを打ってから、display install
+
+
+<2回目以降の入り方(cdを変えるのもあり)>
+ssh -o ServerAliveInterval=60 gregorymaddux18@kura-ws01.ai.tokushima-u.ac.jp
+conda activate amber-md
+cd /home/gregorymaddux18/making_it_rain_work
+jupyter notebook --no-browser --NotebookApp.allow_origin='https://colab.research.google.com' --port=8888 --NotebookApp.port_retries=0
+
+ssh -o ServerAliveInterval=60 -N -L 8888:localhost:8888 gregorymaddux18@kura-ws01.ai.tokushima-u.ac.jp
+
+<GPUサーバーに保存されているファイルを自分のPCに持ってくる方法>
+(GPUサーバー側のcmd)※もしカーソルが一番前に来ていてアカウント名@の状態じゃなければ、ctrl+cをせず、新しいcmdを立ち上げて入る
+①cd /home/gregorymaddux18/making_it_rain_work
+②解析結果をまとめたzipファイルをGPUサーバーのcdに作成
+zip -r analysis_outputs_7M8W-PGD2_210ns-rep01_20fr×3res.zip \
+interaction_analysis_outputs \
+*.png \
+*.csv \
+*.dat \
+*.html
+
+cd /home/gregorymaddux18/making_it_rain_work
+(自分のPCのcmd)※新しいcmdを立ち上げる
+③scp gregorymaddux18@kura-ws01.ai.tokushima-u.ac.jp:/home/gregorymaddux18/making_it_rain_work/7M8W_PGD2/210ns_rep01/analysis_outputs_7M8W-PGD2_210ns-rep01_20fr×3res.zip "%USERPROFILE%\Downloads\analysis_outputs_210ns.zip"
+④パスワードを聞かれたら、SSHと同じパスワードを入力
+⑤analysis_outputs_3ns.zip                                                              100%   13MB  14.0MB/s   00:00
+   上記のような出力結果が出たら成功。自分のPCのダウンロード項目に入ってることが確認される。
+
+<終わり方>
+①google colabにてctrl+S(一時保存)→ランタイム(上のツールバー)→セッションを管理→今開いているセッションを終了(ランタイム切断)
+②cmdにてGPUサーバー側ではjupytorを開いていればctrl+C→y→exit→タブを閉じる  自分のPC側ではそのままタブを閉じる
+
+<SSH接続が切れても裏のセッションが稼働するようにする方法>
+[GPUサーバー側]
+①ssh -o ServerAliveInterval=60 gregorymaddux18(アカウント名)@kura-ws01.ai.tokushima-u.ac.jp
+②パスワード入力
+③conda activate amber-md
+④cd /home/gregorymaddux18/making_it_rain_work
+⑤以下のコマンドを入力
+nohup jupyter notebook \
+  --no-browser \
+  --ip=127.0.0.1 \
+  --port=8890 \
+  --NotebookApp.allow_origin='https://colab.research.google.com' \
+  --NotebookApp.port_retries=0 \
+  --ServerApp.iopub_msg_rate_limit=100000000 \
+  --ServerApp.rate_limit_window=3 \
+  > jupyter_colab_8890.log 2>&1 &
+⑥以下のコマンドを続けて入力
+echo $! > jupyter_colab_8890.pid
+disown
+これで、SSHを切ってもJupyterはGPUサーバー上で動き続ける。
+⑦tail -n 50 jupyter_colab_8890.log→http://127.0.0.1:8890/?token=...みたいなものが出るはず
+
+[自分のPC側]
+⑧ssh -o ServerAliveInterval=60 -N -L 8889:127.0.0.1:8892 gregorymaddux18@kura-ws01.ai.tokushima-u.ac.jp
+
+[google colab]
+⑨⑦で出てきたURLについて127.0.0.1:8890の部分をlocalhost:8888(ローカルPCのポート番号)に直して、ランタイムに接続のURL入力欄に貼り付け
+
+※SSH切断後の再起動
+  ssh -o ServerAliveInterval=60 -N -L 8888:127.0.0.1:8890 gregorymaddux18@kura-ws01.ai.tokushima-u.ac.jp→ローカルランタイムに接続
+※進捗確認だけの場合、普通にSSHで入って、以下のコマンドでできる
+cd /home/gregorymaddux18/making_it_rain_work
+ls -lt prot_lig_prod_*.rst | head
+※jupytorを後日完全に止めたいときはkill $(cat /home/gregorymaddux18/making_it_rain_work/jupyter_colab_8890.pid)
+  もしくは①ps -ef | grep jupyterで確認してから該当PIDを見て②kill PID番号
+※SSH切断後も計算がバックグラウンドで実行されるか確認する方法
+  別の新しい普通のsshのcmdを開き、ログイン→cd /home/gregorymaddux18/making_it_rain_work→
+nohup bash -c 'for i in $(seq 1 60); do date "+%F %T  count=$i" >> nohup_shell_test.txt; sleep 60; done' > nohup_shell_test.log 2>&1 &
+(1分毎に数字をカウントするコードをGPUサーバー側のcmdで実行する。テスト用)
+→echo $! > nohup_shell_test.pid(これでできるはず...)
+→①リアルタイムに実行されているかを確認する場合 tail -f nohup_shell_test.txt ②ログを後で確認する場合tail -n 50 test.txt 
+③プロセス自体も確認したい場合ps -ef | grep nohup_shell_test | grep -v grep
+   ①のログを止めるときはctrl+cだが、裏の計算実行は止まらない
+④最新のログを確認する場合は、ls -lt prot_lig_prod_*.rst | head→tail -f 最新のlogファイル名でリアルタイム追跡
+
+<MDを始める前のディレクトリの作成、ファイルの移行>
+[GPUサーバー側のcmd]
+cd /home/gregorymaddux18/making_it_rain_work
+
+mkdir -p 7M8W_15dD2/210ns_rep01
+
+cp 7M8W.pdb 7M8W_15dD2/210ns_rep01/
+cp 15dD2.pdb 7M8W_15dD2/210ns_rep01/
+
+cd 7M8W_15dD2/210ns_rep01
+
+pwd
+ls -lh→カレントディレクトリの下にリガンドpdbと受容体pdbが表示されればオーケー
+[google colab側の設定]
+①作業ディレクトリの変更:project_dir = "/home/gregorymaddux18/making_it_rain_work/7M8W_15dD2/210ns_rep01"
+②入力ファイル名の変更:Protein_PDB_file_name = "7M8W.pdb" Ligand_PDB_file_name = "15dD2.pdb"
+③PROD_JOBNAME_COMMON = "prot_lig_prod_210ns_15dD2"
+
+[SSHキーを作成していちいちaccess tokenを要求されないようにする]
+ssh-keygen -t ed25519 -C "github-md-analysis-gpu"
+
+<SAPTが動いているかどうか>
+ls -lh qm_sapt_interaction_energy_frames_by_category_1.5-3ns.csv
+ls -lh qm_sapt_interaction_energy_summary_by_category_1.5-3ns.csv
+
+<バックエンドURLが分からない場合>
+jupyter notebook list
+
+
+ps
+合計時間 ns = Number_of_strides × Stride_Time
+総フレーム数 = 合計時間 ps ÷ Prod_Write_the_trajectory
+1 ns = 1000 ps だから、こう書ける
+総フレーム数 = Number_of_strides × Stride_Time(ns) × 1000 ÷ Prod_Write_the_trajectory(ps)
+
+Number_of_strides = "30"
+Stride_Time = "0.01"
+Prod_Write_the_trajectory = "10"
+
+合計時間 = 30 × 0.01 ns = 0.3 ns
+
+0.3 ns = 300 ps
+
+保存フレーム数 = 300 ps ÷ 10 ps = 30 frames
+
+
+①RMSDを全体のではなく、リガンドや関連アミノ酸のやつについても出力する
+②各相互作用のグラフについて適正な数値、ばらばらの数値棒になるようにする。
+③後半のRMSDが安定してきたフレームだけを抽出し、平均を求める。
+④各リガンド・各回数ごとに数値を算出。その際は棒グラフではなく、ヒートマップみたいに表示し、その上に数値を載せる
+htopコマンド=誰がGPUサーバーを使用しているかがリアルタイムで分かる nvtopコマンド=誰がどのくらいGPUサーバーを占有しているか分かる
+
+パソコンのパスワード:cleanup
+進捗率および予想終了時間を表示できるようにする(8フレームのうち、1フレームが終わったら12.5%、かかった時間が1時間30分なら、終わるのは10時間30分後
+ファイル名をさらに細分化。
+
+/home/gregorymaddux18/anaconda3/envs/amber-md/bin/jupyter notebook \
+  --no-browser \
+  --ip=127.0.0.1 \
+  --port=8892 \
+  --NotebookApp.allow_origin='https://colab.research.google.com' \
+  --NotebookApp.allow_credentials=True \
+  --NotebookApp.disable_check_xsrf=True \
+  --NotebookApp.port_retries=0
+
+python -m notebook \
+  --no-browser \
+  --ip=127.0.0.1 \
+  --port=8891 \
+  --NotebookApp.allow_origin='https://colab.research.google.com' \
+  --NotebookApp.allow_credentials=True \
+  --NotebookApp.disable_check_xsrf=True \
+  --NotebookApp.port_retries=0
+
+<新しいフォルダでsapt解析をやる方法>
+cd /home/gregorymaddux18/making_it_rain_work/7M8W_PGD2
+
+mkdir -p 210ns_rep01_sapt_150-210ns_maxfr20_top3
+
+cd 210ns_rep01_sapt_150-210ns_maxfr20_top3
+
+src=/home/gregorymaddux18/making_it_rain_work/7M8W_PGD2/210ns_rep01
+
+#### 必要そうなファイル形式をまとめてシンボリックリンクする
+for f in "$src"/*; do
+  case "$f" in
+    *.dcd|*.nc|*.prmtop|*.parm7|*.top|*.pdb|*.mol2|*.frcmod|*.inpcrd|*.rst7|*.rst|*.gro)
+      ln -sfn "$f" .
+      ;;
+  esac
+done
+
+ls -lh | head -50
+
+→google colabの作業フォルダを/home/gregorymaddux18/making_it_rain_work/7M8W_PGD2/210ns_rep01_sapt_150-210ns_maxfr20_top3に設定する
+
+#### 作業フォルダに必要なファイルが全部あるか調べる方法
+missing=0
+for i in $(seq 1 30); do
+  f="prot_lig_prod_210ns_D2_${i}.dcd"
+  if [ ! -e "$f" ]; then
+    echo "MISSING: $f"
+    missing=1
+  fi
+done
+
+if [ "$missing" -eq 0 ]; then
+  echo "OK: DCD 1-30 are all present."
+fi
+
+#### シンボリックリンクが壊れているか確認する方法
+
+find . -maxdepth 1 -xtype l -ls
+
+#### トポロジー確認
+
+ls -lh SYS_gaff2.prmtop
+
+#### 実行中に確認すること
+
+ノートブックを実行したら、最初の方に出るこの部分を見る。
+
+現在の作業場所:
+...
+
+ここが今回用フォルダになっているか確認。
+
+次に、SAPT開始時のログでこれを見る。
+
+Analysis window: 150-210ns
+QM-SAPT target rows: ...
+SAPT frames: ... N = 20 mode = all_window
+
+特に見るべきはここ。
+
+SAPT frames: ... N = 20 mode = all_window
+
+ここが N = 8 なら、その瞬間に止めていい。
+設定が反映されていない。
+
+#### 実行終了後、グラフを見る前に確認すること。N_SAPT_Frames = 20 を確認してからPNGを見る。
+
+python - << 'PY'
+import pandas as pd
+import glob
+
+for path in sorted(glob.glob("qm_sapt_interaction_energy_summary_by_category*.csv")):
+    print("\n====", path, "====")
+    df = pd.read_csv(path)
+    print(df[[
+        "Category",
+        "Residue",
+        "N_SAPT_Frames",
+        "SAPT_Total_mean_kcal_mol",
+        "SAPT_Total_std_kcal_mol"
+    ]].to_string(index=False))
+PY
+
+####
+
+work=/home/gregorymaddux18/making_it_rain_work/7M8W_15dD2/210ns_rep01/sapt_runs/sapt_150-210ns_maxfr20_top3
+base=$(dirname "$(dirname "$work")")
+
+cd "$work" || exit 1
+
+for f in "$base"/*; do
+  case "$f" in
+    *.dcd|*.nc|*.prmtop|*.parm7|*.top|*.pdb|*.mol2|*.frcmod|*.inpcrd|*.rst7|*.rst|*.gro)
+      ln -sfn "$f" .
+      ;;
+  esac
+done
+
+ls -1 *.dcd 2>/dev/null | wc -l
