@@ -1,4 +1,4 @@
-# トランプ雀 / Trigger Rummy デモ確認ガイド
+# 大富豪麻雀 / Trigger Rummy デモ確認ガイド
 
 ## デモURL
 
