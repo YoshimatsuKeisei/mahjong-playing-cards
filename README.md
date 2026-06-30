@@ -187,3 +187,15 @@ SE、BGMなどの各種設定を行う画面です。
 開発ではAIも活用していますが、AIに任せきりにするのではなく、仕様の決定、実装方針の選定、コードの統合、動作確認、不具合の原因調査、UI調整の最終判断は自分で行っています。
 
 AIは主に、実装方針の壁打ち、デバッグ時の原因候補の整理、UI改善案の比較、説明文や設計方針の整理に活用しています。
+
+---
+
+## 参考資料等
+
+音声素材
+1. ユーフルカ https://youfulca.com/voice_assets/#google_vignette
+2. 効果音ラボ https://soundeffect-lab.info/sound/voice/game.html
+
+画像素材
+1.chatgptのimage2.0やGeminiのnano banana2により生成
+2.トランプ手札のみ  https://github.com/hayeah/playing-cards-assets/tree/master/png からダウンロード
