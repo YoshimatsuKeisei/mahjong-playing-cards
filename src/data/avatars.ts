@@ -1,16 +1,16 @@
 import type { AvatarCategory, AvatarOption } from "../types";
 
-const homeCharacter1AvatarSrc = new URL("../../ホームキャラクター①-avator.png", import.meta.url).href;
-const homeCharacter2AvatarSrc = new URL("../../ホームキャラクター② - avator.png", import.meta.url).href;
-const homeCharacter3AvatarSrc = new URL("../../ホームキャラクター③-avator.png", import.meta.url).href;
-const homeCharacter4AvatarSrc = new URL("../../ホームキャラクター④avator.png", import.meta.url).href;
-const homeCharacter5AvatarSrc = new URL("../../ホームキャラクター⑤-avator.png", import.meta.url).href;
+const homeCharacter1AvatarSrc = new URL("../../png-file/ホームキャラクター①-avator.png", import.meta.url).href;
+const homeCharacter2AvatarSrc = new URL("../../png-file/ホームキャラクター② - avator.png", import.meta.url).href;
+const homeCharacter3AvatarSrc = new URL("../../png-file/ホームキャラクター③-avator.png", import.meta.url).href;
+const homeCharacter4AvatarSrc = new URL("../../png-file/ホームキャラクター④avator.png", import.meta.url).href;
+const homeCharacter5AvatarSrc = new URL("../../png-file/ホームキャラクター⑤-avator.png", import.meta.url).href;
 
-const homeCharacter1Src = new URL("../../ホームキャラクター①-modified.png", import.meta.url).href;
-const homeCharacter2Src = new URL("../../ホームキャラクター②.png", import.meta.url).href;
-const homeCharacter3Src = new URL("../../ホームキャラクター③.png", import.meta.url).href;
-const homeCharacter4Src = new URL("../../ホームキャラクター④.png", import.meta.url).href;
-const homeCharacter5Src = new URL("../../ホームキャラクター⑤.png", import.meta.url).href;
+const homeCharacter1Src = new URL("../../png-file/ホームキャラクター①-modified.png", import.meta.url).href;
+const homeCharacter2Src = new URL("../../png-file/ホームキャラクター②.png", import.meta.url).href;
+const homeCharacter3Src = new URL("../../png-file/ホームキャラクター③.png", import.meta.url).href;
+const homeCharacter4Src = new URL("../../png-file/ホームキャラクター④.png", import.meta.url).href;
+const homeCharacter5Src = new URL("../../png-file/ホームキャラクター⑤.png", import.meta.url).href;
 
 export const avatarCategoryLabels: Record<AvatarCategory, string> = {
   homeCharacter: "Character",

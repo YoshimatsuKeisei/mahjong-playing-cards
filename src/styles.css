@@ -26,7 +26,7 @@
       transparent 24%
     ),
     linear-gradient(180deg, rgba(255, 248, 218, 0.5), rgba(94, 55, 24, 0.14)),
-    url("../全体ボード-modified.png"),
+    url("../png-file/全体ボード-modified.png"),
     linear-gradient(135deg, #7a4b25 0%, #a06a35 42%, #5e371c 100%);
   --manual-illustration-bg:
     radial-gradient(
@@ -450,7 +450,7 @@ button:disabled {
     ),
     radial-gradient(circle at 18% 82%, rgba(47, 122, 88, 0.2), transparent 26%),
     linear-gradient(135deg, rgba(3, 8, 6, 0.68), rgba(8, 20, 15, 0.66)),
-    url("../トランプ背景.png") center / cover no-repeat,
+    url("../png-file/トランプ背景.png") center / cover no-repeat,
     #101812;
 }
 
@@ -626,7 +626,7 @@ button:disabled {
   overflow: visible;
   border: 0;
   border-radius: 0;
-  background: url("../ルーム選択モーダル.png") center / contain no-repeat;
+  background: url("../png-file/ルーム選択モーダル.png") center / contain no-repeat;
   padding: 0;
   box-shadow: none;
   backdrop-filter: none;
@@ -723,25 +723,25 @@ button:disabled {
 }
 
 .room-select-create-button {
-  background-image: url("../ルームを立ち上げるボタン.png");
+  background-image: url("../png-file/ルームを立ち上げるボタン.png");
 }
 
 .room-select-join-button {
-  background-image: url("../ルームに入るボタン.png");
+  background-image: url("../png-file/ルームに入るボタン.png");
 }
 
 .room-select-panel .room-select-create-button:hover,
 .room-select-panel .room-select-create-button:active,
 .room-select-panel .room-select-create-button:focus,
 .room-select-panel .room-select-create-button:focus-visible {
-  background-image: url("../ルームを立ち上げるボタン.png");
+  background-image: url("../png-file/ルームを立ち上げるボタン.png");
 }
 
 .room-select-panel .room-select-join-button:hover,
 .room-select-panel .room-select-join-button:active,
 .room-select-panel .room-select-join-button:focus,
 .room-select-panel .room-select-join-button:focus-visible {
-  background-image: url("../ルームに入るボタン.png");
+  background-image: url("../png-file/ルームに入るボタン.png");
 }
 
 .room-select-panel .room-choice-actions {
@@ -766,7 +766,7 @@ button:disabled {
   aspect-ratio: 1000 / 279;
   border: 0;
   border-radius: 0;
-  background: url("../ホーム画面に戻るボタン.png") center / contain no-repeat;
+  background: url("../png-file/ホーム画面に戻るボタン.png") center / contain no-repeat;
   padding: 0;
   box-shadow: none;
   overflow: hidden;
@@ -1863,7 +1863,7 @@ h2 {
       rgba(255, 253, 247, 0) 52%,
       rgba(20, 43, 34, 0.28) 100%
     ),
-    url("../トランプ背景.png") center / cover no-repeat,
+    url("../png-file/トランプ背景.png") center / cover no-repeat,
     #244d3d;
 }
 
@@ -1992,7 +1992,7 @@ h2 {
 
 .manual-screen {
   background:
-    url("../ホーム画面-modified.png?v=manual-home-base-1") center / cover
+    url("../png-file/ホーム画面-modified.png?v=manual-home-base-1") center / cover
       no-repeat,
     #15110d;
 }
@@ -2045,7 +2045,7 @@ h2 {
   overflow: hidden;
   border: 0;
   border-radius: 0;
-  background: url("../全体ボード-modified.png") center / 112% 116% no-repeat;
+  background: url("../png-file/全体ボード-modified.png") center / 112% 116% no-repeat;
   background-position: center;
   box-shadow: 0 18px 34px rgba(0, 0, 0, 0.2);
 
@@ -2092,7 +2092,7 @@ h2 {
   overflow: hidden;
   background:
     linear-gradient(90deg, rgba(255, 248, 218, 0.2), rgba(64, 35, 13, 0.2)),
-    url("../全体ボード-modified.png") center / 224% 116% no-repeat;
+    url("../png-file/全体ボード-modified.png") center / 224% 116% no-repeat;
   box-shadow:
     0 18px 28px rgba(39, 21, 8, 0.32),
     inset 0 1px 0 rgba(255, 246, 205, 0.22);
@@ -2162,7 +2162,7 @@ h2 {
   z-index: 1;
   background:
     linear-gradient(90deg, rgba(55, 31, 12, 0.32), rgba(255, 246, 210, 0.12)),
-    url("../全体ボード-modified.png") center / 224% 116% no-repeat;
+    url("../png-file/全体ボード-modified.png") center / 224% 116% no-repeat;
   opacity: 0.94;
   transform: rotateY(180deg);
   backface-visibility: hidden;
@@ -2433,7 +2433,7 @@ h2 {
 
   border: 0;
   border-radius: 0;
-  background: url("../manual-バツボタン.png") center / contain no-repeat;
+  background: url("../png-file/manual-バツボタン.png") center / contain no-repeat;
   color: transparent;
   padding: 0;
   text-shadow: none;
@@ -2482,7 +2482,7 @@ h2 {
   min-height: 0;
   border: 0;
   border-radius: 0;
-  background: url("../manual-戻るボタン.png") center / contain no-repeat;
+  background: url("../png-file/manual-戻るボタン.png") center / contain no-repeat;
   color: transparent;
   padding: 0;
   box-shadow: none;
@@ -2506,7 +2506,7 @@ h2 {
 }
 
 .manual-footer .primary-button {
-  background-image: url("../manual-次へボタン.png");
+  background-image: url("../png-file/manual-次へボタン.png");
 }
 
 .manual-footer .primary-button::before,
@@ -2813,7 +2813,7 @@ h2 {
   perspective: 900px;
   background:
     linear-gradient(180deg, rgba(0, 0, 0, 0.02), rgba(0, 0, 0, 0.08)),
-    url("../トランププレイ背景.png") center / cover no-repeat,
+    url("../png-file/トランププレイ背景.png") center / cover no-repeat,
     #1c211b;
   box-shadow: none;
 }
@@ -2821,14 +2821,14 @@ h2 {
 .table-scene.table-4 {
   background:
     linear-gradient(180deg, rgba(0, 0, 0, 0.02), rgba(0, 0, 0, 0.08)),
-    url("../トランププレイ背景-4人用.png") center / cover no-repeat,
+    url("../png-file/トランププレイ背景-4人用.png") center / cover no-repeat,
     #1c211b;
 }
 
 .table-scene.table-5 {
   background:
     linear-gradient(180deg, rgba(0, 0, 0, 0.02), rgba(0, 0, 0, 0.08)),
-    url("../トランププレイ背景-5人用.png") center / cover no-repeat,
+    url("../png-file/トランププレイ背景-5人用.png") center / cover no-repeat,
     #1c211b;
 }
 
@@ -6054,7 +6054,7 @@ h2 {
   aspect-ratio: 1300 / 975;
   border: 0;
   border-radius: 0;
-  background: url("../プレイ画面内設定モーダル.png") center / 100% 100%
+  background: url("../png-file/プレイ画面内設定モーダル.png") center / 100% 100%
     no-repeat;
   padding: 0;
   text-align: left;
@@ -6115,27 +6115,27 @@ h2 {
 }
 
 .room-management-tabs button:nth-child(1) {
-  background-image: url("../プレイ設定1.png");
+  background-image: url("../png-file/プレイ設定1.png");
 }
 
 .room-management-tabs button:nth-child(2) {
-  background-image: url("../プレイ設定2.png");
+  background-image: url("../png-file/プレイ設定2.png");
 }
 
 .room-management-tabs button:nth-child(3) {
-  background-image: url("../プレイ設定3.png");
+  background-image: url("../png-file/プレイ設定3.png");
 }
 
 .room-management-tabs button:nth-child(4) {
-  background-image: url("../プレイ設定4.png");
+  background-image: url("../png-file/プレイ設定4.png");
 }
 
 .room-management-tabs button:nth-child(5) {
-  background-image: url("../プレイ設定5.png");
+  background-image: url("../png-file/プレイ設定5.png");
 }
 
 .room-management-tabs button:nth-child(6) {
-  background-image: url("../プレイ設定6.png");
+  background-image: url("../png-file/プレイ設定6.png");
 }
 
 .room-management-tabs button.selected,
@@ -6187,7 +6187,7 @@ h2 {
   min-height: 0;
   border: 0;
   border-radius: 0;
-  background: transparent url("../スクロールバー4.png") center / 100% 100%
+  background: transparent url("../png-file/スクロールバー4.png") center / 100% 100%
     no-repeat;
   padding: 0;
   box-shadow: none;
@@ -6247,11 +6247,11 @@ h2 {
 .room-management-dialog .temporary-leave-options .primary-button,
 .room-management-dialog .host-transfer-list button,
 .room-management-dialog .match-info-change-button {
-  background-image: url("../決定ボタン1.png");
+  background-image: url("../png-file/決定ボタン1.png");
 }
 
 .room-management-dialog .exit-confirm-actions button:not(.primary-button) {
-  background-image: url("../キャンセルボタン2.png");
+  background-image: url("../png-file/キャンセルボタン2.png");
   color: #241a10;
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.58);
 }
@@ -6307,7 +6307,7 @@ h2 {
   min-height: clamp(46px, 5.4vw, 60px);
   border: 0;
   border-radius: 0;
-  background: transparent url("../試合情報タブ.png") center / 100% 132%
+  background: transparent url("../png-file/試合情報タブ.png") center / 100% 132%
     no-repeat;
   padding: clamp(0.45rem, 0.95vw, 0.65rem) clamp(1.1rem, 2.5vw, 1.8rem);
 }
@@ -7719,7 +7719,7 @@ h2 {
   overflow: hidden;
   border: 0;
   border-radius: 0;
-  background: transparent url("../結果画面モーダル.png") center / 100% 100%
+  background: transparent url("../png-file/結果画面モーダル.png") center / 100% 100%
     no-repeat;
   padding: clamp(4.8rem, 9.4vw, 7.1rem) clamp(2rem, 5.1vw, 4rem)
     clamp(1.15rem, 2.5vw, 1.9rem);
@@ -7736,7 +7736,7 @@ h2 {
   aspect-ratio: 470 / 176;
   border: 0;
   border-radius: 0;
-  background: transparent url("../〇回戦看板.png") center / 100% 100% no-repeat;
+  background: transparent url("../png-file/〇回戦看板.png") center / 100% 100% no-repeat;
   color: #fff8dc;
   padding: 0 2.5rem;
   font-family: "Fude Goshirae", "Shippori Mincho", "Yu Mincho", serif;
@@ -7783,7 +7783,7 @@ h2 {
   min-height: clamp(82px, 8.4vw, 112px);
   border: 0;
   border-radius: 0;
-  background: transparent url("../敗者結果行.png") center / 100% 100% no-repeat;
+  background: transparent url("../png-file/敗者結果行.png") center / 100% 100% no-repeat;
   background-size: 100% 172%;
   background-position: center 50%;
   padding: clamp(0.7rem, 1.35vw, 0.95rem) clamp(1.1rem, 2.5vw, 1.85rem);
@@ -7791,14 +7791,14 @@ h2 {
 }
 
 .result-panel.result-board .player-result-row.winner {
-  background-image: url("../勝者結果行.png");
+  background-image: url("../png-file/勝者結果行.png");
   background-size: 100% 158%;
   background-position: center 50%;
 }
 
 .result-panel.result-board .player-result-row.loser,
 .result-panel.result-board .player-result-row.normal {
-  background-image: url("../敗者結果行.png");
+  background-image: url("../png-file/敗者結果行.png");
   background-size: 100% 172%;
   background-position: center 50%;
 }
@@ -7846,7 +7846,7 @@ h2 {
   min-height: clamp(58px, 6.4vw, 82px);
   border: 0;
   border-radius: 0;
-  background: transparent url("../得点計算欄.png") center / 100% 100% no-repeat;
+  background: transparent url("../png-file/得点計算欄.png") center / 100% 100% no-repeat;
   background-size: 100% 158%;
   background-position: center 50%;
   padding: clamp(0.55rem, 1.2vw, 0.85rem) clamp(1.1rem, 2.8vw, 2rem);
@@ -7856,7 +7856,7 @@ h2 {
 .result-panel.result-board .formula-row {
   border: 0;
   border-radius: 0;
-  background: transparent url("../得点計算欄.png") center / 100% 100% no-repeat;
+  background: transparent url("../png-file/得点計算欄.png") center / 100% 100% no-repeat;
   background-size: 100% 158%;
   background-position: center 50%;
   box-shadow: none;
@@ -7869,7 +7869,7 @@ h2 {
   aspect-ratio: 536 / 187;
   border: 0;
   border-radius: 0;
-  background: transparent url("../現時点の成績ボタン.png") center / 100% 100%
+  background: transparent url("../png-file/現時点の成績ボタン.png") center / 100% 100%
     no-repeat;
   color: #241a10;
   padding: 0 1.4rem;
@@ -7888,7 +7888,7 @@ h2 {
   aspect-ratio: 519 / 143;
   border: 0;
   border-radius: 0;
-  background: transparent url("../決定ボタン1.png") center / 100% 100% no-repeat;
+  background: transparent url("../png-file/決定ボタン1.png") center / 100% 100% no-repeat;
   color: #fffdf7;
   padding: 0 1.25rem;
   font-family: "Fude Goshirae", "Shippori Mincho", "Yu Mincho", serif;
@@ -7901,7 +7901,7 @@ h2 {
 
 .result-panel.result-board .result-actions button:last-child {
   min-width: clamp(170px, 20vw, 245px);
-  background-image: url("../キャンセルボタン2.png");
+  background-image: url("../png-file/キャンセルボタン2.png");
   color: #241a10;
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.62);
 }
@@ -7963,7 +7963,7 @@ h2 {
   position: relative;
   width: 100%;
   height: 100%;
-  background: transparent url("../スクロールレール1.png") center / 100% 100%
+  background: transparent url("../png-file/スクロールレール1.png") center / 100% 100%
     no-repeat;
   cursor: pointer;
   touch-action: none;
@@ -7974,7 +7974,7 @@ h2 {
   left: 50%;
   width: 108%;
   min-height: 110px;
-  background: transparent url("../スクロールバー5.png") center / 100% 100%
+  background: transparent url("../png-file/スクロールバー5.png") center / 100% 100%
     no-repeat;
   cursor: grab;
   touch-action: none;
@@ -8038,7 +8038,7 @@ h2 {
   gap: clamp(0.68rem, 1.35vw, 1.05rem);
   height: clamp(230px, 18vw, 270px);
   min-height: 0;
-  background-image: url("../敗北者結果行.png");
+  background-image: url("../png-file/敗北者結果行.png");
   background-size: 100% 100%;
   background-position: center;
   padding: clamp(0.72rem, 1.12vw, 0.9rem) clamp(1rem, 1.65vw, 1.32rem);
@@ -8049,7 +8049,7 @@ h2 {
   width: 100%;
   height: clamp(230px, 18vw, 270px);
   min-height: 0;
-  background-image: url("../勝者結果行.png");
+  background-image: url("../png-file/勝者結果行.png");
   background-size: 100% 100%;
   background-position: center;
   padding-block: clamp(0.72rem, 1.12vw, 0.9rem);
@@ -8059,7 +8059,7 @@ h2 {
 .result-panel.result-board .player-result-row.loser,
 .result-panel.result-board .player-result-row.normal {
   width: 100%;
-  background-image: url("../敗北者結果行.png");
+  background-image: url("../png-file/敗北者結果行.png");
   background-size: 100% 100%;
   background-position: center;
 }
@@ -8096,7 +8096,7 @@ h2 {
   width: clamp(120px, 12.5vw, 160px);
   height: clamp(45px, 3.9vw, 53px);
   max-width: none;
-  background: transparent url("../プレイヤーバッジ.png") center / 100% 100%
+  background: transparent url("../png-file/プレイヤーバッジ.png") center / 100% 100%
     no-repeat;
   color: #fff8dc;
   font-size: clamp(0.84rem, 1.04vw, 1rem);
@@ -8112,7 +8112,7 @@ h2 {
   justify-content: center;
   width: clamp(52px, 5vw, 64px);
   height: clamp(60px, 5.1vw, 65px);
-  background: transparent url("../敗者バッジ.png") center / 100% 100% no-repeat !important;
+  background: transparent url("../png-file/敗者バッジ.png") center / 100% 100% no-repeat !important;
   color: #fff8dc;
   font-size: clamp(0.78rem, 0.98vw, 0.94rem);
   line-height: 1;
@@ -8121,11 +8121,11 @@ h2 {
 }
 
 .result-panel.result-board .player-result-row.winner .player-result-head em {
-  background-image: url("../勝者バッジ.png") !important;
+  background-image: url("../png-file/勝者バッジ.png") !important;
 }
 
 .result-panel.result-board .player-result-row.loser .player-result-head em {
-  background-image: url("../敗者バッジ.png") !important;
+  background-image: url("../png-file/敗者バッジ.png") !important;
 }
 
 .result-panel.result-board .player-result-head em.is-empty {
@@ -8233,7 +8233,7 @@ h2 {
   min-height: clamp(140px, 12vw, 160px);
   gap: clamp(0.8rem, 2vw, 1.5rem);
   margin-top: clamp(0.1rem, 0.3vw, 0.28rem);
-  background-image: url("../得点計算欄外枠.png");
+  background-image: url("../png-file/得点計算欄外枠.png");
   background-size: 100% 100%;
   background-position: center;
   padding: clamp(0.82rem, 1.4vw, 1.05rem) clamp(1rem, 1.8vw, 1.42rem);
@@ -8245,7 +8245,7 @@ h2 {
   bottom: 12%;
   right: clamp(142px, 16vw, 188px);
   width: clamp(14px, 1.35vw, 18px);
-  background: transparent url("../得点計算欄境界棒.png") center / 100% 100%
+  background: transparent url("../png-file/得点計算欄境界棒.png") center / 100% 100%
     no-repeat;
   pointer-events: none;
 }
@@ -8256,7 +8256,7 @@ h2 {
   justify-content: center;
   width: clamp(52px, 6vw, 70px);
   height: clamp(24px, 2.55vw, 32px);
-  background: transparent url("../得点計算欄バッジ.png") center / 100% 100%
+  background: transparent url("../png-file/得点計算欄バッジ.png") center / 100% 100%
     no-repeat;
   color: #fff8dc;
   line-height: 1;
@@ -9401,7 +9401,7 @@ body {
   overflow: hidden;
   background:
     linear-gradient(90deg, rgba(2, 6, 5, 0.16), rgba(2, 6, 5, 0.02) 58%),
-    url("../ホーム画面-modified.png?v=home-ui-modified-1") center / cover
+    url("../png-file/ホーム画面-modified.png?v=home-ui-modified-1") center / cover
       no-repeat,
     #15110d;
 }
@@ -9411,7 +9411,7 @@ body {
   position: relative;
   background:
     linear-gradient(135deg, rgba(3, 8, 6, 0.68), rgba(8, 20, 15, 0.66)),
-    url("../ホーム画面-modified.png?v=home-ui-modified-1") center / cover
+    url("../png-file/ホーム画面-modified.png?v=home-ui-modified-1") center / cover
       no-repeat,
     #15110d;
 }
@@ -9578,21 +9578,21 @@ body {
 .table-scene {
   background:
     linear-gradient(180deg, rgba(0, 0, 0, 0.02), rgba(0, 0, 0, 0.08)),
-    url("../トランププレイ背景-3人用-modified.png") center / cover no-repeat,
+    url("../png-file/トランププレイ背景-3人用-modified.png") center / cover no-repeat,
     #1c211b;
 }
 
 .table-scene.table-4 {
   background:
     linear-gradient(180deg, rgba(0, 0, 0, 0.02), rgba(0, 0, 0, 0.08)),
-    url("../トランププレイ背景-4人用-modified.png") center / cover no-repeat,
+    url("../png-file/トランププレイ背景-4人用-modified.png") center / cover no-repeat,
     #1c211b;
 }
 
 .table-scene.table-5 {
   background:
     linear-gradient(180deg, rgba(0, 0, 0, 0.02), rgba(0, 0, 0, 0.08)),
-    url("../トランププレイ背景-5人用-modified.png") center / cover no-repeat,
+    url("../png-file/トランププレイ背景-5人用-modified.png") center / cover no-repeat,
     #1c211b;
 }
 
@@ -9640,7 +9640,7 @@ body {
   padding: 0;
   background:
     linear-gradient(90deg, rgba(2, 6, 5, 0.16), rgba(2, 6, 5, 0.02) 58%),
-    url("../ホーム画面-modified.png?v=home-viewport-bg-1") center center / cover
+    url("../png-file/ホーム画面-modified.png?v=home-viewport-bg-1") center center / cover
       no-repeat,
     #15110d;
 }
@@ -9738,7 +9738,7 @@ body {
   min-height: 0;
   border: 0;
   border-radius: 0;
-  background: transparent url("../ホームボタン.png") center / contain no-repeat;
+  background: transparent url("../png-file/ホームボタン.png") center / contain no-repeat;
   color: #f4f0e8;
   padding: 0 48px;
   box-shadow: none;
@@ -11348,7 +11348,7 @@ body {
   position: absolute;
   inset: 0;
   backface-visibility: hidden;
-  background-image: url("../全体ボード-modified.png");
+  background-image: url("../png-file/全体ボード-modified.png");
   background-size: 300% 150%;
   background-repeat: no-repeat;
   box-shadow:
@@ -11492,7 +11492,7 @@ body {
 /* めくれる紙の実体は front/back だけに限定する */
 .manual-turn-page-front,
 .manual-turn-page-back {
-  background-image: url("../全体ボード-modified.png") !important;
+  background-image: url("../png-file/全体ボード-modified.png") !important;
   background-repeat: no-repeat !important;
   background-size: 360% 170% !important;
 
@@ -11554,20 +11554,20 @@ body {
 
 /* 次へ：右ページがめくれる */
 .manual-turn-layer-next .manual-turn-page-front {
-  background-image: url("../manual-turn-right-page.png") !important;
+  background-image: url("../png-file/manual-turn-right-page.png") !important;
 }
 
 .manual-turn-layer-next .manual-turn-page-back {
-  background-image: url("../manual-turn-left-page.png") !important;
+  background-image: url("../png-file/manual-turn-left-page.png") !important;
 }
 
 /* 戻る：左ページがめくれる */
 .manual-turn-layer-prev .manual-turn-page-front {
-  background-image: url("../manual-turn-left-page.png") !important;
+  background-image: url("../png-file/manual-turn-left-page.png") !important;
 }
 
 .manual-turn-layer-prev .manual-turn-page-back {
-  background-image: url("../manual-turn-right-page.png") !important;
+  background-image: url("../png-file/manual-turn-right-page.png") !important;
 }
 
 /* ===== Manual page turn cropped-image final override ===== */
@@ -11604,19 +11604,19 @@ body {
 }
 
 .manual-turn-layer-next .manual-turn-page-front {
-  background-image: url("../manual-turn-right-page.png") !important;
+  background-image: url("../png-file/manual-turn-right-page.png") !important;
 }
 
 .manual-turn-layer-next .manual-turn-page-back {
-  background-image: url("../manual-turn-left-page.png") !important;
+  background-image: url("../png-file/manual-turn-left-page.png") !important;
 }
 
 .manual-turn-layer-prev .manual-turn-page-front {
-  background-image: url("../manual-turn-left-page.png") !important;
+  background-image: url("../png-file/manual-turn-left-page.png") !important;
 }
 
 .manual-turn-layer-prev .manual-turn-page-back {
-  background-image: url("../manual-turn-right-page.png") !important;
+  background-image: url("../png-file/manual-turn-right-page.png") !important;
 }
 
 /* .manual-turn-page-back {
@@ -11680,8 +11680,8 @@ body {
     中央部PNGはここに貼らない。
   */
   background:
-    url("../募集中ルーム一覧-背景モーダル.png") top center / 100% auto no-repeat,
-    url("../募集中ルーム一覧-背景モーダル下部.png") bottom center / 100% auto
+    url("../png-file/募集中ルーム一覧-背景モーダル.png") top center / 100% auto no-repeat,
+    url("../png-file/募集中ルーム一覧-背景モーダル下部.png") bottom center / 100% auto
       no-repeat;
 
   padding: var(--room-list-top-space) var(--room-list-side-pad)
@@ -11755,7 +11755,7 @@ body {
   min-height: clamp(132px, 15vw, 172px);
   border: 0;
   border-radius: 0;
-  background: url("../ルームカード.png") center / 100% 100% no-repeat;
+  background: url("../png-file/ルームカード.png") center / 100% 100% no-repeat;
   padding: clamp(1rem, 2vw, 1.35rem) clamp(1rem, 2.3vw, 1.55rem);
   box-shadow: none;
   color: #fff9dc;
@@ -11814,7 +11814,7 @@ body {
   aspect-ratio: 1000 / 394;
   border: 0;
   border-radius: 0;
-  background: url("../参加するボタン.png") center / contain no-repeat;
+  background: url("../png-file/参加するボタン.png") center / contain no-repeat;
   color: transparent;
   padding: 0;
   box-shadow: none;
@@ -11831,7 +11831,7 @@ body {
 .room-list-panel .join-room-button:active,
 .room-list-panel .join-room-button:focus,
 .room-list-panel .join-room-button:focus-visible {
-  background: url("../参加するボタン.png") center / contain no-repeat;
+  background: url("../png-file/参加するボタン.png") center / contain no-repeat;
   outline: none;
   box-shadow: none;
   filter: brightness(1.08) drop-shadow(0 0 10px rgba(221, 188, 91, 0.24));
@@ -11869,7 +11869,7 @@ body {
 
   border: 0;
   border-radius: 0;
-  background: url("../ボタン1.png") center / 100% 100% no-repeat;
+  background: url("../png-file/ボタン1.png") center / 100% 100% no-repeat;
   color: #fff0bd;
   padding: 0 clamp(0.5rem, 1.5vw, 0.9rem);
   box-shadow: none;
@@ -11893,7 +11893,7 @@ body {
 .room-list-panel .room-choice-actions button:active,
 .room-list-panel .room-choice-actions button:focus,
 .room-list-panel .room-choice-actions button:focus-visible {
-  background: url("../ボタン1.png") center / 100% 100% no-repeat;
+  background: url("../png-file/ボタン1.png") center / 100% 100% no-repeat;
   outline: none;
   box-shadow: none;
   filter: brightness(1.08) drop-shadow(0 0 9px rgba(221, 188, 91, 0.22));
@@ -12022,7 +12022,7 @@ body {
   grid-row: 1;
   min-height: 0;
 
-  background: url("../募集中ルーム一覧-背景モーダル.png") center bottom / 100%
+  background: url("../png-file/募集中ルーム一覧-背景モーダル.png") center bottom / 100%
     100% no-repeat;
 
   /* 継ぎ目隠し。強すぎたら -1px にする */
@@ -12052,7 +12052,7 @@ body {
 
   border: 0;
   border-radius: 0;
-  background: url("../募集中ルーム一覧-背景モーダル中央部.png") center / 100%
+  background: url("../png-file/募集中ルーム一覧-背景モーダル中央部.png") center / 100%
     100% no-repeat;
   box-shadow: none;
 
@@ -12137,7 +12137,7 @@ body {
   padding: clamp(1.25rem, 3dvh, 2.1rem) clamp(2rem, 4vw, 3.2rem)
     clamp(1.15rem, 2.8dvh, 1.8rem);
 
-  background: url("../募集中ルーム一覧-背景モーダル下部.png") center top / 100%
+  background: url("../png-file/募集中ルーム一覧-背景モーダル下部.png") center top / 100%
     100% no-repeat;
 
   /* 継ぎ目隠し */
@@ -12160,7 +12160,7 @@ body {
 
   border: 0;
   border-radius: 0;
-  background: url("../ボタン1.png") center / 100% 100% no-repeat;
+  background: url("../png-file/ボタン1.png") center / 100% 100% no-repeat;
   box-shadow: none;
 
   color: #fff4c8;
@@ -12188,7 +12188,7 @@ body {
 }
 
 .room-list-panel .room-choice-actions button:disabled {
-  background: url("../ボタン1.png") center / 100% 100% no-repeat;
+  background: url("../png-file/ボタン1.png") center / 100% 100% no-repeat;
   color: rgba(255, 244, 200, 0.55);
   filter: grayscale(0.28) brightness(0.82);
   cursor: default;
@@ -12209,7 +12209,7 @@ body {
 
   border: 0;
   border-radius: 0;
-  background: url("../ルームカード.png") center / 100% 100% no-repeat;
+  background: url("../png-file/ルームカード.png") center / 100% 100% no-repeat;
   box-shadow: none;
 
   /* 枠の装飾に文字がかぶらない安全余白 */
@@ -12302,7 +12302,7 @@ body {
 
   border: 0;
   border-radius: 0;
-  background: url("../参加するボタン.png") center / contain no-repeat;
+  background: url("../png-file/参加するボタン.png") center / contain no-repeat;
   color: transparent;
   font-size: 0;
   line-height: 0;
@@ -12322,13 +12322,13 @@ body {
 .room-list-panel .join-room-button:focus-visible:not(:disabled) {
   outline: none;
   box-shadow: none;
-  background: url("../参加するボタン.png") center / contain no-repeat;
+  background: url("../png-file/参加するボタン.png") center / contain no-repeat;
   filter: brightness(1.08) drop-shadow(0 0 10px rgba(221, 188, 91, 0.28));
   transform: translateY(-1px);
 }
 
 .room-list-panel .join-room-button:disabled {
-  background: url("../参加するボタン.png") center / contain no-repeat;
+  background: url("../png-file/参加するボタン.png") center / contain no-repeat;
   filter: grayscale(0.35) brightness(0.82);
   cursor: default;
 }
@@ -12413,7 +12413,7 @@ body {
 /* ===== Recruiting room list: asset path and seam fixes ===== */
 
 .room-list-panel::before {
-  background: url("../募集中ルーム一覧-背景モーダル.png") center bottom / 100%
+  background: url("../png-file/募集中ルーム一覧-背景モーダル.png") center bottom / 100%
     100% no-repeat !important;
   width: 100% !important;
   height: 100% !important;
@@ -12435,7 +12435,7 @@ body {
     ここに中央部PNGを貼る。
     子要素なので、親の上部背景より前面に出せる。
   */
-  background: url("../募集中ルーム一覧-背景モーダル中央部.png") center / 100%
+  background: url("../png-file/募集中ルーム一覧-背景モーダル中央部.png") center / 100%
     100% no-repeat;
 
   /*
@@ -12457,7 +12457,7 @@ body {
 }
 
 .room-list-panel > .room-choice-actions {
-  background: url("../募集中ルーム一覧-背景モーダル下部.png") center top / 100%
+  background: url("../png-file/募集中ルーム一覧-背景モーダル下部.png") center top / 100%
     100% no-repeat !important;
   margin-top: 0 !important;
   padding-top: clamp(0.95rem, 2.2dvh, 1.4rem) !important;
@@ -12469,14 +12469,14 @@ body {
   flex-basis: clamp(136px, 13vw, 168px) !important;
   width: clamp(136px, 13vw, 168px) !important;
   height: clamp(76px, 7.4vw, 94px) !important;
-  background: url("../ボタン1.png") center / 100% 100% no-repeat !important;
+  background: url("../png-file/ボタン1.png") center / 100% 100% no-repeat !important;
   line-height: 1.08;
 }
 
 .room-list-panel .room-choice-actions button:hover:not(:disabled),
 .room-list-panel .room-choice-actions button:focus-visible:not(:disabled),
 .room-list-panel .room-choice-actions button:disabled {
-  background: url("../ボタン1.png") center / 100% 100% no-repeat !important;
+  background: url("../png-file/ボタン1.png") center / 100% 100% no-repeat !important;
 }
 
 @media (max-width: 560px) {
@@ -12500,7 +12500,7 @@ body {
 }
 
 .room-list-panel::before {
-  background: url("../募集中ルーム一覧-背景モーダル.png") center bottom / 100%
+  background: url("../png-file/募集中ルーム一覧-背景モーダル.png") center bottom / 100%
     100% no-repeat !important;
   width: 100% !important;
   height: 100% !important;
@@ -12511,7 +12511,7 @@ body {
   --room-list-middle-top-overlap: 30px;
   --room-list-middle-bottom-overlap: 48px;
 
-  background: url("../募集中ルーム一覧-背景モーダル中央部.png") center / 100%
+  background: url("../png-file/募集中ルーム一覧-背景モーダル中央部.png") center / 100%
     100% no-repeat !important;
   height: calc(
     100% + var(--room-list-middle-top-overlap) +
@@ -12528,7 +12528,7 @@ body {
 }
 
 .room-list-panel > .room-choice-actions {
-  background: url("../募集中ルーム一覧-背景モーダル下部.png") center top / 100%
+  background: url("../png-file/募集中ルーム一覧-背景モーダル下部.png") center top / 100%
     100% no-repeat !important;
   margin-top: 0 !important;
   padding-top: clamp(1.25rem, 2.6dvh, 1.9rem) !important;
@@ -12539,7 +12539,7 @@ body {
   flex-basis: clamp(178px, 18vw, 235px) !important;
   width: clamp(178px, 18vw, 235px) !important;
   height: clamp(88px, 9vw, 118px) !important;
-  background: url("../ボタン1.png") center / 100% 100% no-repeat !important;
+  background: url("../png-file/ボタン1.png") center / 100% 100% no-repeat !important;
   padding-inline: clamp(0.7rem, 1.4vw, 1.2rem) !important;
   font-size: clamp(0.82rem, 1.35vw, 1.05rem) !important;
   line-height: 1.12 !important;
@@ -12548,7 +12548,7 @@ body {
 .room-list-panel .room-choice-actions button:hover:not(:disabled),
 .room-list-panel .room-choice-actions button:focus-visible:not(:disabled),
 .room-list-panel .room-choice-actions button:disabled {
-  background: url("../ボタン1.png") center / 100% 100% no-repeat !important;
+  background: url("../png-file/ボタン1.png") center / 100% 100% no-repeat !important;
 }
 
 @media (max-width: 720px) {
@@ -12648,7 +12648,7 @@ body {
   overflow: auto;
   border: 0;
   border-radius: 0;
-  background: url("../ルーム作成モーダル.png") center / 100% 100% no-repeat;
+  background: url("../png-file/ルーム作成モーダル.png") center / 100% 100% no-repeat;
   padding: clamp(1.3rem, 2.7vw, 2.2rem) clamp(1.35rem, 3.3vw, 2.8rem)
     clamp(1.15rem, 2.5vw, 2rem);
   box-shadow: none;
@@ -12713,7 +12713,7 @@ body {
   isolation: isolate;
   border: 0;
   border-radius: 0;
-  background: url("../選択ボタン1-modified2.png") center / 100% 100% no-repeat;
+  background: url("../png-file/選択ボタン1-modified2.png") center / 100% 100% no-repeat;
   color: #f6efd8;
   box-shadow: none;
   text-shadow:
@@ -12771,7 +12771,7 @@ body {
 .match-type-grid button:hover:not(.selected):not(:disabled),
 .room-presets button:hover:not(:disabled),
 .cpu-model-options button:hover:not(.selected):not(:disabled) {
-  background: url("../選択ボタン1-modified2.png") center / 100% 100% no-repeat;
+  background: url("../png-file/選択ボタン1-modified2.png") center / 100% 100% no-repeat;
   filter: brightness(1.08);
   transform: translateY(-1px);
 }
@@ -12780,7 +12780,7 @@ body {
 .composition-grid button.selected,
 .match-type-grid button.selected,
 .cpu-model-options button.selected {
-  background: url("../選択ボタン1-modified2.png") center / 100% 100% no-repeat;
+  background: url("../png-file/選択ボタン1-modified2.png") center / 100% 100% no-repeat;
   color: #fff4c8;
   filter: brightness(1.16) saturate(1.05);
   transform: translateY(-1px);
@@ -12868,16 +12868,16 @@ body {
 }
 
 .room-actions .room-create-submit-button {
-  background-image: url("../作成ボタン.png");
+  background-image: url("../png-file/作成ボタン.png");
 }
 
 .room-actions .room-create-cancel-button {
-  background-image: url("../キャンセルボタン.png");
+  background-image: url("../png-file/キャンセルボタン.png");
 }
 
 .room-actions .room-create-home-button {
   width: clamp(166px, 20vw, 232px);
-  background-image: url("../ホーム画面に戻るボタン-2.png");
+  background-image: url("../png-file/ホーム画面に戻るボタン-2.png");
 }
 
 .room-actions .room-create-submit-button:hover:not(:disabled),
@@ -12896,21 +12896,21 @@ body {
 
 .room-actions .room-create-submit-button:hover:not(:disabled),
 .room-actions .room-create-submit-button:focus-visible:not(:disabled) {
-  background-image: url("../作成ボタン.png");
+  background-image: url("../png-file/作成ボタン.png");
 }
 
 .room-actions .room-create-cancel-button:hover:not(:disabled),
 .room-actions .room-create-cancel-button:focus-visible:not(:disabled) {
-  background-image: url("../キャンセルボタン.png");
+  background-image: url("../png-file/キャンセルボタン.png");
 }
 
 .room-actions .room-create-home-button:hover:not(:disabled),
 .room-actions .room-create-home-button:focus-visible:not(:disabled) {
-  background-image: url("../ホーム画面に戻るボタン-2.png");
+  background-image: url("../png-file/ホーム画面に戻るボタン-2.png");
 }
 
 .room-actions .room-create-submit-button:disabled {
-  background-image: url("../作成ボタン.png");
+  background-image: url("../png-file/作成ボタン.png");
   opacity: 0.54;
   filter: grayscale(0.3) brightness(0.84);
 }
@@ -13298,7 +13298,7 @@ body {
   min-height: 138px;
   border: 0;
   border-radius: 0;
-  background: transparent url("../スクロールバー2.png") center / 100% 100%
+  background: transparent url("../png-file/スクロールバー2.png") center / 100% 100%
     no-repeat;
 }
 
@@ -13432,7 +13432,7 @@ body {
   height: var(--contract-check-size);
   border: 0;
   border-radius: 0;
-  background: transparent url("../チェックボックス.png") center / contain
+  background: transparent url("../png-file/チェックボックス.png") center / contain
     no-repeat;
   box-shadow: none;
   overflow: visible;
@@ -15613,7 +15613,7 @@ body {
   border: none !important;
   border-radius: 50% !important;
 
-  background-image: url("../設定歯車ボタン.png") !important;
+  background-image: url("../png-file/設定歯車ボタン.png") !important;
   background-repeat: no-repeat !important;
   background-position: center !important;
   background-size: contain !important;
@@ -15654,7 +15654,7 @@ body {
   padding: 0 !important;
   box-sizing: border-box !important;
 
-  background-image: url("../プレイ画面-〇回戦.png") !important;
+  background-image: url("../png-file/プレイ画面-〇回戦.png") !important;
   background-repeat: no-repeat !important;
   background-position: center !important;
   background-size: 100% 100% !important;
@@ -15713,7 +15713,7 @@ body {
     padding: 0 !important;
     box-sizing: border-box !important;
 
-    background-image: url("../プレイ画面-〇回戦.png") !important;
+    background-image: url("../png-file/プレイ画面-〇回戦.png") !important;
     background-repeat: no-repeat !important;
     background-position: center !important;
     background-size: 100% 100% !important;

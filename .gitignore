@@ -13,4 +13,8 @@ yarn-error.log*
 *.diff
 *.mp3
 *.jpg
+!png-file/
+!png-file/**
+!mp3-file/
+!mp3-file/**
 
