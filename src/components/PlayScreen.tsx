@@ -3636,7 +3636,13 @@ function RoomManagementDialog({
                 type="button"
                 role="tab"
                 aria-selected={selectedTab === tab.id}
-                className={selectedTab === tab.id ? "selected" : ""}
+                className={[
+                  "room-management-tab",
+                  `room-management-tab--${tab.id}`,
+                  selectedTab === tab.id ? "selected" : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
                 onClick={() => onSelectTab(tab.id)}
                 key={tab.id}
               >
@@ -3662,7 +3668,11 @@ function RoomManagementDialog({
                     >
                       退出
                     </button>
-                    <button type="button" onClick={onClose}>
+                    <button
+                      type="button"
+                      data-room-action="cancel"
+                      onClick={onClose}
+                    >
                       キャンセル
                     </button>
                   </div>
@@ -3676,6 +3686,7 @@ function RoomManagementDialog({
                     <button
                       type="button"
                       className="primary-button"
+                      data-room-action="pause"
                       onClick={() => onStartTemporaryLeave("pause")}
                     >
                       中断する
@@ -3686,6 +3697,7 @@ function RoomManagementDialog({
                     <button
                       type="button"
                       className="primary-button"
+                      data-room-action="cpu-substitute"
                       onClick={() => onStartTemporaryLeave("cpuSubstitute")}
                     >
                       CPUに代行させる
