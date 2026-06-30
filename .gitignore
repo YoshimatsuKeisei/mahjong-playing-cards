@@ -9,8 +9,8 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .vscode/
-.png
-.diff
-.mp3
-.jpg
+*.png
+*.diff
+*.mp3
+*.jpg
 
