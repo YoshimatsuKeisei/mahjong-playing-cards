@@ -3980,7 +3980,19 @@ function getMatchDetailText(matchState?: MatchState) {
 }
 
 function formatMatchInfoPlayerName(player: GameState["players"][number]) {
-  return stripSeatPrefix(player.name).trim();
+  const displayName = stripSeatPrefix(player.name).trim();
+
+  if (!player.isCpu) return displayName;
+
+  const modelLabel = player.cpuModelId
+    ? getCpuModelDisplayName(player.cpuModelId)
+    : "CPU";
+
+  if (!modelLabel || displayName.includes(modelLabel)) {
+    return displayName;
+  }
+
+  return `${displayName} ${modelLabel}`;
 }
 
 function stripSeatPrefix(name: string) {
