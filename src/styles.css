@@ -7715,19 +7715,48 @@ h2 {
 
 /* ===== Round result screen: image modal UI ===== */
 
+/* ===== Round result screen: image modal UI ===== */
+
 .result-panel.result-board {
-  width: min(96vw, calc(96dvh * 1392 / 933), 1400px);
-  height: min(96dvh, calc(96vw * 933 / 1392), 790px);
-  max-height: 96dvh;
-  aspect-ratio: 1392 / 933;
+  /*
+    結果画面モーダル本体。
+    ここを直接変える。
+    末尾追加ではなく、この既存ブロック自体を置き換える。
+  */
+  --result-board-width: min(85vw, 1260px);
+  --result-board-height: min(92dvh, 860px);
+
+  --result-board-content-width: 1360px;
+
+  --result-board-padding-top: clamp(4.3rem, 7.2dvh, 5.7rem);
+  --result-board-padding-x: clamp(1.6rem, 3vw, 2.8rem);
+  --result-board-padding-bottom: clamp(1rem, 2.2dvh, 1.6rem);
+
+  width: var(--result-board-width);
+  min-width: var(--result-board-width);
+  max-width: var(--result-board-width);
+
+  height: var(--result-board-height);
+  min-height: var(--result-board-height);
+  max-height: var(--result-board-height);
+
+  /*
+    重要：
+    1392 / 933 固定をやめる。
+  */
+  aspect-ratio: auto;
+
   box-sizing: border-box;
   overflow: hidden;
   border: 0;
   border-radius: 0;
+
   background: transparent url("../png-file/結果画面モーダル.png") center / 100%
     100% no-repeat;
-  padding: clamp(4.8rem, 9.4vw, 7.1rem) clamp(2rem, 5.1vw, 4rem)
-    clamp(1.15rem, 2.5vw, 1.9rem);
+
+  padding: var(--result-board-padding-top) var(--result-board-padding-x)
+    var(--result-board-padding-bottom);
+
   box-shadow: none;
   backdrop-filter: none;
 }
@@ -7920,24 +7949,33 @@ h2 {
 
 .result-panel.result-board {
   display: block;
-  padding: clamp(4.25rem, 7.2vw, 6.2rem) clamp(2.8rem, 5.6vw, 4.7rem)
-    clamp(1.7rem, 3.4vw, 2.7rem);
+  padding: var(--result-board-padding-top) var(--result-board-padding-x)
+    var(--result-board-padding-bottom);
 }
 
 .result-panel.result-board .result-board-scroll {
   display: flex;
   flex-direction: column;
   gap: clamp(0.56rem, 1.08vw, 0.88rem);
-  width: min(100%, 1200px);
+
+  /*
+    1200px固定をやめる。
+    モーダルを広げた分、中身も広げる。
+  */
+  width: min(100%, var(--result-board-content-width));
   height: 100%;
   min-height: 0;
   max-height: 100%;
+
   box-sizing: border-box;
   margin: 0 auto;
-  padding: 0 clamp(0.4rem, 1vw, 0.8rem) 0.45rem 0;
+  padding: 0 clamp(0.35rem, 0.8vw, 0.65rem) 0.45rem 0;
+
   overflow-x: hidden;
   overflow-y: auto;
   scrollbar-width: none;
+
+  transform: none;
 }
 
 .result-panel.result-board .result-board-scroll > * {
@@ -17630,4 +17668,122 @@ body {
 /* 旧 em HOST 用が残っていても邪魔しない */
 .play-screen .room-management-dialog .match-info-player em {
   display: none !important;
+}
+
+/* =========================================================
+   Result screen: no-meld compact layout
+   できた役が0個の行だけ、できた役列をコンパクト化する
+   PC / mobile common
+========================================================= */
+
+.result-panel.result-board .result-hand-breakdown.no-melds {
+  grid-template-columns: max-content minmax(0, 1fr) !important;
+  column-gap: clamp(0.5rem, 0.9vw, 0.85rem) !important;
+}
+
+.result-panel.result-board .result-hand-breakdown.no-melds .result-meld-column {
+  width: max-content !important;
+  min-width: 0 !important;
+  max-width: max-content !important;
+}
+
+.result-panel.result-board .result-hand-breakdown.no-melds .result-meld-groups {
+  display: block !important;
+  min-width: 0 !important;
+  max-width: max-content !important;
+}
+
+.result-panel.result-board
+  .result-hand-breakdown.no-melds
+  .result-meld-groups
+  em {
+  display: inline-block !important;
+  white-space: nowrap !important;
+}
+
+.result-panel.result-board .result-hand-breakdown.no-melds .result-rest-column {
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+
+.result-panel.result-board
+  .result-hand-breakdown.no-melds
+  .result-rest-column
+  .result-card-group {
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+
+/* =========================================================
+   Result screen: mobile landscape compact tuning
+   スマホ横向きだけ、結果行の中身を少し詰める
+========================================================= */
+
+@media (orientation: landscape) and (max-height: 700px) {
+  .result-screen {
+    /*
+      まずはここだけ触る。
+      PC版を100%とした時、スマホ版は80〜85%くらいに寄せる。
+    */
+    --result-mobile-card-width: 48px;
+    --result-mobile-profile-column: 104px;
+    --result-mobile-score-column: 72px;
+    --result-mobile-row-gap: 0.38rem;
+    --result-mobile-row-padding-x: 0.72rem;
+    --result-mobile-breakdown-gap: 0.62rem;
+  }
+
+  .result-panel.result-board .player-result-row {
+    grid-template-columns:
+      var(--result-mobile-profile-column)
+      minmax(0, 1fr)
+      var(--result-mobile-score-column) !important;
+
+    gap: var(--result-mobile-row-gap) !important;
+
+    padding-left: var(--result-mobile-row-padding-x) !important;
+    padding-right: var(--result-mobile-row-padding-x) !important;
+  }
+
+  .result-panel.result-board .playing-card.compact {
+    width: var(--result-mobile-card-width) !important;
+  }
+
+  .result-panel.result-board .result-hand-breakdown {
+    grid-template-columns: minmax(132px, max-content) minmax(0, 1fr) !important;
+    column-gap: var(--result-mobile-breakdown-gap) !important;
+  }
+
+  .result-panel.result-board .result-hand-breakdown.no-melds {
+    grid-template-columns: max-content minmax(0, 1fr) !important;
+    column-gap: 0.5rem !important;
+  }
+
+  .result-panel.result-board .player-result-score {
+    min-width: var(--result-mobile-score-column) !important;
+    max-width: var(--result-mobile-score-column) !important;
+    padding-right: 0 !important;
+  }
+
+  .result-panel.result-board .result-face-frame,
+  .result-panel.result-board .result-character-portrait {
+    width: 64px !important;
+  }
+
+  .result-panel.result-board .player-result-head > strong {
+    font-size: 0.96rem !important;
+  }
+
+  .result-panel.result-board .player-result-head em {
+    font-size: 0.68rem !important;
+  }
+
+  .result-panel.result-board .result-meld-column > span,
+  .result-panel.result-board .result-rest-column > span {
+    font-size: 0.78rem !important;
+  }
+
+  .result-panel.result-board .player-result-score strong {
+    font-size: clamp(1.9rem, 5.2dvh, 2.35rem) !important;
+  }
 }
