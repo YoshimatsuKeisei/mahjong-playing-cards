@@ -3793,13 +3793,17 @@ function RoomManagementDialog({
 
                           return (
                             <div className="match-info-player" key={player.id}>
-                              <span
-                                className={`match-info-host-badge ${
-                                  isHost ? "" : "is-empty"
-                                }`}
-                              >
-                                HOST
-                              </span>
+                              {isHost ? (
+                                <span className="match-info-host-badge">
+                                  HOST
+                                </span>
+                              ) : (
+                                <span
+                                  className="match-info-host-badge is-empty"
+                                  aria-hidden="true"
+                                />
+                              )}
+
                               <strong>
                                 Player{index + 1}:{" "}
                                 {formatMatchInfoPlayerName(player)}
