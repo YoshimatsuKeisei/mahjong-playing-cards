@@ -1,4 +1,4 @@
-@font-face {
+﻿@font-face {
   font-family: "Fude Goshirae";
   src: url("./assets/fonts/fude-goshirae_1.00/fude-goshirae.otf")
     format("opentype");
@@ -626,7 +626,8 @@ button:disabled {
   overflow: visible;
   border: 0;
   border-radius: 0;
-  background: url("../png-file/ルーム選択モーダル.png") center / contain no-repeat;
+  background: url("../png-file/ルーム選択モーダル.png") center / contain
+    no-repeat;
   padding: 0;
   box-shadow: none;
   backdrop-filter: none;
@@ -766,7 +767,8 @@ button:disabled {
   aspect-ratio: 1000 / 279;
   border: 0;
   border-radius: 0;
-  background: url("../png-file/ホーム画面に戻るボタン.png") center / contain no-repeat;
+  background: url("../png-file/ホーム画面に戻るボタン.png") center / contain
+    no-repeat;
   padding: 0;
   box-shadow: none;
   overflow: hidden;
@@ -1992,8 +1994,8 @@ h2 {
 
 .manual-screen {
   background:
-    url("../png-file/ホーム画面-modified.png?v=manual-home-base-1") center / cover
-      no-repeat,
+    url("../png-file/ホーム画面-modified.png?v=manual-home-base-1") center /
+      cover no-repeat,
     #15110d;
 }
 
@@ -2045,7 +2047,8 @@ h2 {
   overflow: hidden;
   border: 0;
   border-radius: 0;
-  background: url("../png-file/全体ボード-modified.png") center / 112% 116% no-repeat;
+  background: url("../png-file/全体ボード-modified.png") center / 112% 116%
+    no-repeat;
   background-position: center;
   box-shadow: 0 18px 34px rgba(0, 0, 0, 0.2);
 
@@ -2433,7 +2436,8 @@ h2 {
 
   border: 0;
   border-radius: 0;
-  background: url("../png-file/manual-バツボタン.png") center / contain no-repeat;
+  background: url("../png-file/manual-バツボタン.png") center / contain
+    no-repeat;
   color: transparent;
   padding: 0;
   text-shadow: none;
@@ -2482,7 +2486,8 @@ h2 {
   min-height: 0;
   border: 0;
   border-radius: 0;
-  background: url("../png-file/manual-戻るボタン.png") center / contain no-repeat;
+  background: url("../png-file/manual-戻るボタン.png") center / contain
+    no-repeat;
   color: transparent;
   padding: 0;
   box-shadow: none;
@@ -6187,8 +6192,8 @@ h2 {
   min-height: 0;
   border: 0;
   border-radius: 0;
-  background: transparent url("../png-file/スクロールバー4.png") center / 100% 100%
-    no-repeat;
+  background: transparent url("../png-file/スクロールバー4.png") center / 100%
+    100% no-repeat;
   padding: 0;
   box-shadow: none;
   cursor: pointer;
@@ -7719,8 +7724,8 @@ h2 {
   overflow: hidden;
   border: 0;
   border-radius: 0;
-  background: transparent url("../png-file/結果画面モーダル.png") center / 100% 100%
-    no-repeat;
+  background: transparent url("../png-file/結果画面モーダル.png") center / 100%
+    100% no-repeat;
   padding: clamp(4.8rem, 9.4vw, 7.1rem) clamp(2rem, 5.1vw, 4rem)
     clamp(1.15rem, 2.5vw, 1.9rem);
   box-shadow: none;
@@ -7736,7 +7741,8 @@ h2 {
   aspect-ratio: 470 / 176;
   border: 0;
   border-radius: 0;
-  background: transparent url("../png-file/〇回戦看板.png") center / 100% 100% no-repeat;
+  background: transparent url("../png-file/〇回戦看板.png") center / 100% 100%
+    no-repeat;
   color: #fff8dc;
   padding: 0 2.5rem;
   font-family: "Fude Goshirae", "Shippori Mincho", "Yu Mincho", serif;
@@ -7783,7 +7789,8 @@ h2 {
   min-height: clamp(82px, 8.4vw, 112px);
   border: 0;
   border-radius: 0;
-  background: transparent url("../png-file/敗者結果行.png") center / 100% 100% no-repeat;
+  background: transparent url("../png-file/敗者結果行.png") center / 100% 100%
+    no-repeat;
   background-size: 100% 172%;
   background-position: center 50%;
   padding: clamp(0.7rem, 1.35vw, 0.95rem) clamp(1.1rem, 2.5vw, 1.85rem);
@@ -7846,7 +7853,8 @@ h2 {
   min-height: clamp(58px, 6.4vw, 82px);
   border: 0;
   border-radius: 0;
-  background: transparent url("../png-file/得点計算欄.png") center / 100% 100% no-repeat;
+  background: transparent url("../png-file/得点計算欄.png") center / 100% 100%
+    no-repeat;
   background-size: 100% 158%;
   background-position: center 50%;
   padding: clamp(0.55rem, 1.2vw, 0.85rem) clamp(1.1rem, 2.8vw, 2rem);
@@ -7856,7 +7864,8 @@ h2 {
 .result-panel.result-board .formula-row {
   border: 0;
   border-radius: 0;
-  background: transparent url("../png-file/得点計算欄.png") center / 100% 100% no-repeat;
+  background: transparent url("../png-file/得点計算欄.png") center / 100% 100%
+    no-repeat;
   background-size: 100% 158%;
   background-position: center 50%;
   box-shadow: none;
@@ -7869,8 +7878,8 @@ h2 {
   aspect-ratio: 536 / 187;
   border: 0;
   border-radius: 0;
-  background: transparent url("../png-file/現時点の成績ボタン.png") center / 100% 100%
-    no-repeat;
+  background: transparent url("../png-file/現時点の成績ボタン.png") center /
+    100% 100% no-repeat;
   color: #241a10;
   padding: 0 1.4rem;
   font-family: "Fude Goshirae", "Shippori Mincho", "Yu Mincho", serif;
@@ -7888,7 +7897,8 @@ h2 {
   aspect-ratio: 519 / 143;
   border: 0;
   border-radius: 0;
-  background: transparent url("../png-file/決定ボタン1.png") center / 100% 100% no-repeat;
+  background: transparent url("../png-file/決定ボタン1.png") center / 100% 100%
+    no-repeat;
   color: #fffdf7;
   padding: 0 1.25rem;
   font-family: "Fude Goshirae", "Shippori Mincho", "Yu Mincho", serif;
@@ -7963,8 +7973,8 @@ h2 {
   position: relative;
   width: 100%;
   height: 100%;
-  background: transparent url("../png-file/スクロールレール1.png") center / 100% 100%
-    no-repeat;
+  background: transparent url("../png-file/スクロールレール1.png") center / 100%
+    100% no-repeat;
   cursor: pointer;
   touch-action: none;
 }
@@ -7974,8 +7984,8 @@ h2 {
   left: 50%;
   width: 108%;
   min-height: 110px;
-  background: transparent url("../png-file/スクロールバー5.png") center / 100% 100%
-    no-repeat;
+  background: transparent url("../png-file/スクロールバー5.png") center / 100%
+    100% no-repeat;
   cursor: grab;
   touch-action: none;
   transform: translateX(-50%);
@@ -8096,8 +8106,8 @@ h2 {
   width: clamp(120px, 12.5vw, 160px);
   height: clamp(45px, 3.9vw, 53px);
   max-width: none;
-  background: transparent url("../png-file/プレイヤーバッジ.png") center / 100% 100%
-    no-repeat;
+  background: transparent url("../png-file/プレイヤーバッジ.png") center / 100%
+    100% no-repeat;
   color: #fff8dc;
   font-size: clamp(0.84rem, 1.04vw, 1rem);
   line-height: 1;
@@ -8112,7 +8122,8 @@ h2 {
   justify-content: center;
   width: clamp(52px, 5vw, 64px);
   height: clamp(60px, 5.1vw, 65px);
-  background: transparent url("../png-file/敗者バッジ.png") center / 100% 100% no-repeat !important;
+  background: transparent url("../png-file/敗者バッジ.png") center / 100% 100%
+    no-repeat !important;
   color: #fff8dc;
   font-size: clamp(0.78rem, 0.98vw, 0.94rem);
   line-height: 1;
@@ -8245,8 +8256,8 @@ h2 {
   bottom: 12%;
   right: clamp(142px, 16vw, 188px);
   width: clamp(14px, 1.35vw, 18px);
-  background: transparent url("../png-file/得点計算欄境界棒.png") center / 100% 100%
-    no-repeat;
+  background: transparent url("../png-file/得点計算欄境界棒.png") center / 100%
+    100% no-repeat;
   pointer-events: none;
 }
 
@@ -8256,8 +8267,8 @@ h2 {
   justify-content: center;
   width: clamp(52px, 6vw, 70px);
   height: clamp(24px, 2.55vw, 32px);
-  background: transparent url("../png-file/得点計算欄バッジ.png") center / 100% 100%
-    no-repeat;
+  background: transparent url("../png-file/得点計算欄バッジ.png") center / 100%
+    100% no-repeat;
   color: #fff8dc;
   line-height: 1;
   padding: 0;
@@ -9401,8 +9412,8 @@ body {
   overflow: hidden;
   background:
     linear-gradient(90deg, rgba(2, 6, 5, 0.16), rgba(2, 6, 5, 0.02) 58%),
-    url("../png-file/ホーム画面-modified.png?v=home-ui-modified-1") center / cover
-      no-repeat,
+    url("../png-file/ホーム画面-modified.png?v=home-ui-modified-1") center /
+      cover no-repeat,
     #15110d;
 }
 
@@ -9411,8 +9422,8 @@ body {
   position: relative;
   background:
     linear-gradient(135deg, rgba(3, 8, 6, 0.68), rgba(8, 20, 15, 0.66)),
-    url("../png-file/ホーム画面-modified.png?v=home-ui-modified-1") center / cover
-      no-repeat,
+    url("../png-file/ホーム画面-modified.png?v=home-ui-modified-1") center /
+      cover no-repeat,
     #15110d;
 }
 
@@ -9578,21 +9589,24 @@ body {
 .table-scene {
   background:
     linear-gradient(180deg, rgba(0, 0, 0, 0.02), rgba(0, 0, 0, 0.08)),
-    url("../png-file/トランププレイ背景-3人用-modified.png") center / cover no-repeat,
+    url("../png-file/トランププレイ背景-3人用-modified.png") center / cover
+      no-repeat,
     #1c211b;
 }
 
 .table-scene.table-4 {
   background:
     linear-gradient(180deg, rgba(0, 0, 0, 0.02), rgba(0, 0, 0, 0.08)),
-    url("../png-file/トランププレイ背景-4人用-modified.png") center / cover no-repeat,
+    url("../png-file/トランププレイ背景-4人用-modified.png") center / cover
+      no-repeat,
     #1c211b;
 }
 
 .table-scene.table-5 {
   background:
     linear-gradient(180deg, rgba(0, 0, 0, 0.02), rgba(0, 0, 0, 0.08)),
-    url("../png-file/トランププレイ背景-5人用-modified.png") center / cover no-repeat,
+    url("../png-file/トランププレイ背景-5人用-modified.png") center / cover
+      no-repeat,
     #1c211b;
 }
 
@@ -9640,8 +9654,8 @@ body {
   padding: 0;
   background:
     linear-gradient(90deg, rgba(2, 6, 5, 0.16), rgba(2, 6, 5, 0.02) 58%),
-    url("../png-file/ホーム画面-modified.png?v=home-viewport-bg-1") center center / cover
-      no-repeat,
+    url("../png-file/ホーム画面-modified.png?v=home-viewport-bg-1") center
+      center / cover no-repeat,
     #15110d;
 }
 
@@ -9738,7 +9752,8 @@ body {
   min-height: 0;
   border: 0;
   border-radius: 0;
-  background: transparent url("../png-file/ホームボタン.png") center / contain no-repeat;
+  background: transparent url("../png-file/ホームボタン.png") center / contain
+    no-repeat;
   color: #f4f0e8;
   padding: 0 48px;
   box-shadow: none;
@@ -9766,6 +9781,34 @@ body {
 
 .home-stage .home-menu-button img {
   display: none;
+}
+
+.home-stage .home-menu-button,
+.home-stage .home-menu-button:hover:not(:disabled),
+.home-stage .home-menu-button:active:not(:disabled),
+.home-stage .home-menu-button:focus,
+.home-stage .home-menu-button:focus-visible,
+.home-stage .home-menu-button:disabled {
+  background: transparent url("../png-file/ホームボタン.png") center / contain
+    no-repeat;
+  box-shadow: none;
+}
+
+.home-stage .home-menu-button:hover:not(:disabled),
+.home-stage .home-menu-button:focus-visible:not(:disabled) {
+  filter: brightness(1.08) drop-shadow(0 0 12px rgba(241, 210, 127, 0.24));
+  transform: translateX(7px) translateY(-1px);
+}
+
+.home-stage .home-menu-button:active:not(:disabled) {
+  filter: brightness(0.98) drop-shadow(0 0 8px rgba(241, 210, 127, 0.18));
+  transform: translateX(5px) translateY(1px);
+}
+
+.home-stage .home-menu-button:disabled {
+  color: #f4f0e8;
+  cursor: default;
+  opacity: 0.68;
 }
 
 @media (orientation: landscape) and (max-height: 700px) {
@@ -11680,9 +11723,10 @@ body {
     中央部PNGはここに貼らない。
   */
   background:
-    url("../png-file/募集中ルーム一覧-背景モーダル.png") top center / 100% auto no-repeat,
-    url("../png-file/募集中ルーム一覧-背景モーダル下部.png") bottom center / 100% auto
-      no-repeat;
+    url("../png-file/募集中ルーム一覧-背景モーダル.png") top center / 100% auto
+      no-repeat,
+    url("../png-file/募集中ルーム一覧-背景モーダル下部.png") bottom center /
+      100% auto no-repeat;
 
   padding: var(--room-list-top-space) var(--room-list-side-pad)
     var(--room-list-bottom-space);
@@ -12022,8 +12066,8 @@ body {
   grid-row: 1;
   min-height: 0;
 
-  background: url("../png-file/募集中ルーム一覧-背景モーダル.png") center bottom / 100%
-    100% no-repeat;
+  background: url("../png-file/募集中ルーム一覧-背景モーダル.png") center
+    bottom / 100% 100% no-repeat;
 
   /* 継ぎ目隠し。強すぎたら -1px にする */
   margin-bottom: -2px;
@@ -12052,8 +12096,8 @@ body {
 
   border: 0;
   border-radius: 0;
-  background: url("../png-file/募集中ルーム一覧-背景モーダル中央部.png") center / 100%
-    100% no-repeat;
+  background: url("../png-file/募集中ルーム一覧-背景モーダル中央部.png")
+    center / 100% 100% no-repeat;
   box-shadow: none;
 
   /* 左右の金枠・装飾に文字やカードが乗らないようにする */
@@ -12137,8 +12181,8 @@ body {
   padding: clamp(1.25rem, 3dvh, 2.1rem) clamp(2rem, 4vw, 3.2rem)
     clamp(1.15rem, 2.8dvh, 1.8rem);
 
-  background: url("../png-file/募集中ルーム一覧-背景モーダル下部.png") center top / 100%
-    100% no-repeat;
+  background: url("../png-file/募集中ルーム一覧-背景モーダル下部.png") center
+    top / 100% 100% no-repeat;
 
   /* 継ぎ目隠し */
   margin-top: -2px;
@@ -12413,8 +12457,8 @@ body {
 /* ===== Recruiting room list: asset path and seam fixes ===== */
 
 .room-list-panel::before {
-  background: url("../png-file/募集中ルーム一覧-背景モーダル.png") center bottom / 100%
-    100% no-repeat !important;
+  background: url("../png-file/募集中ルーム一覧-背景モーダル.png") center
+    bottom / 100% 100% no-repeat !important;
   width: 100% !important;
   height: 100% !important;
   margin: 0 !important;
@@ -12435,8 +12479,8 @@ body {
     ここに中央部PNGを貼る。
     子要素なので、親の上部背景より前面に出せる。
   */
-  background: url("../png-file/募集中ルーム一覧-背景モーダル中央部.png") center / 100%
-    100% no-repeat;
+  background: url("../png-file/募集中ルーム一覧-背景モーダル中央部.png")
+    center / 100% 100% no-repeat;
 
   /*
     ここが凹凸隠し。
@@ -12457,8 +12501,8 @@ body {
 }
 
 .room-list-panel > .room-choice-actions {
-  background: url("../png-file/募集中ルーム一覧-背景モーダル下部.png") center top / 100%
-    100% no-repeat !important;
+  background: url("../png-file/募集中ルーム一覧-背景モーダル下部.png") center
+    top / 100% 100% no-repeat !important;
   margin-top: 0 !important;
   padding-top: clamp(0.95rem, 2.2dvh, 1.4rem) !important;
   position: relative;
@@ -12500,8 +12544,8 @@ body {
 }
 
 .room-list-panel::before {
-  background: url("../png-file/募集中ルーム一覧-背景モーダル.png") center bottom / 100%
-    100% no-repeat !important;
+  background: url("../png-file/募集中ルーム一覧-背景モーダル.png") center
+    bottom / 100% 100% no-repeat !important;
   width: 100% !important;
   height: 100% !important;
 }
@@ -12511,8 +12555,8 @@ body {
   --room-list-middle-top-overlap: 30px;
   --room-list-middle-bottom-overlap: 48px;
 
-  background: url("../png-file/募集中ルーム一覧-背景モーダル中央部.png") center / 100%
-    100% no-repeat !important;
+  background: url("../png-file/募集中ルーム一覧-背景モーダル中央部.png")
+    center / 100% 100% no-repeat !important;
   height: calc(
     100% + var(--room-list-middle-top-overlap) +
       var(--room-list-middle-bottom-overlap)
@@ -12528,8 +12572,8 @@ body {
 }
 
 .room-list-panel > .room-choice-actions {
-  background: url("../png-file/募集中ルーム一覧-背景モーダル下部.png") center top / 100%
-    100% no-repeat !important;
+  background: url("../png-file/募集中ルーム一覧-背景モーダル下部.png") center
+    top / 100% 100% no-repeat !important;
   margin-top: 0 !important;
   padding-top: clamp(1.25rem, 2.6dvh, 1.9rem) !important;
   padding-bottom: clamp(1.1rem, 2.5dvh, 1.75rem) !important;
@@ -12648,7 +12692,8 @@ body {
   overflow: auto;
   border: 0;
   border-radius: 0;
-  background: url("../png-file/ルーム作成モーダル.png") center / 100% 100% no-repeat;
+  background: url("../png-file/ルーム作成モーダル.png") center / 100% 100%
+    no-repeat;
   padding: clamp(1.3rem, 2.7vw, 2.2rem) clamp(1.35rem, 3.3vw, 2.8rem)
     clamp(1.15rem, 2.5vw, 2rem);
   box-shadow: none;
@@ -12713,7 +12758,8 @@ body {
   isolation: isolate;
   border: 0;
   border-radius: 0;
-  background: url("../png-file/選択ボタン1-modified2.png") center / 100% 100% no-repeat;
+  background: url("../png-file/選択ボタン1-modified2.png") center / 100% 100%
+    no-repeat;
   color: #f6efd8;
   box-shadow: none;
   text-shadow:
@@ -12771,7 +12817,8 @@ body {
 .match-type-grid button:hover:not(.selected):not(:disabled),
 .room-presets button:hover:not(:disabled),
 .cpu-model-options button:hover:not(.selected):not(:disabled) {
-  background: url("../png-file/選択ボタン1-modified2.png") center / 100% 100% no-repeat;
+  background: url("../png-file/選択ボタン1-modified2.png") center / 100% 100%
+    no-repeat;
   filter: brightness(1.08);
   transform: translateY(-1px);
 }
@@ -12780,7 +12827,8 @@ body {
 .composition-grid button.selected,
 .match-type-grid button.selected,
 .cpu-model-options button.selected {
-  background: url("../png-file/選択ボタン1-modified2.png") center / 100% 100% no-repeat;
+  background: url("../png-file/選択ボタン1-modified2.png") center / 100% 100%
+    no-repeat;
   color: #fff4c8;
   filter: brightness(1.16) saturate(1.05);
   transform: translateY(-1px);
@@ -13298,8 +13346,8 @@ body {
   min-height: 138px;
   border: 0;
   border-radius: 0;
-  background: transparent url("../png-file/スクロールバー2.png") center / 100% 100%
-    no-repeat;
+  background: transparent url("../png-file/スクロールバー2.png") center / 100%
+    100% no-repeat;
 }
 
 /* ===== Room create screen: contract check options ===== */
@@ -13432,8 +13480,8 @@ body {
   height: var(--contract-check-size);
   border: 0;
   border-radius: 0;
-  background: transparent url("../png-file/チェックボックス.png") center / contain
-    no-repeat;
+  background: transparent url("../png-file/チェックボックス.png") center /
+    contain no-repeat;
   box-shadow: none;
   overflow: visible;
 }
@@ -16009,4 +16057,1577 @@ body {
     font-size: clamp(0.95rem, 1.75dvw, 1.08rem) !important;
     font-weight: 900 !important;
   }
+}
+
+/* =========================================================
+   Room management modal final sizing controls
+   プレイ画面内設定モーダル：サイズ・左タブ・右ボタン調整
+   対象：スマホ横向きのみ
+========================================================= */
+
+@media (orientation: landscape) and (max-height: 700px) {
+  .play-screen {
+    /*
+      1. モーダル全体サイズ
+      まずはここだけ触れば、モーダル全体の大きさが変わる。
+    */
+    --room-modal-mobile-width: 880px;
+    --room-modal-mobile-height: 620px;
+
+    /*
+      2. 左タブ共通サイズ
+      全タブを同じ横幅・縦幅にする。
+    */
+    --room-modal-tab-width: 230px;
+    --room-modal-tab-height: 58px;
+    --room-modal-tab-font-size: 25px;
+    --room-modal-tab-gap: 12px;
+
+    /*
+      3. 右側ボタン共通サイズ
+      縦幅は全ボタン共通。
+      横幅は基本値 + 個別値で分ける。
+    */
+    --room-modal-action-height: 60px;
+    --room-modal-action-width-default: 220px;
+
+    --room-modal-action-width-cancel: 178px;
+    --room-modal-action-width-pause: 182px;
+    --room-modal-action-width-cpu-substitute: 250px;
+
+    --room-modal-action-font-size: 30px;
+  }
+
+  /* -----------------------------
+     モーダル全体サイズ
+  ----------------------------- */
+  .play-screen .room-management-dialog {
+    width: var(--room-modal-mobile-width) !important;
+    height: var(--room-modal-mobile-height) !important;
+
+    max-width: 96dvw !important;
+    max-height: 94dvh !important;
+
+    aspect-ratio: auto !important;
+    transform: none !important;
+  }
+
+  /*
+    モーダル内部の左右分割。
+    左タブを少し広めに確保し、右側を潰しすぎない。
+  */
+  .play-screen .room-management-panel {
+    grid-template-columns: 24% minmax(0, 1fr) !important;
+    gap: 4% !important;
+  }
+
+  /* -----------------------------
+     左タブ群：全タブ同サイズ
+  ----------------------------- */
+  .play-screen .room-management-tabs {
+    gap: var(--room-modal-tab-gap) !important;
+    align-content: start !important;
+  }
+
+  .play-screen .room-management-tabs .room-management-tab,
+  .play-screen .room-management-tabs button {
+    width: var(--room-modal-tab-width) !important;
+    min-width: var(--room-modal-tab-width) !important;
+    max-width: var(--room-modal-tab-width) !important;
+
+    height: var(--room-modal-tab-height) !important;
+    min-height: var(--room-modal-tab-height) !important;
+    max-height: var(--room-modal-tab-height) !important;
+
+    aspect-ratio: auto !important;
+    box-sizing: border-box !important;
+
+    font-size: var(--room-modal-tab-font-size) !important;
+    line-height: 1 !important;
+    font-weight: 900 !important;
+    white-space: nowrap !important;
+
+    padding: 0 12% 0 18% !important;
+
+    background-size: 100% 100% !important;
+    background-position: center !important;
+    background-repeat: no-repeat !important;
+  }
+
+  /* -----------------------------
+     右側ボタン：共通縦幅
+  ----------------------------- */
+  .play-screen .room-management-dialog .exit-confirm-actions button,
+  .play-screen .room-management-dialog .temporary-leave-options .primary-button,
+  .play-screen .room-management-dialog .host-transfer-list button,
+  .play-screen .room-management-dialog .match-info-change-button {
+    height: var(--room-modal-action-height) !important;
+    min-height: var(--room-modal-action-height) !important;
+    max-height: var(--room-modal-action-height) !important;
+
+    width: var(--room-modal-action-width-default) !important;
+    min-width: var(--room-modal-action-width-default) !important;
+    max-width: var(--room-modal-action-width-default) !important;
+
+    aspect-ratio: auto !important;
+    box-sizing: border-box !important;
+
+    font-size: var(--room-modal-action-font-size) !important;
+    line-height: 1 !important;
+    font-weight: 900 !important;
+    white-space: nowrap !important;
+
+    padding: 0 0.85rem !important;
+
+    background-size: 100% 100% !important;
+    background-position: center !important;
+    background-repeat: no-repeat !important;
+  }
+
+  /* -----------------------------
+     右側ボタン：横幅だけ個別調整
+  ----------------------------- */
+
+  /* キャンセル */
+  .play-screen .room-management-dialog .room-management-action-button--cancel {
+    width: var(--room-modal-action-width-cancel) !important;
+    min-width: var(--room-modal-action-width-cancel) !important;
+    max-width: var(--room-modal-action-width-cancel) !important;
+  }
+
+  /* 中断する */
+  .play-screen .room-management-dialog .room-management-action-button--pause {
+    width: var(--room-modal-action-width-pause) !important;
+    min-width: var(--room-modal-action-width-pause) !important;
+    max-width: var(--room-modal-action-width-pause) !important;
+  }
+
+  /* CPUに代行させる */
+  .play-screen
+    .room-management-dialog
+    .room-management-action-button--cpu-substitute {
+    width: var(--room-modal-action-width-cpu-substitute) !important;
+    min-width: var(--room-modal-action-width-cpu-substitute) !important;
+    max-width: var(--room-modal-action-width-cpu-substitute) !important;
+  }
+}
+
+/* =========================================================
+   Room management modal action button individual widths
+   右側ボタン：共通縦幅 + 一部ボタンだけ横幅を個別調整
+========================================================= */
+
+@media (orientation: landscape) and (max-height: 700px) {
+  .play-screen {
+    /*
+      右側ボタンの共通設定
+    */
+    --room-modal-action-height: 70px;
+    --room-modal-action-width-default: 150px;
+    --room-modal-action-font-size: 30px;
+
+    /*
+      個別横幅
+    */
+    --room-modal-action-width-cancel: 190px;
+    --room-modal-action-width-pause: 190px;
+    --room-modal-action-width-cpu-substitute: 360px;
+  }
+
+  /*
+    右側ボタン共通。
+    幅は --room-action-width を使う。
+  */
+  .play-screen .room-management-dialog .exit-confirm-actions button,
+  .play-screen .room-management-dialog .temporary-leave-options .primary-button,
+  .play-screen .room-management-dialog .host-transfer-list button,
+  .play-screen .room-management-dialog .match-info-change-button {
+    --room-action-width: var(--room-modal-action-width-default);
+
+    width: var(--room-action-width) !important;
+    min-width: var(--room-action-width) !important;
+    max-width: var(--room-action-width) !important;
+
+    inline-size: var(--room-action-width) !important;
+    min-inline-size: var(--room-action-width) !important;
+    max-inline-size: var(--room-action-width) !important;
+
+    height: var(--room-modal-action-height) !important;
+    min-height: var(--room-modal-action-height) !important;
+    max-height: var(--room-modal-action-height) !important;
+
+    block-size: var(--room-modal-action-height) !important;
+    min-block-size: var(--room-modal-action-height) !important;
+    max-block-size: var(--room-modal-action-height) !important;
+
+    flex: 0 0 var(--room-action-width) !important;
+    aspect-ratio: auto !important;
+    box-sizing: border-box !important;
+
+    font-size: var(--room-modal-action-font-size) !important;
+    line-height: 1 !important;
+    font-weight: 900 !important;
+    white-space: nowrap !important;
+
+    padding: 0 0.85rem !important;
+
+    background-size: 100% 100% !important;
+    background-position: center !important;
+    background-repeat: no-repeat !important;
+  }
+
+  /*
+    キャンセルだけ横幅変更
+  */
+  .play-screen .room-management-dialog button[data-room-action="cancel"] {
+    --room-action-width: var(--room-modal-action-width-cancel) !important;
+  }
+
+  /*
+    中断するだけ横幅変更
+  */
+  .play-screen .room-management-dialog button[data-room-action="pause"] {
+    --room-action-width: var(--room-modal-action-width-pause) !important;
+  }
+
+  /*
+    CPUに代行させるだけ横幅変更
+  */
+  .play-screen
+    .room-management-dialog
+    button[data-room-action="cpu-substitute"] {
+    --room-action-width: var(
+      --room-modal-action-width-cpu-substitute
+    ) !important;
+  }
+}
+
+/* =========================================================
+   Room management modal: match info tab sizing controls
+   試合情報タブ：左項目名 / 右側文字 / 枠サイズ調整
+   対象：スマホ横向きのみ
+========================================================= */
+
+@media (orientation: landscape) and (max-height: 700px) {
+  .play-screen {
+    /*
+      試合情報タブの行枠サイズ
+      横幅は全行共通で固定。
+      縦幅は通常行とプレイヤー行で分ける。
+    */
+    --match-info-row-width: 550px;
+    --match-info-row-height: 60px;
+    --match-info-player-row-height: 150px;
+
+    /*
+      左側の項目名
+    */
+    --match-info-label-width: 150px;
+    --match-info-label-font-size: 30px;
+
+    /*
+      右側の値
+    */
+    --match-info-value-font-size: 17px;
+    --match-info-value-font-size-small: 14px;
+
+    /*
+      行間・余白
+    */
+    --match-info-row-gap: 8px;
+    --match-info-row-padding-x: 16px;
+  }
+
+  /* -----------------------------
+     試合情報タブ全体
+  ----------------------------- */
+  .play-screen .match-info-list {
+    width: var(--match-info-row-width) !important;
+    max-width: var(--match-info-row-width) !important;
+    margin-inline: auto !important;
+
+    display: flex !important;
+    flex-direction: column !important;
+    gap: var(--match-info-row-gap) !important;
+    align-items: center !important;
+  }
+
+  /* -----------------------------
+     各行の共通枠
+  ----------------------------- */
+  .play-screen .match-info-row {
+    width: var(--match-info-row-width) !important;
+    min-width: var(--match-info-row-width) !important;
+    max-width: var(--match-info-row-width) !important;
+
+    height: var(--match-info-row-height) !important;
+    min-height: var(--match-info-row-height) !important;
+    max-height: var(--match-info-row-height) !important;
+
+    box-sizing: border-box !important;
+
+    display: grid !important;
+    grid-template-columns:
+      var(--match-info-label-width)
+      minmax(0, 1fr) !important;
+    align-items: center !important;
+    column-gap: 12px !important;
+
+    padding: 0 var(--match-info-row-padding-x) !important;
+
+    overflow: hidden !important;
+  }
+
+  /* -----------------------------
+     左側の項目名
+     例：ルーム名 / プレイヤー / 人数 / 試合形式
+  ----------------------------- */
+  .play-screen .match-info-row > span {
+    font-size: var(--match-info-label-font-size) !important;
+    line-height: 1 !important;
+    font-weight: 900 !important;
+    white-space: nowrap !important;
+    text-align: left !important;
+
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  /* -----------------------------
+     右側の値
+     例：名無しのルーム / 4人 / 局数制 / 最大10局
+  ----------------------------- */
+  .play-screen .match-info-row > strong {
+    font-size: var(--match-info-value-font-size) !important;
+    line-height: 1.08 !important;
+    font-weight: 900 !important;
+    white-space: nowrap !important;
+    text-align: center !important;
+
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  /* -----------------------------
+     セレクトボックス
+     例：standard-CPU
+  ----------------------------- */
+  .play-screen .match-info-row select {
+    width: 100% !important;
+    max-width: 100% !important;
+
+    height: calc(var(--match-info-row-height) - 8px) !important;
+    min-height: calc(var(--match-info-row-height) - 8px) !important;
+
+    font-size: var(--match-info-value-font-size-small) !important;
+    font-weight: 900 !important;
+    line-height: 1 !important;
+
+    box-sizing: border-box !important;
+  }
+
+  /* -----------------------------
+     プレイヤー一覧行だけは縦幅を別扱い
+  ----------------------------- */
+  .play-screen .match-info-row--players {
+    height: var(--match-info-player-row-height) !important;
+    min-height: var(--match-info-player-row-height) !important;
+    max-height: var(--match-info-player-row-height) !important;
+
+    align-items: center !important;
+  }
+
+  .play-screen .match-info-row--players .match-info-player-list {
+    min-width: 0 !important;
+    max-width: 100% !important;
+
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 2px !important;
+
+    overflow: hidden !important;
+  }
+
+  .play-screen .match-info-row--players .match-info-player {
+    min-width: 0 !important;
+    max-width: 100% !important;
+
+    display: flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+
+    overflow: hidden !important;
+  }
+
+  .play-screen .match-info-row--players .match-info-player strong {
+    font-size: var(--match-info-value-font-size) !important;
+    line-height: 1.05 !important;
+    font-weight: 900 !important;
+    white-space: nowrap !important;
+
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  .play-screen .match-info-row--players .match-info-player em {
+    font-size: 10px !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+    flex: 0 0 auto !important;
+  }
+
+  /* -----------------------------
+     「試合形式の詳細」行の変更ボタン
+     横幅は固定、行の高さに合わせる
+  ----------------------------- */
+  .play-screen .match-info-change-button {
+    height: calc(var(--match-info-row-height) - 10px) !important;
+    min-height: calc(var(--match-info-row-height) - 10px) !important;
+    max-height: calc(var(--match-info-row-height) - 10px) !important;
+
+    width: 92px !important;
+    min-width: 92px !important;
+    max-width: 92px !important;
+
+    font-size: 13px !important;
+    line-height: 1 !important;
+    font-weight: 900 !important;
+    white-space: nowrap !important;
+
+    padding: 0 !important;
+    box-sizing: border-box !important;
+  }
+}
+
+/* =========================================================
+   FIX: room management match info layout
+   試合情報タブ崩れ修正
+   原因：2列gridに対して button/select の3要素目が押し出されたため
+========================================================= */
+
+@media (orientation: landscape) and (max-height: 700px) {
+  .play-screen {
+    /*
+      試合情報の共通調整値
+    */
+    --match-info-row-width: 560px;
+    --match-info-row-height: 60px;
+    --match-info-player-row-height: 150px;
+
+    --match-info-label-width: 142px;
+    --match-info-action-width: 104px;
+
+    --match-info-label-font-size: 22px;
+    --match-info-value-font-size: 25px;
+    --match-info-player-font-size: 17px;
+    --match-info-action-font-size: 15px;
+
+    --match-info-row-gap: 8px;
+    --match-info-row-padding-x: 14px;
+    --match-info-column-gap: 10px;
+  }
+
+  /* 試合情報リスト全体 */
+  .play-screen .room-management-dialog .match-info-list {
+    width: var(--match-info-row-width) !important;
+    max-width: var(--match-info-row-width) !important;
+    margin-inline: auto !important;
+
+    display: flex !important;
+    flex-direction: column !important;
+    gap: var(--match-info-row-gap) !important;
+    align-items: center !important;
+  }
+
+  /* 各行：3列にする */
+  .play-screen .room-management-dialog .match-info-row {
+    width: var(--match-info-row-width) !important;
+    min-width: var(--match-info-row-width) !important;
+    max-width: var(--match-info-row-width) !important;
+
+    height: var(--match-info-row-height) !important;
+    min-height: var(--match-info-row-height) !important;
+    max-height: var(--match-info-row-height) !important;
+
+    box-sizing: border-box !important;
+
+    display: grid !important;
+    grid-template-columns:
+      var(--match-info-label-width)
+      minmax(0, 1fr)
+      var(--match-info-action-width) !important;
+
+    column-gap: var(--match-info-column-gap) !important;
+    align-items: center !important;
+
+    padding: 0 var(--match-info-row-padding-x) !important;
+
+    overflow: hidden !important;
+  }
+
+  /* 左側項目名 */
+  .play-screen .room-management-dialog .match-info-row > span {
+    grid-column: 1 !important;
+    justify-self: start !important;
+    align-self: center !important;
+
+    min-width: 0 !important;
+    max-width: 100% !important;
+
+    font-size: var(--match-info-label-font-size) !important;
+    line-height: 1 !important;
+    font-weight: 900 !important;
+    white-space: nowrap !important;
+
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+
+    transform: none !important;
+  }
+
+  /* 右側の通常値 */
+  .play-screen .room-management-dialog .match-info-row > strong {
+    grid-column: 2 !important;
+    justify-self: center !important;
+    align-self: center !important;
+
+    min-width: 0 !important;
+    max-width: 100% !important;
+
+    font-size: var(--match-info-value-font-size) !important;
+    line-height: 1.08 !important;
+    font-weight: 900 !important;
+    white-space: nowrap !important;
+    text-align: center !important;
+
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+
+    transform: none !important;
+  }
+
+  /* 右側の変更ボタン */
+  .play-screen
+    .room-management-dialog
+    .match-info-row
+    > .match-info-change-button {
+    grid-column: 3 !important;
+    justify-self: end !important;
+    align-self: center !important;
+
+    width: var(--match-info-action-width) !important;
+    min-width: var(--match-info-action-width) !important;
+    max-width: var(--match-info-action-width) !important;
+
+    height: calc(var(--match-info-row-height) - 10px) !important;
+    min-height: calc(var(--match-info-row-height) - 10px) !important;
+    max-height: calc(var(--match-info-row-height) - 10px) !important;
+
+    aspect-ratio: auto !important;
+    box-sizing: border-box !important;
+
+    font-size: var(--match-info-action-font-size) !important;
+    line-height: 1 !important;
+    font-weight: 900 !important;
+    white-space: nowrap !important;
+
+    padding: 0 !important;
+
+    background-size: 100% 100% !important;
+    background-position: center !important;
+    background-repeat: no-repeat !important;
+
+    transform: none !important;
+  }
+
+  /* 右側のselect */
+  .play-screen .room-management-dialog .match-info-row > select {
+    grid-column: 3 !important;
+    justify-self: end !important;
+    align-self: center !important;
+
+    width: var(--match-info-action-width) !important;
+    min-width: var(--match-info-action-width) !important;
+    max-width: var(--match-info-action-width) !important;
+
+    height: calc(var(--match-info-row-height) - 8px) !important;
+    min-height: calc(var(--match-info-row-height) - 8px) !important;
+    max-height: calc(var(--match-info-row-height) - 8px) !important;
+
+    box-sizing: border-box !important;
+
+    font-size: var(--match-info-action-font-size) !important;
+    line-height: 1 !important;
+    font-weight: 900 !important;
+
+    transform: none !important;
+  }
+
+  /* プレイヤー一覧行だけ縦幅を広げる */
+  .play-screen .room-management-dialog .match-info-row--players {
+    height: var(--match-info-player-row-height) !important;
+    min-height: var(--match-info-player-row-height) !important;
+    max-height: var(--match-info-player-row-height) !important;
+
+    align-items: center !important;
+  }
+
+  /*
+    プレイヤー一覧の右側コンテナ。
+    span/strong/button/select 以外の直下要素を右側扱いにする保険。
+  */
+  .play-screen
+    .room-management-dialog
+    .match-info-row--players
+    > :not(span):not(strong):not(button):not(select) {
+    grid-column: 2 / 4 !important;
+    justify-self: stretch !important;
+    align-self: center !important;
+
+    min-width: 0 !important;
+    max-width: 100% !important;
+
+    overflow: hidden !important;
+  }
+
+  .play-screen .room-management-dialog .match-info-player-list {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 2px !important;
+
+    min-width: 0 !important;
+    max-width: 100% !important;
+
+    overflow: hidden !important;
+  }
+
+  .play-screen .room-management-dialog .match-info-player {
+    display: flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+
+    min-width: 0 !important;
+    max-width: 100% !important;
+
+    overflow: hidden !important;
+  }
+
+  .play-screen .room-management-dialog .match-info-player strong {
+    font-size: var(--match-info-player-font-size) !important;
+    line-height: 1.05 !important;
+    font-weight: 900 !important;
+    white-space: nowrap !important;
+
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  .play-screen .room-management-dialog .match-info-player em {
+    flex: 0 0 auto !important;
+
+    font-size: 10px !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+  }
+}
+
+/* =========================================================
+   Room management modal: match info CSS panel
+   PC / mobile common design
+   試合情報タブ右側を画像枠ではなくCSS管理にする
+========================================================= */
+
+.play-screen {
+  /*
+    試合情報パネル全体
+  */
+  --match-info-panel-width: 560px;
+  --match-info-panel-padding-x: 18px;
+  --match-info-panel-padding-y: 12px;
+  --match-info-panel-radius: 10px;
+
+  /*
+    各行
+  */
+  --match-info-row-min-height: 44px;
+  --match-info-player-row-min-height: 96px;
+  --match-info-row-padding-y: 7px;
+  --match-info-row-padding-x: 6px;
+
+  /*
+    列幅
+  */
+  --match-info-label-width: 145px;
+  --match-info-column-gap: 14px;
+
+  /*
+    文字サイズ
+  */
+  --match-info-label-font-size: 17px;
+  --match-info-value-font-size: 18px;
+  --match-info-player-font-size: 15px;
+  --match-info-host-font-size: 9px;
+  --match-info-control-font-size: 13px;
+
+  /*
+    右下段ボタン/select
+  */
+  --match-info-control-width: 112px;
+  --match-info-control-height: 28px;
+  --match-info-control-gap: 8px;
+}
+
+/* -----------------------------
+   試合情報リスト全体
+   右側全体を1つのCSSパネルにする
+----------------------------- */
+.play-screen .room-management-dialog .match-info-list {
+  width: min(var(--match-info-panel-width), 100%) !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+
+  margin-inline: auto !important;
+
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0 !important;
+
+  padding: var(--match-info-panel-padding-y) var(--match-info-panel-padding-x) !important;
+
+  box-sizing: border-box !important;
+
+  background: linear-gradient(
+    180deg,
+    rgba(18, 49, 47, 0.58),
+    rgba(7, 23, 23, 0.72)
+  ) !important;
+
+  border: 1px solid rgba(188, 154, 92, 0.38) !important;
+  border-radius: var(--match-info-panel-radius) !important;
+
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 238, 180, 0.08),
+    inset 0 0 30px rgba(0, 0, 0, 0.34),
+    0 3px 8px rgba(0, 0, 0, 0.22) !important;
+
+  overflow: hidden !important;
+}
+
+/* -----------------------------
+   各行
+   画像枠を廃止して、薄い点線で区切る
+----------------------------- */
+.play-screen .room-management-dialog .match-info-row {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+
+  min-height: var(--match-info-row-min-height) !important;
+  height: auto !important;
+  max-height: none !important;
+
+  box-sizing: border-box !important;
+
+  display: grid !important;
+  grid-template-columns:
+    var(--match-info-label-width)
+    minmax(0, 1fr) !important;
+  column-gap: var(--match-info-column-gap) !important;
+  align-items: center !important;
+
+  padding: var(--match-info-row-padding-y) var(--match-info-row-padding-x) !important;
+
+  background: none !important;
+  background-image: none !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+
+  border-bottom: 1px dashed rgba(230, 207, 150, 0.26) !important;
+
+  overflow: visible !important;
+}
+
+.play-screen .room-management-dialog .match-info-row:last-child {
+  border-bottom: none !important;
+}
+
+/* -----------------------------
+   左側項目名
+----------------------------- */
+.play-screen .room-management-dialog .match-info-label,
+.play-screen .room-management-dialog .match-info-row > span {
+  grid-column: 1 !important;
+  justify-self: start !important;
+  align-self: center !important;
+
+  min-width: 0 !important;
+  max-width: 100% !important;
+
+  color: rgba(255, 243, 205, 0.84) !important;
+  font-family:
+    "Fude Goshirae", "Shippori Mincho", "Yu Mincho", serif !important;
+  font-size: var(--match-info-label-font-size) !important;
+  font-weight: 900 !important;
+  line-height: 1.15 !important;
+  letter-spacing: 0.03em !important;
+  white-space: nowrap !important;
+
+  text-align: left !important;
+  text-shadow:
+    0 2px 0 rgba(0, 0, 0, 0.62),
+    0 0 6px rgba(255, 232, 170, 0.08) !important;
+
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+
+  transform: none !important;
+}
+
+/* -----------------------------
+   右側値エリア
+----------------------------- */
+.play-screen .room-management-dialog .match-info-value {
+  grid-column: 2 !important;
+
+  min-width: 0 !important;
+  max-width: 100% !important;
+
+  display: grid !important;
+  align-items: center !important;
+  justify-items: center !important;
+  gap: 5px !important;
+
+  overflow: visible !important;
+}
+
+.play-screen .room-management-dialog .match-info-value > strong,
+.play-screen .room-management-dialog .match-info-row > strong {
+  min-width: 0 !important;
+  max-width: 100% !important;
+
+  color: rgba(255, 253, 246, 0.96) !important;
+  font-family:
+    "Fude Goshirae", "Shippori Mincho", "Yu Mincho", serif !important;
+  font-size: var(--match-info-value-font-size) !important;
+  font-weight: 900 !important;
+  line-height: 1.08 !important;
+  letter-spacing: 0.02em !important;
+  white-space: nowrap !important;
+
+  text-align: center !important;
+  text-shadow:
+    0 2px 0 rgba(0, 0, 0, 0.68),
+    0 0 8px rgba(255, 250, 220, 0.1) !important;
+
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+
+  transform: none !important;
+}
+
+/* -----------------------------
+   ボタン/select付き行
+   値は上、操作部は下に置く
+----------------------------- */
+.play-screen .room-management-dialog .match-info-value--stacked {
+  justify-items: center !important;
+  align-content: center !important;
+  gap: 6px !important;
+}
+
+.play-screen .room-management-dialog .match-info-subcontrol {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  gap: var(--match-info-control-gap) !important;
+  flex-wrap: wrap !important;
+
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+/* -----------------------------
+   変更ボタン
+   画像ボタンをやめて背景に馴染ませる
+----------------------------- */
+.play-screen .room-management-dialog .match-info-change-button {
+  width: var(--match-info-control-width) !important;
+  min-width: var(--match-info-control-width) !important;
+  max-width: var(--match-info-control-width) !important;
+
+  height: var(--match-info-control-height) !important;
+  min-height: var(--match-info-control-height) !important;
+  max-height: var(--match-info-control-height) !important;
+
+  box-sizing: border-box !important;
+  aspect-ratio: auto !important;
+
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  padding: 0 !important;
+
+  color: rgba(255, 248, 226, 0.92) !important;
+  font-family:
+    "Fude Goshirae", "Shippori Mincho", "Yu Mincho", serif !important;
+  font-size: var(--match-info-control-font-size) !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+
+  background: linear-gradient(
+    180deg,
+    rgba(38, 91, 72, 0.54),
+    rgba(13, 45, 38, 0.64)
+  ) !important;
+  background-image: linear-gradient(
+    180deg,
+    rgba(38, 91, 72, 0.54),
+    rgba(13, 45, 38, 0.64)
+  ) !important;
+
+  border: 1px solid rgba(198, 161, 86, 0.44) !important;
+  border-radius: 5px !important;
+
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 242, 185, 0.08),
+    inset 0 0 10px rgba(0, 0, 0, 0.24),
+    0 1px 3px rgba(0, 0, 0, 0.25) !important;
+
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.68) !important;
+
+  transform: none !important;
+  filter: none !important;
+}
+
+.play-screen .room-management-dialog .match-info-change-button:hover {
+  filter: brightness(1.08) !important;
+}
+
+/* -----------------------------
+   select
+   これも背景に馴染ませる
+----------------------------- */
+.play-screen .room-management-dialog .match-info-row select {
+  width: calc(var(--match-info-control-width) + 22px) !important;
+  min-width: calc(var(--match-info-control-width) + 22px) !important;
+  max-width: calc(var(--match-info-control-width) + 22px) !important;
+
+  height: var(--match-info-control-height) !important;
+  min-height: var(--match-info-control-height) !important;
+  max-height: var(--match-info-control-height) !important;
+
+  box-sizing: border-box !important;
+
+  color: rgba(255, 253, 246, 0.94) !important;
+  font-family:
+    "Fude Goshirae", "Shippori Mincho", "Yu Mincho", serif !important;
+  font-size: var(--match-info-control-font-size) !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+
+  padding: 0 6px !important;
+
+  background: linear-gradient(
+    180deg,
+    rgba(22, 55, 54, 0.7),
+    rgba(8, 28, 28, 0.82)
+  ) !important;
+
+  border: 1px solid rgba(198, 161, 86, 0.44) !important;
+  border-radius: 5px !important;
+
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 242, 185, 0.06),
+    inset 0 0 10px rgba(0, 0, 0, 0.26) !important;
+
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.62) !important;
+
+  transform: none !important;
+}
+
+/* -----------------------------
+   プレイヤー一覧行
+----------------------------- */
+.play-screen .room-management-dialog .match-info-row--players {
+  min-height: var(--match-info-player-row-min-height) !important;
+  align-items: center !important;
+}
+
+.play-screen .room-management-dialog .match-info-players {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+
+  display: grid !important;
+  gap: 3px !important;
+
+  align-self: center !important;
+  justify-items: stretch !important;
+
+  overflow: hidden !important;
+}
+
+.play-screen .room-management-dialog .match-info-player {
+  display: grid !important;
+  grid-template-columns: 42px minmax(0, 1fr) !important;
+  align-items: center !important;
+  column-gap: 6px !important;
+
+  min-width: 0 !important;
+  max-width: 100% !important;
+
+  overflow: hidden !important;
+}
+
+.play-screen .room-management-dialog .match-info-host-badge {
+  justify-self: center !important;
+  align-self: center !important;
+
+  min-width: 32px !important;
+  max-width: 32px !important;
+
+  box-sizing: border-box !important;
+
+  color: rgba(255, 232, 160, 0.94) !important;
+  font-family:
+    "Fude Goshirae", "Shippori Mincho", "Yu Mincho", serif !important;
+  font-size: var(--match-info-host-font-size) !important;
+  font-weight: 900 !important;
+  font-style: normal !important;
+  line-height: 1 !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+
+  border: 1px solid rgba(214, 165, 64, 0.52) !important;
+  border-radius: 999px !important;
+  padding: 2px 4px !important;
+
+  background: rgba(19, 35, 27, 0.55) !important;
+}
+
+.play-screen .room-management-dialog .match-info-host-badge.is-empty {
+  visibility: hidden !important;
+}
+
+.play-screen .room-management-dialog .match-info-player strong {
+  min-width: 0 !important;
+  max-width: 100% !important;
+
+  color: rgba(255, 253, 246, 0.96) !important;
+  font-family:
+    "Fude Goshirae", "Shippori Mincho", "Yu Mincho", serif !important;
+  font-size: var(--match-info-player-font-size) !important;
+  font-weight: 900 !important;
+  line-height: 1.12 !important;
+  white-space: nowrap !important;
+
+  text-align: left !important;
+  text-shadow:
+    0 2px 0 rgba(0, 0, 0, 0.68),
+    0 0 6px rgba(255, 250, 220, 0.08) !important;
+
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+/* 旧 em HOST 用が残っていても邪魔しない */
+.play-screen .room-management-dialog .match-info-player em {
+  display: none !important;
+}
+
+/* =========================================================
+   Room management modal: transparent match info layout
+   PC / mobile common
+   試合情報タブ：背景パネルを見せず、CSSはレイアウト検知用に使う
+========================================================= */
+
+.play-screen {
+  /*
+    左タブ群の共通位置調整
+    PC版・スマホ版どちらにも効く。
+  */
+  --room-tabs-offset-x: -12px;
+  --room-tabs-offset-y: 0px;
+
+  /*
+    試合情報エリアの横幅調整。
+    既存モーダル右側エリアより少し小さく見える場合は、
+    --match-info-panel-side-bleed を増やす。
+  */
+  --match-info-panel-side-bleed: 14px;
+
+  /*
+    試合情報エリア全体の微調整。
+    PC/スマホ共通で動かしたい場合だけ使う。
+  */
+  --match-info-panel-offset-x: 0px;
+  --match-info-panel-offset-y: 0px;
+
+  /*
+    行の高さ。
+    文字サイズを上げたらここも上げる。
+  */
+  --match-info-row-min-height: 44px;
+  --match-info-player-row-min-height: 96px;
+  --match-info-stacked-row-min-height: 62px;
+
+  /*
+    行内余白。
+  */
+  --match-info-row-padding-y: 7px;
+  --match-info-row-padding-x: 4px;
+
+  /*
+    左右列。
+  */
+  --match-info-label-width: 145px;
+  --match-info-column-gap: 14px;
+
+  /*
+    文字サイズ。
+  */
+  --match-info-label-font-size: 30px;
+  --match-info-value-font-size: 25px;
+  --match-info-player-font-size: 20px;
+  --match-info-host-font-size: 15px;
+  --match-info-control-font-size: 20px;
+
+  /*
+    左項目名 / 右値の微調整。
+  */
+  --match-info-label-offset-x: 0px;
+  --match-info-label-offset-y: 0px;
+  --match-info-value-offset-x: 0px;
+  --match-info-value-offset-y: 0px;
+
+  /*
+    点線。
+    dashを長く、gapも長くして、点線の数を減らす。
+  */
+  --match-info-divider-dash: 14px;
+  --match-info-divider-gap: 2px;
+  --match-info-divider-opacity: 0.1;
+  --match-info-divider-inset-left: 0px;
+  --match-info-divider-inset-right: 0px;
+
+  /*
+    変更ボタン / select。
+  */
+  --match-info-control-width: 112px;
+  --match-info-control-height: 28px;
+  --match-info-control-gap: 8px;
+}
+
+/* -----------------------------
+   左タブ群：PC/スマホ共通位置調整
+----------------------------- */
+.play-screen .room-management-dialog .room-management-tabs {
+  translate: var(--room-tabs-offset-x) var(--room-tabs-offset-y) !important;
+}
+
+/* -----------------------------
+   試合情報リスト全体
+   見える背景パネルは消す。
+   ただし幅・改行・配置用の透明レイアウト枠として残す。
+----------------------------- */
+.play-screen .room-management-dialog .match-info-list {
+  width: calc(100% + var(--match-info-panel-side-bleed) * 2) !important;
+  min-width: 0 !important;
+  max-width: none !important;
+
+  margin-left: calc(var(--match-info-panel-side-bleed) * -1) !important;
+  margin-right: calc(var(--match-info-panel-side-bleed) * -1) !important;
+
+  translate: var(--match-info-panel-offset-x) var(--match-info-panel-offset-y) !important;
+
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0 !important;
+
+  padding: 0 !important;
+  box-sizing: border-box !important;
+
+  /*
+    重要：
+    ここで緑のパネル感を完全に消す。
+    レイアウト枠としては存在するが、見た目は透明。
+  */
+  background: transparent !important;
+  background-image: none !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+
+  overflow: visible !important;
+}
+
+/* -----------------------------
+   各行
+   行背景も枠画像も消す。
+   点線だけ疑似要素で表示する。
+----------------------------- */
+.play-screen .room-management-dialog .match-info-row {
+  position: relative !important;
+
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+
+  min-height: var(--match-info-row-min-height) !important;
+  height: auto !important;
+  max-height: none !important;
+
+  box-sizing: border-box !important;
+
+  display: grid !important;
+  grid-template-columns:
+    var(--match-info-label-width)
+    minmax(0, 1fr) !important;
+  column-gap: var(--match-info-column-gap) !important;
+  align-items: center !important;
+
+  padding: var(--match-info-row-padding-y) var(--match-info-row-padding-x) !important;
+
+  /*
+    旧画像枠・旧パネル感を完全に消す。
+  */
+  background: transparent !important;
+  background-image: none !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+
+  /*
+    native dashed borderは間隔を調整しにくいので使わない。
+  */
+  border-bottom: none !important;
+
+  overflow: visible !important;
+}
+
+/* 点線本体 */
+.play-screen .room-management-dialog .match-info-row:not(:last-child)::after {
+  content: "" !important;
+  position: absolute !important;
+
+  left: var(--match-info-divider-inset-left) !important;
+  right: var(--match-info-divider-inset-right) !important;
+  bottom: 0 !important;
+
+  height: 1px !important;
+  pointer-events: none !important;
+
+  background-image: repeating-linear-gradient(
+    to right,
+    rgba(230, 207, 150, var(--match-info-divider-opacity)) 0,
+    rgba(230, 207, 150, var(--match-info-divider-opacity))
+      var(--match-info-divider-dash),
+    transparent var(--match-info-divider-dash),
+    transparent
+      calc(var(--match-info-divider-dash) + var(--match-info-divider-gap))
+  ) !important;
+
+  background-repeat: repeat-x !important;
+  background-size: calc(
+      var(--match-info-divider-dash) + var(--match-info-divider-gap)
+    )
+    1px !important;
+}
+
+/* -----------------------------
+   ボタン/select付き行は少し高くする
+----------------------------- */
+.play-screen .room-management-dialog .match-info-row--match-detail,
+.play-screen .room-management-dialog .match-info-row--cpu-model,
+.play-screen .room-management-dialog .match-info-row--with-action,
+.play-screen .room-management-dialog .match-info-row--with-select {
+  min-height: var(--match-info-stacked-row-min-height) !important;
+}
+
+/* -----------------------------
+   左側項目名
+----------------------------- */
+.play-screen .room-management-dialog .match-info-label,
+.play-screen .room-management-dialog .match-info-row > span {
+  grid-column: 1 !important;
+  justify-self: start !important;
+  align-self: center !important;
+
+  translate: var(--match-info-label-offset-x) var(--match-info-label-offset-y) !important;
+
+  min-width: 0 !important;
+  max-width: 100% !important;
+
+  color: rgba(255, 243, 205, 0.84) !important;
+  font-family:
+    "Fude Goshirae", "Shippori Mincho", "Yu Mincho", serif !important;
+  font-size: var(--match-info-label-font-size) !important;
+  font-weight: 900 !important;
+  line-height: 1.15 !important;
+  letter-spacing: 0.03em !important;
+  white-space: nowrap !important;
+
+  text-align: left !important;
+  text-shadow:
+    0 2px 0 rgba(0, 0, 0, 0.62),
+    0 0 6px rgba(255, 232, 170, 0.08) !important;
+
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+/* -----------------------------
+   右側値エリア
+----------------------------- */
+.play-screen .room-management-dialog .match-info-value {
+  grid-column: 2 !important;
+
+  translate: var(--match-info-value-offset-x) var(--match-info-value-offset-y) !important;
+
+  min-width: 0 !important;
+  max-width: 100% !important;
+
+  display: grid !important;
+  align-items: center !important;
+  justify-items: center !important;
+  gap: 5px !important;
+
+  overflow: visible !important;
+}
+
+.play-screen .room-management-dialog .match-info-value > strong,
+.play-screen .room-management-dialog .match-info-row > strong {
+  min-width: 0 !important;
+  max-width: 100% !important;
+
+  color: rgba(255, 253, 246, 0.96) !important;
+  font-family:
+    "Fude Goshirae", "Shippori Mincho", "Yu Mincho", serif !important;
+  font-size: var(--match-info-value-font-size) !important;
+  font-weight: 900 !important;
+  line-height: 1.08 !important;
+  letter-spacing: 0.02em !important;
+  white-space: normal !important;
+  overflow-wrap: anywhere !important;
+
+  text-align: center !important;
+  text-shadow:
+    0 2px 0 rgba(0, 0, 0, 0.68),
+    0 0 8px rgba(255, 250, 220, 0.1) !important;
+
+  overflow: visible !important;
+  text-overflow: clip !important;
+}
+
+/* -----------------------------
+   ボタン/select付き行
+   値は上、操作部は下。
+   右側文字の縦ラインを他項目と揃える。
+----------------------------- */
+.play-screen .room-management-dialog .match-info-value--stacked {
+  justify-items: center !important;
+  align-content: center !important;
+  gap: 6px !important;
+}
+
+.play-screen .room-management-dialog .match-info-subcontrol {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  gap: var(--match-info-control-gap) !important;
+  flex-wrap: wrap !important;
+
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+/* -----------------------------
+   変更ボタン
+   背景に浸透させる軽いCSSボタン
+----------------------------- */
+.play-screen .room-management-dialog .match-info-change-button {
+  width: var(--match-info-control-width) !important;
+  min-width: var(--match-info-control-width) !important;
+  max-width: var(--match-info-control-width) !important;
+
+  height: var(--match-info-control-height) !important;
+  min-height: var(--match-info-control-height) !important;
+  max-height: var(--match-info-control-height) !important;
+
+  box-sizing: border-box !important;
+  aspect-ratio: auto !important;
+
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  padding: 0 !important;
+
+  color: rgba(255, 248, 226, 0.9) !important;
+  font-family:
+    "Fude Goshirae", "Shippori Mincho", "Yu Mincho", serif !important;
+  font-size: var(--match-info-control-font-size) !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+
+  background: linear-gradient(
+    180deg,
+    rgba(38, 91, 72, 0.38),
+    rgba(13, 45, 38, 0.48)
+  ) !important;
+  background-image: linear-gradient(
+    180deg,
+    rgba(38, 91, 72, 0.38),
+    rgba(13, 45, 38, 0.48)
+  ) !important;
+
+  border: 1px solid rgba(198, 161, 86, 0.34) !important;
+  border-radius: 5px !important;
+
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 242, 185, 0.05),
+    inset 0 0 8px rgba(0, 0, 0, 0.18) !important;
+
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.62) !important;
+
+  transform: none !important;
+  filter: none !important;
+}
+
+.play-screen .room-management-dialog .match-info-change-button:hover {
+  filter: brightness(1.08) !important;
+}
+
+/* -----------------------------
+   select
+   これも背景に浸透させる
+----------------------------- */
+.play-screen .room-management-dialog .match-info-row select {
+  width: calc(var(--match-info-control-width) + 22px) !important;
+  min-width: calc(var(--match-info-control-width) + 22px) !important;
+  max-width: calc(var(--match-info-control-width) + 22px) !important;
+
+  height: var(--match-info-control-height) !important;
+  min-height: var(--match-info-control-height) !important;
+  max-height: var(--match-info-control-height) !important;
+
+  box-sizing: border-box !important;
+
+  color: rgba(255, 253, 246, 0.92) !important;
+  font-family:
+    "Fude Goshirae", "Shippori Mincho", "Yu Mincho", serif !important;
+  font-size: var(--match-info-control-font-size) !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+
+  padding: 0 6px !important;
+
+  background: linear-gradient(
+    180deg,
+    rgba(22, 55, 54, 0.48),
+    rgba(8, 28, 28, 0.58)
+  ) !important;
+
+  border: 1px solid rgba(198, 161, 86, 0.34) !important;
+  border-radius: 5px !important;
+
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 242, 185, 0.04),
+    inset 0 0 8px rgba(0, 0, 0, 0.2) !important;
+
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.58) !important;
+}
+
+/* -----------------------------
+   プレイヤー一覧行
+----------------------------- */
+.play-screen .room-management-dialog .match-info-row--players {
+  min-height: var(--match-info-player-row-min-height) !important;
+  align-items: center !important;
+}
+
+.play-screen .room-management-dialog .match-info-players {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+
+  display: grid !important;
+  gap: 3px !important;
+
+  align-self: center !important;
+  justify-items: stretch !important;
+
+  overflow: hidden !important;
+}
+
+.play-screen .room-management-dialog .match-info-player {
+  display: grid !important;
+  grid-template-columns: 42px minmax(0, 1fr) !important;
+  align-items: center !important;
+  column-gap: 6px !important;
+
+  min-width: 0 !important;
+  max-width: 100% !important;
+
+  overflow: hidden !important;
+}
+
+.play-screen .room-management-dialog .match-info-host-badge {
+  justify-self: center !important;
+  align-self: center !important;
+
+  min-width: 32px !important;
+  max-width: 32px !important;
+
+  box-sizing: border-box !important;
+
+  color: rgba(255, 232, 160, 0.94) !important;
+  font-family:
+    "Fude Goshirae", "Shippori Mincho", "Yu Mincho", serif !important;
+  font-size: var(--match-info-host-font-size) !important;
+  font-weight: 900 !important;
+  font-style: normal !important;
+  line-height: 1 !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+
+  border: 1px solid rgba(214, 165, 64, 0.46) !important;
+  border-radius: 999px !important;
+  padding: 2px 4px !important;
+
+  background: rgba(19, 35, 27, 0.38) !important;
+}
+
+.play-screen .room-management-dialog .match-info-host-badge.is-empty {
+  visibility: hidden !important;
+}
+
+.play-screen .room-management-dialog .match-info-player strong {
+  min-width: 0 !important;
+  max-width: 100% !important;
+
+  color: rgba(255, 253, 246, 0.96) !important;
+  font-family:
+    "Fude Goshirae", "Shippori Mincho", "Yu Mincho", serif !important;
+  font-size: var(--match-info-player-font-size) !important;
+  font-weight: 900 !important;
+  line-height: 1.12 !important;
+  white-space: nowrap !important;
+
+  text-align: left !important;
+  text-shadow:
+    0 2px 0 rgba(0, 0, 0, 0.68),
+    0 0 6px rgba(255, 250, 220, 0.08) !important;
+
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+/* 旧 em HOST 用が残っていても邪魔しない */
+.play-screen .room-management-dialog .match-info-player em {
+  display: none !important;
 }
