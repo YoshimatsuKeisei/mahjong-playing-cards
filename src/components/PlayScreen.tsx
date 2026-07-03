@@ -3766,93 +3766,128 @@ function RoomManagementDialog({
 
               {selectedTab === "matchInfo" && (
                 <>
-                  <div className="match-info-list">
-                    <div className="match-info-row">
-                      <span>ルーム名</span>
-                      <strong>
-                        {matchState?.roomName ?? room?.roomId ?? "ルーム"}
-                      </strong>
-                    </div>
-                    <div
-                      className="match-info-row match-info-row--players"
-                      style={
-                        {
-                          "--match-info-player-count":
-                            matchGameState.players.length,
-                        } as CSSProperties
-                      }
-                    >
-                      <span>プレイヤー</span>
-                      <div className="match-info-players">
-                        {matchGameState.players.map((player, index) => (
-                          <div className="match-info-player" key={player.id}>
-                            <em>
-                              {!player.isCpu && player.id === room?.hostPlayerId
-                                ? "HOST"
-                                : ""}
-                            </em>
-                            <strong>
-                              Player{index + 1}:{" "}
-                              {formatMatchInfoPlayerName(player)}
-                            </strong>
-                          </div>
-                        ))}
+                  <div
+                    className="match-info-list"
+                    style={
+                      {
+                        "--match-info-player-count":
+                          matchGameState.players.length,
+                      } as CSSProperties
+                    }
+                  >
+                    <div className="match-info-row match-info-row--room-name">
+                      <span className="match-info-label">ルーム名</span>
+                      <div className="match-info-value">
+                        <strong>
+                          {matchState?.roomName ?? room?.roomId ?? "ルーム"}
+                        </strong>
                       </div>
                     </div>
-                    <div className="match-info-row">
-                      <span>人数</span>
-                      <strong>{matchGameState.players.length}人</strong>
+
+                    <div className="match-info-row match-info-row--players">
+                      <span className="match-info-label">プレイヤー</span>
+                      <div className="match-info-value match-info-players">
+                        {matchGameState.players.map((player, index) => {
+                          const isHost =
+                            !player.isCpu && player.id === room?.hostPlayerId;
+
+                          return (
+                            <div className="match-info-player" key={player.id}>
+                              <span
+                                className={`match-info-host-badge ${
+                                  isHost ? "" : "is-empty"
+                                }`}
+                              >
+                                HOST
+                              </span>
+                              <strong>
+                                Player{index + 1}:{" "}
+                                {formatMatchInfoPlayerName(player)}
+                              </strong>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
-                    <div className="match-info-row">
-                      <span>試合形式</span>
-                      <strong>{matchTypeLabel}</strong>
+
+                    <div className="match-info-row match-info-row--player-count">
+                      <span className="match-info-label">人数</span>
+                      <div className="match-info-value">
+                        <strong>{matchGameState.players.length}人</strong>
+                      </div>
                     </div>
-                    <div className="match-info-row">
-                      <span>試合形式の詳細</span>
-                      <strong>{matchDetail}</strong>
-                      {canEditRounds && (
-                        <button
-                          type="button"
-                          className="match-info-change-button"
-                          onClick={() => startEditingSetting("rounds")}
-                        >
-                          変更
-                        </button>
-                      )}
-                      {canEditTargetScore && (
-                        <button
-                          type="button"
-                          className="match-info-change-button"
-                          onClick={() => startEditingSetting("targetScore")}
-                        >
-                          変更
-                        </button>
-                      )}
+
+                    <div className="match-info-row match-info-row--match-type">
+                      <span className="match-info-label">試合形式</span>
+                      <div className="match-info-value">
+                        <strong>{matchTypeLabel}</strong>
+                      </div>
                     </div>
-                    <div className="match-info-row">
-                      <span>現在の局</span>
-                      <strong>{currentRoundNumber}局目</strong>
+
+                    <div className="match-info-row match-info-row--match-detail">
+                      <span className="match-info-label">試合形式の詳細</span>
+                      <div className="match-info-value match-info-value--stacked">
+                        <strong>{matchDetail}</strong>
+
+                        {(canEditRounds || canEditTargetScore) && (
+                          <div className="match-info-subcontrol">
+                            {canEditRounds && (
+                              <button
+                                type="button"
+                                className="match-info-change-button"
+                                onClick={() => startEditingSetting("rounds")}
+                              >
+                                変更
+                              </button>
+                            )}
+                            {canEditTargetScore && (
+                              <button
+                                type="button"
+                                className="match-info-change-button"
+                                onClick={() =>
+                                  startEditingSetting("targetScore")
+                                }
+                              >
+                                変更
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
+
+                    <div className="match-info-row match-info-row--current-round">
+                      <span className="match-info-label">現在の局</span>
+                      <div className="match-info-value">
+                        <strong>{currentRoundNumber}局目</strong>
+                      </div>
+                    </div>
+
                     {onlinePlayerId && onUpdateSubstituteCpuModel && (
-                      <div className="match-info-row">
-                        <span>代行CPUモデル</span>
-                        <strong>
-                          {getCpuModelDisplayName(substituteCpuModelId)}
-                        </strong>
-                        <select
-                          aria-label="代行CPUモデル"
-                          value={substituteCpuModelId}
-                          onChange={(event) =>
-                            onUpdateSubstituteCpuModel(
-                              event.target.value as CpuModelId,
-                            )
-                          }
-                        >
-                          <option value="easy">junior-CPU</option>
-                          <option value="standard">standard-CPU</option>
-                          <option value="tactical">pro-CPU</option>
-                          <option value="master">master-CPU</option>
-                        </select>
+                      <div className="match-info-row match-info-row--cpu-model">
+                        <span className="match-info-label">代行CPUモデル</span>
+                        <div className="match-info-value match-info-value--stacked">
+                          <strong>
+                            {getCpuModelDisplayName(substituteCpuModelId)}
+                          </strong>
+
+                          <div className="match-info-subcontrol">
+                            <select
+                              aria-label="代行CPUモデル"
+                              value={substituteCpuModelId}
+                              onChange={(event) =>
+                                onUpdateSubstituteCpuModel(
+                                  event.target.value as CpuModelId,
+                                )
+                              }
+                            >
+                              <option value="easy">junior-CPU</option>
+                              <option value="standard">standard-CPU</option>
+                              <option value="tactical">pro-CPU</option>
+                              <option value="master">master-CPU</option>
+                            </select>
+                          </div>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -3945,12 +3980,7 @@ function getMatchDetailText(matchState?: MatchState) {
 }
 
 function formatMatchInfoPlayerName(player: GameState["players"][number]) {
-  const displayName = stripSeatPrefix(player.name);
-  if (!player.isCpu) return displayName;
-  const modelLabel = player.cpuModelId
-    ? getCpuModelDisplayName(player.cpuModelId)
-    : "CPU";
-  return `${displayName} ${modelLabel}`;
+  return stripSeatPrefix(player.name).trim();
 }
 
 function stripSeatPrefix(name: string) {
